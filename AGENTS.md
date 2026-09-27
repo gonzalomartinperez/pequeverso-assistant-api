@@ -34,6 +34,8 @@ assistant speaks neutral Latin American Spanish. Read this file, then the doc fo
 - Before a PR: `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
   && uv run python -m contracts.export --check`. For image changes, also `scripts/smoke_container.sh`.
 - No deploys, DNS or production changes from this repository (vps-ops owns them).
+- Dependabot PRs follow `docs/dependency-updates.md`. The policy workflow never merges directly,
+  and nothing here authorizes merging an ineligible update or anything into `main`.
 
 ## Skills
 

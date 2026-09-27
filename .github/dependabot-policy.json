@@ -1,0 +1,8 @@
+{
+  "description": "Unattended-merge allowlist for Dependabot PRs into develop (docs/dependency-updates.md). Everything not listed, and every major, prerelease, 0.x minor, GitHub Actions or Docker update, needs human review.",
+  "base_branch": "develop",
+  "allowed_files": ["pyproject.toml", "uv.lock"],
+  "patch": ["fastapi", "uvicorn", "httpx", "pydantic-settings", "annotated-types", "anyio", "idna", "sniffio", "h11", "click", "typing-extensions", "typing-inspection", "pytest", "ruff", "mypy", "pluggy", "iniconfig", "packaging", "pygments", "mypy-extensions", "pathspec", "librt"],
+  "minor": ["pytest", "ruff", "mypy", "pluggy", "iniconfig", "pygments"],
+  "required_checks": ["checks"]
+}
