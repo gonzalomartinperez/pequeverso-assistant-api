@@ -86,3 +86,17 @@ are never auto-qualified because they are security updates.
   environment variables. No PAT, no secrets, no deployment credentials. Actions are pinned by SHA.
 - CI (`quality.yml`) runs on the PR's own `pull_request` event with a read-only token and no
   secrets, as GitHub does for Dependabot.
+
+## Live verification (2026-09-27)
+
+- After the config reached `develop` (`c0f842e`), Dependabot's first run opened PR #3
+  (`build(docker): Bump astral-sh/uv from 0.12.10 to 0.12.19`, head `5c776f8`). The uv and
+  Actions ecosystems had no updates.
+- The `Dependabot policy` workflow ran on `pull_request_target` (run 36336971467). Identity checks
+  passed; the decision was `eligible: false`, reason "unexpected files changed: Dockerfile".
+  Auto-merge stayed off (`autoMergeRequest: null`). `Quality` also ran on the PR with
+  Dependabot's read-only token and passed.
+- PR #3 is left open for human review (base-image change). If merged, also bump `UV_VERSION` in
+  `quality.yml` to keep CI and the image on the same uv.
+- **Not yet observed live:** an *eligible* uv patch PR (none was available) and the
+  enable-auto-merge path (impossible until branch protection exists).
