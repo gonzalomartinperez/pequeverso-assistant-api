@@ -9,7 +9,7 @@ description: Release develop into main, or ship an owner-authorized hotfix, with
 "sincronizá main").
 1. `develop` CI is green and there are no open task PRs meant for the release.
 2. `gh pr create --base main --head develop --title "release: ..."` listing the included PRs.
-3. After `checks` and `Branch policy (main)` pass: `gh pr merge <n> --merge --auto` (merge commit, never
+3. After `checks` passes: `gh pr merge <n> --merge --auto` (merge commit, never
    squash, so both branches keep shared history). Never `--admin`.
 4. Verify: `git rev-list --count origin/main..origin/develop` is 0 and
    `git diff origin/main origin/develop` is empty. Only `main` and `develop` remain.
@@ -23,5 +23,5 @@ authorization, stop and ask.
 3. Immediately open a PR `main` → `develop` (merge commit) so `develop` contains the fix.
 4. Verify both branches are synchronized as in step 4 of the release.
 
-Never push to `main`, change or disable rulesets, add bypass actors, or use `--admin`.
-`Branch policy (main)` rejects any other head branch for `main`.
+Never push to `main`, change or disable the branch protection, add bypass actors, or use
+`--admin`. `main` only receives `develop` (release) or `hotfix/*` (authorized hotfix).
