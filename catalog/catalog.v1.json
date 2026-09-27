@@ -1,0 +1,382 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-27T16:41:39+00:00",
+  "source": {
+    "repository": "gonzalomartinperez/pequeverso",
+    "revision": "ae6d237877c248551be988af9be920eac69b16da"
+  },
+  "site": {
+    "name": "Pequeverso",
+    "origin": "https://pequeverso.com",
+    "language": "es",
+    "support_email": "somospequeverso@gmail.com",
+    "support_link_id": "support"
+  },
+  "products": [
+    {
+      "id": "grafismo-fonetico",
+      "name": "Grafismo Fonético",
+      "path": "/grafismo-fonetico/",
+      "purchase_path": "/grafismo-fonetico/#comprar",
+      "summary": "Kit imprimible de 9 PDF y 414 páginas para practicar letras, sonidos, sílabas, palabras y trazos en casa, 10 minutos por día. Para niños de 3 a 7 años. Acceso digital inmediato.",
+      "age_range": "3 a 7 años",
+      "format": "Archivos PDF en tamaño A4 para imprimir en casa, en una papelería o en un centro de impresión, las veces que quieras. No es un producto físico: recibes el acceso por correo tras la aprobación del pago.",
+      "usage": "Eliges una hoja por día y la practican unos 10 minutos: mira la sílaba y su imagen, di el sonido en voz alta, traza la palabra punteada y une las sílabas. La guía incluida te ayuda a elegir por dónde empezar.",
+      "pdf_count": 9,
+      "page_count": 414,
+      "image": {
+        "url": "https://pequeverso.com/media/gf/gf-hero-w1440-7f01b3ea.webp",
+        "width": 1440,
+        "height": 1080,
+        "alt": "Kit completo Grafismo Fonético impreso junto a sus ocho recursos complementarios"
+      },
+      "price": {
+        "amount": "14.99",
+        "currency": "USD",
+        "display": "US$14,99",
+        "note": "Precio de referencia en dólares (USD). Hotmart lo convierte a tu moneda local y muestra el total final, con impuestos, antes de pagar.",
+        "tax_note": "+ impuestos aplicables según el país"
+      },
+      "resources": [
+        {
+          "id": "paso-a-paso",
+          "title": "Grafismo Fonético Paso a Paso",
+          "pages": 120,
+          "description": "Material principal. El material central: sílabas grandes, imágenes reconocibles, palabras para trazar y actividades listas para imprimir.",
+          "image": {
+            "url": "https://pequeverso.com/media/gf-cards/gf-card-01-w720-ffe520be.webp",
+            "width": 720,
+            "height": 540,
+            "alt": "Portada del PDF principal Grafismo Fonético Paso a Paso"
+          }
+        },
+        {
+          "id": "10-minutos",
+          "title": "10 Minutos de Grafismo Fonético",
+          "pages": 16,
+          "description": "Bono incluido. Una guía breve para elegir la hoja del día y acompañar la práctica sin convertirla en una clase larga.",
+          "image": {
+            "url": "https://pequeverso.com/media/gf-cards/gf-card-02-w720-45775e77.webp",
+            "width": 720,
+            "height": 540,
+            "alt": "Portada del bono 10 Minutos de Grafismo Fonético"
+          }
+        },
+        {
+          "id": "silabas-en-tus-manos",
+          "title": "Sílabas en Tus Manos",
+          "pages": 40,
+          "description": "Bono incluido. Tarjetas recortables para mezclar, repasar y formar palabras de una manera más dinámica.",
+          "image": {
+            "url": "https://pequeverso.com/media/gf-cards/gf-card-03-w720-83874807.webp",
+            "width": 720,
+            "height": 540,
+            "alt": "Portada del bono Sílabas en Tus Manos"
+          }
+        },
+        {
+          "id": "21-dias",
+          "title": "21 Días de Grafismo Fonético en Casa",
+          "pages": 28,
+          "description": "Bono incluido. Un calendario para sostener una rutina breve y marcar cada día de práctica.",
+          "image": {
+            "url": "https://pequeverso.com/media/gf-cards/gf-card-04-w720-f0cd4a22.webp",
+            "width": 720,
+            "height": 540,
+            "alt": "Portada del bono 21 Días de Grafismo Fonético en Casa"
+          }
+        },
+        {
+          "id": "safari",
+          "title": "Safari de Sonidos y Sílabas",
+          "pages": 40,
+          "description": "Bono incluido. Animales, sonidos y palabras simples para sumar variedad visual a cada práctica.",
+          "image": {
+            "url": "https://pequeverso.com/media/gf-cards/gf-card-05-w720-4df61f53.webp",
+            "width": 720,
+            "height": 540,
+            "alt": "Portada del bono Safari de Sonidos y Sílabas"
+          }
+        },
+        {
+          "id": "juega",
+          "title": "Juega con Sonidos y Sílabas",
+          "pages": 50,
+          "description": "Bono incluido. Bingo, memoria, dominó, ruletas y tableros para cambiar el formato de repaso.",
+          "image": {
+            "url": "https://pequeverso.com/media/gf-cards/gf-card-06-w720-7c9b6c81.webp",
+            "width": 720,
+            "height": 540,
+            "alt": "Portada del bono Juega con Sonidos y Sílabas"
+          }
+        },
+        {
+          "id": "sonidos-de-mi-casa",
+          "title": "Los Sonidos de Mi Casa",
+          "pages": 40,
+          "description": "Bono incluido. Actividades con objetos cotidianos y palabras cercanas que resultan fáciles de reconocer.",
+          "image": {
+            "url": "https://pequeverso.com/media/gf-cards/gf-card-07-w720-cd5b2e46.webp",
+            "width": 720,
+            "height": 540,
+            "alt": "Portada del bono Los Sonidos de Mi Casa"
+          }
+        },
+        {
+          "id": "pared-de-sonidos",
+          "title": "Mi Pared de Sonidos",
+          "pages": 40,
+          "description": "Bono incluido. Material visual para imprimir, plastificar o dejar a mano como apoyo durante la semana.",
+          "image": {
+            "url": "https://pequeverso.com/media/gf-cards/gf-card-08-w720-153b940f.webp",
+            "width": 720,
+            "height": 540,
+            "alt": "Portada del bono Mi Pared de Sonidos"
+          }
+        },
+        {
+          "id": "letras-de-mi-mundo",
+          "title": "Las Letras de Mi Mundo",
+          "pages": 40,
+          "description": "Bono incluido. Páginas para trabajar el nombre, las iniciales, la familia y palabras significativas para cada niño.",
+          "image": {
+            "url": "https://pequeverso.com/media/gf-cards/gf-card-09-w720-d46aa898.webp",
+            "width": 720,
+            "height": 540,
+            "alt": "Portada del bono Las Letras de Mi Mundo"
+          }
+        }
+      ],
+      "method": [
+        "Mira: Observa la sílaba grande y la imagen que la acompaña.",
+        "Di: Pronuncia el sonido en voz alta, primero contigo y luego solo.",
+        "Traza: Sigue la palabra punteada con el dedo y después con el lápiz.",
+        "Une: Junta las sílabas y descubre la palabra completa."
+      ],
+      "audience_for": [
+        "Acompañas a un niño de 3 a 7 años que empieza con letras y sonidos.",
+        "Prefieres un material ordenado antes que fichas sueltas.",
+        "Puedes imprimir en casa o en una papelería."
+      ],
+      "audience_not_for": [
+        "Buscas un método que prometa resultados en un plazo.",
+        "Prefieres pantallas o una app en lugar de papel y lápiz.",
+        "Tu hijo ya lee con fluidez y buscas comprensión lectora."
+      ],
+      "age_guidance": [
+        {
+          "label": "3–4 años",
+          "hint": "Empieza por las páginas de sonidos y trazo guiado: hojas cortas, una por día."
+        },
+        {
+          "label": "5 años",
+          "hint": "Sílabas grandes con imagen y la primera palabra para unir."
+        },
+        {
+          "label": "6–7 años",
+          "hint": "Palabras completas, tarjetas y juegos para repasar."
+        }
+      ]
+    }
+  ],
+  "documents": [
+    {
+      "id": "faq.grafismo-fonetico.01",
+      "kind": "faq",
+      "title": "¿Mi hijo ya tiene que saber leer?",
+      "text": "No. Está pensado para acompañar una etapa inicial: reconocer letras y sonidos, combinar sílabas y practicar primeros trazos. Puedes elegir las páginas que mejor se adapten a su momento.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "faq.grafismo-fonetico.02",
+      "kind": "faq",
+      "title": "¿Para qué edades se recomienda?",
+      "text": "La recomendación orientativa es de 3 a 7 años. La edad no reemplaza observar el ritmo, el interés y las habilidades actuales de cada niño.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "faq.grafismo-fonetico.03",
+      "kind": "faq",
+      "title": "¿Cómo funciona la garantía de 7 días?",
+      "text": "Tienes 7 días desde la compra para solicitar un reembolso a través de Hotmart, de acuerdo con las condiciones informadas en la página de pago.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "faq.grafismo-fonetico.04",
+      "kind": "faq",
+      "title": "¿Cuánto tiempo conviene practicar?",
+      "text": "Puedes comenzar con aproximadamente 10 minutos y una sola hoja. No es una regla: acorta, repite o pausa la actividad según la respuesta del niño.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "faq.grafismo-fonetico.05",
+      "kind": "faq",
+      "title": "¿Qué incluye exactamente la compra?",
+      "text": "Recibes el material principal, Grafismo Fonético Paso a Paso, y ocho bonos incluidos en el mismo pago: guía, tarjetas, reto, animales, juegos, sonidos del hogar, pósteres y actividades sobre el nombre y la familia. En total, 9 PDF y 414 páginas. Los bonos no se pagan aparte.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "faq.grafismo-fonetico.06",
+      "kind": "faq",
+      "title": "¿Recibo un producto físico?",
+      "text": "No. Es un producto 100% digital. Recibes el acceso por correo electrónico y puedes imprimir el material en casa, en una papelería o en un centro de impresión.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "faq.grafismo-fonetico.07",
+      "kind": "faq",
+      "title": "¿Tengo que imprimir todo el material?",
+      "text": "No. Puedes imprimir una sola página, elegir una actividad para ese día o crear una carpeta con tu selección. Los archivos quedan disponibles para volver a utilizarlos.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "faq.grafismo-fonetico.08",
+      "kind": "faq",
+      "title": "¿Necesito experiencia docente?",
+      "text": "No. La guía explica una forma sencilla de comenzar. El material acompaña la práctica familiar y también puede servir como recurso complementario para docentes.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "faq.grafismo-fonetico.09",
+      "kind": "faq",
+      "title": "¿El kit garantiza que aprenderá a leer?",
+      "text": "No se prometen resultados específicos ni plazos de aprendizaje. El kit aporta material organizado para practicar; cada niño avanza de manera diferente.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "faq.grafismo-fonetico.10",
+      "kind": "faq",
+      "title": "¿Cómo accedo después de comprar?",
+      "text": "Hotmart envía el acceso al correo utilizado en la compra. También puedes ingresar en consumer.hotmart.com con ese mismo correo y revisar “Mis compras”.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "faq.grafismo-fonetico.11",
+      "kind": "faq",
+      "title": "¿Puedo pagar en mi moneda?",
+      "text": "Sí. El precio se muestra en dólares (USD) como referencia; Hotmart lo convierte automáticamente a la moneda de tu país y te muestra el total final, con la conversión y los impuestos incluidos, antes de confirmar. Los medios de pago dependen del país (tarjeta, PayPal, Pix, OXXO y otros locales). El cargo aparecerá a nombre de Hotmart y tu banco puede aplicar su propio tipo de cambio o comisión si lo trata como compra internacional.",
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+    },
+    {
+      "id": "policy.guarantee",
+      "kind": "policy",
+      "title": "Garantía y reembolsos",
+      "text": "Tienes 7 días desde la compra para pedir el reembolso a través de Hotmart, en refund.hotmart.com, con tu número de transacción (empieza con HP). El productor tiene hasta 5 días para responder y la aprobación puede tardar hasta 7 días. El dinero vuelve por el mismo medio de pago: hasta 30 días en transferencias bancarias y hasta 90 días en tarjetas de crédito; en tarjetas, PayPal, Google Pay y Apple Pay suele verse en el resumen actual o el siguiente.",
+      "url": "https://pequeverso.com/compras-y-reembolsos/"
+    },
+    {
+      "id": "policy.payment",
+      "kind": "policy",
+      "title": "Pago y moneda",
+      "text": "Precio de referencia en dólares (USD). Hotmart lo convierte a tu moneda local y muestra el total final, con impuestos, antes de pagar. El pago se hace en la página segura de Hotmart, que es quien procesa el cobro; el cargo aparece a nombre de Hotmart. Pequeverso no ve ni guarda datos de pago.",
+      "url": "https://pequeverso.com/compras-y-reembolsos/"
+    },
+    {
+      "id": "policy.delivery",
+      "kind": "policy",
+      "title": "Entrega digital",
+      "text": "Es un producto digital, no se envía nada físico. Hotmart envía el acceso al correo usado en la compra cuando aprueba el pago; también se entra en consumer.hotmart.com con ese correo, en “Mis compras”. Con pagos no inmediatos (boleto, transferencia o efectivo) el acceso se libera cuando Hotmart confirma el pago.",
+      "url": "https://pequeverso.com/soporte/"
+    },
+    {
+      "id": "policy.withdrawal-ar",
+      "kind": "policy",
+      "title": "Botón de arrepentimiento (Argentina)",
+      "text": "Si compras desde Argentina, la ley de defensa del consumidor te permite revocar la compra dentro de 10 días corridos; la página de arrepentimiento explica cómo pedirlo y en otros países rigen tus propias normas.",
+      "url": "https://pequeverso.com/arrepentimiento/"
+    },
+    {
+      "id": "support.route.1",
+      "kind": "support",
+      "title": "No encuentro mi compra",
+      "text": "Revisa Spam y Promociones y entra en consumer.hotmart.com con el correo que usaste al pagar. Ahí están tus archivos.",
+      "url": "https://pequeverso.com/soporte/"
+    },
+    {
+      "id": "support.route.2",
+      "kind": "support",
+      "title": "Quiero un reembolso",
+      "text": "Tienes 7 días desde la compra. Pídelo en refund.hotmart.com con tu número de transacción (empieza con HP).",
+      "url": "https://pequeverso.com/soporte/"
+    },
+    {
+      "id": "support.route.3",
+      "kind": "support",
+      "title": "Otra duda",
+      "text": "Escríbenos y te respondemos con calma, normalmente en 48 horas hábiles. Incluye el correo de la compra si ya compraste.",
+      "url": "https://pequeverso.com/soporte/"
+    },
+    {
+      "id": "support.limits",
+      "kind": "support",
+      "title": "Lo que no podemos hacer",
+      "text": "Ver o modificar datos de pago. Cambiar el correo de una compra. Esas gestiones las hace Hotmart desde su centro de ayuda.",
+      "url": "https://pequeverso.com/soporte/"
+    },
+    {
+      "id": "support.contact",
+      "kind": "support",
+      "title": "Contacto",
+      "text": "Soporte por correo en somospequeverso@gmail.com; respondemos normalmente en 48 horas hábiles. Incluye el correo de la compra y el código de transacción HP si ya compraste.",
+      "url": "https://pequeverso.com/soporte/"
+    },
+    {
+      "id": "support.access.1",
+      "kind": "support",
+      "title": "No llegó el correo",
+      "text": "Revisa Spam y Promociones. Luego entra directamente a consumer.hotmart.com con el correo de la compra.",
+      "url": "https://pequeverso.com/soporte/"
+    },
+    {
+      "id": "support.access.2",
+      "kind": "support",
+      "title": "Pagué con boleto, transferencia o efectivo",
+      "text": "El acceso se libera cuando Hotmart confirma el pago; puede demorar hasta que el método lo procese.",
+      "url": "https://pequeverso.com/soporte/"
+    },
+    {
+      "id": "support.access.3",
+      "kind": "support",
+      "title": "Compré con otro correo",
+      "text": "Hotmart puede ayudarte a cambiar el correo de acceso desde su centro de ayuda.",
+      "url": "https://pequeverso.com/soporte/"
+    }
+  ],
+  "links": [
+    {
+      "id": "support",
+      "label": "Soporte y contacto",
+      "url": "https://pequeverso.com/soporte/"
+    },
+    {
+      "id": "purchases-refunds",
+      "label": "Compras y reembolsos",
+      "url": "https://pequeverso.com/compras-y-reembolsos/"
+    },
+    {
+      "id": "withdrawal",
+      "label": "Botón de arrepentimiento",
+      "url": "https://pequeverso.com/arrepentimiento/"
+    },
+    {
+      "id": "hotmart-purchases",
+      "label": "Mis compras en Hotmart",
+      "url": "https://consumer.hotmart.com/"
+    },
+    {
+      "id": "hotmart-refund",
+      "label": "Pedir reembolso en Hotmart",
+      "url": "https://refund.hotmart.com/refund?lang=es"
+    },
+    {
+      "id": "product-page.grafismo-fonetico",
+      "label": "Ver Grafismo Fonético",
+      "url": "https://pequeverso.com/grafismo-fonetico/"
+    }
+  ],
+  "forbidden_terms": [
+    "Pack Imprime y Juega",
+    "Imprime y Juega",
+    "Trazos y Sonidos"
+  ]
+}
