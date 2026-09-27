@@ -4,7 +4,7 @@
 |---|---|
 | Discovery: storefront (catalog, policies, flow, deploy triggers), reference API, vps-ops boundary | Done 2026-09-27 |
 | Owner decisions: privacy section (draft + review), 24 h retention, placement, offer never mentioned | Answered 2026-09-27 |
-| Private repo, bootstrap `main`, `develop` default | Done |
+| Repository created private with bootstrap `main`; made **public** and `main` set as default at the owner's request (2026-09-27); rulesets on `main` and `develop` | Done |
 | Backend: domain, use cases, AI composer, SQLite, providers, HTTP/SSE, bootstrap | Merged, PR #1 (`0750524`) |
 | Catalog export from pinned storefront commit, freshness policy | Merged, PR #1 |
 | Tests (unit, contract, real-socket streaming, persistence, budget races, security, architecture) and evaluations | Merged, PR #1 |
