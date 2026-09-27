@@ -1,6 +1,6 @@
 # Agent guide: pequeverso-assistant-api
 
-Private backend of the Pequeverso shopping assistant. Engineering language is English; the
+Public backend of the Pequeverso shopping assistant. Engineering language is English; the
 assistant speaks neutral Latin American Spanish. Read this file, then the doc for your task
 (README table).
 
@@ -28,9 +28,13 @@ assistant speaks neutral Latin American Spanish. Read this file, then the doc fo
 
 ## Workflow
 
-- `develop` is the integration branch (default). `main` is reserved for releases, which need the
-  owner's explicit approval. Work on `type/kebab-case` branches → PR into `develop`. Conventional
+- `main` is the default and release branch; `develop` is the development branch. Work on
+  `type/kebab-case` branches → PR into `develop`. A release is a PR `develop` → `main`, merged only
+  with the owner's explicit approval. Both branches are protected by rulesets: PR required, strict
+  required status `checks` (GitHub Actions), no force push or deletion, no bypass. Conventional
   Commits; the PR body states what was verified and what was not.
+- The repository is public: never commit secrets, `.env*` files, customer data or real
+  conversations (secret scanning and push protection are on).
 - Before a PR: `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
   && uv run python -m contracts.export --check`. For image changes, also `scripts/smoke_container.sh`.
 - No deploys, DNS or production changes from this repository (vps-ops owns them).

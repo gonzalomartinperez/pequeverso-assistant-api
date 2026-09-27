@@ -2,7 +2,8 @@
 
 Backend of the Pequeverso shopping assistant: an **advisory, read-only** AI assistant that helps
 adult buyers understand the Grafismo Fonético kit, choose where to start, compare what is
-included and reach the storefront's purchase flow. Private repository; all rights reserved.
+included and reach the storefront's purchase flow. Public repository; no license is granted
+(all rights reserved). `main` is the default and release branch; development happens on `develop`.
 
 - Python 3.13, FastAPI, uv; SQLite (single process); OpenAI Responses (`gpt-6-luna`) behind a
   provider port; a deterministic **fixture provider is the default**.
@@ -42,7 +43,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 
 | Topic | Doc |
 |---|---|
-| Frontend contract (sessions, SSE, references, freshness, errors) | `docs/api-contract.md` + `contracts/` |
+| Frontend contract (sessions, SSE, references, freshness, errors) | `docs/api-contract.md` + `contracts/`, handoff `docs/handoffs/assistant-web.md` |
 | Architecture and decisions | `docs/architecture.md`, `docs/decisions/` |
 | Security, privacy, retention | `docs/security.md` |
 | Catalog source, sync, freshness | `docs/catalog.md` |

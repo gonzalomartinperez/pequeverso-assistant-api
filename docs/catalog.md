@@ -57,4 +57,5 @@ docs/handoffs/storefront-transition.md.
 
 Storefront copy and media are © Pequeverso, all rights reserved (storefront
 `LICENSE-CONTENT.md`). They are used here only to answer questions about Pequeverso's own
-product, in the owner's private repository. The owner has been asked to confirm this use.
+product; the same text is already public in the storefront repository. This repository is public
+and grants no license. The owner has been asked to confirm this use (docs/business-questions.md).

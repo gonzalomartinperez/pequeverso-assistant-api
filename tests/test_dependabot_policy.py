@@ -21,6 +21,7 @@ from dependabot_policy import (
     ci_state,
     classify,
     evaluate,
+    protection_from_rules,
 )
 
 POLICY = Policy.load()
@@ -222,3 +223,46 @@ def test_lockfile_only_change_without_version_change_needs_review() -> None:
 def test_closed_or_draft_pull_requests_are_rejected() -> None:
     assert not evaluate(facts(state='closed'), POLICY).eligible
     assert not evaluate(facts(draft=True), POLICY).eligible
+
+
+RULES = [
+    {'type': 'deletion'},
+    {'type': 'pull_request', 'parameters': {'required_approving_review_count': 0}},
+    {
+        'type': 'required_status_checks',
+        'parameters': {
+            'strict_required_status_checks_policy': True,
+            'required_status_checks': [{'context': 'checks', 'integration_id': 15368}],
+        },
+    },
+]
+
+
+def test_protection_requires_pull_requests_and_strict_required_checks() -> None:
+    assert protection_from_rules(RULES, POLICY.required_checks)
+    assert not protection_from_rules([], POLICY.required_checks)
+    assert not protection_from_rules(
+        [r for r in RULES if r['type'] != 'pull_request'], POLICY.required_checks
+    )
+    loose = [
+        *RULES[:2],
+        {
+            'type': 'required_status_checks',
+            'parameters': {
+                'strict_required_status_checks_policy': False,
+                'required_status_checks': [{'context': 'checks'}],
+            },
+        },
+    ]
+    assert not protection_from_rules(loose, POLICY.required_checks)
+    other = [
+        *RULES[:2],
+        {
+            'type': 'required_status_checks',
+            'parameters': {
+                'strict_required_status_checks_policy': True,
+                'required_status_checks': [{'context': 'lint'}],
+            },
+        },
+    ]
+    assert not protection_from_rules(other, POLICY.required_checks)

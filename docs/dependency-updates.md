@@ -1,23 +1,20 @@
 # Dependency updates and conservative auto-merge
 
-## Current state (2026-09-27)
+## Current state (2026-09-27, after the repository became public)
 
 | Control | State |
 |---|---|
-| Dependabot version updates (`.github/dependabot.yml`) | uv (weekly), GitHub Actions (weekly, grouped), Docker base images (monthly). All target `develop` |
-| Dependabot alerts and security updates | **Enabled** (repository settings). Security PRs target the default branch, which is `develop`; cooldowns do not delay them |
-| Policy workflow (`dependabot-policy.yml`) | Evaluates every Dependabot PR and records the decision in the job summary |
-| Native auto-merge | **Off, fail-closed.** This is a private repository on GitHub Free: branch protection and rulesets are unavailable (API 403), so required checks cannot be enforced and auto-merge would not be gated. The workflow enables auto-merge only when the base branch reports protection. Repository setting `allow_auto_merge` is off |
+| Branches | `main` is the default and release branch; `develop` is the development branch. Rulesets `protect-main` and `protect-develop`: PR required (0 approvals), required status `checks` from GitHub Actions (integration 15368) with **strict** up-to-date, no force push or deletion, no bypass actors |
+| Dependabot version updates (`.github/dependabot.yml`) | uv (weekly), GitHub Actions (weekly, grouped), Docker (monthly), all with `target-branch: develop`. **Dependabot reads this file only from the default branch (`main`)**, so version updates are paused until the file reaches `main` through an owner-approved release PR `develop` → `main` |
+| Dependabot alerts and security updates | Enabled. Security PRs target the **default branch (`main`)**, whatever `target-branch` says. The policy requires base `develop`, so they always get human review: merge into `main` after CI, then merge `main` back into `develop` in a PR |
+| Secret scanning and push protection | Enabled (public repository) |
+| Outside contributors | Workflow runs from forks need approval for all external contributors; the Actions token defaults to read-only and cannot approve PRs |
+| Policy workflow (`dependabot-policy.yml`) | Runs on `pull_request_target` from the PR's base branch; evaluates Dependabot PRs into `develop` and detects protection through the branch rules API (`protection_from_rules`) |
+| Native auto-merge | Repository setting "Allow auto-merge" **enabled**. The workflow turns it on per PR only for eligible Dependabot PRs into `develop`, bound to the evaluated head; the ruleset's strict required `checks` gates the actual merge |
 
-**To activate unattended merges (owner decision):**
-1. Upgrade to a plan with protected branches for private repositories (GitHub Pro or Team). The
-   repository's visibility is not ours to change.
-2. Protect `develop`: require the `checks` status and `Dependabot policy / Evaluate eligibility`,
-   require branches to be up to date (strict), no bypass.
-3. Enable "Allow auto-merge".
-
-The workflow is already deployed on `develop`, so nothing else changes. Until then, eligible PRs
-are labelled by the summary as eligible, and a maintainer merges them after CI passes.
+**Pending activation (owner):** approve and merge a release PR `develop` → `main` that brings
+`.github/dependabot.yml` to the default branch. Until then, no new version-update PRs are created;
+existing ones (PR #3) are still evaluated.
 
 ## Eligibility policy (`scripts/dependabot_policy.py`, `.github/dependabot-policy.json`)
 
@@ -71,7 +68,7 @@ are never auto-qualified because they are security updates.
 
 | Need | Action |
 |---|---|
-| Pause all automation | Set `open-pull-requests-limit: 0` in `.github/dependabot.yml` (PR), or disable the workflow in Actions settings |
+| Pause all automation | Disable "Allow auto-merge" in the repository settings (immediate), set `open-pull-requests-limit: 0` in `.github/dependabot.yml` (PR, effective once on `main`), or disable the policy workflow in Actions settings |
 | Force manual review on one PR | Push any commit or comment `@dependabot ignore`. A human commit makes the PR ineligible, and auto-merge is disabled on the next run |
 | Tighten or widen the allowlist | Edit `.github/dependabot-policy.json` in a PR with a test in `tests/test_dependabot_policy.py` |
 | Recover from a bad merged update | Open a normal PR on `develop` that reverts the lockfile change (`git revert <sha>`) or pins the previous version, then `@dependabot ignore this patch version` |
@@ -86,3 +83,17 @@ are never auto-qualified because they are security updates.
   environment variables. No PAT, no secrets, no deployment credentials. Actions are pinned by SHA.
 - CI (`quality.yml`) runs on the PR's own `pull_request` event with a read-only token and no
   secrets, as GitHub does for Dependabot.
+
+## Live verification (2026-09-27)
+
+- After the config reached `develop` (`c0f842e`), Dependabot's first run opened PR #3
+  (`build(docker): Bump astral-sh/uv from 0.12.10 to 0.12.19`, head `5c776f8`). The uv and
+  Actions ecosystems had no updates.
+- The `Dependabot policy` workflow ran on `pull_request_target` (run 36336971467). Identity checks
+  passed; the decision was `eligible: false`, reason "unexpected files changed: Dockerfile".
+  Auto-merge stayed off (`autoMergeRequest: null`). `Quality` also ran on the PR with
+  Dependabot's read-only token and passed.
+- PR #3 was reviewed by a person (a builder-stage uv binary bump, covered by the container smoke
+  test) and merged at the owner's request. CI's `UV_VERSION` was bumped to 0.12.19 alongside it.
+- **Not yet observed live:** an *eligible* uv patch PR (none was available) and the
+  enable-auto-merge path (impossible until branch protection exists).

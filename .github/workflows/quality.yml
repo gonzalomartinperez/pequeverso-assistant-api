@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  UV_VERSION: 0.12.10
+  UV_VERSION: 0.12.19
   AI_PROVIDER: fixture
   ALLOW_PAID_AI: "false"
 
