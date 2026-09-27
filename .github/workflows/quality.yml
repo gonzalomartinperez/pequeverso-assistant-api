@@ -1,0 +1,111 @@
+name: Quality
+
+# Every pull request and every push to develop/main: static checks, tests, contract drift,
+# deterministic evaluations and the container smoke. `checks` is the single required status.
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_VERSION: 0.12.10
+  AI_PROVIDER: fixture
+  ALLOW_PAID_AI: "false"
+
+jobs:
+  workflows:
+    name: Lint workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: actionlint
+        uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
+        with:
+          version: 1.7.12
+          pyflakes: false
+      - name: zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          version: 1.30.1
+          advanced-security: false
+          annotations: true
+          min-severity: low
+
+  static:
+    name: Lint, types, tests, contract, evaluations
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install (frozen lockfile)
+        run: uv sync --frozen
+      - name: Ruff
+        run: |
+          uv run ruff check --output-format=github .
+          uv run ruff format --check .
+      - name: Mypy (strict)
+        run: uv run mypy
+      - name: Tests
+        run: uv run pytest -q
+      - name: Contract artifacts are current
+        run: uv run python -m contracts.export --check
+      - name: Retrieval evaluation
+        run: uv run python scripts/evaluate_retrieval.py
+      - name: Conversation safety and guard evaluation (fixture)
+        run: uv run python scripts/evaluate_conversations.py
+
+  container:
+    name: Container build and smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and smoke the image
+        run: scripts/smoke_container.sh
+
+  checks:
+    name: checks
+    if: always()
+    needs: [workflows, static, container]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: All required jobs succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          for result in $RESULTS; do
+            if [ "$result" != "success" ]; then
+              echo "a required job finished with: $result"
+              exit 1
+            fi
+          done

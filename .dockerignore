@@ -1,0 +1,9 @@
+# Deny by default; the image needs only these paths.
+*
+!pyproject.toml
+!uv.lock
+!app/
+!migrations/
+!catalog/
+**/__pycache__
+**/.env*
