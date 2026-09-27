@@ -1,0 +1,130 @@
+{
+  "invalid_request": {
+    "error": {
+      "code": "invalid_request",
+      "message": "The request is invalid.",
+      "retryable": false,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "origin_denied": {
+    "error": {
+      "code": "origin_denied",
+      "message": "Origin not allowed.",
+      "retryable": false,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "csrf_failed": {
+    "error": {
+      "code": "csrf_failed",
+      "message": "Missing or invalid CSRF token.",
+      "retryable": false,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "session_expired": {
+    "error": {
+      "code": "session_expired",
+      "message": "No active session; open a new one.",
+      "retryable": false,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "rate_limited": {
+    "error": {
+      "code": "rate_limited",
+      "message": "Too many requests; try again later.",
+      "retryable": false,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "busy": {
+    "error": {
+      "code": "busy",
+      "message": "The assistant is busy; retry shortly.",
+      "retryable": true,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "run_in_progress": {
+    "error": {
+      "code": "run_in_progress",
+      "message": "Another answer is still being generated for this session.",
+      "retryable": false,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "idempotency_conflict": {
+    "error": {
+      "code": "idempotency_conflict",
+      "message": "This Idempotency-Key was already used for a different or failed request.",
+      "retryable": false,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "run_not_found": {
+    "error": {
+      "code": "run_not_found",
+      "message": "No active run with this id in this session.",
+      "retryable": false,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "budget_exhausted": {
+    "error": {
+      "code": "budget_exhausted",
+      "message": "The assistant reached its usage budget for now.",
+      "retryable": false,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "assistant_disabled": {
+    "error": {
+      "code": "assistant_disabled",
+      "message": "The assistant is disabled.",
+      "retryable": false,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "catalog_unavailable": {
+    "error": {
+      "code": "catalog_unavailable",
+      "message": "Catalog data is unavailable.",
+      "retryable": true,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "provider_unavailable": {
+    "error": {
+      "code": "provider_unavailable",
+      "message": "The answer service is unavailable.",
+      "retryable": true,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "generation_failed": {
+    "error": {
+      "code": "generation_failed",
+      "message": "The answer could not be generated.",
+      "retryable": true,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "timeout": {
+    "error": {
+      "code": "timeout",
+      "message": "The answer took too long.",
+      "retryable": true,
+      "request_id": "req_EXAMPLE"
+    }
+  },
+  "dependency_unavailable": {
+    "error": {
+      "code": "dependency_unavailable",
+      "message": "A dependency is unavailable.",
+      "retryable": true,
+      "request_id": "req_EXAMPLE"
+    }
+  }
+}

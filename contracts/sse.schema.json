@@ -1,0 +1,637 @@
+{
+  "$defs": {
+    "ImageOut": {
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "description": "Absolute https URL on the storefront origin.",
+          "title": "Url",
+          "type": "string"
+        },
+        "width": {
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "title": "Height",
+          "type": "integer"
+        },
+        "alt": {
+          "title": "Alt",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "width",
+        "height",
+        "alt"
+      ],
+      "title": "ImageOut",
+      "type": "object"
+    },
+    "LinkOut": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "url"
+      ],
+      "title": "LinkOut",
+      "type": "object"
+    },
+    "MessageCompletedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1",
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "sequence": {
+          "description": "0-based, strictly increasing within a run.",
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "const": "message.completed",
+          "default": "message.completed",
+          "title": "Type",
+          "type": "string"
+        },
+        "message": {
+          "$ref": "#/$defs/MessageOut",
+          "description": "Authoritative final answer: replace the streamed draft with message.content."
+        }
+      },
+      "required": [
+        "run_id",
+        "sequence",
+        "timestamp",
+        "message"
+      ],
+      "title": "MessageCompletedEvent",
+      "type": "object"
+    },
+    "MessageDeltaEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1",
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "sequence": {
+          "description": "0-based, strictly increasing within a run.",
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "const": "message.delta",
+          "default": "message.delta",
+          "title": "Type",
+          "type": "string"
+        },
+        "text": {
+          "description": "Append to the draft answer. Provisional until message.completed.",
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "sequence",
+        "timestamp",
+        "text"
+      ],
+      "title": "MessageDeltaEvent",
+      "type": "object"
+    },
+    "MessageOut": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "user",
+            "assistant"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "content": {
+          "description": "Plain text; may contain **bold** and \"- \" list lines. Render as text, never as HTML. Independently useful without the fields below.",
+          "title": "Content",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "products": {
+          "items": {
+            "$ref": "#/$defs/ProductOut"
+          },
+          "title": "Products",
+          "type": "array"
+        },
+        "resources": {
+          "items": {
+            "$ref": "#/$defs/ResourceOut"
+          },
+          "title": "Resources",
+          "type": "array"
+        },
+        "links": {
+          "items": {
+            "$ref": "#/$defs/LinkOut"
+          },
+          "title": "Links",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceOut"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "follow_ups": {
+          "description": "Optional suggested next questions.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Follow Ups",
+          "type": "array"
+        },
+        "notices": {
+          "items": {
+            "enum": [
+              "answer_replaced",
+              "payment_data_refused",
+              "contact_data_redacted"
+            ],
+            "type": "string"
+          },
+          "title": "Notices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "role",
+        "content",
+        "created_at"
+      ],
+      "title": "MessageOut",
+      "type": "object"
+    },
+    "PriceOut": {
+      "additionalProperties": false,
+      "properties": {
+        "amount": {
+          "description": "Decimal string, e.g. \"14.99\".",
+          "examples": [
+            "14.99"
+          ],
+          "title": "Amount",
+          "type": "string"
+        },
+        "currency": {
+          "const": "USD",
+          "title": "Currency",
+          "type": "string"
+        },
+        "display": {
+          "description": "Customer-facing format, e.g. \"US$14,99\".",
+          "title": "Display",
+          "type": "string"
+        },
+        "note": {
+          "description": "Local-currency explanation; show it next to the price.",
+          "title": "Note",
+          "type": "string"
+        },
+        "tax_note": {
+          "title": "Tax Note",
+          "type": "string"
+        },
+        "verified_at": {
+          "description": "When the storefront price was last confirmed.",
+          "format": "date-time",
+          "title": "Verified At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "currency",
+        "display",
+        "note",
+        "tax_note",
+        "verified_at"
+      ],
+      "title": "PriceOut",
+      "type": "object"
+    },
+    "ProductOut": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Authoritative storefront product id (slug).",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "age_range": {
+          "title": "Age Range",
+          "type": "string"
+        },
+        "url": {
+          "description": "Product page on the storefront (allowlisted).",
+          "title": "Url",
+          "type": "string"
+        },
+        "purchase_url": {
+          "description": "Storefront purchase section; checkout itself stays in the store's flow.",
+          "title": "Purchase Url",
+          "type": "string"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageOut"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "price": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PriceOut"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "null when the price cannot be confirmed as current."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "summary",
+        "age_range",
+        "url",
+        "purchase_url",
+        "image",
+        "price"
+      ],
+      "title": "ProductOut",
+      "type": "object"
+    },
+    "ResourceOut": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "\"<product_id>/<resource_id>\".",
+          "title": "Id",
+          "type": "string"
+        },
+        "product_id": {
+          "title": "Product Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "pages": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pages"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageOut"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "product_id",
+        "title",
+        "pages",
+        "description",
+        "image"
+      ],
+      "title": "ResourceOut",
+      "type": "object"
+    },
+    "RunCancelledEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1",
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "sequence": {
+          "description": "0-based, strictly increasing within a run.",
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "const": "run.cancelled",
+          "default": "run.cancelled",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "sequence",
+        "timestamp"
+      ],
+      "title": "RunCancelledEvent",
+      "type": "object"
+    },
+    "RunCompletedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1",
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "sequence": {
+          "description": "0-based, strictly increasing within a run.",
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "const": "run.completed",
+          "default": "run.completed",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "sequence",
+        "timestamp"
+      ],
+      "title": "RunCompletedEvent",
+      "type": "object"
+    },
+    "RunFailedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1",
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "sequence": {
+          "description": "0-based, strictly increasing within a run.",
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "const": "run.failed",
+          "default": "run.failed",
+          "title": "Type",
+          "type": "string"
+        },
+        "code": {
+          "enum": [
+            "budget_exhausted",
+            "provider_unavailable",
+            "generation_failed",
+            "timeout",
+            "catalog_unavailable",
+            "busy"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "run_id",
+        "sequence",
+        "timestamp",
+        "code",
+        "retryable"
+      ],
+      "title": "RunFailedEvent",
+      "type": "object"
+    },
+    "RunStartedEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1",
+          "default": "1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "string"
+        },
+        "sequence": {
+          "description": "0-based, strictly increasing within a run.",
+          "minimum": 0,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "timestamp": {
+          "format": "date-time",
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "type": {
+          "const": "run.started",
+          "default": "run.started",
+          "title": "Type",
+          "type": "string"
+        },
+        "user_message": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MessageOut"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The stored question (redacted if it contained contact data); null on an idempotent replay."
+        }
+      },
+      "required": [
+        "run_id",
+        "sequence",
+        "timestamp",
+        "user_message"
+      ],
+      "title": "RunStartedEvent",
+      "type": "object"
+    },
+    "SourceOut": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "url"
+      ],
+      "title": "SourceOut",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "message.completed": "#/$defs/MessageCompletedEvent",
+      "message.delta": "#/$defs/MessageDeltaEvent",
+      "run.cancelled": "#/$defs/RunCancelledEvent",
+      "run.completed": "#/$defs/RunCompletedEvent",
+      "run.failed": "#/$defs/RunFailedEvent",
+      "run.started": "#/$defs/RunStartedEvent"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/RunStartedEvent"
+    },
+    {
+      "$ref": "#/$defs/MessageDeltaEvent"
+    },
+    {
+      "$ref": "#/$defs/MessageCompletedEvent"
+    },
+    {
+      "$ref": "#/$defs/RunCompletedEvent"
+    },
+    {
+      "$ref": "#/$defs/RunFailedEvent"
+    },
+    {
+      "$ref": "#/$defs/RunCancelledEvent"
+    }
+  ]
+}

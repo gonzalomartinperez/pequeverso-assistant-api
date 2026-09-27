@@ -1,0 +1,25 @@
+{
+  "description": "Lexical ranking over the committed catalog. Each case lists passage ids of which at least one must rank in the top 3. Used to decide whether embeddings are needed (ADR-0002).",
+  "cases": [
+    {"query": "¿Qué incluye exactamente el kit?", "relevant": ["document:faq.grafismo-fonetico.05"]},
+    {"query": "¿Para qué edad sirve?", "relevant": ["document:faq.grafismo-fonetico.02"]},
+    {"query": "¿Cómo pido un reembolso?", "relevant": ["document:policy.guarantee", "document:support.route.2", "document:faq.grafismo-fonetico.03"]},
+    {"query": "¿Puedo pagar en pesos mexicanos?", "relevant": ["document:faq.grafismo-fonetico.11", "document:policy.payment"]},
+    {"query": "¿Me llega algo por correo postal?", "relevant": ["document:faq.grafismo-fonetico.06", "document:policy.delivery"]},
+    {"query": "No me llegó el correo con la compra", "relevant": ["document:support.access.1", "document:support.route.1"]},
+    {"query": "Pagué en efectivo en OXXO y no tengo acceso", "relevant": ["document:support.access.2", "document:policy.delivery"]},
+    {"query": "¿Garantiza que mi hijo aprenda a leer?", "relevant": ["document:faq.grafismo-fonetico.09"]},
+    {"query": "¿Cuántos minutos por día hay que practicar?", "relevant": ["document:faq.grafismo-fonetico.04"]},
+    {"query": "¿Tengo que imprimir todas las páginas?", "relevant": ["document:faq.grafismo-fonetico.07"]},
+    {"query": "juegos de bingo y dominó para repasar sílabas", "relevant": ["resource:grafismo-fonetico/juega"]},
+    {"query": "tarjetas recortables para formar palabras", "relevant": ["resource:grafismo-fonetico/silabas-en-tus-manos"]},
+    {"query": "actividades con el nombre del niño y su familia", "relevant": ["resource:grafismo-fonetico/letras-de-mi-mundo"]},
+    {"query": "un calendario para crear rutina", "relevant": ["resource:grafismo-fonetico/21-dias"]},
+    {"query": "animales y sonidos", "relevant": ["resource:grafismo-fonetico/safari"]},
+    {"query": "pósteres para la pared", "relevant": ["resource:grafismo-fonetico/pared-de-sonidos"]},
+    {"query": "¿Soy docente, me sirve sin experiencia?", "relevant": ["document:faq.grafismo-fonetico.08"]},
+    {"query": "¿Cómo accedo después de comprar?", "relevant": ["document:faq.grafismo-fonetico.10", "document:policy.delivery"]},
+    {"query": "botón de arrepentimiento Argentina", "relevant": ["document:policy.withdrawal-ar"]},
+    {"query": "Compré con otro email", "relevant": ["document:support.access.3"]}
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": "1",
+  "csrf_token": "csrf_EXAMPLE_keep_in_memory_only",
+  "expires_at": "2026-09-29T15:00:00Z",
+  "created": true,
+  "messages": [],
+  "availability": {
+    "status": "available",
+    "reason": null
+  },
+  "limits": {
+    "max_message_chars": 600,
+    "messages_per_day": 30
+  }
+}

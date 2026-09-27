@@ -1,0 +1,17 @@
+{
+  "contract_version": "1",
+  "schema_version": "1",
+  "artifacts": {
+    "examples/errors.json": "f463f1cbc0922069ec84e91b634bb977d6501ce60b288fc5e34618462b7a4545",
+    "examples/session.created.json": "327398482dbb8c029210a57cf1307e56262bba7b511c66b06e2511ae419b7e25",
+    "examples/stream.answer-replaced.sse": "2b6938f7cd432c0f54078aea06c5959337b645b2ab5bd7a2e5cd705997db28aa",
+    "examples/stream.cancelled.sse": "52989d2ad1b3a3fc338416f64d6fdc055a107b43ae5573432355d44f9ba7dd2a",
+    "examples/stream.failed.sse": "61f8a041cf8dfc4393799cd7096569514fa07c27b7c1454e3a10c721205d02b2",
+    "examples/stream.payment-data-refused.sse": "6494e98bb364625a06ab921a66d8792e5d71ddd29d4e08feeac96f288698e06d",
+    "examples/stream.price-unverified.sse": "3f8b684d5a6d29955c0d6deb0fb8cc5ed4afb3fa740482f45355575d62cbbad1",
+    "examples/stream.recommendation.sse": "649436fb17c6a38f275e76b97c50a4da81a1e2af6e2b2dac61826700aaaf8141",
+    "examples/stream.unknown-policy.sse": "db08db30746a8b1048809e9629848cf38216ac099882a44c569b5a04e3fe0be8",
+    "openapi.json": "29c4f8447aae852d8a9c5d1a01858f3aefa150689e3b1dcc8edf9744a1f37c60",
+    "sse.schema.json": "bc03fcf636768972b4cc9c050a1386927115baf338fd1faf5b47213bcb044a20"
+  }
+}
