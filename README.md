@@ -42,7 +42,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 
 | Topic | Doc |
 |---|---|
-| Frontend contract (sessions, SSE, references, freshness, errors) | `docs/api-contract.md` + `contracts/` |
+| Frontend contract (sessions, SSE, references, freshness, errors) | `docs/api-contract.md` + `contracts/`, handoff `docs/handoffs/assistant-web.md` |
 | Architecture and decisions | `docs/architecture.md`, `docs/decisions/` |
 | Security, privacy, retention | `docs/security.md` |
 | Catalog source, sync, freshness | `docs/catalog.md` |
