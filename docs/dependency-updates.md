@@ -9,12 +9,15 @@
 | Dependabot alerts and security updates | Enabled. Security PRs target the **default branch (`main`)**, whatever `target-branch` says. The policy requires base `develop`, so they always get human review: merge into `main` after CI, then merge `main` back into `develop` in a PR |
 | Secret scanning and push protection | Enabled (public repository) |
 | Outside contributors | Workflow runs from forks need approval for all external contributors; the Actions token defaults to read-only and cannot approve PRs |
-| Policy workflow (`dependabot-policy.yml`) | Runs on `pull_request_target` from the PR's base branch; evaluates Dependabot PRs into `develop` and detects protection through the branch rules API (`protection_from_rules`) |
+| Policy workflow (`dependabot-policy.yml`) | Runs on `pull_request_target`. GitHub takes that workflow file from the **default branch** (`main`), so the policy is inactive until the release reaches `main`. It checks out the policy script from the PR's base commit (protected `develop`) and detects protection through the branch rules API (`protection_from_rules`) |
 | Native auto-merge | Repository setting "Allow auto-merge" **enabled**. The workflow turns it on per PR only for eligible Dependabot PRs into `develop`, bound to the evaluated head; the ruleset's strict required `checks` gates the actual merge |
 
-**Pending activation (owner):** approve and merge a release PR `develop` → `main` that brings
-`.github/dependabot.yml` to the default branch. Until then, no new version-update PRs are created;
-existing ones (PR #3) are still evaluated.
+**Activation:** both `.github/dependabot.yml` (read by Dependabot) and
+`.github/workflows/dependabot-policy.yml` (read by `pull_request_target`) must be on `main`. They
+arrive with the release PR `develop` → `main`. Observed on 2026-09-27: after `main` became the
+default, Dependabot refused to rebase PR #3 ("the dependabot.yml entry ... has been deleted"),
+and the policy did not run on PR #3's new head. PR #3 was then updated with "Update branch",
+reviewed by a person and merged.
 
 ## Eligibility policy (`scripts/dependabot_policy.py`, `.github/dependabot-policy.json`)
 
