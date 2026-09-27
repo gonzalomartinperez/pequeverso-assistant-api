@@ -29,10 +29,21 @@ assistant speaks neutral Latin American Spanish. Read this file, then the doc fo
 ## Workflow
 
 - `main` is the default and release branch; `develop` is the development branch. Work on
-  `type/kebab-case` branches → PR into `develop`. A release is a PR `develop` → `main`, merged only
-  with the owner's explicit approval. Both branches are protected by rulesets: PR required, strict
-  required status `checks` (GitHub Actions), no force push or deletion, no bypass. Conventional
-  Commits; the PR body states what was verified and what was not.
+  `type/kebab-case` branches → squash PR into `develop`. A release is a PR `develop` → `main`
+  merged with a **merge commit**, when the owner asks for it (for example "sincronizá main").
+- **Hotfix directly to `main` only with the owner's explicit authorization, given in the current
+  conversation for that specific fix.** Never infer it from earlier approvals, never self-approve.
+  Flow: `hotfix/<kebab-case>` from `main` → PR into `main` (merge commit) → PR `main` → `develop`
+  (merge commit). Skill: `.agents/skills/release-and-hotfix/SKILL.md`.
+- Both branches are protected by rulesets, with no bypass actors:
+  - PR required, and the strict required statuses `checks` and `Branch policy` (GitHub Actions);
+  - no direct push, force push or deletion.
+
+  `Branch policy` (`scripts/branch_policy.py`) lets `main` receive only `develop` or `hotfix/*`,
+  and `develop` only task branches, `dependabot/*` or `main`. The agent works with the owner's
+  GitHub account, so hotfix authorization cannot be enforced by GitHub: it is this rule. Never
+  use `--admin`, never change rulesets to get a merge through, never push to `main`.
+  Conventional Commits; the PR body states what was verified and what was not.
 - The repository is public: never commit secrets, `.env*` files, customer data or real
   conversations (secret scanning and push protection are on).
 - Before a PR: `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
