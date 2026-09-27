@@ -1,6 +1,10 @@
 name: Branch policy
 
 # Required status on main and develop: enforces the branch flow in scripts/branch_policy.py.
+# The check is named after the base branch ("Branch policy (main)" / "Branch policy (develop)")
+# and each ruleset requires only its own name: check runs attach to the head commit, so a
+# single name let a passing run from a develop-bound PR satisfy a main-bound PR on the same
+# commit (found in a live probe, PRs #10/#11).
 # pull_request_target (workflow file read from the default branch) so a PR cannot edit its own
 # gate; only the base commit's policy script is checked out and nothing from the PR runs.
 # Branch names reach the script through environment variables, never through the shell.
@@ -16,7 +20,7 @@ concurrency:
 
 jobs:
   policy:
-    name: Branch policy
+    name: Branch policy (${{ github.event.pull_request.base.ref }})
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     permissions:
