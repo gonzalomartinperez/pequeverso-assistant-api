@@ -1,0 +1,58 @@
+# Routine version updates target develop (the default branch, where security updates also land).
+# Unattended merging is decided by .github/workflows/dependabot-policy.yml; see
+# docs/dependency-updates.md. Cooldowns do not delay security updates.
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Argentina/Buenos_Aires
+    open-pull-requests-limit: 5
+    rebase-strategy: auto
+    cooldown:
+      default-days: 7
+      semver-patch-days: 7
+      semver-minor-days: 7
+      semver-major-days: 30
+    groups:
+      # Same-risk groups only: a grouped PR is eligible only if every member qualifies.
+      dev-tools:
+        dependency-type: development
+        update-types: [minor, patch]
+      runtime-patches:
+        dependency-type: production
+        update-types: [patch]
+    labels: [dependencies]
+    commit-message:
+      prefix: build(deps)
+      prefix-development: build(deps-dev)
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+    labels: [dependencies, github-actions]
+    commit-message:
+      prefix: ci(deps)
+
+  - package-ecosystem: docker
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    labels: [dependencies, docker]
+    commit-message:
+      prefix: build(docker)

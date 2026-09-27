@@ -48,6 +48,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 | Catalog source, sync, freshness | `docs/catalog.md` |
 | Evaluation and live procedure | `docs/evaluation.md` |
 | Deployment handoff (vps-ops/Coolify) | `docs/deployment-contract.md` |
+| Dependency updates and auto-merge policy | `docs/dependency-updates.md` |
 | Reference adoption (portfolio-assistant-api) | `docs/reference-adoption.md` |
 | Storefront transition, open business questions | `docs/handoffs/storefront-transition.md`, `docs/business-questions.md` |
 | Agent instructions and skills | `AGENTS.md`, `.agents/skills/` |

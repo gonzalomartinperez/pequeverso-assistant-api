@@ -1,0 +1,82 @@
+name: Dependabot policy
+
+# Decides whether a Dependabot PR may merge unattended and, only if the base branch has
+# enforceable protection, enables GitHub's native auto-merge bound to the evaluated head commit.
+# Otherwise it leaves (or turns) auto-merge off. Required checks and branch rules stay the
+# authority; this workflow never merges directly.
+#
+# pull_request_target is required for a write-scoped token on Dependabot PRs. It is safe here
+# because nothing from the PR is checked out, installed or executed: the policy script comes
+# from the base commit, uses only the Python standard library and reads authenticated API data.
+# Untrusted PR fields reach the shell only through environment variables.
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] -- no PR code is checked out or run
+    types: [opened, reopened, synchronize, edited, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: dependabot-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  decide:
+    name: Evaluate eligibility
+    # Routing filter only; the policy re-verifies identity (login, type, id), repository and commits.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+    outputs:
+      eligible: ${{ steps.policy.outputs.eligible }}
+      automerge: ${{ steps.policy.outputs.automerge }}
+    steps:
+      - name: Checkout trusted policy (base commit)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/dependabot_policy.py
+            .github/dependabot-policy.json
+          sparse-checkout-cone-mode: false
+      - name: Run policy
+        id: policy
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 scripts/dependabot_policy.py --repo "$REPO" --pr "$PR_NUMBER" --head-sha "$HEAD_SHA"
+
+  apply:
+    name: Apply decision
+    needs: decide
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Enable auto-merge for the evaluated head
+        if: needs.decide.outputs.automerge == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: gh pr merge "$PR_NUMBER" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_SHA"
+      - name: Keep auto-merge off (manual review or no enforceable protection)
+        if: needs.decide.outputs.automerge != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if gh pr view "$PR_NUMBER" --repo "$REPO" --json autoMergeRequest --jq '.autoMergeRequest != null' | grep -q true; then
+            gh pr merge "$PR_NUMBER" --repo "$REPO" --disable-auto
+          fi
+          echo "Auto-merge is off for this PR; a maintainer reviews and merges it." >> "$GITHUB_STEP_SUMMARY"
