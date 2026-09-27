@@ -36,10 +36,11 @@ assistant speaks neutral Latin American Spanish. Read this file, then the doc fo
   Flow: `hotfix/<kebab-case>` from `main` → PR into `main` (merge commit) → PR `main` → `develop`
   (merge commit). Skill: `.agents/skills/release-and-hotfix/SKILL.md`.
 - Both branches are protected by rulesets, with no bypass actors:
-  - PR required, and the strict required statuses `checks` and `Branch policy` (GitHub Actions);
+  - PR required, and the strict required statuses `checks` plus `Branch policy (main)` or
+    `Branch policy (develop)` (GitHub Actions);
   - no direct push, force push or deletion.
 
-  `Branch policy` (`scripts/branch_policy.py`) lets `main` receive only `develop` or `hotfix/*`,
+  The branch policy (`scripts/branch_policy.py`) lets `main` receive only `develop` or `hotfix/*`,
   and `develop` only task branches, `dependabot/*` or `main`. The agent works with the owner's
   GitHub account, so hotfix authorization cannot be enforced by GitHub: it is this rule. Never
   use `--admin`, never change rulesets to get a merge through, never push to `main`.
