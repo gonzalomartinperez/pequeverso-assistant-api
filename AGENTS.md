@@ -35,15 +35,10 @@ assistant speaks neutral Latin American Spanish. Read this file, then the doc fo
   conversation for that specific fix.** Never infer it from earlier approvals, never self-approve.
   Flow: `hotfix/<kebab-case>` from `main` → PR into `main` (merge commit) → PR `main` → `develop`
   (merge commit). Skill: `.agents/skills/release-and-hotfix/SKILL.md`.
-- Both branches are protected by rulesets, with no bypass actors:
-  - PR required, and the strict required statuses `checks` plus `Branch policy (main)` or
-    `Branch policy (develop)` (GitHub Actions);
-  - no direct push, force push or deletion.
-
-  The branch policy (`scripts/branch_policy.py`) lets `main` receive only `develop` or `hotfix/*`,
-  and `develop` only task branches, `dependabot/*` or `main`. The agent works with the owner's
-  GitHub account, so hotfix authorization cannot be enforced by GitHub: it is this rule. Never
-  use `--admin`, never change rulesets to get a merge through, never push to `main`.
+- Both branches are protected (as in portfolio-assistant-api): PR required, strict required status
+  `checks`, no force push or deletion, no bypass. The agent uses the owner's GitHub account, so
+  the hotfix authorization is this written rule, not a GitHub setting: never use `--admin`, never
+  push to `main`, never change the protection to get a merge through.
   Conventional Commits; the PR body states what was verified and what was not.
 - The repository is public: never commit secrets, `.env*` files, customer data or real
   conversations (secret scanning and push protection are on).
