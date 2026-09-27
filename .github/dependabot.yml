@@ -1,5 +1,5 @@
-# Routine version updates target develop (the default branch, where security updates also land).
-# Unattended merging is decided by .github/workflows/dependabot-policy.yml; see
+# Routine version updates target develop. Security updates target the default branch (main) and
+# always get human review. Unattended merging is decided by .github/workflows/dependabot-policy.yml; see
 # docs/dependency-updates.md. Cooldowns do not delay security updates.
 version: 2
 updates:

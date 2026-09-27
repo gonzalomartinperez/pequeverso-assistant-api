@@ -238,6 +238,19 @@ def evaluate(facts: PullFacts, policy: Policy) -> Decision:
     return decision
 
 
+def protection_from_rules(rules: list[dict[str, Any]], required: frozenset[str]) -> bool:
+    """True when the active branch rules require a PR and every required check, up to date (strict)."""
+    has_pull_request = any(rule.get('type') == 'pull_request' for rule in rules)
+    enforced: set[str] = set()
+    for rule in rules:
+        if rule.get('type') != 'required_status_checks':
+            continue
+        parameters = rule.get('parameters') or {}
+        if parameters.get('strict_required_status_checks_policy'):
+            enforced |= {check.get('context', '') for check in parameters.get('required_status_checks', [])}
+    return has_pull_request and required <= enforced
+
+
 def ci_state(runs: tuple[CheckRun, ...], required: frozenset[str]) -> str:
     """success | pending | failure | cancelled | missing, over the required check names."""
     states = []
@@ -281,13 +294,6 @@ class Api:
         with urllib.request.urlopen(request, timeout=20) as response:  # noqa: S310 - fixed https base
             return json.load(response)
 
-    def status(self, path: str) -> int:
-        try:
-            self.get(path)
-        except urllib.error.HTTPError as error:
-            return error.code
-        return 200
-
 
 def collect(api: Api, repo: str, number: int, expected_head: str) -> PullFacts:
     pr = api.get(f'/repos/{repo}/pulls/{number}')
@@ -305,7 +311,8 @@ def collect(api: Api, repo: str, number: int, expected_head: str) -> PullFacts:
     base_manifests = {p: t for p in ('pyproject.toml', 'uv.lock') if (t := manifest(base_sha, p)) is not None}
     head_manifests = {p: t for p in ('pyproject.toml', 'uv.lock') if (t := manifest(head_sha, p)) is not None}
     runs = api.get(f'/repos/{repo}/commits/{head_sha}/check-runs?per_page=100')['check_runs']
-    protection = api.status(f'/repos/{repo}/branches/{pr["base"]["ref"]}/protection') == 200
+    rules = api.get(f'/repos/{repo}/rules/branches/{pr["base"]["ref"]}')
+    protection = protection_from_rules(rules, Policy.load().required_checks)
     return PullFacts(
         author_login=pr['user']['login'],
         author_type=pr['user']['type'],
