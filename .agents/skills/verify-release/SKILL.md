@@ -1,6 +1,6 @@
 ---
 name: verify-release
-description: Verify a release candidate of the assistant API end to end without paid calls or deployment.
+description: Verify a release candidate of the assistant API end to end without paid calls or deployment. Not an authorization to promote to main or deploy.
 ---
 
 # Verify a release candidate
@@ -15,3 +15,8 @@ description: Verify a release candidate of the assistant API end to end without 
    instructions and ports, and record both commit shas. Do not interfere with its services.
 6. Report what was not verified (live model, proxy buffering, real DNS and cookies). Promotion to
    `main` and any deployment need the owner's explicit approval; vps-ops deploys.
+
+## Limits
+
+- Verification only: promotion to `main` and any deployment need the owner's explicit approval;
+  vps-ops deploys. No paid calls.

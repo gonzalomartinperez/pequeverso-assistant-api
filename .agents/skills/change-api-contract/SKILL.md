@@ -1,6 +1,6 @@
 ---
 name: change-api-contract
-description: Change the v1 HTTP/SSE contract (storefront native assistant) or the private ops contract (backoffice) without breaking either.
+description: Change the v1 HTTP/SSE contract (storefront native assistant) or the private ops contract (backoffice) without breaking either. Not for paid calls, deployment or editing consumer repositories.
 ---
 
 # Change the API contract
@@ -20,4 +20,7 @@ description: Change the v1 HTTP/SSE contract (storefront native assistant) or th
    (`pequeverso`, native assistant) and the backoffice. Their repositories pin the contract
    from the exact merged commit (`git show <sha>:contracts/...`); do not edit them from here.
 
-Limits: no paid calls, no deploys. A skill is a procedure, never an authorization to merge.
+## Limits
+
+- A procedure, never an authorization: no paid calls, no deploys, no edits to the storefront or
+  backoffice repositories. Merging still needs green `checks` and the branch rules.

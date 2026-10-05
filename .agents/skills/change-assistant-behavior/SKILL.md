@@ -1,6 +1,6 @@
 ---
 name: change-assistant-behavior
-description: Change prompts, answer rules, evidence or evaluations of the Pequeverso assistant safely.
+description: Change prompts, answer rules, evidence or evaluations of the Pequeverso assistant safely. Not for live paid evaluations without the owner's authorization.
 ---
 
 # Change assistant behavior
@@ -16,3 +16,9 @@ description: Change prompts, answer rules, evidence or evaluations of the Pequev
    follow `docs/evaluation.md`. Otherwise state in the PR that live quality is unverified.
 5. Never weaken a rule to make an evaluation pass, and never put ideal answers in application
    code.
+
+## Limits
+
+- No live or paid evaluation without the owner's explicit, current authorization and the
+  separate Pequeverso key. Never move a guarantee from code into the prompt only.
+- Evidence: `uv run pytest`, the fixture evaluations and, if authorized, the live report.
