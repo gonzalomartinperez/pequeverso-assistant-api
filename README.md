@@ -56,5 +56,5 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 | Deployment handoff (vps-ops/Coolify) | `docs/deployment-contract.md` |
 | Dependency updates and auto-merge policy | `docs/dependency-updates.md` |
 | Reference adoption (portfolio-assistant-api) | `docs/reference-adoption.md` |
-| Storefront transition, open business questions | `docs/handoffs/storefront-transition.md`, `docs/business-questions.md` |
+| Storefront transition, vps-ops handoff, open business questions | `docs/handoffs/storefront-transition.md`, `docs/handoffs/vps-ops.md`, `docs/business-questions.md` |
 | Agent instructions and skills | `AGENTS.md`, `.agents/skills/` |
