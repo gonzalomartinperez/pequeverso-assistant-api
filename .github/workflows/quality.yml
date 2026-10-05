@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  UV_VERSION: 0.12.19
+  UV_VERSION: 0.12.21 # keep equal to the uv image in Dockerfile
   AI_PROVIDER: fixture
   ALLOW_PAID_AI: "false"
 
@@ -44,6 +44,21 @@ jobs:
           annotations: true
           min-severity: low
 
+  secrets:
+    name: Secret scan (history)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: gitleaks over the full history (redacted; fails on zero commits scanned)
+        run: .github/scripts/secret-scan.sh
+
   static:
     name: Lint, types, tests, contract, evaluations
     runs-on: ubuntu-24.04
@@ -60,6 +75,7 @@ jobs:
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
+          cache-dependency-glob: uv.lock
       - name: Install (frozen lockfile)
         run: uv sync --frozen
       - name: Ruff
@@ -94,7 +110,7 @@ jobs:
   checks:
     name: checks
     if: always()
-    needs: [workflows, static, container]
+    needs: [workflows, secrets, static, container]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     permissions: {}
