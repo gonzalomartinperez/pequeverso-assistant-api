@@ -28,7 +28,26 @@ def _payload(request: ModelRequest, prefix: str) -> dict[str, Any]:
     raise ValueError(f'missing {prefix!r} input')
 
 
+_EN_FOLLOW_UPS = ['What does the kit include?', 'Which ages is it for?']
+
+
 def _answer(store: dict[str, Any], turn: dict[str, Any]) -> dict[str, Any]:
+    answer = _spanish_answer(store, turn)
+    if turn.get('reply_language') != 'en':
+        return answer
+    # The fixture cannot translate: it quotes the Spanish store text under an English lead-in.
+    text = answer['answer'].removeprefix('Según la información de la tienda: ')
+    if not answer['references'] or answer['references'][0]['kind'] == 'link':
+        lead = "I don't have that information in the store data. You can write to support and the team will reply."
+        return {**answer, 'answer': lead, 'follow_ups': _EN_FOLLOW_UPS}
+    return {
+        **answer,
+        'answer': f'From the store information (the material is in Spanish): {text}',
+        'follow_ups': _EN_FOLLOW_UPS,
+    }
+
+
+def _spanish_answer(store: dict[str, Any], turn: dict[str, Any]) -> dict[str, Any]:
     product = store['products'][0]
     support = next((link['id'] for link in store['links'] if 'soporte' in link['label'].lower()), None)
     items = [

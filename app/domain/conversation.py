@@ -24,6 +24,7 @@ class Notice(StrEnum):
     ANSWER_REPLACED = 'answer_replaced'
     PAYMENT_DATA_REFUSED = 'payment_data_refused'
     CONTACT_DATA_REDACTED = 'contact_data_redacted'
+    LANGUAGE_UNSUPPORTED = 'language_unsupported'
 
 
 @dataclass(frozen=True, slots=True)
@@ -93,6 +94,8 @@ class AnswerDetails:
     sources: tuple[SourceRef, ...] = ()
     follow_ups: tuple[str, ...] = ()
     notices: tuple[Notice, ...] = ()
+    language: str = 'es'
+    """Language of the message text ('es' or 'en')."""
 
 
 @dataclass(frozen=True, slots=True)

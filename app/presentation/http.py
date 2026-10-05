@@ -21,8 +21,10 @@ from app.application.catalog import CatalogService
 from app.application.chat import ChatService
 from app.application.ports import Clock
 from app.application.sessions import SessionService
+from app.application.starters import starters
 from app.domain.conversation import Session
 from app.domain.errors import FailureCode, RejectedError
+from app.domain.language import Language
 from app.presentation.middleware import RETRY_AFTER, STATUS, error_payload, request_id_of
 from app.presentation.schemas import (
     AvailabilityOut,
@@ -30,6 +32,7 @@ from app.presentation.schemas import (
     LimitsOut,
     MessageIn,
     MessageOut,
+    SessionIn,
     SessionOut,
 )
 from app.presentation.streaming import SSE_HEADERS, ClosingStreamingResponse, sse_body
@@ -144,8 +147,12 @@ async def availability(s: ServicesDep) -> AvailabilityOut:
     summary='Open (restore or create) the caller-owned session',
     responses={201: {'model': SessionOut, 'description': 'A new session was created.'}},
 )
-async def open_session(request: Request, response: Response, s: ServicesDep) -> SessionOut:
+async def open_session(
+    request: Request, response: Response, s: ServicesDep, body: SessionIn | None = None
+) -> SessionOut:
     _require_json(request)
+    locale = Language(body.locale) if body and body.locale else Language.ES
+    active = s.catalog.active
     policy = s.settings.cookie
     opened = await s.sessions.open(request.cookies.get(policy.name), client_key(request, s.settings))
     created = opened.secret is not None and opened.secret != request.cookies.get(policy.name)
@@ -161,6 +168,7 @@ async def open_session(request: Request, response: Response, s: ServicesDep) -> 
         limits=LimitsOut(
             max_message_chars=s.settings.max_message_chars, messages_per_day=s.settings.messages_per_day
         ),
+        starters=list(starters(active.catalog, locale)) if active else [],
     )
 
 
@@ -207,7 +215,7 @@ async def post_message(
     if not _IDEMPOTENCY_KEY.match(idempotency_key):
         raise RejectedError(FailureCode.INVALID_REQUEST)
     run = await s.chat.start(
-        session, body.content, body.page, idempotency_key, client_key(request, s.settings)
+        session, body.content, body.page, idempotency_key, client_key(request, s.settings), body.locale
     )
     await s.sessions.touch(session)
     response = ClosingStreamingResponse(

@@ -1,6 +1,6 @@
 id: 0
 event: run.started
-data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":0,"timestamp":"2026-09-28T15:00:00Z","type":"run.started","user_message":{"id":"msg_EXAMPLEuser00001","role":"user","content":"¿Tienen algún cupón?","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[],"sources":[],"follow_ups":[],"notices":[]}}
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":0,"timestamp":"2026-09-28T15:00:00Z","type":"run.started","user_message":{"id":"msg_EXAMPLEuser00001","role":"user","content":"¿Tienen algún cupón?","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[],"sources":[],"follow_ups":[],"notices":[],"language":"es"}}
 
 id: 1
 event: message.delta
@@ -16,7 +16,7 @@ data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":3,"timestam
 
 id: 4
 event: message.completed
-data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":4,"timestamp":"2026-09-28T15:00:00Z","type":"message.completed","message":{"id":"msg_EXAMPLEassistant1","role":"assistant","content":"No puedo confirmar esa información con los datos que tengo del catálogo. Puedes revisar la página del kit o escribirnos desde soporte y te respondemos.","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[{"id":"support","label":"Soporte y contacto","url":"https://pequeverso.com/soporte/"}],"sources":[],"follow_ups":[],"notices":["answer_replaced"]}}
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":4,"timestamp":"2026-09-28T15:00:00Z","type":"message.completed","message":{"id":"msg_EXAMPLEassistant1","role":"assistant","content":"No puedo confirmar esa información con los datos que tengo del catálogo. Puedes revisar la página del kit o escribirnos desde soporte y te respondemos.","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[{"id":"support","label":"Soporte y contacto","url":"https://pequeverso.com/soporte/"}],"sources":[],"follow_ups":[],"notices":["answer_replaced"],"language":"es"}}
 
 id: 5
 event: run.completed
