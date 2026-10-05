@@ -74,7 +74,7 @@ def test_starters_follow_the_requested_locale_and_the_catalog(tmp_path: Path) ->
     with client(tmp_path) as c:
         es = c.post('/api/v1/session', headers=JSON_HEADERS, json={}).json()
         assert 1 <= len(es['starters']) <= 4 and all(s.startswith('¿') for s in es['starters'])
-        assert es['contract_revision'] == '1.1'
+        assert es['contract_revision'] == '1.2'
         en = c.post('/api/v1/session', headers=JSON_HEADERS, json={'locale': 'en'}).json()
         assert en['starters'][0] == 'What does Grafismo Fonético include?'
         assert c.post('/api/v1/session', headers=JSON_HEADERS, json={'locale': 'pt'}).status_code == 422
@@ -154,6 +154,12 @@ def test_ops_summary_reports_aggregates_without_content(tmp_path: Path) -> None:
     assert summary['catalog']['status'] == 'active' and summary['catalog']['source'] == 'bundled'
     assert summary['service']['provider'] == 'fixture' and summary['service']['synthetic'] is True
     assert [d['day'] for d in summary['daily']] == ['2026-09-28']
+    assert (
+        len(summary['recent']) == 2
+        and summary['recent'][0]['started_at'] >= summary['recent'][1]['started_at']
+    )
+    assert all(len(r['id']) == 16 and not r['id'].startswith('run_') for r in summary['recent'])
+    assert summary['pricing']['model'] == 'gpt-6-luna' and summary['pricing']['output_per_million'] == '0.50'
 
 
 def test_refusals_are_counted_as_refused(tmp_path: Path) -> None:
@@ -195,3 +201,15 @@ def test_roll_forward_maps_old_pending_rows_by_actual_spend(tmp_path: Path) -> N
     with client(tmp_path):
         pass
     assert _ledger(tmp_path)[0]['status'] == 'settled'
+
+
+def test_the_read_token_cannot_mutate_anything(tmp_path: Path) -> None:
+    with client(tmp_path, ops_read_token=TOKEN) as c:
+        for method in ('POST', 'PUT', 'PATCH', 'DELETE'):
+            assert c.request(method, '/internal/v1/ops/summary', headers=AUTH).status_code in (403, 405)
+        assert (
+            c.post(
+                '/api/v1/session', headers={**AUTH, 'Content-Type': 'application/json'}, json={}
+            ).status_code
+            == 403
+        )

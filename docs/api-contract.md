@@ -4,7 +4,9 @@ Audience: the **native assistant of the storefront** `pequeverso` (the only publ
 UI). The former `pequeverso-assistant-web` chat shells are being retired in favor of the
 backoffice. Revision **1.1** (additive within v1, `contract_revision` in `SessionOut` and
 `contracts/manifest.json`): `starters`, `locale`, `language`, notice `language_unsupported`,
-and the private operations API. Clients of 1.0 keep working unchanged.
+and the private operations API. Revision **1.2** adds `pricing` (the rate source used for
+estimates) and `recent` (up to 50 latest runs with opaque ids) to the private ops summary only;
+the browser contract is unchanged from 1.1. Clients of 1.0 keep working unchanged.
 Pinned artifacts: `contracts/openapi.json`, `contracts/sse.schema.json`, `contracts/examples/*`,
 hashed in `contracts/manifest.json` (`contract_version: "1"`). They are generated from the code
 (`uv run python -m contracts.export`) and CI fails if they drift. Consume them from an exact
@@ -167,6 +169,9 @@ Latency: `first_delta` = request accepted → first answer text; `total` = reque
 authoritative answer, both for runs that called the model. `daily` lists only days with records
 and `metrics_since` says when recording began: earlier periods are unknown, not zero.
 `service.synthetic` is true in fixture mode, where every number comes from simulated answers.
+`pricing.revision` names the price list the estimates use (they are not the provider invoice;
+reconcile with the OpenAI project's usage page). `recent[].id` is a digest of the run id and
+cannot be used against the public API.
 
 ## Compatibility rules
 

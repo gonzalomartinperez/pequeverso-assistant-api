@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import sqlite3
 from datetime import datetime, timedelta
 
 from app.adapters.sqlite.database import Database
 from app.adapters.sqlite.stores import parse_ts, ts
-from app.application.operations import CatalogState, DailyRow, RunWindow, Spend, Tokens
+from app.application.operations import CatalogState, DailyRow, RecentRun, RunWindow, Spend, Tokens
 from app.application.ports import RunMetric, RunOutcome
 
 OUTCOMES = tuple(o.value for o in RunOutcome)
@@ -157,6 +158,29 @@ class SqliteOperationsQueries:
     async def metrics_since(self) -> datetime | None:
         row = await self._db.read(lambda c: c.execute('SELECT min(started_at) FROM run_metrics').fetchone())
         return _dt(row[0])
+
+    async def recent(self, limit: int) -> list[RecentRun]:
+        rows = await self._db.read(
+            lambda c: c.execute(
+                'SELECT run_id, started_at, outcome, code, model_call, replaced, language, first_delta_ms,'
+                ' total_ms FROM run_metrics ORDER BY started_at DESC LIMIT ?',
+                (limit,),
+            ).fetchall()
+        )
+        return [
+            RecentRun(
+                id=hashlib.sha256(row['run_id'].encode()).hexdigest()[:16],
+                started_at=parse_ts(row['started_at']),
+                outcome=row['outcome'],
+                code=row['code'],
+                model_call=bool(row['model_call']),
+                replaced=bool(row['replaced']),
+                language=row['language'],
+                first_delta_ms=row['first_delta_ms'],
+                total_ms=row['total_ms'],
+            )
+            for row in rows
+        ]
 
     async def catalog_state(self) -> CatalogState:
         row = await self._db.read(

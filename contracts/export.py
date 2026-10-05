@@ -27,7 +27,7 @@ from app.application.answers import (
     finalize,
     replacement,
 )
-from app.application.operations import ServiceInfo, Summary
+from app.application.operations import RecentRun, ServiceInfo, Summary
 from app.application.ports import Draft, DraftReference
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import create_app
@@ -268,7 +268,24 @@ def _ops_example() -> OpsSummaryOut:
     return OpsSummaryOut.of(
         Summary(
             generated_at=NOW,
-            service=ServiceInfo('development', 'abcdef1', 'fixture', 'fixture', 'n/a', True, NOW, 168),
+            service=ServiceInfo(
+                'development',
+                'abcdef1',
+                'fixture',
+                'fixture',
+                'n/a',
+                True,
+                NOW,
+                168,
+                {
+                    'revision': 'openai-gpt-6-luna-2026-10-05',
+                    'model': 'gpt-6-luna',
+                    'input_per_million': '0.10',
+                    'cached_input_per_million': '0.01',
+                    'cache_write_per_million': '0.125',
+                    'output_per_million': '0.50',
+                },
+            ),
             availability=None,
             catalog={
                 'status': 'active',
@@ -318,6 +335,20 @@ def _ops_example() -> OpsSummaryOut:
                 },
             ],
             metrics_since=NOW - timedelta(days=1),
+            recent=[
+                RecentRun('3f9a1c2b7d4e8f01', NOW, 'completed', None, True, False, 'es', 780, 2900),
+                RecentRun(
+                    'a1b2c3d4e5f60718',
+                    NOW - timedelta(minutes=5),
+                    'refused',
+                    'budget_exhausted',
+                    False,
+                    False,
+                    'es',
+                    None,
+                    0,
+                ),
+            ],
         )
     )
 

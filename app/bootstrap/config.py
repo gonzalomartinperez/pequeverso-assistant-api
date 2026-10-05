@@ -37,7 +37,9 @@ class Settings(BaseSettings):
     openai_max_retries: int = Field(default=1, ge=0, le=2)
     fixture_chunk_delay_ms: int = Field(default=0, ge=0, le=2000)
 
-    # Pricing in USD per 1M tokens (gpt-6-luna list prices, read 2026-09-27).
+    # Pricing in USD per 1M tokens (gpt-6-luna list prices; re-read 2026-10-05, unchanged).
+    # PRICING_REVISION names the source the estimates use; it is not the provider invoice.
+    pricing_revision: str = 'openai-gpt-6-luna-2026-10-05'
     price_input_per_million: Decimal = Decimal('0.10')
     price_cached_input_per_million: Decimal = Decimal('0.01')
     price_cache_write_per_million: Decimal = Decimal('0.125')
