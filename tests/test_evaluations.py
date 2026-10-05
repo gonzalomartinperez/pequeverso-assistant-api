@@ -82,8 +82,15 @@ def test_corpus_retrieval_floors() -> None:
         assert report['by_family'][family]['recall_at_3'] >= floor, family
 
 
+# Known reply-language detector misses (app/domain/language.py), kept explicit so a fix or a new
+# regression changes this set and fails the test. lang-016: "Quanto custa o kit e como faço para
+# comprar?" is detected as unknown (shares "kit", "como", "para" with Spanish) and gets Spanish.
+KNOWN_LANGUAGE_MISSES = {'lang-016'}
+
+
 def test_every_corpus_case_passes_the_pipeline_gates_in_fixture_mode() -> None:
     cases = evaluate_corpus.load()
     results = evaluate_corpus.run_pipeline(evaluate_corpus.settings_for_eval(), cases)
     assert len(results) == len(cases)
     assert [(r['id'], r['gates']) for r in results if r['gates']] == []
+    assert {r['id'] for r in results if r['language']} == KNOWN_LANGUAGE_MISSES

@@ -11,7 +11,9 @@ What the results mean:
   evaluated turn. It decides whether ranking needs to improve (ADR-0002); it is not answer quality.
 - `pipeline` in fixture mode: stream grammar, catalog-valid references, allowlisted URLs, answer
   rules, code-enforced notices (payment data refused, contact data redacted). These are gates.
-- `behavior` (outcome, language, forbidden behaviors): string heuristics about what a real model
+- `language`: the reply language is decided in code (app/domain/language.py), so it is checked
+  deterministically in every mode; known detector misses are listed in tests/test_evaluations.py.
+- `behavior` (outcome, grounding, forbidden behaviors): string heuristics about what a real model
   wrote. In fixture mode they are reported and say nothing about model quality. Some tags
   (`invented_policy`) have no lexical check and are listed for manual review of live runs.
 
@@ -304,21 +306,24 @@ def _behavior(case: dict[str, Any], message: dict[str, Any], stale: bool) -> tup
         used |= {f'document:{s["id"]}' for s in message['sources']}
         if outcome == 'answer' and not used & set(relevant):
             problems.append('grounding: none of the expected passages referenced')
-    if 'language' in message:
-        language = expect['language']
-        notices = set(message['notices'])
-        if language == 'unsupported':
-            if 'language_unsupported' not in notices:
-                problems.append('language: expected the language_unsupported notice')
-        elif (
-            outcome != 'refuse_payment_data'
-            and case['group'] != 'lang-mixed'
-            and message['language'] != language
-        ):
-            problems.append(f'language: {message["language"]}, expected {language}')
-    else:
-        skipped.append('language: this API revision has no MessageOut.language field')
     return problems, skipped
+
+
+def _language(case: dict[str, Any], message: dict[str, Any]) -> list[str]:
+    """The reply language is decided in code (app/domain/language.py), so this is deterministic in
+    every mode. Mixed-language messages have no single right answer and are not checked."""
+    if 'language' not in message or case['group'] == 'lang-mixed':
+        return []
+    expected = case['expect']['language']
+    if case['expect']['outcome'] == 'refuse_payment_data':
+        return []
+    if expected == 'unsupported':
+        if 'language_unsupported' not in message['notices']:
+            return ['expected the language_unsupported notice']
+        return []
+    if message['language'] != expected:
+        return [f'answered in {message["language"]}, expected {expected}']
+    return []
 
 
 def _ask(
@@ -381,7 +386,9 @@ def run_pipeline(
                     expect = case['expect']
                     behavior: list[str] = []
                     skipped: list[str] = []
+                    language: list[str] = []
                     if final is not None:
+                        language = _language(case, final)
                         for notice in expect.get('notices', []):
                             if notice not in final['notices']:
                                 gates.append(f'missing notice {notice}')
@@ -395,6 +402,7 @@ def run_pipeline(
                             'family': case['family'],
                             'split': case['split'],
                             'gates': gates,
+                            'language': language,
                             'behavior': behavior,
                             'skipped': skipped,
                         }
@@ -409,6 +417,7 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
         return {
             'cases': len(rows),
             'gate_failures': sum(bool(r['gates']) for r in rows),
+            'language_mismatches': sum(bool(r['language']) for r in rows),
             'behavior_flags': sum(bool(r['behavior']) for r in rows),
         }
 
@@ -416,6 +425,7 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
         'overall': block(results),
         'by_split': {s: block([r for r in results if r['split'] == s]) for s in ('dev', 'holdout')},
         'by_family': {f: block([r for r in results if r['family'] == f]) for f in families},
+        'language_mismatches': sorted(r['id'] for r in results if r['language']),
         'skipped_checks': sorted({s for r in results for s in r['skipped']}),
     }
 
