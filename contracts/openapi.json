@@ -1024,7 +1024,7 @@
             "type": "string",
             "title": "Contract Revision",
             "description": "Additive revision within v1.",
-            "default": "1.1"
+            "default": "1.2"
           }
         },
         "additionalProperties": false,

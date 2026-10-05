@@ -71,7 +71,7 @@ class SourceOut(_Out):
 
 Notice = Literal['answer_replaced', 'payment_data_refused', 'contact_data_redacted', 'language_unsupported']
 Locale = Literal['es', 'en']
-CONTRACT_REVISION = '1.1'
+CONTRACT_REVISION = '1.2'
 
 
 class MessageOut(_Out):

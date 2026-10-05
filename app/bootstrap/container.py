@@ -158,6 +158,14 @@ def create_app(
             assistant_enabled=settings.assistant_enabled,
             started_at=clock.now(),
             price_max_age_hours=settings.catalog_price_max_age_hours,
+            pricing={
+                'revision': settings.pricing_revision,
+                'model': settings.openai_model,
+                'input_per_million': str(settings.price_input_per_million),
+                'cached_input_per_million': str(settings.price_cached_input_per_million),
+                'cache_write_per_million': str(settings.price_cache_write_per_million),
+                'output_per_million': str(settings.price_output_per_million),
+            },
         ),
         chat.availability,
     )

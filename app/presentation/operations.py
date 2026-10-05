@@ -127,6 +127,27 @@ class DailyOut(_Out):
     reasoning_tokens: int
 
 
+class PricingOut(_Out):
+    revision: str = Field(description='Source of the rates used for estimates; not the provider invoice.')
+    model: str
+    input_per_million: str
+    cached_input_per_million: str
+    cache_write_per_million: str
+    output_per_million: str = Field(description='Also applies to reasoning tokens.')
+
+
+class RecentRunOut(_Out):
+    id: str = Field(description='Opaque: a digest of the run id, not usable against the public API.')
+    started_at: datetime
+    outcome: Literal['completed', 'failed', 'cancelled', 'interrupted', 'refused']
+    code: str | None
+    model_call: bool
+    replaced: bool
+    language: Literal['es', 'en'] | None
+    first_delta_ms: int | None
+    total_ms: int
+
+
 class OpsSummaryOut(_Out):
     schema_version: Literal['1'] = '1'
     generated_at: datetime
@@ -137,6 +158,8 @@ class OpsSummaryOut(_Out):
     windows: list[WindowOut]
     daily: list[DailyOut] = Field(description='Only days with records (no zero-filled gaps), oldest first.')
     metrics_since: datetime | None = Field(description='First recorded run; earlier periods are unknown.')
+    pricing: PricingOut
+    recent: list[RecentRunOut] = Field(description='Up to 50 latest runs, newest first.')
 
     @classmethod
     def of(cls, summary: Summary) -> Self:
@@ -163,6 +186,21 @@ class OpsSummaryOut(_Out):
                 'windows': summary.windows,
                 'daily': summary.daily,
                 'metrics_since': summary.metrics_since,
+                'pricing': info.pricing,
+                'recent': [
+                    {
+                        'id': r.id,
+                        'started_at': r.started_at,
+                        'outcome': r.outcome,
+                        'code': r.code,
+                        'model_call': r.model_call,
+                        'replaced': r.replaced,
+                        'language': r.language,
+                        'first_delta_ms': r.first_delta_ms,
+                        'total_ms': r.total_ms,
+                    }
+                    for r in summary.recent
+                ],
             }
         )
 

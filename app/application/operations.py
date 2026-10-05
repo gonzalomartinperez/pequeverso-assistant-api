@@ -17,6 +17,7 @@ from app.domain.errors import FailureCode
 
 WINDOWS_HOURS = (24, 720)
 DAILY_DAYS = 30
+RECENT_RUNS = 50
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +61,21 @@ class DailyRow:
 
 
 @dataclass(frozen=True, slots=True)
+class RecentRun:
+    """One run as operators see it: an opaque id (not the run id), no session or content."""
+
+    id: str
+    started_at: datetime
+    outcome: str
+    code: str | None
+    model_call: bool
+    replaced: bool
+    language: str | None
+    first_delta_ms: int | None
+    total_ms: int
+
+
+@dataclass(frozen=True, slots=True)
 class CatalogState:
     activated_at: datetime | None
     last_attempt_at: datetime | None
@@ -73,6 +89,7 @@ class OperationsQueries(Protocol):
     async def run_window(self, since: datetime) -> RunWindow: ...
     async def daily(self, since_day: str) -> list[DailyRow]: ...
     async def metrics_since(self) -> datetime | None: ...
+    async def recent(self, limit: int) -> list[RecentRun]: ...
     async def catalog_state(self) -> CatalogState: ...
 
 
@@ -86,6 +103,7 @@ class ServiceInfo:
     assistant_enabled: bool
     started_at: datetime
     price_max_age_hours: int
+    pricing: dict[str, str] = field(default_factory=dict)
 
     @property
     def synthetic(self) -> bool:
@@ -121,7 +139,7 @@ class Summary:
     windows: list[dict[str, object]]
     daily: list[dict[str, object]]
     metrics_since: datetime | None
-    notes: list[str] = field(default_factory=list)
+    recent: list[RecentRun] = field(default_factory=list)
 
 
 def usd(micro: int) -> str:
@@ -219,6 +237,7 @@ class OperationsService:
             windows=windows,
             daily=daily,
             metrics_since=await self._queries.metrics_since(),
+            recent=await self._queries.recent(RECENT_RUNS),
         )
 
     async def _catalog_status(self, now: datetime) -> dict[str, object]:
