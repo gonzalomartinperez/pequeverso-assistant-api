@@ -1,0 +1,24 @@
+{
+  "family": "typos-and-slang",
+  "description": "Misspellings, missing accents, abbreviations and informal register.",
+  "cases": [
+    {"id": "typ-001", "group": "typ-included", "split": "dev", "turns": ["q incluye el kit??"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.05"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-002", "group": "typ-included", "split": "dev", "turns": ["ke trae la conpra"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.05"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-003", "group": "typ-age", "split": "holdout", "turns": ["para q edad es"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.02", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-004", "group": "typ-age", "split": "holdout", "turns": ["sirbe pa un niño d 4 años?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.02"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-005", "group": "typ-refund", "split": "dev", "turns": ["como pido el reenbolso"], "expect": {"retrieval": ["document:policy.guarantee", "document:support.route.2", "document:faq.grafismo-fonetico.03"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-006", "group": "typ-refund", "split": "dev", "turns": ["kiero mi plata de vuelta"], "expect": {"retrieval": ["document:policy.guarantee", "document:support.route.2"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-007", "group": "typ-access", "split": "dev", "turns": ["no me yego el mail"], "expect": {"retrieval": ["document:support.access.1", "document:support.route.1"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-008", "group": "typ-access", "split": "dev", "turns": ["nomellegonada y ya pague"], "expect": {"retrieval": ["document:support.access.1", "document:support.route.1", "document:support.access.2"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-009", "group": "typ-print", "split": "dev", "turns": ["ai q inprimir todo?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.07"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-010", "group": "typ-print", "split": "dev", "turns": ["es fisico o digital"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.06", "document:policy.delivery"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-011", "group": "typ-currency", "split": "dev", "turns": ["puedo pagar en mi moneda"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.11", "document:policy.payment"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-012", "group": "typ-currency", "split": "dev", "turns": ["cuanto sale en pesos mx"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.11", "document:policy.payment"], "outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "typ-013", "group": "typ-time", "split": "holdout", "turns": ["cuantos min x dia"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.04"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-014", "group": "typ-games", "split": "dev", "turns": ["tiene juegos tipo bingo o domino"], "expect": {"retrieval": ["resource:grafismo-fonetico/juega"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-015", "group": "typ-cards", "split": "holdout", "turns": ["las tarjetitas se recortan?"], "expect": {"retrieval": ["resource:grafismo-fonetico/silabas-en-tus-manos"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-016", "group": "typ-teacher", "split": "dev", "turns": ["soy profe sin experiencia me sirve"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.08"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-017", "group": "typ-shout", "split": "holdout", "turns": ["NECESITO AYUDA YA NO PUEDO ENTRAR A MIS ARCHIVOS"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.10", "document:support.route.1", "document:support.access.1"], "outcome": "answer", "language": "es"}},
+    {"id": "typ-018", "group": "typ-guarantee", "split": "dev", "turns": ["garantia d 7 dias como funca"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.03", "document:policy.guarantee"], "outcome": "answer", "language": "es"}}
+  ]
+}

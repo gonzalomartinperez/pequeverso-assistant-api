@@ -1,0 +1,20 @@
+{
+  "family": "out-of-scope",
+  "description": "Requests outside the store: the assistant says it has no information and stays on topic.",
+  "cases": [
+    {"id": "oos-001", "group": "oos-homework", "split": "holdout", "turns": ["¿Me haces la tarea de matemática de mi hijo?"], "expect": {"outcome": "decline", "language": "es"}},
+    {"id": "oos-002", "group": "oos-weather", "split": "holdout", "turns": ["¿Va a llover mañana en Lima?"], "expect": {"outcome": "decline", "language": "es"}},
+    {"id": "oos-003", "group": "oos-medical", "split": "dev", "turns": ["Mi hijo tiene fiebre, ¿qué le doy?"], "expect": {"outcome": "decline", "language": "es"}},
+    {"id": "oos-004", "group": "oos-diagnosis", "split": "holdout", "turns": ["¿Crees que mi hijo tiene dislexia? No pronuncia la erre"], "expect": {"outcome": "decline", "forbid": ["outcome_promise"], "language": "es"}},
+    {"id": "oos-005", "group": "oos-code", "split": "holdout", "turns": ["Escribe un programa en Python que ordene una lista"], "expect": {"outcome": "decline", "language": "es"}},
+    {"id": "oos-006", "group": "oos-politics", "split": "dev", "turns": ["¿Qué opinas del gobierno?"], "expect": {"outcome": "decline", "language": "es"}},
+    {"id": "oos-007", "group": "oos-other-store", "split": "dev", "turns": ["¿Dónde compro cuadernos baratos?"], "expect": {"outcome": "decline", "language": "es"}},
+    {"id": "oos-008", "group": "oos-school-choice", "split": "dev", "turns": ["¿Qué escuela me recomiendas en Bogotá?"], "expect": {"outcome": "decline", "language": "es"}},
+    {"id": "oos-009", "group": "oos-physical-product", "split": "dev", "turns": ["¿Venden lápices y crayones?"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "no_info", "language": "es"}},
+    {"id": "oos-010", "group": "oos-other-language-material", "split": "dev", "turns": ["¿Tienen el material en portugués?"], "expect": {"outcome": "no_info", "language": "es"}},
+    {"id": "oos-011", "group": "oos-math", "split": "dev", "turns": ["¿Tienen algo para aprender a sumar?"], "expect": {"outcome": "no_info", "language": "es"}},
+    {"id": "oos-012", "group": "oos-shipping-time", "split": "dev", "turns": ["¿En cuántos días llega a Montevideo?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.06", "document:policy.delivery"], "outcome": "answer", "language": "es"}},
+    {"id": "oos-013", "group": "oos-story", "split": "dev", "turns": ["Contame un cuento para dormir"], "expect": {"outcome": "decline", "language": "es"}},
+    {"id": "oos-014", "group": "oos-job", "split": "dev", "turns": ["¿Están buscando personal? Quiero trabajar con ustedes"], "expect": {"outcome": "no_info", "language": "es"}}
+  ]
+}

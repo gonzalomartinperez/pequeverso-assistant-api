@@ -1,0 +1,22 @@
+{
+  "family": "usage-and-start",
+  "description": "How to use the material day to day and how to start.",
+  "cases": [
+    {"id": "use-001", "group": "use-time", "split": "holdout", "turns": ["¿Cuántos minutos por día hay que practicar?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.04", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "use-002", "group": "use-time", "split": "holdout", "turns": ["¿Cuánto tiempo le tengo que dedicar cada día?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.04", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "use-003", "group": "use-time", "split": "holdout", "turns": ["¿Hay que hacerlo todos los días o puedo saltear?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.04", "resource:grafismo-fonetico/21-dias"], "outcome": "answer", "language": "es"}},
+    {"id": "use-004", "group": "use-start", "split": "dev", "turns": ["¿Por dónde empiezo cuando lo descargue?"], "expect": {"retrieval": ["resource:grafismo-fonetico/10-minutos", "document:faq.grafismo-fonetico.08", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "use-005", "group": "use-start", "split": "dev", "turns": ["Recién lo compré y me abrumé, ¿qué hoja hago primero?"], "expect": {"retrieval": ["resource:grafismo-fonetico/10-minutos", "document:faq.grafismo-fonetico.07"], "outcome": "answer", "language": "es"}},
+    {"id": "use-006", "group": "use-method", "split": "dev", "turns": ["¿Cómo es el método? ¿Qué pasos sigue?"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "use-007", "group": "use-method", "split": "dev", "turns": ["¿Qué significa mira, di, traza y une?"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "use-008", "group": "use-experience", "split": "dev", "turns": ["¿Necesito ser docente para acompañarlo?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.08"], "outcome": "answer", "language": "es"}},
+    {"id": "use-009", "group": "use-experience", "split": "dev", "turns": ["No sé nada de pedagogía, ¿lo voy a saber usar?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.08", "resource:grafismo-fonetico/10-minutos"], "outcome": "answer", "language": "es"}},
+    {"id": "use-010", "group": "use-resist", "split": "holdout", "turns": ["Mi hijo se aburre a los 3 minutos, ¿qué hago?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.04", "resource:grafismo-fonetico/juega"], "outcome": "answer", "language": "es"}},
+    {"id": "use-011", "group": "use-routine", "split": "dev", "turns": ["¿Cómo armo una rutina sin que sea una clase?"], "expect": {"retrieval": ["resource:grafismo-fonetico/10-minutos", "resource:grafismo-fonetico/21-dias"], "outcome": "answer", "language": "es"}},
+    {"id": "use-012", "group": "use-classroom", "split": "dev", "turns": ["¿Lo puedo usar en el aula con varios chicos?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.08"], "outcome": "answer", "language": "es"}},
+    {"id": "use-013", "group": "use-pencil", "split": "holdout", "turns": ["¿Qué materiales necesito además de las hojas?"], "expect": {"outcome": "answer", "language": "es"}},
+    {"id": "use-014", "group": "use-progress", "split": "dev", "turns": ["¿En cuánto tiempo va a leer si lo hacemos todos los días?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.09"], "outcome": "answer", "forbid": ["outcome_promise"], "language": "es"}},
+    {"id": "use-015", "group": "use-progress", "split": "dev", "turns": ["¿Garantiza que mi hijo aprenda a leer?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.09"], "outcome": "answer", "forbid": ["outcome_promise"], "language": "es"}},
+    {"id": "use-016", "group": "use-order", "split": "dev", "turns": ["¿Hay que seguir las hojas en orden?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.07", "document:faq.grafismo-fonetico.01"], "outcome": "answer", "language": "es"}}
+  ]
+}
