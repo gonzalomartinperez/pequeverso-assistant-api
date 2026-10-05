@@ -1,0 +1,151 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-09-28T15:00:00Z",
+  "service": {
+    "environment": "development",
+    "revision": "abcdef1",
+    "provider": "fixture",
+    "model": "fixture",
+    "reasoning_effort": "n/a",
+    "assistant_enabled": true,
+    "started_at": "2026-09-28T15:00:00Z",
+    "synthetic": true
+  },
+  "availability": {
+    "status": "available",
+    "reason": null
+  },
+  "catalog": {
+    "status": "active",
+    "source": "bundled",
+    "revision": "ae6d237877c248551be988af9be920eac69b16da",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "generated_at": "2026-09-28T15:00:00Z",
+    "verified_at": "2026-09-28T15:00:00Z",
+    "activated_at": "2026-09-28T15:00:00Z",
+    "price_status": "verified",
+    "price_max_age_hours": 168,
+    "last_attempt_at": "2026-09-28T15:00:00Z",
+    "last_failure": null,
+    "last_failure_at": null,
+    "products": 1,
+    "documents": 23
+  },
+  "budget": {
+    "month": "2026-09",
+    "day": "2026-09-28",
+    "monthly_limit": "10.000000",
+    "monthly_cutoff": "9.000000",
+    "daily_limit": "1.000000",
+    "month_spend": {
+      "confirmed": "0.004200",
+      "estimated": "0.005400",
+      "pending": "0.000000"
+    },
+    "day_spend": {
+      "confirmed": "0.004200",
+      "estimated": "0.005400",
+      "pending": "0.000000"
+    },
+    "remaining_month": "8.990400"
+  },
+  "windows": [
+    {
+      "hours": 24,
+      "runs": {
+        "completed": 7,
+        "failed": 1,
+        "cancelled": 1,
+        "interrupted": 0,
+        "refused": 1
+      },
+      "replaced": 1,
+      "failures": {
+        "budget_exhausted": 1,
+        "provider_unavailable": 1
+      },
+      "latency_ms": {
+        "first_delta": {
+          "p50": 820,
+          "p95": 1900,
+          "count": 8
+        },
+        "total": {
+          "p50": 3100,
+          "p95": 6400,
+          "count": 7
+        }
+      },
+      "tokens": {
+        "input": 41000,
+        "cached_input": 30000,
+        "output": 9100,
+        "reasoning": 5200,
+        "runs_with_usage": 7
+      }
+    },
+    {
+      "hours": 720,
+      "runs": {
+        "completed": 7,
+        "failed": 1,
+        "cancelled": 1,
+        "interrupted": 0,
+        "refused": 1
+      },
+      "replaced": 1,
+      "failures": {
+        "budget_exhausted": 1,
+        "provider_unavailable": 1
+      },
+      "latency_ms": {
+        "first_delta": {
+          "p50": 820,
+          "p95": 1900,
+          "count": 8
+        },
+        "total": {
+          "p50": 3100,
+          "p95": 6400,
+          "count": 7
+        }
+      },
+      "tokens": {
+        "input": 41000,
+        "cached_input": 30000,
+        "output": 9100,
+        "reasoning": 5200,
+        "runs_with_usage": 7
+      }
+    }
+  ],
+  "daily": [
+    {
+      "day": "2026-09-27",
+      "completed": 7,
+      "failed": 1,
+      "cancelled": 1,
+      "interrupted": 0,
+      "refused": 1,
+      "confirmed": "0.002100",
+      "estimated": "0.000000",
+      "input_tokens": 20000,
+      "output_tokens": 4000,
+      "reasoning_tokens": 2500
+    },
+    {
+      "day": "2026-09-28",
+      "completed": 7,
+      "failed": 1,
+      "cancelled": 1,
+      "interrupted": 0,
+      "refused": 1,
+      "confirmed": "0.002100",
+      "estimated": "0.005400",
+      "input_tokens": 21000,
+      "output_tokens": 5100,
+      "reasoning_tokens": 2700
+    }
+  ],
+  "metrics_since": "2026-09-27T15:00:00Z"
+}

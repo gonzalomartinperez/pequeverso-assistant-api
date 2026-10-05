@@ -126,6 +126,7 @@ def details_from_json(raw: str) -> AnswerDetails:
         sources=tuple(SourceRef(**item) for item in data['sources']),
         follow_ups=tuple(data['follow_ups']),
         notices=tuple(Notice(n) for n in data['notices']),
+        language=data.get('language', 'es'),
     )
 
 

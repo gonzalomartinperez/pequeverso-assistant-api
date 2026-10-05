@@ -8,6 +8,7 @@ import json
 from pydantic import TypeAdapter
 
 from app.presentation.events import TERMINAL_TYPES, StreamEvent
+from app.presentation.operations import OpsSummaryOut
 from app.presentation.schemas import SessionOut
 from contracts.export import ROOT, build
 from tests.support import parse_sse
@@ -45,9 +46,17 @@ def test_example_streams_follow_the_event_grammar() -> None:
 def test_examples_never_carry_unsafe_payloads() -> None:
     for path in (ROOT / 'examples').iterdir():
         text = path.read_text()
+        if path.name.startswith('ops.'):
+            # Private operations data: token counts and the effort setting, never reasoning content.
+            text = (
+                text.replace('"reasoning_effort"', '')
+                .replace('"reasoning_tokens"', '')
+                .replace('"reasoning"', '')
+            )
         for forbidden in ('<script', 'javascript:', 'sk-', 'instructions', 'reasoning', 'Imprime y Juega'):
             assert forbidden not in text, (path.name, forbidden)
     SessionOut.model_validate_json((ROOT / 'examples' / 'session.created.json').read_text())
+    OpsSummaryOut.model_validate_json((ROOT / 'examples' / 'ops.summary.json').read_text())
 
 
 def test_openapi_routes_keep_the_public_prefix() -> None:

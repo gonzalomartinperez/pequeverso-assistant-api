@@ -158,7 +158,7 @@ def test_stream_contract_validated_references_and_history(tmp_path: Path) -> Non
         assert final['sources'][0]['url'].startswith('https://pequeverso.com/')
         request = provider.calls[0]
         assert 'kit-que-no-existe' not in json.dumps(final)
-        assert request.max_output_tokens == 1200
+        assert request.max_output_tokens == 4000
         assert 'store_data' in request.inputs[0].text and '"page":"product"' in request.inputs[1].text
 
         ask(c, csrf, '¿Y el segundo que mencionaste?')

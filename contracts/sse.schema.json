@@ -209,12 +209,23 @@
             "enum": [
               "answer_replaced",
               "payment_data_refused",
-              "contact_data_redacted"
+              "contact_data_redacted",
+              "language_unsupported"
             ],
             "type": "string"
           },
           "title": "Notices",
           "type": "array"
+        },
+        "language": {
+          "default": "es",
+          "description": "Language of `content` (since 1.1). Use it as the lang attribute.",
+          "enum": [
+            "es",
+            "en"
+          ],
+          "title": "Language",
+          "type": "string"
         }
       },
       "required": [
