@@ -94,9 +94,14 @@ Every stream ends with exactly one terminal event. Every event carries `schema_v
 differ from the streamed draft: when the server-side answer rules replace an answer, the notice
 `answer_replaced` is set. Always render `message.completed.message.content`.
 
-**Interruption.** If the connection drops before a terminal event, the answer was not stored.
-The server cancels the upstream model call when it sees the disconnect. The client should show
-"interrupted" and offer a retry with a **new** Idempotency-Key. **Stop button:** abort the fetch
+**Interruption.** If the connection drops before a terminal event, the client cannot know
+whether the answer was stored: a drop after the server finished leaves a completed run, a drop
+earlier cancels the upstream model call. The client shows "interrupted" and offers an explicit
+retry (never automatic). Recommended retry (what the storefront does): resend the **same**
+Idempotency-Key and body first. A completed run replays its stored answer with no model call or
+cost; a cancelled or failed run returns `409 idempotency_conflict`, and the client then retries
+once with a **new** key; a run still active returns `409 run_in_progress`. After a failure or a
+user stop, retry with a new key. **Stop button:** abort the fetch
 *and* `POST /runs/{run_id}/cancel`; either alone is enough server-side, and both cover proxies
 that hide disconnects. One run at a time per session: a second question while one is active
 gets `409 run_in_progress`.
