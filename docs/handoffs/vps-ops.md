@@ -15,7 +15,7 @@ The inventory still describes one web service serving `/` and `/embed` plus `/ap
 |---|---|---|---|
 | Storefront with the **native** assistant (disabled by default; no iframe) | `gonzalomartinperez/pequeverso` | Unchanged: its current Hostinger hosting. Consumes **no** VPS resources or Hostinger Node slots | Yes |
 | Assistant API | `gonzalomartinperez/pequeverso-assistant-api` | VPS, Coolify | `/api/*` only |
-| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-assistant-web` (to be renamed `pequeverso-assistant-backoffice`; GitHub redirects the old name) | VPS, Coolify | Only behind its own sign-in |
+| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-assistant-backoffice` (renamed from `pequeverso-assistant-web` on 2026-10-05; GitHub redirects the old name, which the vps-ops inventory still uses) | VPS, Coolify | Only behind its own sign-in |
 | Backoffice PostgreSQL (identity and access only) | — | VPS, private network, project volume | Never |
 
 So the planned `web` service becomes the **backoffice** on a **separate host** and the iframe,

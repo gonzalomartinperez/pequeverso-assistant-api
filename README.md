@@ -9,7 +9,7 @@ included and reach the storefront's purchase flow. Public repository; no license
   provider port; a deterministic **fixture provider is the default**.
 - Versioned HTTP/SSE contract (v1, revision 1.1) for the storefront's native assistant, which
   calls the API cross-origin; private, token-protected operations summary for the backoffice
-  (`pequeverso-assistant-web`, becoming `pequeverso-assistant-backoffice`).
+  (`pequeverso-assistant-backoffice`, formerly `pequeverso-assistant-web`).
 - Answers in Spanish (neutral Latin American, "tú") or English, decided in code per message.
 - `gpt-6-luna` at **medium** reasoning effort when paid use is authorized; budget USD 10/month
   (configurable) with atomic reservations and confirmed / estimated / pending spend.
@@ -48,7 +48,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 
 | Topic | Doc |
 |---|---|
-| Public contract (sessions, SSE, references, freshness, errors, languages) and private ops API | `docs/api-contract.md` + `contracts/`; handoffs `docs/handoffs/storefront-transition.md` (native assistant) and `docs/handoffs/assistant-web.md` (backoffice) |
+| Public contract (sessions, SSE, references, freshness, errors, languages) and private ops API | `docs/api-contract.md` + `contracts/`; handoffs `docs/handoffs/storefront-transition.md` (native assistant) and `docs/handoffs/backoffice.md` (backoffice) |
 | Architecture and decisions | `docs/architecture.md`, `docs/decisions/` |
 | Security, privacy, retention | `docs/security.md` |
 | Catalog source, sync, freshness | `docs/catalog.md` |
