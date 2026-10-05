@@ -42,13 +42,16 @@ class SqliteLedger:
         def work(c: sqlite3.Connection) -> None:
             updated = c.execute(
                 'UPDATE spend_ledger SET actual_micro = ?, model = ?, input_tokens = ?, output_tokens = ?,'
-                ' cached_input_tokens = ? WHERE run_id = ? AND actual_micro IS NULL',
+                " cached_input_tokens = ?, reasoning_tokens = ?, status = 'settled',"
+                " settled_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
+                ' WHERE run_id = ? AND actual_micro IS NULL',
                 (
                     actual_micro,
                     model,
                     usage.input_tokens,
                     usage.output_tokens,
                     usage.cached_input_tokens,
+                    usage.reasoning_tokens,
                     run_id,
                 ),
             ).rowcount
@@ -56,6 +59,22 @@ class SqliteLedger:
                 raise LookupError('no open reservation for this run')
 
         await self._db.write(work)
+
+    async def mark_unreported(self, run_id: str) -> None:
+        await self._db.write(
+            lambda c: c.execute(
+                "UPDATE spend_ledger SET status = 'unreported' WHERE run_id = ? AND status = 'pending'",
+                (run_id,),
+            )
+        )
+
+    async def abandon_pending(self) -> int:
+        def work(c: sqlite3.Connection) -> int:
+            return c.execute(
+                "UPDATE spend_ledger SET status = 'unreported' WHERE status = 'pending'"
+            ).rowcount
+
+        return await self._db.write(work)
 
     async def spent(self, month: str, day: str) -> tuple[int, int]:
         return await self._db.read(lambda c: _spent(c, month, day))

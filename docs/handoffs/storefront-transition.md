@@ -1,31 +1,29 @@
-# Storefront transition handoff
+# Storefront handoff: native assistant (revision 1.1)
 
-**No storefront changes were made.** During discovery the local clone
-`~/projects/github/gonzalomartinperez/pequeverso` was switched from a stale local `main` to its default
-branch `develop` (`7ae5987`, clean, fast-forward, no edits). No branch, commit, PR or uncommitted
-file was created there. The previously planned in-store chat island and the catalog export
-script were **never implemented** in the storefront; the export logic now lives here
-(`tools/catalog/export.ts`, run against a `git archive` of a pinned storefront commit).
+The storefront (`gonzalomartinperez/pequeverso`) renders the only public conversation UI,
+natively (no iframe), **disabled by default** behind its own build-time flag. It calls this API
+cross-origin. This repository does not edit the storefront.
 
-## What the storefront would own later (deferred, for its owner)
+## What the storefront needs from this API
 
-- The launcher button and an outer panel that hosts `https://assistant.pequeverso.com/embed` in an
-  iframe. Pages proposed by the owner: home, `/grafismo-fonetico/`, `/soporte/`. Never on the
-  Hotmart post-purchase offer page, the thank-you page or legal pages.
-- A fixed `page` context (`home | product | support`) handed to the embed (as an
-  iframe URL parameter or embed message; it is not a credential).
-- CSP: add the assistant origin to `frame-src` (edge rules are report-only today).
-- Lazy loading: do not load the iframe until the visitor opens the launcher. The store must render
-  and sell with the assistant disabled or unreachable.
-- Privacy: the owner approved a conditional `/privacidad/` section (docs/security.md, "User
-  notice"), flagged for owner or legal review.
-- Optional: publish `assistant/catalog.v1.json` at build time so the API can use `CATALOG_URL`
-  (live freshness) instead of the pinned snapshot. Schema: `app/adapters/catalog_schema.py`.
+| Need | Contract |
+|---|---|
+| Origin | Proposed `https://assistant.pequeverso.com` (pending approval/DNS); calls go to `<origin>/api/v1/...` |
+| Credentials | `fetch(..., {credentials: 'include'})`; host-only `__Host-pv_assistant` cookie set by the API (Secure, HttpOnly, SameSite=Lax) |
+| CORS | `ALLOWED_ORIGINS=["https://pequeverso.com"]` on the API (exact); preflight handled by the API |
+| CSRF | `csrf_token` from `POST /session`, in memory, sent as `X-CSRF-Token`; `Idempotency-Key` per attempt |
+| Page context | `page`: `home` \| `product` \| `support`; never on the thank-you page, the post-purchase offer or legal pages |
+| Language | `locale` from the UI (`es` today); render `message.language` as `lang` |
+| Starters | `SessionOut.starters` before the first message |
+| Availability | `availability` in `SessionOut` / `GET /availability`; when unavailable show the support link and keep the store fully usable |
+| Storefront CSP | add the API origin to `connect-src` when enabling |
 
 ## Assumptions the backend makes about the storefront
 
 - `https://pequeverso.com/grafismo-fonetico/#comprar` stays the purchase section (card
   `purchase_url`).
-- Media URLs in the snapshot (`/media/...` renditions) stay published. They are content-hashed;
-  a storefront media change requires a catalog re-sync.
+- Media URLs in the snapshot (`/media/...` renditions) stay published; a media change needs a
+  catalog re-sync.
+- Facts come only from commits on the storefront `main` branch (sync refuses others).
 - The post-purchase offer stays excluded before purchase.
+- Privacy: the owner-approved `/privacidad/` assistant section must be live before enabling.

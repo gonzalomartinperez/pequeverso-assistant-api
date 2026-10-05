@@ -11,6 +11,9 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 FROM python:3.13-slim@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS runtime
+# Source commit shown to operators (ops summary). Pass --build-arg SERVICE_REVISION=<git sha>.
+ARG SERVICE_REVISION=
+ENV SERVICE_REVISION=${SERVICE_REVISION}
 ENV PATH=/opt/venv/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

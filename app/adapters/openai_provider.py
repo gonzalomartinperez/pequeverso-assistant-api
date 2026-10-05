@@ -2,6 +2,9 @@
 
 Retries are bounded and happen only when the request failed before any stream opened
 (connection errors, 429, 5xx), so a response that may have been billed is never repeated.
+Usage is reported whenever the provider includes it, also on an incomplete or failed response
+(reasoning can consume the whole output allowance before any text), so the ledger settles to
+what was actually billed instead of keeping only the estimate.
 """
 
 from __future__ import annotations
@@ -45,6 +48,26 @@ def _text_format(request: ModelRequest) -> ResponseTextConfigParam:
 
 def _reasoning(effort: str) -> Reasoning:
     return cast(Reasoning, {'effort': effort})
+
+
+def usage_of(response: Any) -> Usage | None:
+    """Provider usage as a domain value; None when absent or malformed (never guessed)."""
+    usage = getattr(response, 'usage', None)
+    if usage is None:
+        return None
+    try:
+        inputs = getattr(usage, 'input_tokens_details', None)
+        outputs = getattr(usage, 'output_tokens_details', None)
+        return Usage(
+            input_tokens=int(usage.input_tokens),
+            output_tokens=int(usage.output_tokens),
+            cached_input_tokens=int(getattr(inputs, 'cached_tokens', 0) or 0),
+            cache_write_tokens=int(getattr(inputs, 'cache_write_tokens', 0) or 0),
+            reasoning_tokens=int(getattr(outputs, 'reasoning_tokens', 0) or 0),
+        )
+    except (TypeError, ValueError):
+        log.warning('{"operation":"provider_usage","outcome":"malformed"}')
+        return None
 
 
 class OpenAIResponsesProvider:
@@ -106,21 +129,23 @@ class OpenAIResponsesProvider:
                     yield TextChunk(event.delta)
                 elif kind == 'response.completed':
                     completed = True
-                    usage = getattr(event.response, 'usage', None)
+                    usage = usage_of(event.response)
                     if usage is not None:
-                        details = getattr(usage, 'input_tokens_details', None)
-                        yield UsageChunk(
-                            Usage(
-                                input_tokens=usage.input_tokens,
-                                output_tokens=usage.output_tokens,
-                                cached_input_tokens=getattr(details, 'cached_tokens', 0) or 0,
-                                cache_write_tokens=getattr(details, 'cache_write_tokens', 0) or 0,
-                            )
-                        )
+                        yield UsageChunk(usage)
                 elif kind in ('response.refusal.delta', 'response.refusal.done'):
                     raise RejectedError(FailureCode.GENERATION_FAILED)
-                elif kind in ('response.failed', 'response.incomplete', 'error'):
-                    log.warning('{"operation":"provider_stream","outcome":"%s"}', kind)
+                elif kind in ('response.failed', 'response.incomplete'):
+                    response = getattr(event, 'response', None)
+                    reason = getattr(getattr(response, 'incomplete_details', None), 'reason', None)
+                    log.warning(
+                        '{"operation":"provider_stream","outcome":"%s","reason":"%s"}', kind, reason or 'none'
+                    )
+                    usage = usage_of(response)
+                    if usage is not None:
+                        yield UsageChunk(usage)
+                    raise RejectedError(FailureCode.GENERATION_FAILED)
+                elif kind == 'error':
+                    log.warning('{"operation":"provider_stream","outcome":"error"}')
                     raise RejectedError(FailureCode.GENERATION_FAILED)
         except openai.OpenAIError as error:
             raise RejectedError(FailureCode.PROVIDER_UNAVAILABLE) from error

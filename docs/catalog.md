@@ -21,9 +21,22 @@ pinned commit of `main`, the branch customers see.
 ## Updating
 
 ```
-uv run python scripts/sync_catalog.py --storefront ../pequeverso --revision <full sha of storefront main>
-uv run pytest tests/test_catalog.py && uv run python -m contracts.export && git diff catalog/
+git -C ../pequeverso fetch origin main
+uv run python scripts/sync_catalog.py --storefront ../pequeverso --revision <full sha on storefront main>
+uv run pytest tests/test_catalog.py tests/test_catalog_diff.py && uv run python -m contracts.export
+git diff catalog/   # catalog.v1.json + sync-report.json
 ```
+
+The script **refuses a revision that is not reachable from `origin/main`** of the storefront
+(exit 2): content still on `develop` cannot change prices or promises in production. It
+validates the export with the runtime schema before writing (exit 3 leaves the snapshot
+untouched) and writes `catalog/sync-report.json`: source and previous revision, published ref,
+generation time, SHA-256 of the snapshot and of the exporter, counts, and a semantic diff
+(products added or **retired**, price changes, resources, documents, links, forbidden terms).
+A retired product disappears from answers as soon as the new snapshot is active, because every
+reference is resolved against the active catalog. Re-syncing an unchanged `main` commit only
+refreshes `generated_at`: that is a real verification that production still states those
+facts, and it restarts the price-freshness window.
 
 The script reads the storefront through `git archive <sha>` into a temporary directory. No
 storefront working tree, branch or index is touched. It links the storefront's installed
@@ -35,7 +48,9 @@ counts sum, that the offer never appears, and that every URL is https on an allo
 ## Freshness policy
 
 - **Prices** are quoted only while `now − verified_at ≤ CATALOG_PRICE_MAX_AGE_HOURS` (168 h).
-  - For the bundled snapshot, `verified_at` is its `generated_at` (export time).
+  - For the bundled snapshot, `verified_at` is its `generated_at` (export time). Re-sync at least
+    weekly or prices are withheld (honest degradation: the answer points to the product page and
+    Hotmart instead of quoting an old amount; cards show no price).
   - For a live `CATALOG_URL` source, `verified_at` is the last successful fetch.
   - After the window: no price in the evidence, `price: null` in cards, and any amount in an
     answer causes replacement. The assistant points to the product page and the Hotmart
