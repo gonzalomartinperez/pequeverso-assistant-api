@@ -103,12 +103,15 @@ short `CLIENT_HASH_KEY`, or a daily budget above the monthly one.
 
 - **Deploy:** pull the image by digest, then start it. Readiness goes green once the migrations are
   applied and the bundled catalog is loaded (a few seconds).
-- **Rollback:** redeploy the previous image digest on the same volume. The current schema is
-  migration 002 (additive: new ledger columns, `run_metrics` table, `catalog_state.last_failure_at`).
-  An image built before 002 runs against a 002 database because it never reads the new columns
-  and its `INSERT`s omit them (defaults apply); it will not record run metrics. Rolling back
-  *data* to 001 needs the pre-deploy backup. Take a backup before every deploy that adds a
-  migration.
+- **Rollback:** redeploy the previous image digest on the same volume only after checking
+  the schema. The current schema is migration 002. An image built before 002 can read the
+  additive columns and tables, but **not** messages stored with the new `language_unsupported`
+  notice, so it would fail to load those sessions. Rolling back across 002 therefore needs one
+  of: restoring the pre-deploy backup, or deleting conversations first
+  (`DELETE FROM sessions;`, which removes only short-lived chats; the ledger and metrics stay).
+  The old image also does not record run metrics, and its ledger rows keep status `pending`
+  until the newer image starts again, which maps them back to `settled`/`unreported`. Take a
+  backup before every deploy that adds a migration.
 - **Graceful stop:** `SIGTERM`, then up to 15 s to finish streams; active runs end as
   cancelled.
 - **Kill switch:** `ASSISTANT_ENABLED=false` or stopping the container. The web app shows

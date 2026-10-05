@@ -27,7 +27,7 @@ class Detected(StrEnum):
     UNKNOWN = 'unknown'
 
 
-_QUOTED = re.compile(r'"[^"]{0,400}"|“[^”]{0,400}”|«[^»]{0,400}»|`[^`]{0,400}`|\'[^\']{6,400}\'')
+_QUOTED = re.compile(r'"[^"]*"|“[^”]*”|«[^»]*»|`[^`]*`|(?<!\w)\'[^\']{6,}\'(?!\w)')
 _CODE = re.compile(r'```.*?```', re.DOTALL)
 _URLISH = re.compile(r'\S+@\S+|(?:https?://|www\.)\S+|\b\S+\.(?:com|net|org|io|ar|es|mx)\S*', re.IGNORECASE)
 _WORD = re.compile(r"[a-zñçãõâêôàèìòùäëïöü']+")
@@ -125,6 +125,32 @@ _ES = frozenset(
 )
 _EN = frozenset(
     [
+        "i'm",
+        "i'd",
+        "i'll",
+        "we're",
+        "we've",
+        "you're",
+        "she's",
+        "he's",
+        "it's",
+        "what's",
+        "that's",
+        "don't",
+        "doesn't",
+        "isn't",
+        "can't",
+        'looking',
+        'something',
+        'like',
+        'know',
+        'best',
+        'old',
+        'kid',
+        'teacher',
+        'homeschooling',
+        'printable',
+        'thank',
         'the',
         'and',
         'is',

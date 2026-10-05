@@ -65,7 +65,7 @@ def usage_of(response: Any) -> Usage | None:
             cache_write_tokens=int(getattr(inputs, 'cache_write_tokens', 0) or 0),
             reasoning_tokens=int(getattr(outputs, 'reasoning_tokens', 0) or 0),
         )
-    except (TypeError, ValueError):
+    except (AttributeError, TypeError, ValueError):
         log.warning('{"operation":"provider_usage","outcome":"malformed"}')
         return None
 

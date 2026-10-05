@@ -245,8 +245,8 @@ class _ModelRun(Run):
         )
         self._replaced = bool(final.violations)
         message = Message(_message_id(), Role.ASSISTANT, final.content, now, final.details)
-        await service.messages.append(self._session.id, message)
         await self._settle(event.usage)
+        await service.messages.append(self._session.id, message)
         await self._finish(RunState.COMPLETED, assistant_message_id=message.id)
         log.info(
             json.dumps(
@@ -293,6 +293,17 @@ class _ModelRun(Run):
         if self._state is not None:
             return
         self._state = state
+        # Shielded: a disconnect while finishing must not leave the run active, the reservation
+        # pending or the metric unrecorded.
+        await asyncio.shield(self._finish_steps(state, code, assistant_message_id, outcome))
+
+    async def _finish_steps(
+        self,
+        state: RunState,
+        code: FailureCode | None,
+        assistant_message_id: str | None,
+        outcome: RunOutcome | None,
+    ) -> None:
         service = self._service
         await service.runs.finish(self.id, state, assistant_message_id)
         if not self._settled:
@@ -464,7 +475,9 @@ class ChatService:
             previous = [
                 Language(m.details.language)
                 for m in history
-                if m.role is Role.ASSISTANT and m.details.language in LOCALES
+                if m.role is Role.ASSISTANT
+                and m.details.language in LOCALES
+                and Notice.LANGUAGE_UNSUPPORTED not in m.details.notices
             ]
             names = [p.name for p in active.catalog.products]
             language = reply_language(question, previous, Language(locale) if locale else None, names)
@@ -512,13 +525,18 @@ class ChatService:
         except RejectedError as error:
             self._slot.release()
             await self.runs.finish(run_id, RunState.FAILED, None)
+            await self.ledger.mark_unreported(run_id)
             await self._record_static(run_id, now, RunOutcome.REFUSED, error.code, language)
             raise
         except BaseException:
             self._slot.release()
-            await self.runs.finish(run_id, RunState.FAILED, None)
+            await asyncio.shield(self._close_failed_start(run_id))
             raise
         return _ModelRun(self, run_id, session, active, prepared, user_message, self._slot, cancel, language)
+
+    async def _close_failed_start(self, run_id: str) -> None:
+        await self.runs.finish(run_id, RunState.FAILED, None)
+        await self.ledger.mark_unreported(run_id)
 
     async def _existing(self, record: RunRecord, session: Session, question: str, page: str | None) -> Run:
         if record.request_hash != _request_hash(question, page):

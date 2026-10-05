@@ -169,3 +169,29 @@ def test_refusals_are_counted_as_refused(tmp_path: Path) -> None:
         assert status == 503 and error['error']['code'] == 'budget_exhausted'
         window = c.get('/internal/v1/ops/summary', headers=AUTH).json()['windows'][0]
     assert window['runs']['refused'] == 1 and window['failures'] == {'budget_exhausted': 1}
+
+
+def test_unsupported_language_note_does_not_count_as_a_spanish_turn(tmp_path: Path) -> None:
+    provider = ScriptedProvider(output=answer_json('Sure.'))
+    with client(tmp_path, provider=provider) as c:
+        csrf = c.post('/api/v1/session', headers=JSON_HEADERS, json={'locale': 'en'}).json()['csrf_token']
+        ask(c, csrf, 'Quanto custa o kit para meu filho?')
+        body = {'content': 'ok', 'locale': 'en'}
+        from tests.support import mutation_headers
+
+        with c.stream('POST', '/api/v1/messages', headers=mutation_headers(csrf), json=body) as response:
+            text = ''.join(response.iter_text())
+    assert '"language":"en"' in text.replace(' ', '')
+
+
+def test_roll_forward_maps_old_pending_rows_by_actual_spend(tmp_path: Path) -> None:
+    with client(tmp_path):
+        pass
+    with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as c, c:
+        c.execute(
+            'INSERT INTO spend_ledger (run_id, month, day, reserved_micro, actual_micro, created_at)'
+            " VALUES ('run_old', '2026-09', '2026-09-28', 99, 40, '2026-09-28T12:00:00.000Z')"
+        )
+    with client(tmp_path):
+        pass
+    assert _ledger(tmp_path)[0]['status'] == 'settled'

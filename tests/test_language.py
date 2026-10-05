@@ -47,3 +47,21 @@ def test_conversation_then_locale_break_ties() -> None:
 
 def test_unsupported_language_returns_none() -> None:
     assert reply_language('Quanto custa o kit para meu filho?', [Language.ES], Language.ES) is None
+
+
+@pytest.mark.parametrize(
+    'text',
+    [
+        "I'm looking for something my kid's teacher recommended",
+        "We're homeschooling and she's 5, what's best?",
+        "Hi! I'd like to know if it's printable",
+    ],
+)
+def test_english_contractions_are_not_mistaken_for_quotes(text: str) -> None:
+    assert detect(text) is Detected.EN
+
+
+def test_long_quoted_passages_never_switch_the_language() -> None:
+    quoted = ' '.join(['the kit includes printable pages for children and parents'] * 9)
+    assert len(quoted) > 400
+    assert detect(f'¿Qué significa "{quoted}"?') is Detected.ES

@@ -70,8 +70,11 @@ class SqliteLedger:
 
     async def abandon_pending(self) -> int:
         def work(c: sqlite3.Connection) -> int:
+            # Rows written by an image older than migration 002 keep the default 'pending' even
+            # after settling; map them by actual_micro so a roll-forward reports them correctly.
             return c.execute(
-                "UPDATE spend_ledger SET status = 'unreported' WHERE status = 'pending'"
+                "UPDATE spend_ledger SET status = CASE WHEN actual_micro IS NOT NULL THEN 'settled'"
+                " ELSE 'unreported' END WHERE status = 'pending'"
             ).rowcount
 
         return await self._db.write(work)
