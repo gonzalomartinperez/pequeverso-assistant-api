@@ -1,0 +1,22 @@
+{
+  "family": "printing-and-format",
+  "description": "File format, printing, paper size and reuse.",
+  "cases": [
+    {"id": "prn-001", "group": "prn-physical", "split": "dev", "turns": ["¿Me llega algo por correo postal?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.06", "document:policy.delivery"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-002", "group": "prn-physical", "split": "dev", "turns": ["¿Es un libro físico o digital?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.06", "document:policy.delivery", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-003", "group": "prn-physical", "split": "dev", "turns": ["¿Hacen envíos a domicilio del material impreso?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.06", "document:policy.delivery"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-004", "group": "prn-all", "split": "dev", "turns": ["¿Tengo que imprimir todas las páginas?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.07"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-005", "group": "prn-all", "split": "dev", "turns": ["Son muchas hojas, ¿puedo imprimir de a poco?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.07"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-006", "group": "prn-reuse", "split": "dev", "turns": ["¿Puedo imprimirlo varias veces o solo una?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.07", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-007", "group": "prn-reuse", "split": "dev", "turns": ["Si se rompe una hoja, ¿la puedo volver a imprimir?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.07", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-008", "group": "prn-size", "split": "holdout", "turns": ["¿En qué tamaño de hoja viene? ¿A4 o carta?"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-009", "group": "prn-printer", "split": "dev", "turns": ["No tengo impresora en casa, ¿igual me sirve?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.06"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-010", "group": "prn-printer", "split": "dev", "turns": ["¿Lo puedo llevar a imprimir a una papelería?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.06"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-011", "group": "prn-color", "split": "holdout", "turns": ["¿Hay que imprimirlo a color o sirve en blanco y negro?"], "expect": {"outcome": "no_info", "language": "es"}},
+    {"id": "prn-012", "group": "prn-ink", "split": "dev", "turns": ["¿Gasta mucha tinta?"], "expect": {"outcome": "no_info", "language": "es"}},
+    {"id": "prn-013", "group": "prn-screen", "split": "dev", "turns": ["¿Se puede usar en la tablet sin imprimir?"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-014", "group": "prn-format", "split": "dev", "turns": ["¿Qué formato tienen los archivos?"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-015", "group": "prn-folder", "split": "holdout", "turns": ["¿Se puede armar una carpeta con lo que más le guste?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.07"], "outcome": "answer", "language": "es"}},
+    {"id": "prn-016", "group": "prn-editable", "split": "holdout", "turns": ["¿Los PDF son editables? Quiero poner el nombre de mi hijo"], "expect": {"outcome": "no_info", "language": "es"}}
+  ]
+}

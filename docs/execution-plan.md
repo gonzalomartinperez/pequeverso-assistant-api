@@ -12,4 +12,7 @@
 | Ownership update: frontend moved to `pequeverso-assistant-web`; storefront integration deferred | Applied (no storefront changes existed) |
 | Conservative Dependabot automation | Merged, PR #2 (`c0f842e`); verified live on Dependabot PR #3 (manual review, auto-merge off) |
 | Live-model evaluation, production deployment, DNS | Not authorized, pending owner |
-| Coordinated end-to-end run with the web app | Pending: web repository only bootstrapped (`ce86f6d`) |
+| Contract 1.1: es/en languages, starters, ledger states (confirmed/estimated/pending), run metrics, private ops API, medium effort, published-only catalog sync with semantic report | Implemented on `feat/assistant-evolution` (2026-10-05) |
+| Evaluation corpus by intent family with dev/holdout split | PR #20 |
+| Native storefront assistant (cross-origin, disabled by default); backoffice consuming the ops API | In the storefront and web repositories |
+| Live-model evaluation at medium effort (reasoning tokens, incomplete rate, cost per turn) | Not authorized, pending owner |

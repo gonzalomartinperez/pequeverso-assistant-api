@@ -28,7 +28,9 @@ class SqliteCatalogRepository:
             return None
         return StoredSnapshot(row['sha256'], bytes(row['body']), parse_ts(row['verified_at']))
 
-    async def activate(self, sha256: str, body: bytes, catalog: Catalog, now: datetime) -> None:
+    async def activate(
+        self, sha256: str, body: bytes, catalog: Catalog, verified_at: datetime, attempted_at: datetime
+    ) -> None:
         def work(c: sqlite3.Connection) -> None:
             c.execute(
                 'INSERT OR IGNORE INTO catalog_snapshots'
@@ -39,14 +41,14 @@ class SqliteCatalogRepository:
                     catalog.schema_version,
                     catalog.source_revision,
                     ts(catalog.generated_at),
-                    ts(now),
+                    ts(attempted_at),
                     body,
                 ),
             )
             c.execute(
                 'UPDATE catalog_state SET active_sha256 = ?, verified_at = ?, last_attempt_at = ?,'
                 ' last_failure = NULL WHERE id = 1',
-                (sha256, ts(now), ts(now)),
+                (sha256, ts(verified_at), ts(attempted_at)),
             )
             c.execute(
                 'DELETE FROM catalog_snapshots WHERE sha256 NOT IN'
@@ -57,19 +59,20 @@ class SqliteCatalogRepository:
 
         await self._db.write(work)
 
-    async def mark_verified(self, sha256: str, now: datetime) -> None:
+    async def mark_verified(self, sha256: str, verified_at: datetime, attempted_at: datetime) -> None:
         await self._db.write(
             lambda c: c.execute(
                 'UPDATE catalog_state SET verified_at = ?, last_attempt_at = ?, last_failure = NULL'
                 ' WHERE id = 1 AND active_sha256 = ?',
-                (ts(now), ts(now), sha256),
+                (ts(verified_at), ts(attempted_at), sha256),
             )
         )
 
     async def record_failure(self, reason: str, now: datetime) -> None:
         await self._db.write(
             lambda c: c.execute(
-                'UPDATE catalog_state SET last_attempt_at = ?, last_failure = ? WHERE id = 1',
-                (ts(now), reason[:80]),
+                'UPDATE catalog_state SET last_attempt_at = ?, last_failure = ?, last_failure_at = ?'
+                ' WHERE id = 1',
+                (ts(now), reason[:80], ts(now)),
             )
         )

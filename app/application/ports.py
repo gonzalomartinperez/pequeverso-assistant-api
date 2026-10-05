@@ -13,6 +13,8 @@ from typing import Protocol
 from app.domain.budget import Usage
 from app.domain.catalog import ActiveCatalog, Catalog, PriceStatus
 from app.domain.conversation import Message, Session
+from app.domain.errors import FailureCode, RejectedError
+from app.domain.language import Language
 
 
 class Clock(Protocol):
@@ -63,11 +65,53 @@ class RunStore(Protocol):
 
 
 class Ledger(Protocol):
+    """Spend in micro-dollars. A row is *pending* while its run is active, *settled* to the
+    provider-reported usage, or *unreported* when the run ended without a usage report (the
+    worst-case reservation then stays counted as an estimate; absence never implies a refund)."""
+
     async def reserve(
         self, run_id: str, reservation_micro: int, month: str, day: str, allows: BudgetCheck
     ) -> bool: ...
     async def settle(self, run_id: str, actual_micro: int, usage: Usage, model: str) -> None: ...
+    async def mark_unreported(self, run_id: str) -> None:
+        """Close a still-pending reservation without usage (no-op when already closed)."""
+        ...
+
+    async def abandon_pending(self) -> int:
+        """Startup recovery: pending rows of a previous process become unreported."""
+        ...
+
     async def spent(self, month: str, day: str) -> tuple[int, int]: ...
+
+
+class RunOutcome(StrEnum):
+    COMPLETED = 'completed'
+    FAILED = 'failed'
+    CANCELLED = 'cancelled'
+    INTERRUPTED = 'interrupted'
+    """The client went away (or the process stopped) before a terminal event was sent."""
+    REFUSED = 'refused'
+    """Refused before any stream opened (rate limit, busy, budget, invalid input)."""
+
+
+@dataclass(frozen=True, slots=True)
+class RunMetric:
+    """Content-free record of one accepted run, kept for operations (no session id, no text)."""
+
+    run_id: str
+    started_at: datetime
+    ended_at: datetime
+    outcome: RunOutcome
+    code: FailureCode | None
+    model_call: bool
+    replaced: bool
+    language: Language | None
+    first_delta_ms: int | None
+    total_ms: int
+
+
+class RunMetrics(Protocol):
+    async def record(self, metric: RunMetric) -> None: ...
 
 
 class BudgetCheck(Protocol):
@@ -108,8 +152,10 @@ class StoredSnapshot:
 
 class CatalogRepository(Protocol):
     async def active(self) -> StoredSnapshot | None: ...
-    async def activate(self, sha256: str, body: bytes, catalog: Catalog, now: datetime) -> None: ...
-    async def mark_verified(self, sha256: str, now: datetime) -> None: ...
+    async def activate(
+        self, sha256: str, body: bytes, catalog: Catalog, verified_at: datetime, attempted_at: datetime
+    ) -> None: ...
+    async def mark_verified(self, sha256: str, verified_at: datetime, attempted_at: datetime) -> None: ...
     async def record_failure(self, reason: str, now: datetime) -> None: ...
 
 
@@ -126,6 +172,7 @@ class Turn:
     question: str
     page: str | None
     safety_identifier: str
+    language: Language = Language.ES
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,6 +203,14 @@ class DraftEvent:
 
 
 ComposerEvent = DeltaEvent | DraftEvent
+
+
+class GenerationError(RejectedError):
+    """A provider failure after the call was made; carries the usage it reported, if any."""
+
+    def __init__(self, code: FailureCode, usage: Usage | None) -> None:
+        super().__init__(code)
+        self.usage = usage
 
 
 class PreparedTurn(Protocol):

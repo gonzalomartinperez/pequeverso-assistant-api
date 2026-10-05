@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import hashlib
 import ipaddress
 import logging
 from collections.abc import AsyncIterator
@@ -21,11 +22,13 @@ from app.adapters.openai_provider import OpenAIResponsesProvider
 from app.adapters.sqlite.catalog_repository import SqliteCatalogRepository
 from app.adapters.sqlite.database import Database
 from app.adapters.sqlite.ledger import SqliteLedger, SqliteRateLimiter
+from app.adapters.sqlite.operations import SqliteOperationsQueries, SqliteRunMetrics
 from app.adapters.sqlite.stores import SqliteMessageStore, SqliteRunStore, SqliteSessionStore
 from app.ai.composer import ComposerSettings, GroundedComposer
 from app.ai.provider import ModelProvider
 from app.application.catalog import CatalogService
 from app.application.chat import ChatLimits, ChatService
+from app.application.operations import OperationsService, ServiceInfo
 from app.application.ports import CatalogSource, Clock
 from app.application.runs import RunRegistry
 from app.application.sessions import SessionLimits, SessionService
@@ -34,6 +37,7 @@ from app.bootstrap.logging import configure_logging
 from app.domain.budget import BudgetPolicy, Pricing, to_micro
 from app.presentation.http import CookiePolicy, HttpSettings, Services, health, install_error_handlers, router
 from app.presentation.middleware import BodyLimitMiddleware, OriginMiddleware, RequestContextMiddleware
+from app.presentation.operations import build_router as build_operations_router
 
 log = logging.getLogger(__name__)
 MAINTENANCE_SECONDS = 600
@@ -100,6 +104,13 @@ def create_app(
         ),
     )
     model = provider or build_provider(settings)
+    ledger = SqliteLedger(db)
+    run_metrics = SqliteRunMetrics(db)
+    budget = BudgetPolicy(
+        monthly_limit_micro=to_micro(settings.monthly_budget_usd),
+        safety_margin=settings.budget_safety_margin,
+        daily_limit_micro=to_micro(settings.daily_budget_usd),
+    )
     chat = ChatService(
         composer=GroundedComposer(
             model, ComposerSettings(settings.max_output_tokens, settings.max_evidence_chars)
@@ -107,7 +118,8 @@ def create_app(
         catalog=catalog,
         messages=messages,
         runs=runs,
-        ledger=SqliteLedger(db),
+        ledger=ledger,
+        metrics=run_metrics,
         rate_limiter=stores_rate,
         registry=RunRegistry(),
         clock=clock,
@@ -117,11 +129,7 @@ def create_app(
             settings.price_cache_write_per_million,
             settings.price_output_per_million,
         ),
-        budget=BudgetPolicy(
-            monthly_limit_micro=to_micro(settings.monthly_budget_usd),
-            safety_margin=settings.budget_safety_margin,
-            daily_limit_micro=to_micro(settings.daily_budget_usd),
-        ),
+        budget=budget,
         limits=ChatLimits(
             enabled=settings.assistant_enabled,
             max_message_chars=settings.max_message_chars,
@@ -133,6 +141,25 @@ def create_app(
             max_input_tokens=settings.max_input_tokens,
             max_output_tokens=settings.max_output_tokens,
         ),
+    )
+
+    operations = OperationsService(
+        SqliteOperationsQueries(db),
+        catalog,
+        catalog.live,
+        clock,
+        budget,
+        ServiceInfo(
+            environment=settings.environment,
+            revision=settings.service_revision,
+            provider=settings.ai_provider,
+            model=model.model,
+            reasoning_effort=settings.openai_reasoning_effort if settings.ai_provider == 'openai' else 'n/a',
+            assistant_enabled=settings.assistant_enabled,
+            started_at=clock.now(),
+            price_max_age_hours=settings.catalog_price_max_age_hours,
+        ),
+        chat.availability,
     )
 
     async def ready() -> bool:
@@ -147,6 +174,7 @@ def create_app(
             try:
                 purged = await session_service.purge_expired()
                 await stores_rate.purge(clock.now(), timedelta(days=2))
+                await run_metrics.purge(clock.now())
                 if purged:
                     log.info('{"operation":"retention","sessions_deleted":%d}', purged)
             except Exception:
@@ -164,6 +192,7 @@ def create_app(
         tasks: list[asyncio.Task[None]] = []
         try:
             abandoned = await runs.abandon_active()
+            await ledger.abandon_pending()
             if abandoned:
                 log.info('{"operation":"startup","abandoned_runs":%d}', abandoned)
             await catalog.load()
@@ -209,6 +238,9 @@ def create_app(
     )
     app.include_router(router)
     app.include_router(health)
+    if settings.ops_read_token is not None:
+        digest = hashlib.sha256(settings.ops_read_token.get_secret_value().encode()).digest()
+        app.include_router(build_operations_router(operations, digest))
     install_error_handlers(app)
     # Outermost first at runtime: context → CORS → origin policy → body limit → routes.
     app.add_middleware(BodyLimitMiddleware, max_bytes=settings.max_body_bytes)

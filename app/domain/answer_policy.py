@@ -30,13 +30,15 @@ _URL = re.compile(
 _EMAIL = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
 _MONEY = re.compile(
     r'(?:US\$|U\$S|USD|\$|€|R\$)\s?(?P<a>\d{1,6}(?:[.,]\d{1,2})?)'
-    r'|(?P<b>\d{1,6}(?:[.,]\d{1,2})?)\s?(?:US\$|USD|d[oó]lares|euros|pesos|reales)',
+    r'|(?P<b>\d{1,6}(?:[.,]\d{1,2})?)\s?(?:US\$|USD|d[oó]lares|dollars|euros|pesos|reales)',
     re.IGNORECASE,
 )
 _DISCOUNT = re.compile(
     r'\b(?:c[oó]digo|cup[oó]n)\s+(?:de\s+descuento\s+)?["“]?[A-Z0-9]{4,}\b'
     r'|\d{1,2}\s?%\s?(?:de\s+)?(?:descuento|off|rebaja)'
-    r'|(?:descuento|rebaja)\s+(?:del?\s+)?\d{1,2}\s?%',
+    r'|(?:descuento|rebaja)\s+(?:del?\s+)?\d{1,2}\s?%'
+    r'|\b(?:discount|promo|coupon)\s+code\b'
+    r'|\d{1,2}\s?%\s?(?:discount|off)\b',
     re.IGNORECASE,
 )
 _PRESSURE = (
@@ -51,10 +53,24 @@ _PRESSURE = (
     'el mas vendido',
     'miles de familias',
     'cientos de familias',
+    'last units',
+    'only today',
+    'today only',
+    'offer ends',
+    'selling out',
+    'before it sells out',
+    'best seller',
+    'best-selling',
+    'thousands of families',
+    'hundreds of families',
 )
 _PAYMENT_REQUEST = re.compile(
     r'\b(?:env[ií]a(?:me)?|escrib[ei](?:me)?|comparte|dime|indica(?:me)?|pasa(?:me)?)\b[^.?!]{0,40}'
     r'\b(?:tarjeta|cvv|cvc|n[uú]mero de (?:la )?tarjeta|contraseña|clave)\b',
+    re.IGNORECASE,
+)
+_PAYMENT_REQUEST_EN = re.compile(
+    r'\b(?:send|give|share|tell|type|write)\b[^.?!]{0,40}\b(?:card number|credit card|debit card|cvv|cvc|password)\b',
     re.IGNORECASE,
 )
 
@@ -108,7 +124,7 @@ def check_answer(text: str, rules: AnswerRules) -> list[Violation]:
         violations.append(Violation.FORBIDDEN_TERM)
     if any(phrase in folded for phrase in _PRESSURE):
         violations.append(Violation.PRESSURE_CLAIM)
-    if _PAYMENT_REQUEST.search(text):
+    if _PAYMENT_REQUEST.search(text) or _PAYMENT_REQUEST_EN.search(text):
         violations.append(Violation.PAYMENT_DATA_REQUEST)
     return violations
 

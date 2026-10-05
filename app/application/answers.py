@@ -22,6 +22,7 @@ from app.domain.conversation import (
     ResourceRef,
     SourceRef,
 )
+from app.domain.language import Language
 
 _MARKUP = re.compile(r'</?[A-Za-z][^<>]{0,300}>')
 MAX_ANSWER_CHARS = 2000
@@ -35,10 +36,31 @@ REPLACEMENT_ANSWER = (
     'No puedo confirmar esa información con los datos que tengo del catálogo. '
     'Puedes revisar la página del kit o escribirnos desde soporte y te respondemos.'
 )
+REPLACEMENT_ANSWER_EN = (
+    "I can't confirm that with the store information I have. "
+    'You can check the kit page or write to support and the team will reply.'
+)
 PAYMENT_REFUSAL_ANSWER = (
     'Por seguridad eliminé tu mensaje: no escribas datos de tarjetas en este chat. '
     'El pago se hace solo en la página segura de Hotmart. ¿Te ayudo con alguna duda sobre el kit?'
 )
+PAYMENT_REFUSAL_ANSWER_EN = (
+    'For your security I removed your message: please do not type card details in this chat. '
+    "Payment happens only on Hotmart's secure page. Can I help with a question about the kit?"
+)
+UNSUPPORTED_LANGUAGE_ANSWER = (
+    'Por ahora solo puedo responder en español o en inglés. ¿Me escribes tu pregunta en uno de '
+    'esos idiomas?\n\nFor now I can only answer in Spanish or English. Could you write your '
+    'question in one of them?'
+)
+
+
+def replacement_text(language: Language) -> str:
+    return REPLACEMENT_ANSWER_EN if language is Language.EN else REPLACEMENT_ANSWER
+
+
+def payment_refusal_text(language: Language) -> str:
+    return PAYMENT_REFUSAL_ANSWER_EN if language is Language.EN else PAYMENT_REFUSAL_ANSWER
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,8 +92,8 @@ def support_link(catalog: Catalog) -> tuple[LinkRef, ...]:
     return (LinkRef(link.id, link.label, link.url),) if link else ()
 
 
-def replacement(catalog: Catalog, notice: Notice) -> AnswerDetails:
-    return AnswerDetails(links=support_link(catalog), notices=(notice,))
+def replacement(catalog: Catalog, notice: Notice, language: Language = Language.ES) -> AnswerDetails:
+    return AnswerDetails(links=support_link(catalog), notices=(notice,), language=language.value)
 
 
 def _image(image: Image | None) -> ImageRef | None:
@@ -108,15 +130,19 @@ def plain_text(text: str) -> str:
 
 
 def finalize(
-    draft: Draft, active: ActiveCatalog, price_status: PriceStatus, rules: AnswerRules
+    draft: Draft,
+    active: ActiveCatalog,
+    price_status: PriceStatus,
+    rules: AnswerRules,
+    language: Language = Language.ES,
 ) -> FinalizedAnswer:
     catalog = active.catalog
     content = plain_text(draft.answer)
     violations = check_answer(content, rules) if content else []
     if not content or len(content) > MAX_ANSWER_CHARS or violations:
         return FinalizedAnswer(
-            REPLACEMENT_ANSWER,
-            replacement(catalog, Notice.ANSWER_REPLACED),
+            replacement_text(language),
+            replacement(catalog, Notice.ANSWER_REPLACED, language),
             tuple(violations),
             len(draft.references),
         )
@@ -163,5 +189,6 @@ def finalize(
         links=tuple(links.values()),
         sources=tuple(sources.values()),
         follow_ups=tuple(follow_ups),
+        language=language.value,
     )
     return FinalizedAnswer(content, details, (), dropped)

@@ -34,6 +34,10 @@ class CatalogService:
     def active(self) -> ActiveCatalog | None:
         return self._active
 
+    @property
+    def live(self) -> bool:
+        return self._source.live
+
     async def load(self) -> None:
         """Restore the last activated snapshot (e.g. after a restart) without fetching."""
         stored = await self._repository.active()
@@ -60,9 +64,9 @@ class CatalogService:
         sha = hashlib.sha256(body).hexdigest()
         verified_at = now if self._source.live else min(now, catalog.generated_at)
         if self._active is not None and self._active.sha256 == sha:
-            await self._repository.mark_verified(sha, verified_at)
+            await self._repository.mark_verified(sha, verified_at, now)
         else:
-            await self._repository.activate(sha, body, catalog, verified_at)
+            await self._repository.activate(sha, body, catalog, verified_at, now)
             log.info('{"operation":"catalog_refresh","outcome":"activated","sha256":"%s"}', sha[:12])
         self._active = ActiveCatalog(catalog, sha, verified_at, self._max_price_age)
         return True
