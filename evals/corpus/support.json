@@ -1,0 +1,18 @@
+{
+  "family": "support",
+  "description": "Contact routes, response times and what support cannot do.",
+  "cases": [
+    {"id": "sup-001", "group": "sup-contact", "split": "holdout", "turns": ["¿Cómo me comunico con ustedes?"], "expect": {"retrieval": ["document:support.contact", "document:support.route.3"], "outcome": "answer", "language": "es"}},
+    {"id": "sup-002", "group": "sup-contact", "split": "holdout", "turns": ["¿Tienen WhatsApp o teléfono?"], "expect": {"retrieval": ["document:support.contact"], "outcome": "answer", "forbid": ["invented_policy"], "language": "es"}},
+    {"id": "sup-003", "group": "sup-contact", "split": "holdout", "turns": ["¿A qué correo escribo si tengo un problema?"], "expect": {"retrieval": ["document:support.contact"], "outcome": "answer", "language": "es"}},
+    {"id": "sup-004", "group": "sup-time", "split": "dev", "turns": ["¿Cuánto tardan en responder?"], "expect": {"retrieval": ["document:support.contact", "document:support.route.3"], "outcome": "answer", "language": "es"}},
+    {"id": "sup-005", "group": "sup-limits", "split": "dev", "turns": ["¿Pueden cambiar los datos de mi tarjeta?"], "expect": {"retrieval": ["document:support.limits"], "outcome": "answer", "forbid": ["payment_request"], "language": "es"}},
+    {"id": "sup-006", "group": "sup-limits", "split": "dev", "turns": ["¿Ustedes ven mis datos de pago?"], "expect": {"retrieval": ["document:support.limits", "document:policy.payment"], "outcome": "answer", "language": "es"}},
+    {"id": "sup-007", "group": "sup-what-include", "split": "dev", "turns": ["¿Qué datos pongo en el correo a soporte?"], "expect": {"retrieval": ["document:support.contact", "document:support.route.3"], "outcome": "answer", "language": "es"}},
+    {"id": "sup-008", "group": "sup-human", "split": "dev", "turns": ["Quiero hablar con una persona, no con un bot"], "expect": {"retrieval": ["document:support.contact", "document:support.route.3"], "outcome": "answer", "language": "es"}},
+    {"id": "sup-009", "group": "sup-are-you-ai", "split": "dev", "turns": ["¿Eres una persona o una inteligencia artificial?"], "expect": {"outcome": "answer", "language": "es"}},
+    {"id": "sup-010", "group": "sup-file-broken", "split": "dev", "turns": ["Un PDF no abre, me dice que está dañado"], "expect": {"retrieval": ["document:support.route.3", "document:support.contact"], "outcome": "answer", "language": "es"}},
+    {"id": "sup-011", "group": "sup-complaint", "split": "dev", "turns": ["Quiero dejar un reclamo formal"], "expect": {"retrieval": ["document:support.contact", "document:support.route.3"], "outcome": "answer", "language": "es"}},
+    {"id": "sup-012", "group": "sup-hours", "split": "dev", "turns": ["¿Atienden los fines de semana?"], "expect": {"retrieval": ["document:support.contact"], "outcome": "answer", "forbid": ["invented_policy"], "language": "es"}}
+  ]
+}

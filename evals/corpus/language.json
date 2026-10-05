@@ -1,0 +1,28 @@
+{
+  "family": "language",
+  "description": "Answer language: Spanish variants, English, mixed text, quoted foreign text, unsupported languages.",
+  "cases": [
+    {"id": "lang-001", "group": "lang-en", "split": "dev", "turns": ["Hi! Is this kit available in English?"], "expect": {"language": "en", "outcome": "answer"}},
+    {"id": "lang-002", "group": "lang-en", "split": "dev", "turns": ["What does the kit include?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.05"], "language": "en", "outcome": "answer"}},
+    {"id": "lang-003", "group": "lang-en", "split": "dev", "turns": ["How much does it cost and can I pay in euros?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.11", "document:policy.payment"], "language": "en", "outcome": "answer", "forbid": ["unverified_price"]}},
+    {"id": "lang-004", "group": "lang-en", "split": "dev", "turns": ["My daughter is 4. Would this work for her?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.02"], "language": "en", "outcome": "answer"}},
+    {"id": "lang-005", "group": "lang-en", "split": "dev", "turns": ["I did not get the access email after paying"], "expect": {"retrieval": ["document:support.access.1"], "language": "en", "outcome": "answer"}},
+    {"id": "lang-006", "group": "lang-en", "split": "dev", "turns": ["How do I get a refund?"], "expect": {"retrieval": ["document:policy.guarantee", "document:support.route.2"], "language": "en", "outcome": "answer"}},
+    {"id": "lang-007", "group": "lang-en-ui-es", "split": "dev", "turns": ["Do I need a printer?"], "locale": "es", "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.06"], "language": "en", "outcome": "answer"}},
+    {"id": "lang-008", "group": "lang-es-ui-en", "split": "dev", "turns": ["¿Para qué edad es?"], "locale": "en", "expect": {"retrieval": ["document:faq.grafismo-fonetico.02", "product:grafismo-fonetico"], "language": "es", "outcome": "answer"}},
+    {"id": "lang-009", "group": "lang-switch", "split": "dev", "turns": ["¿Qué incluye el kit?", "Sorry, can you say that in English?"], "expect": {"language": "en", "outcome": "answer"}},
+    {"id": "lang-010", "group": "lang-switch", "split": "dev", "turns": ["What ages is it for?", "Mejor en español, por favor"], "expect": {"language": "es", "outcome": "answer"}},
+    {"id": "lang-011", "group": "lang-quoted-en", "split": "holdout", "turns": ["En la página dice \"printable kit\", ¿qué significa?"], "expect": {"language": "es", "outcome": "answer"}},
+    {"id": "lang-012", "group": "lang-product-name", "split": "holdout", "turns": ["¿Qué trae Safari de Sonidos y Sílabas?"], "expect": {"retrieval": ["resource:grafismo-fonetico/safari"], "language": "es", "outcome": "answer"}},
+    {"id": "lang-013", "group": "lang-code", "split": "dev", "turns": ["Me sale el error \"File not found (404)\" al abrir el PDF, ¿qué hago?"], "expect": {"retrieval": ["document:support.route.3", "document:support.contact"], "language": "es", "outcome": "answer"}},
+    {"id": "lang-014", "group": "lang-mixed", "split": "dev", "turns": ["Hola! Quiero saber si el kit is good for a 5 year old"], "expect": {"outcome": "answer", "language": "es"}},
+    {"id": "lang-015", "group": "lang-pt", "split": "dev", "turns": ["Olá! Esse material serve para uma criança de 5 anos?"], "expect": {"language": "unsupported", "outcome": "answer"}},
+    {"id": "lang-016", "group": "lang-pt", "split": "dev", "turns": ["Quanto custa o kit e como faço para comprar?"], "expect": {"language": "unsupported", "outcome": "answer", "forbid": ["unverified_price"]}},
+    {"id": "lang-017", "group": "lang-fr", "split": "dev", "turns": ["Bonjour, est-ce que le kit existe en français ?"], "expect": {"language": "unsupported", "outcome": "answer"}},
+    {"id": "lang-018", "group": "lang-it", "split": "holdout", "turns": ["Ciao, quanto costa questo kit?"], "expect": {"language": "unsupported", "outcome": "answer"}},
+    {"id": "lang-019", "group": "lang-de", "split": "dev", "turns": ["Für welches Alter ist das Material geeignet?"], "expect": {"language": "unsupported", "outcome": "answer"}},
+    {"id": "lang-020", "group": "lang-es-variant", "split": "holdout", "turns": ["Che, ¿vos me decís si sirve para mi pibe de 5?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.02"], "language": "es", "outcome": "answer"}},
+    {"id": "lang-021", "group": "lang-es-variant", "split": "holdout", "turns": ["Oiga, ¿y eso pa' qué edad es, mijo?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.02", "product:grafismo-fonetico"], "language": "es", "outcome": "answer"}},
+    {"id": "lang-022", "group": "lang-es-variant", "split": "holdout", "turns": ["¿Me podrías decir cuánto vale en pesos chilenos, porfa?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.11", "document:policy.payment"], "language": "es", "outcome": "answer", "forbid": ["unverified_price"]}}
+  ]
+}

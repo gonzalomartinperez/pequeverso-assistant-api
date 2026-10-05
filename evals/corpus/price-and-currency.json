@@ -1,0 +1,22 @@
+{
+  "family": "price-and-currency",
+  "description": "Price, currency conversion, taxes and payment methods (no checkout actions).",
+  "cases": [
+    {"id": "pri-001", "group": "pri-price", "split": "holdout", "turns": ["¿Cuánto cuesta?"], "expect": {"retrieval": ["document:policy.payment", "document:faq.grafismo-fonetico.11"], "outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "pri-002", "group": "pri-price", "split": "holdout", "turns": ["¿Qué precio tiene el kit completo?"], "expect": {"retrieval": ["document:policy.payment", "document:faq.grafismo-fonetico.11"], "outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "pri-003", "group": "pri-price", "split": "holdout", "turns": ["¿Cuánto sale en dólares?"], "expect": {"retrieval": ["document:policy.payment", "document:faq.grafismo-fonetico.11"], "outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "pri-004", "group": "pri-local", "split": "dev", "turns": ["¿Puedo pagar en pesos mexicanos?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.11", "document:policy.payment"], "outcome": "answer", "language": "es"}},
+    {"id": "pri-005", "group": "pri-local", "split": "dev", "turns": ["¿Cuánto es en pesos argentinos?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.11", "document:policy.payment"], "outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "pri-006", "group": "pri-local", "split": "dev", "turns": ["¿Me cobran en soles o en dólares?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.11", "document:policy.payment"], "outcome": "answer", "language": "es"}},
+    {"id": "pri-007", "group": "pri-tax", "split": "dev", "turns": ["¿El precio ya incluye impuestos?"], "expect": {"retrieval": ["document:policy.payment", "document:faq.grafismo-fonetico.11"], "outcome": "answer", "language": "es"}},
+    {"id": "pri-008", "group": "pri-methods", "split": "dev", "turns": ["¿Puedo pagar con transferencia o en efectivo?"], "expect": {"retrieval": ["document:policy.payment", "document:faq.grafismo-fonetico.11", "document:support.access.2"], "outcome": "answer", "language": "es"}},
+    {"id": "pri-009", "group": "pri-methods", "split": "dev", "turns": ["¿Aceptan PayPal?"], "expect": {"retrieval": ["document:policy.payment", "document:faq.grafismo-fonetico.11"], "outcome": "answer", "language": "es"}},
+    {"id": "pri-010", "group": "pri-installments", "split": "dev", "turns": ["¿Se puede pagar en cuotas?"], "expect": {"retrieval": ["document:policy.payment", "document:faq.grafismo-fonetico.11"], "outcome": "answer", "language": "es"}},
+    {"id": "pri-011", "group": "pri-budget", "split": "dev", "turns": ["Tengo unos 15 dólares de presupuesto, ¿me alcanza?"], "expect": {"outcome": "answer", "forbid": ["unverified_price", "invented_discount"], "language": "es"}},
+    {"id": "pri-012", "group": "pri-budget", "split": "dev", "turns": ["Solo puedo gastar 5 dólares, ¿qué tienen para mí?"], "expect": {"outcome": "answer", "forbid": ["invented_discount"], "language": "es"}},
+    {"id": "pri-013", "group": "pri-who-charges", "split": "holdout", "turns": ["¿Quién procesa el cobro? ¿Es seguro?"], "expect": {"retrieval": ["document:policy.payment"], "outcome": "answer", "language": "es"}},
+    {"id": "pri-014", "group": "pri-card-statement", "split": "holdout", "turns": ["¿Qué nombre aparece en el resumen de la tarjeta?"], "expect": {"retrieval": ["document:policy.payment"], "outcome": "answer", "language": "es"}},
+    {"id": "pri-015", "group": "pri-recurring", "split": "dev", "turns": ["¿Es un pago único o es una suscripción mensual?"], "expect": {"outcome": "no_info", "language": "es"}},
+    {"id": "pri-016", "group": "pri-worth", "split": "dev", "turns": ["¿Por qué cuesta eso? Me parece caro"], "expect": {"outcome": "answer", "forbid": ["invented_discount", "urgency"], "language": "es"}}
+  ]
+}

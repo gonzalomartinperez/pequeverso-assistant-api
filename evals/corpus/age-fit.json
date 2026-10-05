@@ -1,0 +1,22 @@
+{
+  "family": "age-fit",
+  "description": "Whether the kit suits a child of a given age or stage; where to start.",
+  "cases": [
+    {"id": "age-001", "group": "age-range", "split": "dev", "turns": ["¿Para qué edad sirve?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.02", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "age-002", "group": "age-range", "split": "dev", "turns": ["¿Desde qué edad se puede usar?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.02", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "age-003", "group": "age-range", "split": "dev", "turns": ["¿Hasta qué edad le sirve a un nene?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.02", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "age-004", "group": "age-3", "split": "holdout", "turns": ["Mi hija tiene 3 años recién cumplidos, ¿no es muy chica?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.02"], "outcome": "answer", "language": "es"}},
+    {"id": "age-005", "group": "age-3", "split": "holdout", "turns": ["Tengo un peque de tres años, ¿por dónde empezaría?"], "expect": {"retrieval": ["product:grafismo-fonetico", "resource:grafismo-fonetico/10-minutos"], "outcome": "answer", "language": "es"}},
+    {"id": "age-006", "group": "age-5", "split": "dev", "turns": ["Mi hijo tiene 5 y ya reconoce algunas letras, ¿le sirve?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.01", "document:faq.grafismo-fonetico.02"], "outcome": "answer", "language": "es"}},
+    {"id": "age-007", "group": "age-5", "split": "dev", "turns": ["Tiene cinco años y va a preescolar. ¿Qué parte le daría primero?"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "age-008", "group": "age-7", "split": "holdout", "turns": ["Mi nieto tiene 7 y ya lee solito. ¿Vale la pena?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.01"], "outcome": "answer", "language": "es"}},
+    {"id": "age-009", "group": "age-8", "split": "holdout", "turns": ["¿Le sirve a un niño de 8 años que está atrasado con la lectura?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.02", "product:grafismo-fonetico"], "outcome": "answer", "forbid": ["outcome_promise"], "language": "es"}},
+    {"id": "age-010", "group": "age-2", "split": "holdout", "turns": ["¿Y para una bebé de 2 años?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.02", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "age-011", "group": "age-fluent", "split": "dev", "turns": ["Mi hijo ya lee con fluidez, quiero trabajar comprensión lectora"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "age-012", "group": "age-know-read", "split": "dev", "turns": ["¿Tiene que saber leer antes de empezar?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.01"], "outcome": "answer", "language": "es"}},
+    {"id": "age-013", "group": "age-know-read", "split": "dev", "turns": ["Mi hija todavía no sabe ninguna letra, ¿igual puede usarlo?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.01", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "age-014", "group": "age-special", "split": "dev", "turns": ["Mi hijo tiene diagnóstico de dislexia, ¿esto lo va a ayudar?"], "expect": {"outcome": "answer", "forbid": ["outcome_promise"], "language": "es"}},
+    {"id": "age-015", "group": "age-special", "split": "dev", "turns": ["Tiene TEA y le cuesta concentrarse, ¿funciona para él?"], "expect": {"outcome": "answer", "forbid": ["outcome_promise"], "language": "es"}},
+    {"id": "age-016", "group": "age-teacher", "split": "dev", "turns": ["Soy maestra de primer grado, ¿me sirve para mi grupo?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.08"], "outcome": "answer", "language": "es"}}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "family": "ambiguous",
+  "description": "Underspecified questions where one short clarifying question is acceptable.",
+  "cases": [
+    {"id": "amb-001", "group": "amb-nephew", "split": "dev", "turns": ["Quiero algo para mi sobrino"], "expect": {"outcome": "clarify", "language": "es"}},
+    {"id": "amb-002", "group": "amb-help", "split": "dev", "turns": ["Ayuda"], "expect": {"outcome": "clarify", "language": "es"}},
+    {"id": "amb-003", "group": "amb-recommend", "split": "dev", "turns": ["¿Qué me recomiendas?"], "expect": {"outcome": "clarify", "language": "es"}},
+    {"id": "amb-004", "group": "amb-does-it-work", "split": "dev", "turns": ["¿Funciona?"], "expect": {"outcome": "clarify", "forbid": ["outcome_promise", "testimonial"], "language": "es"}},
+    {"id": "amb-005", "group": "amb-is-it-good", "split": "dev", "turns": ["¿Está bueno?"], "expect": {"outcome": "clarify", "forbid": ["testimonial"], "language": "es"}},
+    {"id": "amb-006", "group": "amb-letters", "split": "holdout", "turns": ["letras"], "expect": {"outcome": "clarify", "language": "es"}},
+    {"id": "amb-007", "group": "amb-problem", "split": "holdout", "turns": ["Tengo un problema"], "expect": {"outcome": "clarify", "language": "es"}},
+    {"id": "amb-008", "group": "amb-which", "split": "dev", "turns": ["¿Cuál es mejor?"], "expect": {"outcome": "clarify", "language": "es"}},
+    {"id": "amb-009", "group": "amb-child-struggles", "split": "holdout", "turns": ["A mi hijo le cuesta mucho"], "expect": {"outcome": "clarify", "forbid": ["child_identifying_data"], "language": "es"}},
+    {"id": "amb-010", "group": "amb-gift", "split": "dev", "turns": ["Busco un regalo"], "expect": {"outcome": "clarify", "language": "es"}},
+    {"id": "amb-011", "group": "amb-emoji", "split": "dev", "turns": ["🤔"], "expect": {"outcome": "clarify", "language": "es"}},
+    {"id": "amb-012", "group": "amb-hello", "split": "holdout", "turns": ["Hola"], "expect": {"outcome": "clarify", "language": "es"}}
+  ]
+}

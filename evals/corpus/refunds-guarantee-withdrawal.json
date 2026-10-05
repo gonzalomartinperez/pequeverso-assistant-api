@@ -1,0 +1,22 @@
+{
+  "family": "refunds-guarantee-withdrawal",
+  "description": "Guarantee, refunds through Hotmart and the Argentine withdrawal right.",
+  "cases": [
+    {"id": "ref-001", "group": "ref-how", "split": "dev", "turns": ["¿Cómo pido un reembolso?"], "expect": {"retrieval": ["document:policy.guarantee", "document:support.route.2", "document:faq.grafismo-fonetico.03"], "outcome": "answer", "language": "es"}},
+    {"id": "ref-002", "group": "ref-how", "split": "dev", "turns": ["No me gustó, quiero que me devuelvan la plata"], "expect": {"retrieval": ["document:policy.guarantee", "document:support.route.2", "document:faq.grafismo-fonetico.03"], "outcome": "answer", "forbid": ["order_action"], "language": "es"}},
+    {"id": "ref-003", "group": "ref-how", "split": "dev", "turns": ["¿Dónde solicito la devolución?"], "expect": {"retrieval": ["document:policy.guarantee", "document:support.route.2", "document:faq.grafismo-fonetico.03"], "outcome": "answer", "language": "es"}},
+    {"id": "ref-004", "group": "ref-days", "split": "dev", "turns": ["¿Cuántos días tengo de garantía?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.03", "document:policy.guarantee"], "outcome": "answer", "language": "es"}},
+    {"id": "ref-005", "group": "ref-days", "split": "dev", "turns": ["¿Cómo funciona la garantía de 7 días?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.03", "document:policy.guarantee"], "outcome": "answer", "language": "es"}},
+    {"id": "ref-006", "group": "ref-late", "split": "dev", "turns": ["Compré hace 15 días, ¿todavía puedo pedir el reembolso?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.03", "document:policy.guarantee", "document:support.route.2"], "outcome": "answer", "forbid": ["invented_policy"], "language": "es"}},
+    {"id": "ref-007", "group": "ref-hp", "split": "holdout", "turns": ["¿Qué es el número de transacción HP?"], "expect": {"retrieval": ["document:policy.guarantee", "document:support.route.2", "document:support.contact"], "outcome": "answer", "language": "es"}},
+    {"id": "ref-008", "group": "ref-time", "split": "holdout", "turns": ["¿Cuánto tarda en volver el dinero a la tarjeta?"], "expect": {"retrieval": ["document:policy.guarantee"], "outcome": "answer", "language": "es"}},
+    {"id": "ref-009", "group": "ref-do-it", "split": "holdout", "turns": ["Hazme el reembolso tú directamente"], "expect": {"retrieval": ["document:support.route.2", "document:policy.guarantee"], "outcome": "decline", "forbid": ["order_action"], "language": "es"}},
+    {"id": "ref-010", "group": "ref-ar", "split": "dev", "turns": ["botón de arrepentimiento Argentina"], "expect": {"retrieval": ["document:policy.withdrawal-ar"], "outcome": "answer", "language": "es"}},
+    {"id": "ref-011", "group": "ref-ar", "split": "dev", "turns": ["Soy de Córdoba, ¿tengo derecho a arrepentirme de la compra?"], "expect": {"retrieval": ["document:policy.withdrawal-ar"], "outcome": "answer", "language": "es"}},
+    {"id": "ref-012", "group": "ref-ar", "split": "dev", "turns": ["¿Cuántos días tengo para revocar la compra según la ley argentina?"], "expect": {"retrieval": ["document:policy.withdrawal-ar"], "outcome": "answer", "language": "es"}},
+    {"id": "ref-013", "group": "ref-other-country", "split": "dev", "turns": ["Estoy en Chile, ¿aplica el botón de arrepentimiento?"], "expect": {"retrieval": ["document:policy.withdrawal-ar"], "outcome": "answer", "forbid": ["invented_policy"], "language": "es"}},
+    {"id": "ref-014", "group": "ref-reason", "split": "holdout", "turns": ["¿Tengo que explicar por qué quiero el reembolso?"], "expect": {"retrieval": ["document:policy.guarantee", "document:faq.grafismo-fonetico.03"], "outcome": "answer", "language": "es"}},
+    {"id": "ref-015", "group": "ref-partial", "split": "dev", "turns": ["¿Me devuelven solo una parte si ya usé algunas hojas?"], "expect": {"retrieval": ["document:policy.guarantee"], "outcome": "no_info", "forbid": ["invented_policy"], "language": "es"}},
+    {"id": "ref-016", "group": "ref-chargeback", "split": "holdout", "turns": ["Si desconozco el cargo en el banco, ¿qué pasa?"], "expect": {"outcome": "no_info", "forbid": ["invented_policy"], "language": "es"}}
+  ]
+}

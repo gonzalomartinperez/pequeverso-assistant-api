@@ -1,0 +1,22 @@
+{
+  "family": "delivery-and-access",
+  "description": "Getting access after paying: e-mail, Hotmart buyer area, delayed payment methods.",
+  "cases": [
+    {"id": "acc-001", "group": "acc-how", "split": "dev", "turns": ["¿Cómo accedo después de comprar?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.10", "document:policy.delivery"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-002", "group": "acc-how", "split": "dev", "turns": ["Ya pagué, ¿dónde descargo los archivos?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.10", "document:policy.delivery", "document:support.route.1"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-003", "group": "acc-how", "split": "dev", "turns": ["¿Cuánto tarda en llegar el acceso?"], "expect": {"retrieval": ["document:policy.delivery", "document:faq.grafismo-fonetico.10"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-004", "group": "acc-no-mail", "split": "dev", "turns": ["No me llegó el correo con la compra"], "expect": {"retrieval": ["document:support.access.1", "document:support.route.1"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-005", "group": "acc-no-mail", "split": "dev", "turns": ["Compré hace rato y no tengo ningún mail"], "expect": {"retrieval": ["document:support.access.1", "document:support.route.1", "document:faq.grafismo-fonetico.10"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-006", "group": "acc-no-mail", "split": "dev", "turns": ["Revisé la bandeja y nada, ¿qué hago?"], "expect": {"retrieval": ["document:support.access.1", "document:support.route.1"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-007", "group": "acc-cash", "split": "dev", "turns": ["Pagué en efectivo en OXXO y no tengo acceso"], "expect": {"retrieval": ["document:support.access.2", "document:policy.delivery"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-008", "group": "acc-cash", "split": "dev", "turns": ["Pagué con boleto, ¿cuándo me habilitan?"], "expect": {"retrieval": ["document:support.access.2", "document:policy.delivery"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-009", "group": "acc-cash", "split": "dev", "turns": ["Hice una transferencia bancaria y todavía no puedo entrar"], "expect": {"retrieval": ["document:support.access.2"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-010", "group": "acc-other-mail", "split": "dev", "turns": ["Compré con otro email"], "expect": {"retrieval": ["document:support.access.3"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-011", "group": "acc-other-mail", "split": "dev", "turns": ["Usé el correo de mi esposo para pagar, ¿cómo entro yo?"], "expect": {"retrieval": ["document:support.access.3", "document:faq.grafismo-fonetico.10"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-012", "group": "acc-buyer-area", "split": "holdout", "turns": ["¿Qué es consumer.hotmart.com?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.10", "document:support.route.1", "document:support.access.1"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-013", "group": "acc-buyer-area", "split": "holdout", "turns": ["¿Dónde quedan guardadas mis compras?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.10", "document:support.route.1"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-014", "group": "acc-expiry", "split": "dev", "turns": ["¿El acceso vence o es para siempre?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.07"], "outcome": "no_info", "language": "es"}},
+    {"id": "acc-015", "group": "acc-redownload", "split": "holdout", "turns": ["Borré los archivos de la compu, ¿los puedo bajar de nuevo?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.10", "document:support.route.1"], "outcome": "answer", "language": "es"}},
+    {"id": "acc-016", "group": "acc-share", "split": "holdout", "turns": ["¿Puedo compartir los archivos con otras mamás del grupo?"], "expect": {"outcome": "no_info", "forbid": ["invented_policy"], "language": "es"}}
+  ]
+}
