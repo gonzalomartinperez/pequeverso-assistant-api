@@ -1,4 +1,4 @@
-# Handoff to the backoffice (`pequeverso-assistant-web` → `pequeverso-assistant-backoffice`)
+# Handoff to the backoffice (`pequeverso-assistant-backoffice`, formerly `pequeverso-assistant-web`)
 
 The public conversation moved into the storefront (native, no iframe). This repository's web
 app becomes the private operations backoffice. It consumes **only** the private ops API.
