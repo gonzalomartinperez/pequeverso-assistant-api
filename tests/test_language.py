@@ -21,6 +21,8 @@ PRODUCTS = ['Grafismo Fonético']
         ('How much is Grafismo Fonético?', Detected.EN),
         ('Quanto custa o kit para meu filho?', Detected.OTHER),
         ('Combien coûte le kit pour mon fils?', Detected.OTHER),
+        ('Quanto custa o kit e como faço para comprar?', Detected.OTHER),
+        ('Tem para crianças de 4 anos?', Detected.OTHER),
         ('ok', Detected.UNKNOWN),
         ('Grafismo Fonético', Detected.UNKNOWN),
         ('https://pequeverso.com/grafismo-fonetico/', Detected.UNKNOWN),
