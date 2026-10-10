@@ -134,7 +134,13 @@ class ResponseCleanups:
         # Give cancelled response tasks a turn to register their finally blocks.
         await asyncio.sleep(0)
         while self._tasks:
-            await asyncio.gather(*tuple(self._tasks))
+            pending = tuple(self._tasks)
+            try:
+                await asyncio.gather(*pending)
+            finally:
+                # A gather of already-finished tasks need not yield. Done callbacks may still
+                # be queued, so relying on them alone can spin and starve the shutdown timeout.
+                self._tasks.difference_update(task for task in pending if task.done())
 
 
 class ClosingStreamingResponse(StreamingResponse):

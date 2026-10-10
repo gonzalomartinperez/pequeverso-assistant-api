@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
+import subprocess
+import sys
 import threading
 import time
 from contextlib import closing
@@ -15,12 +17,63 @@ import pytest
 from app.application.sessions import SessionService
 from app.domain.conversation import Session
 from app.domain.errors import FailureCode
+from app.presentation.streaming import ResponseCleanups
 from tests.support import JSON_HEADERS, ORIGIN, ScriptedProvider, answer_json, live_server, parse_sse
 
 GOOD = answer_json(
     'Respuesta completa del asistente sobre el kit.',
     references=[{'kind': 'product', 'id': 'grafismo-fonetico'}],
 )
+
+
+def test_cleanup_drain_cannot_spin_before_done_callbacks_run() -> None:
+    # An outer process watchdog is necessary: a busy loop starves asyncio.timeout itself.
+    script = """
+import asyncio
+from app.presentation.streaming import ResponseCleanups
+async def main():
+    cleanups = ResponseCleanups()
+    gate = asyncio.Event()
+    cleanups.track(asyncio.create_task(gate.wait()))
+    await asyncio.sleep(0)
+    gate.set()
+    await cleanups.drain()
+asyncio.run(main())
+"""
+    subprocess.run(  # noqa: S603 - fixed Python program, no external inputs or provider
+        [sys.executable, '-c', script],
+        cwd=Path(__file__).resolve().parents[1],
+        timeout=5,
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_cleanup_drain_propagates_failure_and_waits_new_finalizers() -> None:
+    async def scenario() -> None:
+        cleanups = ResponseCleanups()
+        finished = asyncio.Event()
+
+        async def later() -> None:
+            await asyncio.sleep(0)
+            finished.set()
+
+        async def initial() -> None:
+            cleanups.track(asyncio.create_task(later()))
+
+        cleanups.track(asyncio.create_task(initial()))
+        await cleanups.drain()
+        assert finished.is_set()
+
+        async def failing() -> None:
+            raise RuntimeError('synthetic cleanup failure')
+
+        cleanups.track(asyncio.create_task(failing()))
+        with pytest.raises(RuntimeError, match='synthetic cleanup failure'):
+            await cleanups.drain()
+        await cleanups.drain()
+
+    asyncio.run(scenario())
 
 
 def _session(http: httpx.Client) -> str:
