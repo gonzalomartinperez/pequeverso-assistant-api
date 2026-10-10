@@ -130,3 +130,36 @@ def test_authentication_errors_are_not_retried() -> None:
     with pytest.raises(RejectedError):
         _collect(OpenAIResponsesProvider(client, 'm', 'low', max_retries=2))  # type: ignore[arg-type]
     assert len(client.calls) == 1
+
+
+def test_incomplete_responses_still_report_usage_with_reasoning_tokens() -> None:
+    usage = SimpleNamespace(
+        input_tokens=900,
+        output_tokens=800,
+        input_tokens_details=SimpleNamespace(cached_tokens=0, cache_write_tokens=0),
+        output_tokens_details=SimpleNamespace(reasoning_tokens=800),
+    )
+    incomplete = SimpleNamespace(
+        type='response.incomplete',
+        response=SimpleNamespace(usage=usage, incomplete_details=SimpleNamespace(reason='max_output_tokens')),
+    )
+    events = _Events([incomplete])
+    provider = OpenAIResponsesProvider(_Client([events]), 'gpt-6-luna', 'medium', max_retries=0)  # type: ignore[arg-type]
+    chunks: list[Any] = []
+
+    async def run() -> None:
+        async for chunk in provider.stream(REQUEST):
+            chunks.append(chunk)
+
+    with pytest.raises(RejectedError) as raised:
+        asyncio.run(run())
+    assert raised.value.code is FailureCode.GENERATION_FAILED
+    assert [c.usage.reasoning_tokens for c in chunks if isinstance(c, UsageChunk)] == [800]
+    assert events.closed
+
+
+def test_reasoning_effort_is_sent_as_configured() -> None:
+    client = _Client([_Events([_completed()])])
+    provider = OpenAIResponsesProvider(client, 'gpt-6-luna', 'medium', max_retries=0)  # type: ignore[arg-type]
+    _collect(provider)
+    assert client.calls[0]['reasoning'] == {'effort': 'medium'} and client.calls[0]['model'] == 'gpt-6-luna'

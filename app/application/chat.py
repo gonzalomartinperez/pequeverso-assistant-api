@@ -20,10 +20,11 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from app.application.answers import (
-    PAYMENT_REFUSAL_ANSWER,
+    UNSUPPORTED_LANGUAGE_ANSWER,
     FinalizedAnswer,
     answer_rules,
     finalize,
+    payment_refusal_text,
     replacement,
 )
 from app.application.ports import (
@@ -32,26 +33,32 @@ from app.application.ports import (
     Clock,
     DeltaEvent,
     DraftEvent,
+    GenerationError,
     Ledger,
     MessageStore,
     PreparedTurn,
     RateLimiter,
+    RunMetric,
+    RunMetrics,
+    RunOutcome,
     RunRecord,
     RunState,
     RunStore,
     Turn,
 )
 from app.application.runs import RunRegistry
-from app.domain.budget import BudgetPolicy, Pricing, cost_micro, worst_case_micro
+from app.domain.budget import BudgetPolicy, Pricing, Usage, cost_micro, worst_case_micro
 from app.domain.catalog import ActiveCatalog
 from app.domain.conversation import AnswerDetails, Message, Notice, Role, Session
 from app.domain.errors import FailureCode, RejectedError
+from app.domain.language import Language, reply_language
 from app.domain.redaction import contains_card_number, redact_contact_data
 
 log = logging.getLogger(__name__)
 
 PAYMENT_PLACEHOLDER = '[mensaje eliminado: contenía datos de pago]'
 PAGES = frozenset({'home', 'product', 'support'})
+LOCALES = frozenset({'es', 'en'})
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,8 +143,10 @@ class _ModelRun(Run):
         user_message: Message,
         slot: asyncio.Semaphore,
         cancel: asyncio.Event,
+        language: Language,
     ) -> None:
         super().__init__(run_id)
+        self._language = language
         self._service = service
         self._session = session
         self._active = active
@@ -148,6 +157,10 @@ class _ModelRun(Run):
         self._state: RunState | None = None
         self._closed = False
         self._started = time.monotonic()
+        self._started_at = service.clock.now()
+        self._first_delta_ms: int | None = None
+        self._settled = False
+        self._replaced = False
 
     async def events(self) -> AsyncIterator[RunEvent]:
         yield RunStarted(self.id, self._user_message)
@@ -163,6 +176,8 @@ class _ModelRun(Run):
                     break
                 if isinstance(event, DeltaEvent):
                     if event.text:
+                        if self._first_delta_ms is None:
+                            self._first_delta_ms = self._elapsed_ms()
                         yield AnswerDelta(event.text)
                     continue
                 message = await self._complete(event)
@@ -174,6 +189,10 @@ class _ModelRun(Run):
                 return
             await self._finish(RunState.FAILED, FailureCode.GENERATION_FAILED)
             yield RunFailed(FailureCode.GENERATION_FAILED)
+        except GenerationError as error:
+            await self._settle(error.usage)
+            await self._finish(RunState.FAILED, error.code)
+            yield RunFailed(error.code)
         except RejectedError as error:
             await self._finish(RunState.FAILED, error.code)
             yield RunFailed(error.code)
@@ -221,38 +240,90 @@ class _ModelRun(Run):
         now = service.clock.now()
         price_status = self._active.price_status(now)
         rules = answer_rules(self._active.catalog, price_status, service.limits.extra_forbidden_terms)
-        final: FinalizedAnswer = finalize(event.draft, self._active, price_status, rules)
+        final: FinalizedAnswer = finalize(
+            event.draft, self._active, price_status, rules, self._prepared_language
+        )
+        self._replaced = Notice.ANSWER_REPLACED in final.details.notices
         message = Message(_message_id(), Role.ASSISTANT, final.content, now, final.details)
+        await self._settle(event.usage)
         await service.messages.append(self._session.id, message)
-        if event.usage is not None:
-            actual = cost_micro(event.usage, service.pricing)
-            await service.ledger.settle(self.id, actual, event.usage, service.composer.model)
         await self._finish(RunState.COMPLETED, assistant_message_id=message.id)
         log.info(
             json.dumps(
                 {
                     'operation': 'run',
                     'outcome': 'completed',
-                    'replaced': bool(final.violations),
+                    'replaced': self._replaced,
                     'violations': [v.value for v in final.violations],
                     'dropped_references': final.dropped_references,
                     'input_tokens': event.usage.input_tokens if event.usage else None,
                     'output_tokens': event.usage.output_tokens if event.usage else None,
-                    'latency_ms': round((time.monotonic() - self._started) * 1000),
+                    'reasoning_tokens': event.usage.reasoning_tokens if event.usage else None,
+                    'language': self._prepared_language.value,
+                    'first_delta_ms': self._first_delta_ms,
+                    'latency_ms': self._elapsed_ms(),
                 }
             )
         )
         return message
 
+    @property
+    def _prepared_language(self) -> Language:
+        return self._language
+
+    def _elapsed_ms(self) -> int:
+        return round((time.monotonic() - self._started) * 1000)
+
+    async def _settle(self, usage: Usage | None) -> None:
+        if usage is None or self._settled:
+            return
+        service = self._service
+        await service.ledger.settle(
+            self.id, cost_micro(usage, service.pricing), usage, service.composer.model
+        )
+        self._settled = True
+
     async def _finish(
-        self, state: RunState, code: FailureCode | None = None, assistant_message_id: str | None = None
+        self,
+        state: RunState,
+        code: FailureCode | None = None,
+        assistant_message_id: str | None = None,
+        outcome: RunOutcome | None = None,
     ) -> None:
         if self._state is not None:
             return
         self._state = state
-        await self._service.runs.finish(self.id, state, assistant_message_id)
+        # Shielded: a disconnect while finishing must not leave the run active, the reservation
+        # pending or the metric unrecorded.
+        await asyncio.shield(self._finish_steps(state, code, assistant_message_id, outcome))
+
+    async def _finish_steps(
+        self,
+        state: RunState,
+        code: FailureCode | None,
+        assistant_message_id: str | None,
+        outcome: RunOutcome | None,
+    ) -> None:
+        service = self._service
+        await service.runs.finish(self.id, state, assistant_message_id)
+        if not self._settled:
+            await service.ledger.mark_unreported(self.id)
         if code is not None:
             log.info(json.dumps({'operation': 'run', 'outcome': state.value, 'code': code.value}))
+        await service.record_metric(
+            RunMetric(
+                run_id=self.id,
+                started_at=self._started_at,
+                ended_at=service.clock.now(),
+                outcome=outcome or RunOutcome(state.value),
+                code=code,
+                model_call=True,
+                replaced=self._replaced,
+                language=self._language,
+                first_delta_ms=self._first_delta_ms,
+                total_ms=self._elapsed_ms(),
+            )
+        )
 
     async def aclose(self) -> None:
         if self._closed:
@@ -261,7 +332,7 @@ class _ModelRun(Run):
         try:
             if self._state is None:
                 # The stream never finished: the client went away or the response was never sent.
-                await self._finish(RunState.CANCELLED)
+                await self._finish(RunState.CANCELLED, outcome=RunOutcome.INTERRUPTED)
         finally:
             self._slot.release()
             self._service.registry.remove(self.id)
@@ -303,7 +374,9 @@ class ChatService:
         pricing: Pricing,
         budget: BudgetPolicy,
         limits: ChatLimits,
+        metrics: RunMetrics,
     ) -> None:
+        self.metrics = metrics
         self.composer = composer
         self.catalog = catalog
         self.messages = messages
@@ -316,6 +389,36 @@ class ChatService:
         self.budget = budget
         self.limits = limits
         self._slot = asyncio.Semaphore(limits.max_concurrent_runs)
+
+    async def record_metric(self, metric: RunMetric) -> None:
+        """Operations data is best effort: a metrics failure never affects the visitor's answer."""
+        try:
+            await self.metrics.record(metric)
+        except Exception:  # noqa: BLE001
+            log.warning('{"operation":"run_metric","outcome":"failed"}')
+
+    async def _record_static(
+        self,
+        run_id: str,
+        started_at: datetime,
+        outcome: RunOutcome,
+        code: FailureCode | None,
+        language: Language | None,
+    ) -> None:
+        await self.record_metric(
+            RunMetric(
+                run_id=run_id,
+                started_at=started_at,
+                ended_at=self.clock.now(),
+                outcome=outcome,
+                code=code,
+                model_call=False,
+                replaced=False,
+                language=language,
+                first_delta_ms=None,
+                total_ms=0,
+            )
+        )
 
     async def availability(self) -> FailureCode | None:
         """Why a new question would be refused right now, or None when the assistant is available."""
@@ -342,6 +445,7 @@ class ChatService:
         page: str | None,
         idempotency_key: str,
         client_key: str,
+        locale: str | None = None,
     ) -> Run:
         if not self.limits.enabled:
             raise RejectedError(FailureCode.ASSISTANT_DISABLED)
@@ -353,6 +457,8 @@ class ChatService:
             raise RejectedError(FailureCode.INVALID_REQUEST)
         if page is not None and page not in PAGES:
             raise RejectedError(FailureCode.INVALID_REQUEST)
+        if locale is not None and locale not in LOCALES:
+            raise RejectedError(FailureCode.INVALID_REQUEST)
 
         now = self.clock.now()
         run_id = f'run_{secrets.token_urlsafe(12)}'
@@ -362,12 +468,24 @@ class ChatService:
         if record.id != run_id:
             return await self._existing(record, session, question, page)
 
+        language: Language | None = None
         try:
             await self._rate_limit(session, client_key, now)
-            if contains_card_number(question):
-                return await self._refuse_payment_data(run_id, session, now, active)
-            redacted = redact_contact_data(question)
             history = await self.messages.history(session.id, self.limits.history_messages)
+            previous = [
+                Language(m.details.language)
+                for m in history
+                if m.role is Role.ASSISTANT
+                and m.details.language in LOCALES
+                and Notice.LANGUAGE_UNSUPPORTED not in m.details.notices
+            ]
+            names = [p.name for p in active.catalog.products]
+            language = reply_language(question, previous, Language(locale) if locale else None, names)
+            if contains_card_number(question):
+                return await self._refuse_payment_data(run_id, session, now, active, language or Language.ES)
+            if language is None:
+                return await self._unsupported_language(run_id, session, now, active, question)
+            redacted = redact_contact_data(question)
             turn = Turn(
                 active=active,
                 price_status=active.price_status(now),
@@ -375,6 +493,7 @@ class ChatService:
                 question=redacted.text,
                 page=page,
                 safety_identifier=hashlib.sha256(session.id.encode()).hexdigest()[:32],
+                language=language,
             )
             prepared = self.composer.prepare(turn)
             if prepared.input_size_bytes > self.limits.max_input_tokens:
@@ -382,6 +501,10 @@ class ChatService:
             if self._slot.locked():
                 raise RejectedError(FailureCode.BUSY)
             await self._slot.acquire()
+        except RejectedError as error:
+            await self.runs.finish(run_id, RunState.FAILED, None)
+            await self._record_static(run_id, now, RunOutcome.REFUSED, error.code, language)
+            raise
         except BaseException:
             await self.runs.finish(run_id, RunState.FAILED, None)
             raise
@@ -399,11 +522,21 @@ class ChatService:
             )
             await self.messages.append(session.id, user_message)
             cancel = self.registry.add(run_id, session.id)
-        except BaseException:
+        except RejectedError as error:
             self._slot.release()
             await self.runs.finish(run_id, RunState.FAILED, None)
+            await self.ledger.mark_unreported(run_id)
+            await self._record_static(run_id, now, RunOutcome.REFUSED, error.code, language)
             raise
-        return _ModelRun(self, run_id, session, active, prepared, user_message, self._slot, cancel)
+        except BaseException:
+            self._slot.release()
+            await asyncio.shield(self._close_failed_start(run_id))
+            raise
+        return _ModelRun(self, run_id, session, active, prepared, user_message, self._slot, cancel, language)
+
+    async def _close_failed_start(self, run_id: str) -> None:
+        await self.runs.finish(run_id, RunState.FAILED, None)
+        await self.ledger.mark_unreported(run_id)
 
     async def _existing(self, record: RunRecord, session: Session, question: str, page: str | None) -> Run:
         if record.request_hash != _request_hash(question, page):
@@ -427,7 +560,7 @@ class ChatService:
             raise RejectedError(FailureCode.RATE_LIMITED)
 
     async def _refuse_payment_data(
-        self, run_id: str, session: Session, now: datetime, active: ActiveCatalog
+        self, run_id: str, session: Session, now: datetime, active: ActiveCatalog, language: Language
     ) -> Run:
         user_message = Message(
             _message_id(),
@@ -440,12 +573,33 @@ class ChatService:
         answer = Message(
             _message_id(),
             Role.ASSISTANT,
-            PAYMENT_REFUSAL_ANSWER,
+            payment_refusal_text(language),
             now,
-            replacement(active.catalog, Notice.PAYMENT_DATA_REFUSED),
+            replacement(active.catalog, Notice.PAYMENT_DATA_REFUSED, language),
         )
         await self.messages.append(session.id, answer)
         await self.runs.finish(run_id, RunState.COMPLETED, answer.id)
+        await self._record_static(run_id, now, RunOutcome.COMPLETED, None, language)
+        return _StaticRun(run_id, user_message, answer)
+
+    async def _unsupported_language(
+        self, run_id: str, session: Session, now: datetime, active: ActiveCatalog, question: str
+    ) -> Run:
+        """A short bilingual note, without a model call or budget use."""
+        redacted = redact_contact_data(question)
+        notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
+        user_message = Message(_message_id(), Role.USER, redacted.text, now, AnswerDetails(notices=notices))
+        await self.messages.append(session.id, user_message)
+        answer = Message(
+            _message_id(),
+            Role.ASSISTANT,
+            UNSUPPORTED_LANGUAGE_ANSWER,
+            now,
+            AnswerDetails(notices=(Notice.LANGUAGE_UNSUPPORTED,), language=Language.ES.value),
+        )
+        await self.messages.append(session.id, answer)
+        await self.runs.finish(run_id, RunState.COMPLETED, answer.id)
+        await self._record_static(run_id, now, RunOutcome.COMPLETED, None, None)
         return _StaticRun(run_id, user_message, answer)
 
     def cancel(self, session: Session, run_id: str) -> None:

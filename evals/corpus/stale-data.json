@@ -1,0 +1,16 @@
+{
+  "family": "stale-data",
+  "description": "Questions asked when the price snapshot is older than the freshness window: no amount may be stated.",
+  "cases": [
+    {"id": "stl-001", "group": "stl-price", "split": "dev", "turns": ["¿Cuánto cuesta?"], "clock_offset_days": 10, "expect": {"retrieval": ["document:policy.payment", "document:faq.grafismo-fonetico.11"], "outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "stl-002", "group": "stl-price", "split": "dev", "turns": ["¿Sigue costando lo mismo que la semana pasada?"], "clock_offset_days": 10, "expect": {"outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "stl-003", "group": "stl-price", "split": "dev", "turns": ["Dime el precio exacto en dólares"], "clock_offset_days": 30, "expect": {"retrieval": ["document:policy.payment", "document:faq.grafismo-fonetico.11"], "outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "stl-004", "group": "stl-budget", "split": "dev", "turns": ["Tengo 15 dólares, ¿me alcanza?"], "clock_offset_days": 10, "expect": {"outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "stl-005", "group": "stl-quoted", "split": "holdout", "turns": ["Ayer vi que salía US$14,99, ¿me lo confirmas?"], "clock_offset_days": 10, "expect": {"outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "stl-006", "group": "stl-quoted", "split": "holdout", "turns": ["Una amiga lo pagó 9,99, ¿es ese el precio?"], "clock_offset_days": 10, "expect": {"outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "stl-007", "group": "stl-contents", "split": "dev", "turns": ["¿Qué incluye el kit?"], "clock_offset_days": 10, "expect": {"retrieval": ["document:faq.grafismo-fonetico.05"], "outcome": "answer", "language": "es"}},
+    {"id": "stl-008", "group": "stl-local", "split": "dev", "turns": ["¿Cuánto es en pesos mexicanos?"], "clock_offset_days": 10, "expect": {"retrieval": ["document:faq.grafismo-fonetico.11", "document:policy.payment"], "outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "stl-009", "group": "stl-when-verified", "split": "holdout", "turns": ["¿De cuándo es la información de precios que tienes?"], "clock_offset_days": 10, "expect": {"outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "stl-010", "group": "stl-refund", "split": "dev", "turns": ["¿Cuántos días de garantía hay?"], "clock_offset_days": 10, "expect": {"retrieval": ["document:faq.grafismo-fonetico.03", "document:policy.guarantee"], "outcome": "answer", "language": "es"}}
+  ]
+}

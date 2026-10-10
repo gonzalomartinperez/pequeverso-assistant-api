@@ -1,0 +1,24 @@
+id: 0
+event: run.started
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":0,"timestamp":"2026-09-28T15:00:00Z","type":"run.started","user_message":{"id":"msg_EXAMPLEuser00001","role":"user","content":"What does the kit include?","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[],"sources":[],"follow_ups":[],"notices":[],"language":"es"}}
+
+id: 1
+event: message.delta
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":1,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"**Grafismo Fonético** is a printable kit (the material is in Spanish) for ages 3 t"}
+
+id: 2
+event: message.delta
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":2,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"o 7. It includes the main guide plus bonus PDFs, such as **Los Sonidos de Mi Casa*"}
+
+id: 3
+event: message.delta
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":3,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"*, with large syllables, pictures and guided tracing for about 10 minutes a day."}
+
+id: 4
+event: message.completed
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":4,"timestamp":"2026-09-28T15:00:00Z","type":"message.completed","message":{"id":"msg_EXAMPLEassistant1","role":"assistant","content":"**Grafismo Fonético** is a printable kit (the material is in Spanish) for ages 3 to 7. It includes the main guide plus bonus PDFs, such as **Los Sonidos de Mi Casa**, with large syllables, pictures and guided tracing for about 10 minutes a day.","created_at":"2026-09-28T15:00:00Z","products":[{"id":"grafismo-fonetico","name":"Grafismo Fonético","summary":"Kit imprimible de 9 PDF y 414 páginas para practicar letras, sonidos, sílabas, palabras y trazos en casa, 10 minutos por día. Para niños de 3 a 7 años. Acceso digital inmediato.","age_range":"3 a 7 años","url":"https://pequeverso.com/grafismo-fonetico/","purchase_url":"https://pequeverso.com/grafismo-fonetico/#comprar","image":{"url":"https://pequeverso.com/media/gf/gf-hero-w1440-7f01b3ea.webp","width":1440,"height":1080,"alt":"Kit completo Grafismo Fonético impreso junto a sus ocho recursos complementarios"},"price":{"amount":"14.99","currency":"USD","display":"US$14,99","note":"Precio de referencia en dólares (USD). Hotmart lo convierte a tu moneda local y muestra el total final, con impuestos, antes de pagar.","tax_note":"+ impuestos aplicables según el país","verified_at":"2026-10-05T02:13:53Z"}}],"resources":[{"id":"grafismo-fonetico/sonidos-de-mi-casa","product_id":"grafismo-fonetico","title":"Los Sonidos de Mi Casa","pages":40,"description":"Bono incluido. Actividades con objetos cotidianos y palabras cercanas que resultan fáciles de reconocer.","image":{"url":"https://pequeverso.com/media/gf-cards/gf-card-07-w720-cd5b2e46.webp","width":720,"height":540,"alt":"Portada del bono Los Sonidos de Mi Casa"}}],"links":[],"sources":[{"id":"faq.grafismo-fonetico.05","title":"¿Qué incluye exactamente la compra?","url":"https://pequeverso.com/grafismo-fonetico/#preguntas"}],"follow_ups":["Do I need to print everything?"],"notices":[],"language":"en"}}
+
+id: 5
+event: run.completed
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":5,"timestamp":"2026-09-28T15:00:00Z","type":"run.completed"}
+

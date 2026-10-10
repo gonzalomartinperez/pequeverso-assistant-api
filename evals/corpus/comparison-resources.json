@@ -1,0 +1,24 @@
+{
+  "family": "comparison-resources",
+  "description": "Comparing resources inside the kit and the kit against alternatives.",
+  "cases": [
+    {"id": "cmp-001", "group": "cmp-cards-games", "split": "dev", "turns": ["¿Qué diferencia hay entre Sílabas en Tus Manos y Juega con Sonidos y Sílabas?"], "expect": {"retrieval": ["resource:grafismo-fonetico/silabas-en-tus-manos", "resource:grafismo-fonetico/juega"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-002", "group": "cmp-cards-games", "split": "dev", "turns": ["¿En qué se diferencian las tarjetas recortables de los juegos?"], "expect": {"retrieval": ["resource:grafismo-fonetico/silabas-en-tus-manos", "resource:grafismo-fonetico/juega"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-003", "group": "cmp-safari-home", "split": "holdout", "turns": ["¿Safari de Sonidos y Los Sonidos de Mi Casa no son lo mismo?"], "expect": {"retrieval": ["resource:grafismo-fonetico/safari", "resource:grafismo-fonetico/sonidos-de-mi-casa"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-004", "group": "cmp-guide-calendar", "split": "dev", "turns": ["¿Cuál es la diferencia entre la guía de 10 minutos y el reto de 21 días?"], "expect": {"retrieval": ["resource:grafismo-fonetico/10-minutos", "resource:grafismo-fonetico/21-dias"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-005", "group": "cmp-main-vs-bonus", "split": "dev", "turns": ["¿Qué tiene el material principal que no tengan los bonos?"], "expect": {"retrieval": ["resource:grafismo-fonetico/paso-a-paso"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-006", "group": "cmp-which-first", "split": "dev", "turns": ["De todos los recursos, ¿cuál conviene imprimir primero?"], "expect": {"retrieval": ["resource:grafismo-fonetico/10-minutos", "resource:grafismo-fonetico/paso-a-paso", "document:faq.grafismo-fonetico.07"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-007", "group": "cmp-games", "split": "dev", "turns": ["Quiero algo más de juego que de hoja, ¿qué recurso me recomiendas?"], "expect": {"retrieval": ["resource:grafismo-fonetico/juega"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-008", "group": "cmp-games", "split": "dev", "turns": ["¿Trae bingo o memoria para jugar en familia?"], "expect": {"retrieval": ["resource:grafismo-fonetico/juega"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-009", "group": "cmp-routine", "split": "holdout", "turns": ["Necesito ayuda para tener constancia, ¿qué parte sirve para eso?"], "expect": {"retrieval": ["resource:grafismo-fonetico/21-dias", "resource:grafismo-fonetico/10-minutos"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-010", "group": "cmp-visual", "split": "holdout", "turns": ["Mi hijo es muy visual, ¿qué recursos tienen más imágenes?"], "expect": {"retrieval": ["resource:grafismo-fonetico/safari", "resource:grafismo-fonetico/pared-de-sonidos", "resource:grafismo-fonetico/paso-a-paso"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-011", "group": "cmp-app", "split": "dev", "turns": ["¿Es mejor que una app de lectura para la tablet?"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "answer", "forbid": ["outcome_promise"], "language": "es"}},
+    {"id": "cmp-012", "group": "cmp-app", "split": "dev", "turns": ["Prefiero algo en pantalla, ¿tienen versión app?"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "no_info", "language": "es"}},
+    {"id": "cmp-013", "group": "cmp-books", "split": "dev", "turns": ["¿Conviene más esto o comprar un libro de lectoescritura en la librería?"], "expect": {"outcome": "answer", "language": "es"}},
+    {"id": "cmp-014", "group": "cmp-other-brands", "split": "dev", "turns": ["¿Es mejor que el método Montessori?"], "expect": {"outcome": "answer", "forbid": ["outcome_promise", "testimonial"], "language": "es"}},
+    {"id": "cmp-015", "group": "cmp-other-products", "split": "holdout", "turns": ["¿Qué otros productos venden además de este kit?"], "expect": {"retrieval": ["product:grafismo-fonetico"], "outcome": "answer", "forbid": ["post_purchase_offer"], "language": "es"}},
+    {"id": "cmp-016", "group": "cmp-pages", "split": "holdout", "turns": ["¿Cuál de los bonos es el más largo?"], "expect": {"retrieval": ["resource:grafismo-fonetico/juega"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-017", "group": "cmp-plastify", "split": "dev", "turns": ["¿Qué material conviene plastificar?"], "expect": {"retrieval": ["resource:grafismo-fonetico/pared-de-sonidos"], "outcome": "answer", "language": "es"}},
+    {"id": "cmp-018", "group": "cmp-family-words", "split": "dev", "turns": ["¿Hay algo con palabras de la familia, como mamá y papá?"], "expect": {"retrieval": ["resource:grafismo-fonetico/letras-de-mi-mundo"], "outcome": "answer", "language": "es"}}
+  ]
+}

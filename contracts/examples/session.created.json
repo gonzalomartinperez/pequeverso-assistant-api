@@ -11,5 +11,12 @@
   "limits": {
     "max_message_chars": 600,
     "messages_per_day": 30
-  }
+  },
+  "starters": [
+    "¿Qué incluye exactamente la compra?",
+    "¿Para qué edades se recomienda?",
+    "¿Tengo que imprimir todo el material?",
+    "¿Cómo funciona la garantía de 7 días?"
+  ],
+  "contract_revision": "1.2"
 }

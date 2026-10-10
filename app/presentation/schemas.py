@@ -69,7 +69,9 @@ class SourceOut(_Out):
     url: str
 
 
-Notice = Literal['answer_replaced', 'payment_data_refused', 'contact_data_redacted']
+Notice = Literal['answer_replaced', 'payment_data_refused', 'contact_data_redacted', 'language_unsupported']
+Locale = Literal['es', 'en']
+CONTRACT_REVISION = '1.2'
 
 
 class MessageOut(_Out):
@@ -86,6 +88,9 @@ class MessageOut(_Out):
     sources: list[SourceOut] = Field(default_factory=list)
     follow_ups: list[str] = Field(default_factory=list, description='Optional suggested next questions.')
     notices: list[Notice] = Field(default_factory=list)
+    language: Locale = Field(
+        default='es', description='Language of `content` (since 1.1). Use it as the lang attribute.'
+    )
 
     @classmethod
     def of(cls, message: Message) -> MessageOut:
@@ -132,6 +137,7 @@ class MessageOut(_Out):
             sources=[SourceOut(id=s.id, title=s.title, url=s.url) for s in d.sources],
             follow_ups=list(d.follow_ups),
             notices=[n.value for n in d.notices],
+            language='en' if d.language == 'en' else 'es',
         )
 
 
@@ -157,6 +163,16 @@ class SessionOut(_Out):
     messages: list[MessageOut] = Field(description='Stored history, oldest first (bounded).')
     availability: AvailabilityOut
     limits: LimitsOut
+    starters: list[str] = Field(
+        default_factory=list,
+        description='Up to 4 opening questions from approved catalog topics, in the requested locale (since 1.1).',
+    )
+    contract_revision: str = Field(default=CONTRACT_REVISION, description='Additive revision within v1.')
+
+
+class SessionIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    locale: Locale | None = Field(default=None, description='Interface language; a preference, not an order.')
 
 
 Page = Literal['home', 'product', 'support']
@@ -166,6 +182,11 @@ class MessageIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     content: Annotated[str, Field(min_length=1, max_length=2000)]
     page: Page | None = Field(default=None, description='Storefront page the visitor is on, if embedded.')
+    locale: Locale | None = Field(
+        default=None,
+        description='Interface language (since 1.1). The answer language follows the message and the '
+        'conversation; the locale only breaks ties.',
+    )
 
 
 class ErrorBody(_Out):

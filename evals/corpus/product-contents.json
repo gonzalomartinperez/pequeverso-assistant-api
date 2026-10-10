@@ -1,0 +1,27 @@
+{
+  "family": "product-contents",
+  "description": "What the kit includes: main material, bonuses, counts, formats.",
+  "cases": [
+    {"id": "pc-001", "group": "pc-included", "split": "dev", "turns": ["¿Qué incluye exactamente el kit?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.05"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-002", "group": "pc-included", "split": "dev", "turns": ["¿Qué trae la compra? ¿Es un solo PDF o varios?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.05", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-003", "group": "pc-included", "split": "dev", "turns": ["Si lo compro, ¿qué me llega concretamente?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.05", "document:faq.grafismo-fonetico.06", "document:policy.delivery"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-004", "group": "pc-included", "split": "dev", "turns": ["Contame qué viene en el paquete de Grafismo Fonético"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.05", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-005", "group": "pc-bonuses", "split": "holdout", "turns": ["¿Cuáles son los bonos que vienen incluidos?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.05"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-006", "group": "pc-bonuses", "split": "holdout", "turns": ["¿Los bonos se pagan aparte o vienen en el mismo pago?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.05"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-007", "group": "pc-bonuses", "split": "holdout", "turns": ["¿Cuántos extras trae además del material principal?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.05", "resource:grafismo-fonetico/paso-a-paso"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-008", "group": "pc-counts", "split": "holdout", "turns": ["¿Cuántas páginas tiene en total?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.05"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-009", "group": "pc-counts", "split": "holdout", "turns": ["¿Cuántos archivos PDF son?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.05"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-010", "group": "pc-main", "split": "dev", "turns": ["¿Qué tiene el material principal, el Paso a Paso?"], "expect": {"retrieval": ["resource:grafismo-fonetico/paso-a-paso"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-011", "group": "pc-main", "split": "dev", "turns": ["Explicame qué hay dentro de Grafismo Fonético Paso a Paso"], "expect": {"retrieval": ["resource:grafismo-fonetico/paso-a-paso"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-012", "group": "pc-resource-calendar", "split": "dev", "turns": ["¿Qué es el calendario de 21 días?"], "expect": {"retrieval": ["resource:grafismo-fonetico/21-dias"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-013", "group": "pc-resource-cards", "split": "holdout", "turns": ["¿Las tarjetas son para recortar?"], "expect": {"retrieval": ["resource:grafismo-fonetico/silabas-en-tus-manos"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-014", "group": "pc-resource-posters", "split": "dev", "turns": ["¿Trae algo para pegar en la pared del cuarto?"], "expect": {"retrieval": ["resource:grafismo-fonetico/pared-de-sonidos"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-015", "group": "pc-resource-name", "split": "dev", "turns": ["¿Hay actividades para que practique su propio nombre?"], "expect": {"retrieval": ["resource:grafismo-fonetico/letras-de-mi-mundo"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-016", "group": "pc-resource-home", "split": "dev", "turns": ["¿Qué son Los Sonidos de Mi Casa?"], "expect": {"retrieval": ["resource:grafismo-fonetico/sonidos-de-mi-casa"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-017", "group": "pc-resource-animals", "split": "dev", "turns": ["Vi que hay uno de animales, ¿de qué se trata?"], "expect": {"retrieval": ["resource:grafismo-fonetico/safari"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-018", "group": "pc-resource-guide", "split": "dev", "turns": ["¿Incluye alguna guía para el adulto que acompaña?"], "expect": {"retrieval": ["resource:grafismo-fonetico/10-minutos", "document:faq.grafismo-fonetico.08"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-019", "group": "pc-what-is", "split": "dev", "turns": ["¿Qué es Grafismo Fonético?"], "expect": {"retrieval": ["product:grafismo-fonetico", "resource:grafismo-fonetico/paso-a-paso"], "outcome": "answer", "language": "es"}},
+    {"id": "pc-020", "group": "pc-what-is", "split": "dev", "turns": ["No entiendo bien qué venden, ¿me explicas?"], "expect": {"outcome": "answer", "language": "es"}},
+    {"id": "pc-021", "group": "pc-skills", "split": "dev", "turns": ["¿Trabaja letras, sílabas y trazo, o solo una cosa?"], "expect": {"retrieval": ["product:grafismo-fonetico", "document:faq.grafismo-fonetico.01"], "outcome": "answer", "language": "es"}}
+  ]
+}

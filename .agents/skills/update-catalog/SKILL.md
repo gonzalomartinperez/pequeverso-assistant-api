@@ -1,6 +1,6 @@
 ---
 name: update-catalog
-description: Re-sync the assistant catalog from a pinned Pequeverso storefront commit and review the fact changes.
+description: Re-sync the assistant catalog from a pinned Pequeverso storefront commit and review the fact changes. Not for unpublished storefront commits or hand edits.
 ---
 
 # Update the catalog
@@ -15,3 +15,9 @@ description: Re-sync the assistant catalog from a pinned Pequeverso storefront c
    `uv run python -m contracts.export` (examples embed catalog data), then commit both.
 5. Never hand-edit the JSON, add facts that are not in the storefront, or include post-purchase
    offers.
+
+## Limits
+
+- Only commits reachable from the storefront's `origin/main` (the sync refuses others); no hand
+  edits, no facts outside the storefront, no post-purchase offers.
+- Evidence: the `catalog/sync-report.json` diff reviewed in the PR.

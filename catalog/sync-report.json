@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "source": {
+    "repository": "gonzalomartinperez/pequeverso",
+    "revision": "ae6d237877c248551be988af9be920eac69b16da",
+    "published_ref": "origin/main"
+  },
+  "previous_revision": "ae6d237877c248551be988af9be920eac69b16da",
+  "generated_at": "2026-10-05T02:13:53+00:00",
+  "snapshot_sha256": "dacf90067dcd15185f149cca4d22eeed34367559fadf2c90fd34587c8b206f08",
+  "exporter_sha256": "37395e563eab6eac077239c7ee154cbd308de78067895ed1d7bfef2917b3900a",
+  "counts": {
+    "products": 1,
+    "resources": 9,
+    "documents": 23,
+    "links": 6
+  },
+  "changes": {
+    "products_added": [],
+    "products_retired": [],
+    "price_changes": {},
+    "resources_added": [],
+    "resources_removed": [],
+    "resources_changed": [],
+    "documents_added": [],
+    "documents_removed": [],
+    "documents_changed": [],
+    "links_changed": [],
+    "forbidden_terms_changed": false
+  }
+}

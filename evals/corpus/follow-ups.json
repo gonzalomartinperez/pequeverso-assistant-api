@@ -1,0 +1,20 @@
+{
+  "family": "follow-ups",
+  "description": "Multi-turn: references to earlier answers (\"ese\", \"el segundo\", \"y eso\").",
+  "cases": [
+    {"id": "fu-001", "group": "fu-second", "split": "dev", "turns": ["¿Qué bonos incluye?", "¿Y el segundo de qué se trata?"], "expect": {"outcome": "answer", "language": "es"}},
+    {"id": "fu-002", "group": "fu-that-one", "split": "dev", "turns": ["¿Qué es Juega con Sonidos y Sílabas?", "¿Cuántas páginas tiene ese?"], "expect": {"retrieval": ["resource:grafismo-fonetico/juega"], "retrieval_query": "all", "outcome": "answer", "language": "es"}},
+    {"id": "fu-003", "group": "fu-age-then-start", "split": "dev", "turns": ["Mi hija tiene 4 años", "¿Por dónde empezamos entonces?"], "expect": {"retrieval": ["product:grafismo-fonetico", "resource:grafismo-fonetico/10-minutos"], "retrieval_query": "all", "outcome": "answer", "language": "es"}},
+    {"id": "fu-004", "group": "fu-price-then-local", "split": "dev", "turns": ["¿Cuánto cuesta?", "¿Y eso en pesos colombianos cuánto sería?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.11", "document:policy.payment"], "retrieval_query": "all", "outcome": "answer", "forbid": ["unverified_price"], "language": "es"}},
+    {"id": "fu-005", "group": "fu-refund-then-days", "split": "dev", "turns": ["¿Tienen garantía?", "¿Y si pasaron los días?"], "expect": {"retrieval": ["document:faq.grafismo-fonetico.03", "document:policy.guarantee"], "retrieval_query": "all", "outcome": "answer", "forbid": ["invented_policy"], "language": "es"}},
+    {"id": "fu-006", "group": "fu-print-then-color", "split": "dev", "turns": ["¿Hay que imprimir todo?", "¿Y a color sí o sí?"], "expect": {"outcome": "no_info", "language": "es"}},
+    {"id": "fu-007", "group": "fu-compare-then-pick", "split": "holdout", "turns": ["¿Qué diferencia hay entre el safari y los sonidos de mi casa?", "Ok, ¿cuál me conviene para un nene de 3?"], "expect": {"retrieval_query": "all", "retrieval": ["resource:grafismo-fonetico/safari", "resource:grafismo-fonetico/sonidos-de-mi-casa", "product:grafismo-fonetico"], "outcome": "answer", "language": "es"}},
+    {"id": "fu-008", "group": "fu-access-then-mail", "split": "dev", "turns": ["Ya compré", "No me llegó nada todavía"], "expect": {"retrieval": ["document:support.access.1", "document:support.route.1"], "outcome": "answer", "language": "es"}},
+    {"id": "fu-009", "group": "fu-topic-switch", "split": "dev", "turns": ["¿Para qué edad es?", "Otra cosa: ¿cómo pido reembolso?"], "expect": {"retrieval": ["document:policy.guarantee", "document:support.route.2", "document:faq.grafismo-fonetico.03"], "outcome": "answer", "language": "es"}},
+    {"id": "fu-010", "group": "fu-pronoun", "split": "dev", "turns": ["Contame del calendario de 21 días", "¿Hay que hacerlo seguido o se puede pausar?"], "expect": {"retrieval": ["resource:grafismo-fonetico/21-dias", "document:faq.grafismo-fonetico.04"], "retrieval_query": "all", "outcome": "answer", "language": "es"}},
+    {"id": "fu-011", "group": "fu-why", "split": "dev", "turns": ["¿Me lo recomiendas para mi hijo de 6?", "¿Por qué?"], "expect": {"outcome": "answer", "language": "es"}},
+    {"id": "fu-012", "group": "fu-more", "split": "holdout", "turns": ["¿Qué incluye?", "Dame más detalle del material principal"], "expect": {"retrieval": ["resource:grafismo-fonetico/paso-a-paso"], "outcome": "answer", "language": "es"}},
+    {"id": "fu-013", "group": "fu-correction", "split": "holdout", "turns": ["Mi hijo tiene 9 años", "Perdón, me equivoqué, tiene 6"], "expect": {"outcome": "answer", "language": "es"}},
+    {"id": "fu-014", "group": "fu-thanks", "split": "holdout", "turns": ["¿Cuánto tiempo por día?", "Perfecto, gracias"], "expect": {"outcome": "answer", "language": "es"}}
+  ]
+}

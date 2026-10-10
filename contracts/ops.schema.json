@@ -1,0 +1,779 @@
+{
+  "$defs": {
+    "BudgetOut": {
+      "additionalProperties": false,
+      "properties": {
+        "month": {
+          "title": "Month",
+          "type": "string"
+        },
+        "day": {
+          "title": "Day",
+          "type": "string"
+        },
+        "monthly_limit": {
+          "title": "Monthly Limit",
+          "type": "string"
+        },
+        "monthly_cutoff": {
+          "title": "Monthly Cutoff",
+          "type": "string"
+        },
+        "daily_limit": {
+          "title": "Daily Limit",
+          "type": "string"
+        },
+        "month_spend": {
+          "$ref": "#/$defs/SpendOut"
+        },
+        "day_spend": {
+          "$ref": "#/$defs/SpendOut"
+        },
+        "remaining_month": {
+          "title": "Remaining Month",
+          "type": "string"
+        }
+      },
+      "required": [
+        "month",
+        "day",
+        "monthly_limit",
+        "monthly_cutoff",
+        "daily_limit",
+        "month_spend",
+        "day_spend",
+        "remaining_month"
+      ],
+      "title": "BudgetOut",
+      "type": "object"
+    },
+    "CatalogOut": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "active",
+            "missing"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "bundled",
+            "live"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Revision"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sha256"
+        },
+        "generated_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Generated At"
+        },
+        "verified_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Verified At"
+        },
+        "activated_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Activated At"
+        },
+        "price_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "verified",
+                "unverified"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Price Status"
+        },
+        "price_max_age_hours": {
+          "title": "Price Max Age Hours",
+          "type": "integer"
+        },
+        "last_attempt_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Attempt At"
+        },
+        "last_failure": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Failure"
+        },
+        "last_failure_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Failure At"
+        },
+        "products": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Products"
+        },
+        "documents": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Documents"
+        }
+      },
+      "required": [
+        "status",
+        "source",
+        "revision",
+        "sha256",
+        "generated_at",
+        "verified_at",
+        "activated_at",
+        "price_status",
+        "price_max_age_hours",
+        "last_attempt_at",
+        "last_failure",
+        "last_failure_at",
+        "products",
+        "documents"
+      ],
+      "title": "CatalogOut",
+      "type": "object"
+    },
+    "DailyOut": {
+      "additionalProperties": false,
+      "properties": {
+        "day": {
+          "title": "Day",
+          "type": "string"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "integer"
+        },
+        "failed": {
+          "title": "Failed",
+          "type": "integer"
+        },
+        "cancelled": {
+          "title": "Cancelled",
+          "type": "integer"
+        },
+        "interrupted": {
+          "title": "Interrupted",
+          "type": "integer"
+        },
+        "refused": {
+          "title": "Refused",
+          "type": "integer"
+        },
+        "confirmed": {
+          "title": "Confirmed",
+          "type": "string"
+        },
+        "estimated": {
+          "title": "Estimated",
+          "type": "string"
+        },
+        "input_tokens": {
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "output_tokens": {
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "reasoning_tokens": {
+          "title": "Reasoning Tokens",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "day",
+        "completed",
+        "failed",
+        "cancelled",
+        "interrupted",
+        "refused",
+        "confirmed",
+        "estimated",
+        "input_tokens",
+        "output_tokens",
+        "reasoning_tokens"
+      ],
+      "title": "DailyOut",
+      "type": "object"
+    },
+    "LatencyOut": {
+      "additionalProperties": false,
+      "properties": {
+        "first_delta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PercentilesOut"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Request accepted → first answer text (model runs)."
+        },
+        "total": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PercentilesOut"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Request accepted → authoritative answer (completed model runs)."
+        }
+      },
+      "required": [
+        "first_delta",
+        "total"
+      ],
+      "title": "LatencyOut",
+      "type": "object"
+    },
+    "OpsAvailabilityOut": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "available",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "status",
+        "reason"
+      ],
+      "title": "OpsAvailabilityOut",
+      "type": "object"
+    },
+    "PercentilesOut": {
+      "additionalProperties": false,
+      "properties": {
+        "p50": {
+          "title": "P50",
+          "type": "integer"
+        },
+        "p95": {
+          "title": "P95",
+          "type": "integer"
+        },
+        "count": {
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "p50",
+        "p95",
+        "count"
+      ],
+      "title": "PercentilesOut",
+      "type": "object"
+    },
+    "PricingOut": {
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "description": "Source of the rates used for estimates; not the provider invoice.",
+          "title": "Revision",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "input_per_million": {
+          "title": "Input Per Million",
+          "type": "string"
+        },
+        "cached_input_per_million": {
+          "title": "Cached Input Per Million",
+          "type": "string"
+        },
+        "cache_write_per_million": {
+          "title": "Cache Write Per Million",
+          "type": "string"
+        },
+        "output_per_million": {
+          "description": "Also applies to reasoning tokens.",
+          "title": "Output Per Million",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision",
+        "model",
+        "input_per_million",
+        "cached_input_per_million",
+        "cache_write_per_million",
+        "output_per_million"
+      ],
+      "title": "PricingOut",
+      "type": "object"
+    },
+    "RecentRunOut": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Opaque: a digest of the run id, not usable against the public API.",
+          "title": "Id",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "completed",
+            "failed",
+            "cancelled",
+            "interrupted",
+            "refused"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Code"
+        },
+        "model_call": {
+          "title": "Model Call",
+          "type": "boolean"
+        },
+        "replaced": {
+          "title": "Replaced",
+          "type": "boolean"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "enum": [
+                "es",
+                "en"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Language"
+        },
+        "first_delta_ms": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "First Delta Ms"
+        },
+        "total_ms": {
+          "title": "Total Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "started_at",
+        "outcome",
+        "code",
+        "model_call",
+        "replaced",
+        "language",
+        "first_delta_ms",
+        "total_ms"
+      ],
+      "title": "RecentRunOut",
+      "type": "object"
+    },
+    "RunCountsOut": {
+      "additionalProperties": false,
+      "properties": {
+        "completed": {
+          "title": "Completed",
+          "type": "integer"
+        },
+        "failed": {
+          "title": "Failed",
+          "type": "integer"
+        },
+        "cancelled": {
+          "title": "Cancelled",
+          "type": "integer"
+        },
+        "interrupted": {
+          "title": "Interrupted",
+          "type": "integer"
+        },
+        "refused": {
+          "title": "Refused",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "completed",
+        "failed",
+        "cancelled",
+        "interrupted",
+        "refused"
+      ],
+      "title": "RunCountsOut",
+      "type": "object"
+    },
+    "ServiceOut": {
+      "additionalProperties": false,
+      "properties": {
+        "environment": {
+          "title": "Environment",
+          "type": "string"
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Revision"
+        },
+        "provider": {
+          "enum": [
+            "fixture",
+            "openai"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "reasoning_effort": {
+          "title": "Reasoning Effort",
+          "type": "string"
+        },
+        "assistant_enabled": {
+          "title": "Assistant Enabled",
+          "type": "boolean"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "synthetic": {
+          "description": "True in fixture mode: every number comes from simulated answers.",
+          "title": "Synthetic",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "environment",
+        "revision",
+        "provider",
+        "model",
+        "reasoning_effort",
+        "assistant_enabled",
+        "started_at",
+        "synthetic"
+      ],
+      "title": "ServiceOut",
+      "type": "object"
+    },
+    "SpendOut": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmed": {
+          "description": "USD settled to provider-reported usage.",
+          "title": "Confirmed",
+          "type": "string"
+        },
+        "estimated": {
+          "description": "USD kept as worst-case estimate: the run ended without a usage report.",
+          "title": "Estimated",
+          "type": "string"
+        },
+        "pending": {
+          "description": "USD reserved by runs still in progress.",
+          "title": "Pending",
+          "type": "string"
+        }
+      },
+      "required": [
+        "confirmed",
+        "estimated",
+        "pending"
+      ],
+      "title": "SpendOut",
+      "type": "object"
+    },
+    "TokensOut": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "title": "Input",
+          "type": "integer"
+        },
+        "cached_input": {
+          "title": "Cached Input",
+          "type": "integer"
+        },
+        "output": {
+          "title": "Output",
+          "type": "integer"
+        },
+        "reasoning": {
+          "title": "Reasoning",
+          "type": "integer"
+        },
+        "runs_with_usage": {
+          "title": "Runs With Usage",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "input",
+        "cached_input",
+        "output",
+        "reasoning",
+        "runs_with_usage"
+      ],
+      "title": "TokensOut",
+      "type": "object"
+    },
+    "WindowOut": {
+      "additionalProperties": false,
+      "properties": {
+        "hours": {
+          "title": "Hours",
+          "type": "integer"
+        },
+        "runs": {
+          "$ref": "#/$defs/RunCountsOut"
+        },
+        "replaced": {
+          "title": "Replaced",
+          "type": "integer"
+        },
+        "failures": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Failures",
+          "type": "object"
+        },
+        "latency_ms": {
+          "$ref": "#/$defs/LatencyOut"
+        },
+        "tokens": {
+          "$ref": "#/$defs/TokensOut"
+        }
+      },
+      "required": [
+        "hours",
+        "runs",
+        "replaced",
+        "failures",
+        "latency_ms",
+        "tokens"
+      ],
+      "title": "WindowOut",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "service": {
+      "$ref": "#/$defs/ServiceOut"
+    },
+    "availability": {
+      "$ref": "#/$defs/OpsAvailabilityOut"
+    },
+    "catalog": {
+      "$ref": "#/$defs/CatalogOut"
+    },
+    "budget": {
+      "$ref": "#/$defs/BudgetOut"
+    },
+    "windows": {
+      "items": {
+        "$ref": "#/$defs/WindowOut"
+      },
+      "title": "Windows",
+      "type": "array"
+    },
+    "daily": {
+      "description": "Only days with records (no zero-filled gaps), oldest first.",
+      "items": {
+        "$ref": "#/$defs/DailyOut"
+      },
+      "title": "Daily",
+      "type": "array"
+    },
+    "metrics_since": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "First recorded run; earlier periods are unknown.",
+      "title": "Metrics Since"
+    },
+    "pricing": {
+      "$ref": "#/$defs/PricingOut"
+    },
+    "recent": {
+      "description": "Up to 50 latest runs, newest first.",
+      "items": {
+        "$ref": "#/$defs/RecentRunOut"
+      },
+      "title": "Recent",
+      "type": "array"
+    }
+  },
+  "required": [
+    "generated_at",
+    "service",
+    "availability",
+    "catalog",
+    "budget",
+    "windows",
+    "daily",
+    "metrics_since",
+    "pricing",
+    "recent"
+  ],
+  "title": "OpsSummaryOut",
+  "type": "object"
+}

@@ -1,6 +1,6 @@
 id: 0
 event: run.started
-data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":0,"timestamp":"2026-09-28T15:00:00Z","type":"run.started","user_message":{"id":"msg_EXAMPLEuser00001","role":"user","content":"¿Cuánto cuesta?","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[],"sources":[],"follow_ups":[],"notices":[]}}
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":0,"timestamp":"2026-09-28T15:00:00Z","type":"run.started","user_message":{"id":"msg_EXAMPLEuser00001","role":"user","content":"¿Cuánto cuesta?","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[],"sources":[],"follow_ups":[],"notices":[],"language":"es"}}
 
 id: 1
 event: message.delta
@@ -16,7 +16,7 @@ data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":3,"timestam
 
 id: 4
 event: message.completed
-data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":4,"timestamp":"2026-09-28T15:00:00Z","type":"message.completed","message":{"id":"msg_EXAMPLEassistant1","role":"assistant","content":"El precio actual está en la página del kit y en el pago de Hotmart.","created_at":"2026-09-28T15:00:00Z","products":[{"id":"grafismo-fonetico","name":"Grafismo Fonético","summary":"Kit imprimible de 9 PDF y 414 páginas para practicar letras, sonidos, sílabas, palabras y trazos en casa, 10 minutos por día. Para niños de 3 a 7 años. Acceso digital inmediato.","age_range":"3 a 7 años","url":"https://pequeverso.com/grafismo-fonetico/","purchase_url":"https://pequeverso.com/grafismo-fonetico/#comprar","image":{"url":"https://pequeverso.com/media/gf/gf-hero-w1440-7f01b3ea.webp","width":1440,"height":1080,"alt":"Kit completo Grafismo Fonético impreso junto a sus ocho recursos complementarios"},"price":null}],"resources":[],"links":[],"sources":[],"follow_ups":[],"notices":[]}}
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":4,"timestamp":"2026-09-28T15:00:00Z","type":"message.completed","message":{"id":"msg_EXAMPLEassistant1","role":"assistant","content":"El precio actual está en la página del kit y en el pago de Hotmart.","created_at":"2026-09-28T15:00:00Z","products":[{"id":"grafismo-fonetico","name":"Grafismo Fonético","summary":"Kit imprimible de 9 PDF y 414 páginas para practicar letras, sonidos, sílabas, palabras y trazos en casa, 10 minutos por día. Para niños de 3 a 7 años. Acceso digital inmediato.","age_range":"3 a 7 años","url":"https://pequeverso.com/grafismo-fonetico/","purchase_url":"https://pequeverso.com/grafismo-fonetico/#comprar","image":{"url":"https://pequeverso.com/media/gf/gf-hero-w1440-7f01b3ea.webp","width":1440,"height":1080,"alt":"Kit completo Grafismo Fonético impreso junto a sus ocho recursos complementarios"},"price":null}],"resources":[],"links":[],"sources":[],"follow_ups":[],"notices":[],"language":"es"}}
 
 id: 5
 event: run.completed

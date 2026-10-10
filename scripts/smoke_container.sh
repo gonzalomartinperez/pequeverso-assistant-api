@@ -10,6 +10,7 @@ VOLUME="pv-assistant-smoke-data-$$"
 PORT="${SMOKE_PORT:-18080}"
 ORIGIN="http://localhost:3000"
 JAR="$(mktemp)"
+OPS_TOKEN="smoke-ops-token-$(python3 -c 'import secrets; print(secrets.token_hex(16))')"
 
 cleanup() {
   docker rm -f "$NAME" >/dev/null 2>&1 || true
@@ -19,12 +20,13 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ $# -eq 0 ]]; then
-  docker build -q -t "$IMAGE" . >/dev/null
+  docker build -q --build-arg SERVICE_REVISION="$(git rev-parse HEAD)" -t "$IMAGE" . >/dev/null
 fi
 
 start() {
   docker run -d --name "$NAME" --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges \
-    -v "$VOLUME:/data" -p "127.0.0.1:$PORT:8000" -e ENVIRONMENT=test "$IMAGE" >/dev/null
+    -v "$VOLUME:/data" -p "127.0.0.1:$PORT:8000" -e ENVIRONMENT=test \
+    -e OPS_READ_TOKEN="$OPS_TOKEN" "$IMAGE" >/dev/null
   for _ in $(seq 1 60); do
     if [[ "$(docker inspect -f '{{.State.Health.Status}}' "$NAME")" == healthy ]]; then return 0; fi
     sleep 1
@@ -53,6 +55,17 @@ code="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Origin: https://evil.example
   -X POST "http://127.0.0.1:$PORT/api/v1/session" -d '{}')"
 test "$code" = 403 || { echo "origin not enforced: $code" >&2; exit 1; }
 
+# Private ops API: token required, aggregates only, no conversation text.
+code="$(curl -sS -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PORT/internal/v1/ops/summary")"
+test "$code" = 401 || { echo "ops endpoint without token: $code" >&2; exit 1; }
+ops="$(curl -fsS -H "Authorization: Bearer $OPS_TOKEN" "http://127.0.0.1:$PORT/internal/v1/ops/summary")"
+printf '%s' "$ops" | python3 -c '
+import json, sys
+s = json.load(sys.stdin)
+assert s["service"]["synthetic"] is True and s["windows"][0]["runs"]["completed"] == 1, s
+assert "incluye" not in json.dumps(s)
+'
+
 stats="$(docker stats --no-stream --format '{{.MemUsage}} cpu={{.CPUPerc}}' "$NAME")"
 
 # Graceful stop, then a restart on the same volume keeps the conversation.
@@ -66,4 +79,4 @@ restored="$(curl -fsS -c "$JAR" -b "$JAR" -H "Origin: $ORIGIN" -H 'Content-Type:
 count="$(printf '%s' "$restored" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["messages"]))')"
 test "$count" = 2
 
-echo "container smoke passed: uid=65532 read-only rootfs, stream ok, restart kept $count messages, stop took ${stopped_in}s, idle ${stats}"
+echo "container smoke passed: uid=65532 read-only rootfs, stream ok, ops summary ok, restart kept $count messages, stop took ${stopped_in}s, idle ${stats}"

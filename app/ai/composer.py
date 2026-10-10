@@ -10,9 +10,17 @@ from app.ai.evidence import catalog_payload
 from app.ai.output import AnswerStreamParser
 from app.ai.prompt import INSTRUCTIONS, OUTPUT_SCHEMA, PROMPT_VERSION
 from app.ai.provider import ModelInput, ModelProvider, ModelRequest, TextChunk, UsageChunk
-from app.application.ports import ComposerEvent, DeltaEvent, DraftEvent, PreparedTurn, Turn
+from app.application.ports import (
+    ComposerEvent,
+    DeltaEvent,
+    DraftEvent,
+    GenerationError,
+    PreparedTurn,
+    Turn,
+)
 from app.domain.budget import Usage
 from app.domain.conversation import Role
+from app.domain.errors import RejectedError
 
 MAX_HISTORY_CHARS = 1200
 
@@ -62,7 +70,12 @@ class GroundedComposer:
             self._settings.max_evidence_chars,
         )
         question = json.dumps(
-            {'page': turn.page, 'conversation': _conversation(turn), 'question': turn.question},
+            {
+                'page': turn.page,
+                'reply_language': turn.language.value,
+                'conversation': _conversation(turn),
+                'question': turn.question,
+            },
             ensure_ascii=False,
             separators=(',', ':'),
         )
@@ -92,6 +105,14 @@ class GroundedComposer:
                         yield DeltaEvent(delta)
                 elif isinstance(chunk, UsageChunk):
                     usage = chunk.usage
+        except GenerationError:
+            raise
+        except RejectedError as error:
+            raise GenerationError(error.code, usage) from error
         finally:
             await stream.aclose()
-        yield DraftEvent(parser.finish(), usage)
+        try:
+            draft = parser.finish()
+        except RejectedError as error:
+            raise GenerationError(error.code, usage) from error
+        yield DraftEvent(draft, usage)

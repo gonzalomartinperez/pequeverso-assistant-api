@@ -87,6 +87,23 @@
       "post": {
         "summary": "Open (restore or create) the caller-owned session",
         "operationId": "open_session_api_v1_session_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SessionIn"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -649,6 +666,22 @@
             ],
             "title": "Page",
             "description": "Storefront page the visitor is on, if embedded."
+          },
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "es",
+                  "en"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale",
+            "description": "Interface language (since 1.1). The answer language follows the message and the conversation; the locale only breaks ties."
           }
         },
         "additionalProperties": false,
@@ -724,11 +757,22 @@
               "enum": [
                 "answer_replaced",
                 "payment_data_refused",
-                "contact_data_redacted"
+                "contact_data_redacted",
+                "language_unsupported"
               ]
             },
             "type": "array",
             "title": "Notices"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "es",
+              "en"
+            ],
+            "title": "Language",
+            "description": "Language of `content` (since 1.1). Use it as the lang attribute.",
+            "default": "es"
           }
         },
         "additionalProperties": false,
@@ -907,6 +951,29 @@
         ],
         "title": "ResourceOut"
       },
+      "SessionIn": {
+        "properties": {
+          "locale": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "es",
+                  "en"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Locale",
+            "description": "Interface language; a preference, not an order."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SessionIn"
+      },
       "SessionOut": {
         "properties": {
           "schema_version": {
@@ -944,6 +1011,20 @@
           },
           "limits": {
             "$ref": "#/components/schemas/LimitsOut"
+          },
+          "starters": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Starters",
+            "description": "Up to 4 opening questions from approved catalog topics, in the requested locale (since 1.1)."
+          },
+          "contract_revision": {
+            "type": "string",
+            "title": "Contract Revision",
+            "description": "Additive revision within v1.",
+            "default": "1.2"
           }
         },
         "additionalProperties": false,

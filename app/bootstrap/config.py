@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,12 +30,16 @@ class Settings(BaseSettings):
     allow_paid_ai: bool = False
     openai_api_key: SecretStr | None = None
     openai_model: str = 'gpt-6-luna'
-    openai_reasoning_effort: Literal['none', 'low', 'medium'] = 'low'
+    # gpt-6-luna accepts none|low|medium|high|xhigh|max (medium is the provider default); the
+    # higher two are excluded here on cost grounds. Owner decision 2026-10: medium.
+    openai_reasoning_effort: Literal['none', 'low', 'medium', 'high'] = 'medium'
     openai_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
     openai_max_retries: int = Field(default=1, ge=0, le=2)
     fixture_chunk_delay_ms: int = Field(default=0, ge=0, le=2000)
 
-    # Pricing in USD per 1M tokens (gpt-6-luna list prices, read 2026-09-27).
+    # Pricing in USD per 1M tokens (gpt-6-luna list prices; re-read 2026-10-05, unchanged).
+    # PRICING_REVISION names the source the estimates use; it is not the provider invoice.
+    pricing_revision: str = 'openai-gpt-6-luna-2026-10-05'
     price_input_per_million: Decimal = Decimal('0.10')
     price_cached_input_per_million: Decimal = Decimal('0.01')
     price_cache_write_per_million: Decimal = Decimal('0.125')
@@ -48,7 +52,9 @@ class Settings(BaseSettings):
 
     # Per-request and abuse limits.
     max_message_chars: int = Field(default=600, ge=50, le=2000)
-    max_output_tokens: int = Field(default=1200, ge=200, le=4000)
+    # Includes reasoning tokens (billed as output). Too low a cap ends a medium-effort answer as
+    # `incomplete` before any text; 4000 is a starting point to be tuned from live usage reports.
+    max_output_tokens: int = Field(default=4000, ge=200, le=16000)
     max_input_tokens: int = Field(default=24000, ge=4000, le=100000)
     max_evidence_chars: int = Field(default=40000, ge=4000, le=200000)
     history_messages: int = Field(default=12, ge=0, le=40)
@@ -56,7 +62,7 @@ class Settings(BaseSettings):
     messages_per_client_per_hour: int = Field(default=60, ge=1)
     sessions_per_client_per_hour: int = Field(default=20, ge=1)
     max_concurrent_runs: int = Field(default=4, ge=1, le=64)
-    run_timeout_seconds: float = Field(default=45.0, gt=0, le=180)
+    run_timeout_seconds: float = Field(default=60.0, gt=0, le=120)
     heartbeat_seconds: float = Field(default=15.0, gt=0, le=60)
     max_body_bytes: int = Field(default=16 * 1024, ge=1024, le=256 * 1024)
 
@@ -76,6 +82,16 @@ class Settings(BaseSettings):
     catalog_price_max_age_hours: int = Field(default=168, ge=1, le=24 * 60)
 
     database_path: str = str(ROOT / 'data' / 'assistant.sqlite3')
+
+    # Private operations API (server-to-server, backoffice). Unset = the endpoint does not exist.
+    ops_read_token: SecretStr | None = None
+    # Source revision baked into the image (build arg), shown to operators.
+    service_revision: str | None = Field(default=None, pattern=r'^[0-9a-f]{7,40}$')
+
+    @field_validator('service_revision', 'ops_read_token', mode='before')
+    @classmethod
+    def empty_is_unset(cls, value: object) -> object:
+        return None if value in ('', None) else value
 
     @model_validator(mode='after')
     def fail_closed(self) -> Settings:
@@ -101,6 +117,8 @@ class Settings(BaseSettings):
                 for o in self.allowed_origins
             ):
                 raise ValueError('production ALLOWED_ORIGINS must be https and not localhost')
+            if self.ops_read_token is not None and len(self.ops_read_token.get_secret_value()) < 32:
+                raise ValueError('OPS_READ_TOKEN must be at least 32 characters')
             key = self.client_hash_key.get_secret_value()
             if key == DEV_CLIENT_HASH_KEY or len(key) < 32:
                 raise ValueError('production requires a CLIENT_HASH_KEY of at least 32 characters')

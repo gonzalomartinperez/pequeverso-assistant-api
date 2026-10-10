@@ -43,10 +43,21 @@ class Usage:
     output_tokens: int
     cached_input_tokens: int = 0
     cache_write_tokens: int = 0
+    reasoning_tokens: int = 0
+    """Part of `output_tokens` (billed as output), reported separately by the provider."""
 
     def __post_init__(self) -> None:
-        if min(self.input_tokens, self.output_tokens, self.cached_input_tokens, self.cache_write_tokens) < 0:
+        counts = (
+            self.input_tokens,
+            self.output_tokens,
+            self.cached_input_tokens,
+            self.cache_write_tokens,
+            self.reasoning_tokens,
+        )
+        if min(counts) < 0:
             raise ValueError('token counts cannot be negative')
+        if self.reasoning_tokens > self.output_tokens:
+            raise ValueError('reasoning tokens are part of the output tokens')
         if self.cached_input_tokens + self.cache_write_tokens > self.input_tokens:
             raise ValueError('cached and cache-write tokens are part of the input tokens')
 

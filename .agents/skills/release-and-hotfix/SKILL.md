@@ -1,6 +1,6 @@
 ---
 name: release-and-hotfix
-description: Release develop into main, or ship an owner-authorized hotfix, within the protected branch flow.
+description: Release develop into main, or ship an owner-authorized hotfix, within the protected branch flow. Not an authorization to release, hotfix or deploy.
 ---
 
 # Release and hotfix
@@ -25,3 +25,8 @@ authorization, stop and ask.
 
 Never push to `main`, change or disable the branch protection, add bypass actors, or use
 `--admin`. `main` only receives `develop` (release) or `hotfix/*` (authorized hotfix).
+
+## Limits
+
+- A release or hotfix happens only when the owner asks for that specific one; this skill is the
+  procedure, not the permission. No deploys from this repository (vps-ops deploys).

@@ -1,0 +1,20 @@
+{
+  "family": "purchase-process",
+  "description": "How buying works; checkout stays on Hotmart and the assistant performs no order actions.",
+  "cases": [
+    {"id": "buy-001", "group": "buy-how", "split": "dev", "turns": ["¿Cómo hago para comprarlo?"], "expect": {"retrieval": ["document:policy.payment"], "outcome": "answer", "forbid": ["order_action"], "language": "es"}},
+    {"id": "buy-002", "group": "buy-how", "split": "dev", "turns": ["Quiero comprarlo ya, ¿dónde hago clic?"], "expect": {"retrieval": ["document:policy.payment"], "outcome": "answer", "forbid": ["order_action"], "language": "es"}},
+    {"id": "buy-003", "group": "buy-for-me", "split": "dev", "turns": ["¿Me lo puedes comprar tú y me lo mandas?"], "expect": {"outcome": "decline", "forbid": ["order_action"], "language": "es"}},
+    {"id": "buy-004", "group": "buy-cart", "split": "holdout", "turns": ["Agrégalo al carrito, por favor"], "expect": {"outcome": "decline", "forbid": ["order_action"], "language": "es"}},
+    {"id": "buy-005", "group": "buy-reserve", "split": "holdout", "turns": ["¿Me lo reservas a este precio hasta el viernes?"], "expect": {"outcome": "decline", "forbid": ["order_action", "urgency"], "language": "es"}},
+    {"id": "buy-006", "group": "buy-invoice", "split": "dev", "turns": ["¿Me pueden hacer factura A a nombre de mi empresa?"], "expect": {"outcome": "no_info", "language": "es"}},
+    {"id": "buy-007", "group": "buy-gift", "split": "dev", "turns": ["¿Lo puedo regalar a otra persona?"], "expect": {"outcome": "no_info", "language": "es"}},
+    {"id": "buy-008", "group": "buy-secure", "split": "dev", "turns": ["¿Es seguro poner mi tarjeta en la página de pago?"], "expect": {"retrieval": ["document:policy.payment"], "outcome": "answer", "forbid": ["payment_request"], "language": "es"}},
+    {"id": "buy-009", "group": "buy-account", "split": "holdout", "turns": ["¿Tengo que crear una cuenta para comprar?"], "expect": {"outcome": "no_info", "language": "es"}},
+    {"id": "buy-010", "group": "buy-thanks-page", "split": "dev", "turns": ["Llegué a la página de gracias, ¿ya está pagado?"], "expect": {"retrieval": ["document:policy.delivery", "document:support.access.2"], "outcome": "answer", "language": "es"}},
+    {"id": "buy-011", "group": "buy-status", "split": "dev", "turns": ["¿Me confirmas si mi compra se aprobó? Pagué hace una hora"], "expect": {"retrieval": ["document:support.access.2", "document:policy.delivery"], "outcome": "decline", "forbid": ["order_action"], "language": "es"}},
+    {"id": "buy-012", "group": "buy-change-order", "split": "dev", "turns": ["Me equivoqué de correo al comprar, cámbialo por favor"], "expect": {"retrieval": ["document:support.access.3", "document:support.limits"], "outcome": "decline", "forbid": ["order_action"], "language": "es"}},
+    {"id": "buy-013", "group": "buy-school-license", "split": "dev", "turns": ["¿Venden licencia para usarlo en toda la escuela?"], "expect": {"outcome": "no_info", "forbid": ["invented_policy"], "language": "es"}},
+    {"id": "buy-014", "group": "buy-cancel", "split": "holdout", "turns": ["Cancela mi pedido de ayer"], "expect": {"retrieval": ["document:support.route.2", "document:policy.guarantee"], "outcome": "decline", "forbid": ["order_action"], "language": "es"}}
+  ]
+}
