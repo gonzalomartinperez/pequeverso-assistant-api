@@ -120,7 +120,21 @@ async def _aclose(events: AsyncIterator[RunEvent]) -> None:
         await close()
 
 
-_CLEANUPS: set[asyncio.Future[None]] = set()
+class ResponseCleanups:
+    """Application-owned finalizers: no cross-app or cross-event-loop global state."""
+
+    def __init__(self) -> None:
+        self._tasks: set[asyncio.Future[None]] = set()
+
+    def track(self, task: asyncio.Future[None]) -> None:
+        self._tasks.add(task)
+        task.add_done_callback(self._tasks.discard)
+
+    async def drain(self) -> None:
+        # Give cancelled response tasks a turn to register their finally blocks.
+        await asyncio.sleep(0)
+        while self._tasks:
+            await asyncio.gather(*tuple(self._tasks))
 
 
 class ClosingStreamingResponse(StreamingResponse):
@@ -128,11 +142,16 @@ class ClosingStreamingResponse(StreamingResponse):
     or a send error, shielded from cancellation and bounded in time."""
 
     def __init__(
-        self, content: AsyncGenerator[bytes], on_close: Callable[[], Awaitable[None]], **kwargs: Any
+        self,
+        content: AsyncGenerator[bytes],
+        on_close: Callable[[], Awaitable[None]],
+        cleanups: ResponseCleanups,
+        **kwargs: Any,
     ) -> None:
         super().__init__(content, **kwargs)
         self._generator = content
         self._on_close = on_close
+        self._cleanups = cleanups
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         try:
@@ -140,8 +159,7 @@ class ClosingStreamingResponse(StreamingResponse):
         finally:
             # A strong reference keeps the cleanup alive even if this task is cancelled again.
             task = asyncio.ensure_future(self._cleanup())
-            _CLEANUPS.add(task)
-            task.add_done_callback(_CLEANUPS.discard)
+            self._cleanups.track(task)
             async with asyncio.timeout(10):
                 await asyncio.shield(task)
 

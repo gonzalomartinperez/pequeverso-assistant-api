@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import ipaddress
@@ -35,7 +36,7 @@ from app.presentation.schemas import (
     SessionIn,
     SessionOut,
 )
-from app.presentation.streaming import SSE_HEADERS, ClosingStreamingResponse, sse_body
+from app.presentation.streaming import SSE_HEADERS, ClosingStreamingResponse, ResponseCleanups, sse_body
 
 _IDEMPOTENCY_KEY = re.compile(r'^[A-Za-z0-9_-]{8,128}$')
 _UNAVAILABLE = {FailureCode.ASSISTANT_DISABLED, FailureCode.CATALOG_UNAVAILABLE, FailureCode.BUDGET_EXHAUSTED}
@@ -67,6 +68,7 @@ class Services:
     clock: Clock
     settings: HttpSettings
     ready: Callable[[], Awaitable[bool]]
+    cleanups: ResponseCleanups
 
 
 def services(request: Request) -> Services:
@@ -185,7 +187,13 @@ SessionDep = Annotated[Session, Depends(mutation_session)]
 
 @router.delete('/session', status_code=204, summary='Delete the session and its whole conversation')
 async def delete_session(session: SessionDep, s: ServicesDep) -> Response:
-    await s.sessions.delete(session)
+    async with s.chat.registry.session_mutation(session.id):
+        try:
+            async with asyncio.timeout(10):
+                await s.chat.registry.cancel_session(session.id)
+        except TimeoutError as error:
+            raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE) from error
+        await s.sessions.delete(session)
     response = Response(status_code=204)
     response.delete_cookie(
         s.settings.cookie.name,
@@ -214,19 +222,30 @@ async def post_message(
     _require_json(request)
     if not _IDEMPOTENCY_KEY.match(idempotency_key):
         raise RejectedError(FailureCode.INVALID_REQUEST)
-    run = await s.chat.start(
-        session,
-        body.content,
-        body.page,
-        idempotency_key,
-        client_key(request, s.settings),
-        body.locale,
-        context=body.visitor_context(),
-    )
-    await s.sessions.touch(session)
+    async with s.chat.registry.session_mutation(session.id):
+        # The dependency may have resolved before a concurrent DELETE won the lock.
+        # Revalidate ownership/CSRF under the same admission lock before reserving spend.
+        session = await s.sessions.require(
+            request.cookies.get(s.settings.cookie.name), request.headers.get('x-csrf-token')
+        )
+        run = await s.chat.start(
+            session,
+            body.content,
+            body.page,
+            idempotency_key,
+            client_key(request, s.settings),
+            body.locale,
+            context=body.visitor_context(),
+        )
+        try:
+            await s.sessions.touch(session)
+        except BaseException:
+            await asyncio.shield(run.aclose())
+            raise
     response = ClosingStreamingResponse(
         sse_body(run, s.clock, s.settings.heartbeat_seconds),
         on_close=run.aclose,
+        cleanups=s.cleanups,
         media_type='text/event-stream',
         headers={**SSE_HEADERS, 'X-Run-ID': run.id},
     )
