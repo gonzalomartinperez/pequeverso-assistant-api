@@ -21,7 +21,8 @@ COPY app ./app
 COPY migrations ./migrations
 COPY catalog ./catalog
 # Runtime installs nothing; remove the global installer and its unused vendored dependencies.
-RUN rm -rf /usr/local/lib/python3.13/site-packages/pip \
+RUN rm -rf /usr/local/lib/python3.13/ensurepip/_bundled \
+        /usr/local/lib/python3.13/site-packages/pip \
         /usr/local/lib/python3.13/site-packages/pip-*.dist-info \
         /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.13 \
     && mkdir -p /data && chown 65532:65532 /data

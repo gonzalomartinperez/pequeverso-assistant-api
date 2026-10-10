@@ -264,7 +264,7 @@ CVE-2026-103111 and CVE-2026-84782. See the
 [Debian OpenSSL advisory](https://security-tracker.debian.org/tracker/CVE-2026-84782), and
 [Python 3.13.16 release notes](https://www.python.org/downloads/release/python-31316/).
 
-The runtime removes global pip and its vendored packages; the isolated, frozen `/opt/venv`
+The runtime removes global pip, its vendored packages and the ensurepip bundled installer wheel; the isolated, frozen `/opt/venv`
 contains application dependencies and does not need an installer. This removes the unused
 vendored msgpack/setuptools/urllib3 findings rather than changing application lockfiles.
 The builder retains its tools. Scan each exact candidate image and retain the report/SBOM;
