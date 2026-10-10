@@ -441,6 +441,9 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
 def settings_for_eval(**overrides: Any) -> Settings:
     base: dict[str, Any] = {
         'environment': 'test',
+        'ai_provider': 'fixture',
+        'allow_paid_ai': False,
+        'openai_api_key': None,
         'messages_per_session_per_day': 100,
         'messages_per_client_per_hour': 5000,
         'sessions_per_client_per_hour': 5000,

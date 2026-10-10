@@ -43,6 +43,9 @@ def main() -> None:
     settings = Settings(
         _env_file=None,
         environment='development',
+        ai_provider='fixture',
+        allow_paid_ai=False,
+        openai_api_key=None,
         assistant_enabled=True,
         database_path=str(state / 'ui-operations.sqlite3'),
         session_cookie_secure=False,

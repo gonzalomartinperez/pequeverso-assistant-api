@@ -217,3 +217,73 @@ def test_aggregate_cap_survives_clock_database_resets(tmp_path: Path) -> None:
     assert envelope.snapshot()['reserved_micro_usd'] == 11000
     assert envelope.snapshot()['stop_reason'] == 'budget_or_attempt_limit'
     assert rows[1]['gates']
+
+
+def test_default_conversation_cli_ignores_ambient_paid_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.bootstrap import container
+    from scripts import evaluate_conversations as conv
+    from scripts import evaluate_corpus as corpus
+
+    monkeypatch.setenv('AI_PROVIDER', 'openai')
+    monkeypatch.setenv('ALLOW_PAID_AI', 'true')
+    monkeypatch.setenv('OPENAI_API_KEY', 'synthetic-env-sentinel')
+    monkeypatch.setattr('sys.argv', ['evaluate_conversations.py'])
+    calls = []
+
+    def forbidden(**kwargs: object) -> object:
+        calls.append(True)
+        raise AssertionError('fixture CLI must never build a paid provider')
+
+    monkeypatch.setattr(container, 'AsyncOpenAI', forbidden)
+    assert conv.main() == 0
+    settings = corpus.settings_for_eval()
+    assert settings.ai_provider == 'fixture' and settings.allow_paid_ai is False
+    assert settings.openai_api_key is None
+    assert calls == []
+
+
+def test_default_local_server_ignores_ambient_paid_configuration(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from fastapi.testclient import TestClient
+
+    from app.bootstrap import container
+    from scripts import serve_bounded_real_eval as server
+
+    monkeypatch.setenv('AI_PROVIDER', 'openai')
+    monkeypatch.setenv('ALLOW_PAID_AI', 'true')
+    monkeypatch.setenv('OPENAI_API_KEY', 'synthetic-env-sentinel')
+    monkeypatch.setattr('sys.argv', ['serve_bounded_real_eval.py', '--state-dir', str(tmp_path)])
+    calls = []
+
+    def forbidden(**kwargs: object) -> object:
+        calls.append(True)
+        raise AssertionError('fixture server must never build a paid provider')
+
+    def run(app: object, **kwargs: object) -> None:
+        assert kwargs['host'] == '127.0.0.1'
+        with TestClient(app) as c:
+            csrf = c.post(
+                '/api/v1/session',
+                headers={'Origin': 'http://localhost:3342', 'Content-Type': 'application/json'},
+                json={},
+            ).json()['csrf_token']
+            result = c.post(
+                '/api/v1/messages',
+                headers={
+                    'Origin': 'http://localhost:3342',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrf,
+                    'Idempotency-Key': 'server-fixture01',
+                },
+                json={'content': '¿Qué incluye el kit?'},
+            )
+            assert result.status_code == 200 and 'run.completed' in result.text
+
+    monkeypatch.setattr(container, 'AsyncOpenAI', forbidden)
+    monkeypatch.setattr(server.uvicorn, 'run', run)
+    server.main()
+    assert calls == []

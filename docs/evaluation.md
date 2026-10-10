@@ -42,7 +42,8 @@ uv run python scripts/run_bounded_real_eval.py --live --phase holdout \
 
 - The private file has `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-6-luna` and
   `OPENAI_REASONING_EFFORT=medium`. It is read within Python, without shell evaluation or
-  environment dumps. Default mode is fixture and never reads the key.
+  environment dumps. Default mode forces fixture/paid=false/key=null even when ambient
+  provider variables request OpenAI, and never reads the private key file.
 - The independent evaluation envelope persists across phases and database resets. It caps
   this evaluation at **USD 1.00 and 400 dispatched attempts**, sequentially, with SDK and
   adapter retries disabled. This is separate from the project's USD 10 monthly target;

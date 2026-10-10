@@ -250,6 +250,9 @@ def main() -> int:
 
     base: dict[str, Any] = {
         'environment': 'test',
+        'ai_provider': 'fixture',
+        'allow_paid_ai': False,
+        'openai_api_key': None,
         'messages_per_session_per_day': 100,
         'messages_per_client_per_hour': 1000,
         'sessions_per_client_per_hour': 1000,
