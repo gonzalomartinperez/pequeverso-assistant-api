@@ -166,6 +166,9 @@ The application image does not set host quotas. vps-ops must carry the tested ru
 into its own reviewed configuration; these commands are a local isolation recipe, not a deploy.
 The smoke uses 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs, and a 64 MiB tmpfs at
 `/tmp` with `noexec,nosuid,nodev`. The root is read-only; only the named `/data` volume persists.
+Set the container stop timeout to at least 30 seconds: Docker's default 10 seconds is shorter
+than the tested active-stream shutdown. vps-ops must retain this policy in Coolify or Compose
+(`stop_grace_period: 30s`), then verify it under VPS load.
 Docker's `local` log driver rotates at 10 MiB × 3 files (compression may use less); stdout is
 already content-free structured JSON, and uvicorn access logging is disabled.
 
@@ -173,7 +176,7 @@ already content-free structured JSON, and uvicorn access logging is disabled.
 # Operator supplies an approved digest, private network and configuration separately.
 # In isolated synthetic acceptance: AI_PROVIDER=fixture and ALLOW_PAID_AI=false.
 # Production can keep ASSISTANT_ENABLED=false; no paid-provider opt-in is implied.
-docker run --name pv-api-isolated --read-only \
+docker run --name pv-api-isolated --read-only --stop-timeout 30 \
   --memory 256m --memory-swap 256m --cpus 0.5 --pids-limit 64 \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
   --cap-drop ALL --security-opt no-new-privileges \
