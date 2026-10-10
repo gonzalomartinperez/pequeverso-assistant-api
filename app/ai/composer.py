@@ -75,6 +75,11 @@ class GroundedComposer:
                 'reply_language': turn.language.value,
                 'conversation': _conversation(turn),
                 'question': turn.question,
+                **(
+                    {'visitor_context': turn.context.payload()}
+                    if turn.context and not turn.context.empty
+                    else {}
+                ),
             },
             ensure_ascii=False,
             separators=(',', ':'),
