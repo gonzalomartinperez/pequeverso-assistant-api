@@ -9,7 +9,7 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 | Item | Value |
 |---|---|
 | Build | `docker build --build-arg SERVICE_REVISION=<sha> -t pequeverso-assistant-api:<sha> .` from a clean checkout of an exact commit (context allowlisted by `.dockerignore`). An empty `SERVICE_REVISION` is allowed; the ops summary then reports `revision: null` |
-| Base | `python:3.13-slim` and `ghcr.io/astral-sh/uv:0.12.10`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-dev`) |
+| Base | `python:3.13-slim` and `ghcr.io/astral-sh/uv:0.12.21`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-dev`) |
 | User | `65532:65532`; runs with a read-only root filesystem, `--cap-drop ALL`, `no-new-privileges` (verified by `scripts/smoke_container.sh`) |
 | Writable paths | `/data` (volume), `/tmp` (tmpfs) |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
@@ -46,8 +46,8 @@ latency percentiles, token usage and spend (confirmed / estimated / pending) to 
 ## Routing and proxy (SSE)
 
 - Route `https://assistant.pequeverso.com/api/*` → container `:8000` **with the path unchanged**
-  (the app serves `/api/v1/...`; FastAPI `root_path` is empty). Everything else on that host goes
-  to the web app.
+  (the app serves `/api/v1/...`; FastAPI `root_path` is empty). Do not route any other paths
+  on that host; the private backoffice uses a separate host.
 - SSE: disable response buffering and compression for `/api/v1/messages` (the app sends
   `X-Accel-Buffering: no` and `Cache-Control: no-cache, no-transform`). Read timeout ≥ 90 s; the
   app sends a keep-alive comment every 15 s and bounds each run to 60 s (`RUN_TIMEOUT_SECONDS`;
@@ -114,8 +114,8 @@ short `CLIENT_HASH_KEY`, or a daily budget above the monthly one.
   backup before every deploy that adds a migration.
 - **Graceful stop:** `SIGTERM`, then up to 15 s to finish streams; active runs end as
   cancelled.
-- **Kill switch:** `ASSISTANT_ENABLED=false` or stopping the container. The web app shows
-  "unavailable" and the store keeps selling.
+- **Kill switch:** `ASSISTANT_ENABLED=false` or stopping the container. The native storefront
+  assistant shows "unavailable" and the store keeps selling.
 
 ## Browser and origin assumptions (native storefront assistant)
 

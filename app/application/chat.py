@@ -243,7 +243,7 @@ class _ModelRun(Run):
         final: FinalizedAnswer = finalize(
             event.draft, self._active, price_status, rules, self._prepared_language
         )
-        self._replaced = bool(final.violations)
+        self._replaced = Notice.ANSWER_REPLACED in final.details.notices
         message = Message(_message_id(), Role.ASSISTANT, final.content, now, final.details)
         await self._settle(event.usage)
         await service.messages.append(self._session.id, message)
@@ -253,7 +253,7 @@ class _ModelRun(Run):
                 {
                     'operation': 'run',
                     'outcome': 'completed',
-                    'replaced': bool(final.violations),
+                    'replaced': self._replaced,
                     'violations': [v.value for v in final.violations],
                     'dropped_references': final.dropped_references,
                     'input_tokens': event.usage.input_tokens if event.usage else None,

@@ -8,6 +8,8 @@ from collections.abc import AsyncGenerator
 from contextlib import closing
 from pathlib import Path
 
+import pytest
+
 from app.ai.provider import ModelChunk, ModelRequest, TextChunk, UsageChunk
 from app.domain.budget import Usage
 from app.domain.errors import FailureCode, RejectedError
@@ -213,3 +215,18 @@ def test_the_read_token_cannot_mutate_anything(tmp_path: Path) -> None:
             ).status_code
             == 403
         )
+
+
+@pytest.mark.parametrize('answer', ['', 'a' * 2001])
+def test_ops_counts_replacement_without_an_answer_rule_violation(tmp_path: Path, answer: str) -> None:
+    provider = ScriptedProvider(output=answer_json(answer))
+    with client(tmp_path, provider=provider, ops_read_token=TOKEN) as c:
+        csrf = open_session(c)
+        status, events, _ = ask(c, csrf, '¿Qué incluye el kit?')
+        assert status == 200 and events[-1]['type'] == 'run.completed'
+        final = events[-2]['message']
+        assert 'answer_replaced' in final['notices']
+        assert final['content'] != answer
+        summary = c.get('/internal/v1/ops/summary', headers=AUTH).json()
+        assert summary['windows'][0]['replaced'] == 1
+        assert summary['recent'][0]['replaced'] is True
