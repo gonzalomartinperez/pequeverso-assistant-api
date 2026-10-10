@@ -76,7 +76,7 @@ def test_starters_follow_the_requested_locale_and_the_catalog(tmp_path: Path) ->
     with client(tmp_path) as c:
         es = c.post('/api/v1/session', headers=JSON_HEADERS, json={}).json()
         assert 1 <= len(es['starters']) <= 4 and all(s.startswith('¿') for s in es['starters'])
-        assert es['contract_revision'] == '1.2'
+        assert es['contract_revision'] == '1.3'
         en = c.post('/api/v1/session', headers=JSON_HEADERS, json={'locale': 'en'}).json()
         assert en['starters'][0] == 'What does Grafismo Fonético include?'
         assert c.post('/api/v1/session', headers=JSON_HEADERS, json={'locale': 'pt'}).status_code == 422

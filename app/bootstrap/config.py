@@ -34,7 +34,8 @@ class Settings(BaseSettings):
     # higher two are excluded here on cost grounds. Owner decision 2026-10: medium.
     openai_reasoning_effort: Literal['none', 'low', 'medium', 'high'] = 'medium'
     openai_timeout_seconds: float = Field(default=30.0, gt=0, le=120)
-    openai_max_retries: int = Field(default=1, ge=0, le=2)
+    # A timeout can already be billed: one reservation permits exactly one attempt.
+    openai_max_retries: int = Field(default=0, ge=0, le=0)
     fixture_chunk_delay_ms: int = Field(default=0, ge=0, le=2000)
 
     # Pricing in USD per 1M tokens (gpt-6-luna list prices; re-read 2026-10-05, unchanged).

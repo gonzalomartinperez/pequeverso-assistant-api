@@ -33,6 +33,7 @@ import sys
 import tempfile
 from collections import defaultdict
 from collections.abc import Iterable
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -40,7 +41,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'scripts'))
 
-import evaluate_conversations as conv
 from fastapi.testclient import TestClient
 
 from app.ai.evidence import passages, rank
@@ -48,6 +48,8 @@ from app.bootstrap.config import Settings
 from app.bootstrap.container import create_app
 from app.domain.answer_policy import fold
 from app.domain.catalog import PriceStatus
+from scripts import evaluate_conversations as conv
+from scripts.real_eval_budget import BoundedProvider, Envelope
 
 CORPUS = ROOT / 'evals' / 'corpus'
 DEV_SHARE = 0.7
@@ -356,6 +358,8 @@ def run_pipeline(
     results: list[dict[str, Any]] = []
     counter = 0
     for offset, members in sorted(by_clock.items()):
+        if isinstance(provider, BoundedProvider) and provider.envelope.snapshot()['stop_reason']:
+            break
         stale = offset > STALE_AFTER_DAYS
         price_status = PriceStatus.UNVERIFIED if stale else PriceStatus.VERIFIED
         with tempfile.TemporaryDirectory() as tmp:
@@ -366,6 +370,8 @@ def run_pipeline(
             )
             with TestClient(app, base_url='http://localhost:8000') as client:
                 for case in members:
+                    if isinstance(provider, BoundedProvider) and provider.envelope.snapshot()['stop_reason']:
+                        break
                     client.cookies.clear()
                     csrf = client.post('/api/v1/session', headers=conv.HEADERS, json={}).json()['csrf_token']
                     gates: list[str] = []
@@ -396,6 +402,8 @@ def run_pipeline(
                             if notice not in user_notices:
                                 gates.append(f'missing user-message notice {notice}')
                         behavior, skipped = _behavior(case, final, stale)
+                    if gates and isinstance(provider, BoundedProvider):
+                        provider.envelope.stop('case_gate_failure')
                     results.append(
                         {
                             'id': case['id'],
@@ -433,6 +441,9 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
 def settings_for_eval(**overrides: Any) -> Settings:
     base: dict[str, Any] = {
         'environment': 'test',
+        'ai_provider': 'fixture',
+        'allow_paid_ai': False,
+        'openai_api_key': None,
         'messages_per_session_per_day': 100,
         'messages_per_client_per_hour': 5000,
         'sessions_per_client_per_hour': 5000,
@@ -450,6 +461,9 @@ def main() -> int:
     parser.add_argument('--json', action='store_true')
     parser.add_argument(
         '--live', action='store_true', help='OpenAI provider (paid, needs explicit authorization)'
+    )
+    parser.add_argument(
+        '--budget-state', type=Path, help='shared persistent aggregate live ledger (required)'
     )
     parser.add_argument('--max-usd', default='0.50')
     parser.add_argument('--output', type=Path)
@@ -471,7 +485,11 @@ def main() -> int:
     }
     if not args.retrieval:
         overrides: dict[str, Any] = {}
+        provider = None
         if args.live:
+            if args.budget_state is None:
+                print('live evaluation requires --budget-state shared across every phase')
+                return 2
             if os.environ.get('ALLOW_PAID_AI', '').lower() != 'true' or not os.environ.get('OPENAI_API_KEY'):
                 print('live evaluation needs ALLOW_PAID_AI=true and OPENAI_API_KEY (explicit authorization)')
                 return 2
@@ -483,9 +501,16 @@ def main() -> int:
                 'daily_budget_usd': args.max_usd,
                 'budget_safety_margin': '0',
             }
-        results = run_pipeline(settings_for_eval(**overrides), cases)
+        if args.live:
+            provider = BoundedProvider(
+                os.environ['OPENAI_API_KEY'],
+                Envelope(args.budget_state, int(Decimal(args.max_usd) * 1000000)),
+            )
+        results = run_pipeline(settings_for_eval(**overrides), cases, provider=provider)
         report['pipeline'] = summarize(results)
         report['results'] = results
+        report['aggregate_budget'] = provider.envelope.snapshot() if provider else None
+        report['missing_cases'] = len(cases) - len(results)
     text = json.dumps(report, ensure_ascii=False, indent=2)
     if args.output:
         args.output.write_text(text + '\n')
@@ -504,9 +529,15 @@ def main() -> int:
             print(f'pipeline={report["pipeline"]["overall"]} skipped={report["pipeline"]["skipped_checks"]}')
             if not args.live:
                 print('note: fixture behavior flags say nothing about a real model; only gates are gates.')
-    failed = 'pipeline' in report and report['pipeline']['overall']['gate_failures']
+    failed = ('pipeline' in report and report['pipeline']['overall']['gate_failures']) or report.get(
+        'missing_cases', 0
+    )
     return 1 if failed else 0
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as error:  # noqa: BLE001 -- redact secret-bearing provider errors
+        print(json.dumps({'outcome': 'stopped', 'error_type': type(error).__name__}))
+        sys.exit(2)

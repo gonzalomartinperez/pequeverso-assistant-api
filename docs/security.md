@@ -7,8 +7,8 @@ has no tools. The controls below are code, not prompt wording.
 |---|---|---|
 | Session hijack or confusion, cross-session leakage | Opaque 64-byte random secret in a host-only HttpOnly SameSite=Lax cookie (`__Host-`, Secure in prod), stored as a SHA-256 digest; every query is scoped by session id; the CSRF token is bound to the session | `test_api.py::test_sessions_are_isolated`, `test_mutations_require_session_and_csrf` |
 | CSRF | Allowlisted `Origin` on every mutation (middleware), JSON content type, per-session CSRF header compared in constant time | `test_origin_content_type_and_body_limits`, `test_streaming.py::test_origin_is_enforced_on_the_real_server` |
-| Endpoint abuse and cost exhaustion | Per-client session creation (20/h), per-session (30/day) and per-client (60/h) message limits; 600-char questions; 16 KiB bodies; one active run per session (DB partial unique index); global concurrency slot (4); 60 s run deadline; one model call per turn, no tools; `max_output_tokens` 4000 (reasoning included) | `test_rate_limits`, `test_streaming.py::test_one_active_run_per_session_and_global_concurrency` |
-| Budget overrun, including races | Worst-case reservation (input bytes as a token bound at the highest input rate, plus max output) inside a `BEGIN IMMEDIATE` transaction before the call; monthly cutoff with a 10 % margin and a daily cap; settlement to reported usage; missing usage keeps the reservation | `test_budget_concurrency.py` (500 concurrent reservations; 4 processes) |
+| Endpoint abuse and cost exhaustion | Per-client session creation (20/h), per-session (30/day) and per-client (60/h) message limits; 600-char questions; 16 KiB bodies; one active run per session (DB partial unique index); global concurrency slot (4); 60 s run deadline; one model attempt per turn (SDK and runtime adapter retries0), no tools; `max_output_tokens` 4000 (reasoning included) | `test_rate_limits`, `test_streaming.py::test_one_active_run_per_session_and_global_concurrency` |
+| Budget overrun, including races | Worst-case reservation (serialized UTF-8 instructions/messages/schema plus1024 protocol bytes as a conservative token bound at the highest input rate, plus max output) inside a `BEGIN IMMEDIATE` transaction before the call; monthly cutoff with a 10 % margin and a daily cap; settlement to reported usage; missing usage keeps the reservation | `test_budget_concurrency.py` (500 concurrent reservations; 4 processes) |
 | Prompt injection (visitor or catalog text) | Catalog and conversation sent as data in separate user messages; the model output is a strict JSON schema; **every** reference is re-resolved against the catalog; the final answer is checked for unlisted URLs and e-mails, unknown or unverified prices, discount codes, pressure claims, the post-purchase offer name and payment-data requests, and replaced whole on any violation; markup is stripped | `evals/guards.json` (10 cases), `test_answers.py`, `test_domain.py::test_answer_rules` |
 | Malicious catalog content, SSRF on ingestion | Catalog URL is configuration only, https, allowlisted host, no redirects, `trust_env=False`, 256 KiB cap, JSON content type; strict schema with unknown fields rejected; link, image and document URLs must be https on allowlisted hosts; a failed or invalid fetch never replaces the active snapshot | `test_catalog.py` |
 | Unsafe links or generated actions | The model can only name ids; URLs come from the catalog. The only action kinds are "ask a follow-up" and "open a validated URL"; no commerce actions exist | `test_answers.py::test_invented_ids_are_dropped...` |
@@ -43,3 +43,12 @@ offers or payment requests to a visitor as a final answer.
   (messages; do not include personal data), 24 h retention and deletion, and no automated
   decisions about purchases. The web UI should show a one-line notice with a link. This text
   belongs to the storefront and web repositories and needs owner or legal review.
+
+## Provider billing and endpoint boundary
+
+Runtime requests explicitly use `service_tier=default` (Standard) and the official endpoint
+`https://api.openai.com/v1`. An ambient `OPENAI_BASE_URL` cannot redirect the project's key.
+SDK and runtime adapter retries are0; `OPENAI_MAX_RETRIES` accepts only0 and rejects older
+nonzero configuration. An ambiguous connection timeout retains the reservation and never
+silently dispatches another billed attempt. Custom gateways, regional endpoints or a different
+service tier require a new endpoint/security/pricing review before configuration changes.

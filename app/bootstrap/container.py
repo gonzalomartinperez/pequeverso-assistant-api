@@ -53,6 +53,7 @@ def build_provider(settings: Settings) -> ModelProvider:
         assert settings.openai_api_key is not None
         client = AsyncOpenAI(
             api_key=settings.openai_api_key.get_secret_value(),
+            base_url='https://api.openai.com/v1',
             timeout=settings.openai_timeout_seconds,
             max_retries=0,
         )
