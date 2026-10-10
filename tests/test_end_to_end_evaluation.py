@@ -1,6 +1,7 @@
 """The evaluator must exercise sockets and protect original/full-answer artifacts."""
 
 import json
+import logging
 import stat
 
 from scripts.evaluate_end_to_end import ROOT, evaluate, write_private
@@ -36,7 +37,10 @@ def test_socket_evaluation_recovers_final_answer_and_does_not_regenerate(tmp_pat
             }
         ]
     }
+    error_logger = logging.getLogger('uvicorn.error')
+    previous_error_level = error_logger.level
     result = evaluate(manifest, tmp_path, 'b27d35c')
+    assert error_logger.level == previous_error_level
     assert result['queries'] == 2
     assert result['provider_calls'] == 2
     assert result['actual_provider_usd'] == '0'

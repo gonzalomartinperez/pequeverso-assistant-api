@@ -158,7 +158,9 @@ def evaluate(manifest: dict[str, Any], destination: Path, source_revision: str) 
         port = reservation.getsockname()[1]
         reservation.listen(128)
         server = uvicorn.Server(
-            uvicorn.Config(app, log_level='critical', access_log=False, timeout_graceful_shutdown=5)
+            uvicorn.Config(
+                app, log_config=None, log_level=None, access_log=False, timeout_graceful_shutdown=5
+            )
         )
         thread = threading.Thread(target=server.run, kwargs={'sockets': [reservation]}, daemon=True)
         thread.start()
