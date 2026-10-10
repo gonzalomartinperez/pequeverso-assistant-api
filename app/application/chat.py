@@ -53,6 +53,7 @@ from app.domain.conversation import AnswerDetails, Message, Notice, Role, Sessio
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.language import Language, reply_language
 from app.domain.redaction import contains_card_number, redact_contact_data
+from app.domain.visitor_context import VisitorContext
 
 log = logging.getLogger(__name__)
 
@@ -355,8 +356,12 @@ def _message_id() -> str:
     return f'msg_{secrets.token_urlsafe(12)}'
 
 
-def _request_hash(content: str, page: str | None) -> str:
-    return hashlib.sha256(json.dumps([content, page]).encode()).hexdigest()
+def _request_hash(content: str, page: str | None, context: VisitorContext | None = None) -> str:
+    # Preserve the exact pre-1.3 hash when optional hints are absent or all null.
+    payload: list[object] = [content, page]
+    if context is not None and not context.empty:
+        payload.append(context.payload())
+    return hashlib.sha256(json.dumps(payload).encode()).hexdigest()
 
 
 class ChatService:
@@ -446,6 +451,7 @@ class ChatService:
         idempotency_key: str,
         client_key: str,
         locale: str | None = None,
+        context: VisitorContext | None = None,
     ) -> Run:
         if not self.limits.enabled:
             raise RejectedError(FailureCode.ASSISTANT_DISABLED)
@@ -463,10 +469,10 @@ class ChatService:
         now = self.clock.now()
         run_id = f'run_{secrets.token_urlsafe(12)}'
         record = await self.runs.claim(
-            run_id, session.id, idempotency_key, _request_hash(question, page), now
+            run_id, session.id, idempotency_key, _request_hash(question, page, context), now
         )
         if record.id != run_id:
-            return await self._existing(record, session, question, page)
+            return await self._existing(record, session, question, page, context)
 
         language: Language | None = None
         try:
@@ -494,6 +500,7 @@ class ChatService:
                 page=page,
                 safety_identifier=hashlib.sha256(session.id.encode()).hexdigest()[:32],
                 language=language,
+                context=context,
             )
             prepared = self.composer.prepare(turn)
             if prepared.input_size_bytes > self.limits.max_input_tokens:
@@ -538,8 +545,15 @@ class ChatService:
         await self.runs.finish(run_id, RunState.FAILED, None)
         await self.ledger.mark_unreported(run_id)
 
-    async def _existing(self, record: RunRecord, session: Session, question: str, page: str | None) -> Run:
-        if record.request_hash != _request_hash(question, page):
+    async def _existing(
+        self,
+        record: RunRecord,
+        session: Session,
+        question: str,
+        page: str | None,
+        context: VisitorContext | None = None,
+    ) -> Run:
+        if record.request_hash != _request_hash(question, page, context):
             raise RejectedError(FailureCode.IDEMPOTENCY_CONFLICT)
         if record.state is RunState.ACTIVE:
             raise RejectedError(FailureCode.RUN_IN_PROGRESS)

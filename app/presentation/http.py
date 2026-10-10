@@ -215,7 +215,13 @@ async def post_message(
     if not _IDEMPOTENCY_KEY.match(idempotency_key):
         raise RejectedError(FailureCode.INVALID_REQUEST)
     run = await s.chat.start(
-        session, body.content, body.page, idempotency_key, client_key(request, s.settings), body.locale
+        session,
+        body.content,
+        body.page,
+        idempotency_key,
+        client_key(request, s.settings),
+        body.locale,
+        context=body.visitor_context(),
     )
     await s.sessions.touch(session)
     response = ClosingStreamingResponse(

@@ -73,7 +73,7 @@ def main() -> None:
             update={'ai_provider': 'openai', 'allow_paid_ai': True, 'openai_api_key': SecretStr(key)}
         )
     ops = state / 'local-ops.env.local'
-    ops.write_text(f'LIVE_OPS_URL=http://localhost:18088/internal/v1/ops\nLIVE_OPS_TOKEN={token}\n')
+    ops.write_text(f'LIVE_OPS_URL=http://localhost:18088\nLIVE_OPS_TOKEN={token}\n')
     ops.chmod(0o600)
     app = create_app(settings, provider=provider)
     for name in ('httpx', 'httpx2', 'httpcore', 'httpcore2', 'openai'):

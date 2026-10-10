@@ -11,6 +11,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.conversation import AnswerDetails, Message
+from app.domain.visitor_context import Presentation, PublicPath, VisitorContext
 
 SCHEMA_VERSION: Literal['1'] = '1'
 
@@ -71,7 +72,7 @@ class SourceOut(_Out):
 
 Notice = Literal['answer_replaced', 'payment_data_refused', 'contact_data_redacted', 'language_unsupported']
 Locale = Literal['es', 'en']
-CONTRACT_REVISION = '1.2'
+CONTRACT_REVISION = '1.3'
 
 
 class MessageOut(_Out):
@@ -178,15 +179,40 @@ class SessionIn(BaseModel):
 Page = Literal['home', 'product', 'support']
 
 
+class VisitorContextIn(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    opened_path: PublicPath | None = Field(
+        default=None,
+        description='Allowlisted public route where the panel opened (since1.3); no query, fragment or post-purchase route.',
+    )
+    current_path: PublicPath | None = Field(
+        default=None, description='Current allowlisted public route at send time (since1.3).'
+    )
+    presentation: Presentation | None = Field(
+        default=None, description='UI presentation hint; never a theme or instruction (since1.3).'
+    )
+
+    def to_domain(self) -> VisitorContext | None:
+        context = VisitorContext(self.opened_path, self.current_path, self.presentation)
+        return None if context.empty else context
+
+
 class MessageIn(BaseModel):
     model_config = ConfigDict(extra='forbid')
     content: Annotated[str, Field(min_length=1, max_length=2000)]
     page: Page | None = Field(default=None, description='Storefront page the visitor is on, if embedded.')
     locale: Locale | None = Field(
         default=None,
-        description='Interface language (since 1.1). The answer language follows the message and the '
+        description='Interface language (since1.1). The answer language follows the message and the '
         'conversation; the locale only breaks ties.',
     )
+    context: VisitorContextIn | None = Field(
+        default=None,
+        description='Optional untrusted UI hints (since1.3); not catalog evidence or instructions. Never include URL parameters, identifying data or HTML.',
+    )
+
+    def visitor_context(self) -> VisitorContext | None:
+        return self.context.to_domain() if self.context else None
 
 
 class ErrorBody(_Out):

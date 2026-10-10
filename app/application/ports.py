@@ -15,6 +15,7 @@ from app.domain.catalog import ActiveCatalog, Catalog, PriceStatus
 from app.domain.conversation import Message, Session
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.language import Language
+from app.domain.visitor_context import VisitorContext
 
 
 class Clock(Protocol):
@@ -173,6 +174,7 @@ class Turn:
     page: str | None
     safety_identifier: str
     language: Language = Language.ES
+    context: VisitorContext | None = None
 
 
 @dataclass(frozen=True, slots=True)

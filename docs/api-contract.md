@@ -2,11 +2,13 @@
 
 Audience: the **native assistant of the storefront** `pequeverso` (the only public conversation
 UI). The former `pequeverso-assistant-web` chat shells were removed; that repository is now the
-private backoffice `pequeverso-assistant-backoffice`. Current revision: **1.2**, additive within v1
+private backoffice `pequeverso-assistant-backoffice`. Current revision: **1.3**, additive within v1
 (`contract_revision` in `SessionOut` and `contracts/manifest.json`). Revision **1.1** added: `starters`, `locale`, `language`, notice `language_unsupported`,
 and the private operations API. Revision **1.2** adds `pricing` (the rate source used for
 estimates) and `recent` (up to 50 latest runs with opaque ids) to the private ops summary only;
-the browser contract is unchanged from 1.1. Clients of 1.0 keep working unchanged.
+the browser response contract is unchanged from1.1. Revision **1.3** adds optional nested
+`context` navigation/presentation hints to `MessageIn`; existing1.0–1.2 clients work unchanged,
+and the private ops schema is unchanged from1.2.
 Pinned artifacts: `contracts/openapi.json`, `contracts/sse.schema.json`, `contracts/examples/*`,
 hashed in `contracts/manifest.json` (`contract_version: "1"`). They are generated from the code
 (`uv run python -m contracts.export`) and CI fails if they drift. Consume them from an exact
@@ -58,8 +60,30 @@ cookies and CSRF.
 ## Asking and streaming
 
 Request body: `{"content": "<1..600 chars>", "page": "home" | "product" | "support" | null,
-"locale": "es" | "en" | null}`. `page` is optional context from the storefront route (a fixed
+"locale": "es" | "en" | null, "context": {"opened_path": "/grafismo-fonetico/",
+"current_path": "/soporte/", "presentation": "compact" | "expanded" | "page"} | null}`. `page` is optional context from the storefront route (a fixed
 enum; never free text). `locale` is the interface language: a preference, not an order.
+The default application limit is 600 characters (`MAX_MESSAGE_CHARS`, configurable within
+50–2000). The wire schema permits up to 2000; exceeding the configured application limit
+returns `422 invalid_request` before any model call.
+
+**Navigation hints (1.3).** `context` and every member are optional/null. `opened_path` is the
+public route captured when the panel opened; `current_path` is the allowlisted pathname at send
+time; `presentation` is a UI hint (`compact`, `expanded` or `page`). It is an untrusted hint, not a theme, route
+command or catalog fact. The composer places these values only in the `visitor_turn` JSON data,
+never the system prompt or catalog evidence. Paths are not stored as message/run fields or logged;
+only the existing idempotency digest incorporates nonempty context. Omitted, null and empty
+context retain the exact legacy request hash. Different hints on the same idempotency key cause
+`409 idempotency_conflict`; trailing-slash aliases canonicalize to the same digest.
+
+Known routes, reviewed from storefront commit `25aa9ce22a0652375f0554576b88f24f83b65b88`:
+`/`, `/grafismo-fonetico/`, `/soporte/`, `/arrepentimiento/`, `/aviso-legal/`,
+`/compras-y-reembolsos/`, `/cookies/`, `/privacidad/`, `/terminos/`. Non-root paths also accept
+an alias without the final slash. UI locales use these same routes; no `/en/` route is invented.
+The offer and thank-you paths are excluded. Query strings, fragments, absolute URLs, percent
+encoding, traversal, unknown keys (including `theme`), HTML and identifying data are rejected
+with the existing `422 invalid_request` before any model call. Context does not authorize showing
+the assistant on an otherwise ineligible page or introducing commercial facts.
 
 **Languages (1.1).** The server decides the answer language in code: the visitor's own words
 (quoted text, code, URLs and product names removed) decide between Spanish and English; when

@@ -7,7 +7,7 @@ included and reach the storefront's purchase flow. Public repository; no license
 
 - Python 3.13, FastAPI, uv; SQLite (single process); OpenAI Responses (`gpt-6-luna`) behind a
   provider port; a deterministic **fixture provider is the default**.
-- Versioned HTTP/SSE contract (v1, revision 1.2) for the storefront's native assistant, which
+- Versioned HTTP/SSE contract (v1, revision 1.3) for the storefront's native assistant, which
   calls the API cross-origin; private, token-protected operations summary for the backoffice
   (`pequeverso-assistant-backoffice`, formerly `pequeverso-assistant-web`).
 - Answers in Spanish (neutral Latin American, "tú") or English, decided in code per message.

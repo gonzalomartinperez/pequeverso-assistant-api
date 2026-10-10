@@ -287,3 +287,6 @@ def test_default_local_server_ignores_ambient_paid_configuration(
     monkeypatch.setattr(server.uvicorn, 'run', run)
     server.main()
     assert calls == []
+    assert (tmp_path / 'local-ops.env.local').read_text().splitlines()[0] == (
+        'LIVE_OPS_URL=http://localhost:18088'
+    )
