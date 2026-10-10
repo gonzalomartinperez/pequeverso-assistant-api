@@ -111,13 +111,14 @@ with the real model.
 | Retrieval | Lexical rank of the evaluated turn | Decides whether ranking needs work (ADR-0002) |
 | Behavior | Outcome (clarifying question, support route), grounding (expected passage referenced), forbidden behaviors by string heuristics | **None.** The fixture answers by lexical match; its 111 flags are expected. Meaningful only in a live run, then reviewed by hand. `invented_policy` has no lexical check (manual review) |
 
-**Findings (fixture, catalog `ae6d237`, API develop `07405d2`).**
+**Historical findings (fixture, catalog `ae6d237`, API develop `07405d2`; superseded language issue explicitly retained).**
 
 - Reply language: 284 of 285 checked cases as expected (272 Spanish, 8 English, 5 unsupported).
   The miss is `lang-016`, "Quanto custa o kit e como faço para comprar?": the detector returns
   `unknown` (the message shares "kit", "como", "para" with Spanish), so the visitor gets a Spanish
-  answer instead of the unsupported-language note. Harmless but wrong; a detector fix should
-  remove it from `KNOWN_LANGUAGE_MISSES` in `tests/test_evaluations.py`.
+  answer instead of the unsupported-language note. This was corrected before the
+  2026-10-10 baseline (`b27d35c`); the current corpus gate expects zero known misses.
+  Keep this initial observation as history, not as an outstanding defect.
 
 - The model always receives the whole catalog: its evidence payload is about 10.8K characters,
   under `MAX_EVIDENCE_CHARS` (40K). Ranking therefore affects only fixture answers and future

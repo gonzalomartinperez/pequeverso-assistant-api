@@ -168,7 +168,7 @@ def evaluate(manifest: dict[str, Any], destination: Path, source_revision: str) 
         rows: list[dict[str, Any]] = []
         try:
             for case in manifest['cases']:
-                with httpx.Client(base_url=f'http://127.0.0.1:{port}', timeout=30) as client:
+                with httpx.Client(base_url=f'http://127.0.0.1:{port}', timeout=30, trust_env=False) as client:
                     opened = client.post(
                         '/api/v1/session', headers={'Origin': ORIGIN}, json={'locale': case['locale']}
                     )
@@ -246,7 +246,7 @@ def evaluate(manifest: dict[str, Any], destination: Path, source_revision: str) 
                     rows[-1]['replay_terminal'] = [
                         e['type'] for e in replay['events'] if e['type'].startswith('run.')
                     ][-1:]
-            with httpx.Client(base_url=f'http://127.0.0.1:{port}', timeout=10) as outsider:
+            with httpx.Client(base_url=f'http://127.0.0.1:{port}', timeout=10, trust_env=False) as outsider:
                 isolated = (
                     outsider.post('/api/v1/session', headers={'Origin': ORIGIN}, json={}).json()['messages']
                     == []

@@ -17,7 +17,12 @@ def test_frozen_matrix_is_varied_and_contains_followups():
     assert {'es', 'en', 'unsupported'} <= {t['expected_language'] for c in cases for t in c['turns']}
 
 
-def test_socket_evaluation_recovers_final_answer_and_does_not_regenerate(tmp_path):
+def test_socket_evaluation_recovers_final_answer_and_does_not_regenerate(tmp_path, monkeypatch):
+    monkeypatch.setenv('AI_PROVIDER', 'openai')
+    monkeypatch.setenv('ALLOW_PAID_AI', 'true')
+    monkeypatch.setenv('OPENAI_API_KEY', 'synthetic-evaluator-must-ignore-this')
+    monkeypatch.setenv('HTTP_PROXY', 'http://127.0.0.1:1')
+    monkeypatch.delenv('NO_PROXY', raising=False)
     manifest = {
         'cases': [
             {
