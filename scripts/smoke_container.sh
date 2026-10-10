@@ -92,10 +92,10 @@ with closing(sqlite3.connect("file:/data/assistant.sqlite3?mode=ro", uri=True)) 
 stats="$(docker stats --no-stream --format '{{.MemUsage}} cpu={{.CPUPerc}}' "$NAME")"
 
 # Graceful stop, then a restart on the same volume keeps the conversation.
-started="$(date +%s)"
+started="$(python3 -c 'import time; print(time.monotonic())')"
 docker stop -t 20 "$NAME" >/dev/null
-stopped_in="$(( $(date +%s) - started ))"
-test "$stopped_in" -le 15 || { echo "graceful stop exceeded 15 seconds: $stopped_in" >&2; exit 1; }
+stopped_in="$(python3 -c 'import sys,time; print(round(time.monotonic()-float(sys.argv[1]), 3))' "$started")"
+python3 -c 'import sys; assert 0 <= float(sys.argv[1]) <= 15, sys.argv[1]' "$stopped_in"
 test "$(docker inspect -f '{{.State.ExitCode}}' "$NAME")" = 0
 test "$(docker inspect -f '{{.State.OOMKilled}}' "$NAME")" = false
 docker rm "$NAME" >/dev/null
