@@ -168,7 +168,8 @@ checked explicitly. Fixture token/ledger numbers are synthetic estimates, never 
 Full synthetic answers and database state are private local artifacts (files0600, output
 directory0700), outside Git. Existing output directories cannot be overwritten. Keep the
 initial manifest, catalog and answer hashes before fixes; use a separate post-fix directory
-and a separate variants manifest. Inspect evidence and response relevance beyond exit status.
+and a separate variants manifest (`evals/end_to_end_postfix.json`: original224 plus12 new
+queries, passed with `--manifest`). Inspect evidence and response relevance beyond exit status.
 
 Initial application `b27d35c`, manifest SHA256
 `9bcffa12162143c5dcc2a9e163ddf5a64ba9752e8a954b4580d257fecdf74758`:

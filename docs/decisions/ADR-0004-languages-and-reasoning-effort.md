@@ -16,10 +16,14 @@ that a too-low cap ends a response as `incomplete` before visible text, still bi
 ## Decision
 
 - Language is decided **in code** (`app/domain/language.py`), not by the model and not by an
-  extra model call: a word-list scorer over the visitor's own words (quotes, code, URLs and
-  product names removed), then the last answer language, then the UI locale, then Spanish. The
+  extra model call: first recognize unquoted, non-negated output-language requests. The last
+  supported request in textual order wins; any explicit unsupported target produces the local
+  bilingual notice, never a supported-language model fallback. Otherwise use a word-list
+  scorer over the visitor's own words (quotes, code, URLs and product names removed), then
+  the last answer language, then the UI locale, then Spanish. The
   composer passes `reply_language`; replacements and refusals have Spanish and English copies.
-  Other languages get a fixed bilingual note without a model call or spend.
+  Other languages get a fixed bilingual note without a model call or spend. This controls
+  requested language, not semantic verification that every provider-generated sentence uses it.
 - Effort `medium` by default (`OPENAI_REASONING_EFFORT`); `max_output_tokens` raised from 1200
   to 4000 and the run deadline from 45 s to 60 s. Usage is settled also from incomplete or
   failed responses that report it, and `reasoning_tokens` is recorded.
@@ -34,3 +38,10 @@ that a too-low cap ends a response as `incomplete` before visible text, still bi
   locale. It is covered by unit tests and by the language family of the evaluation corpus.
 - The catalog stays in Spanish; English answers keep product names in Spanish. Translating the
   store is out of scope.
+
+## Verification update (2026-10-10)
+
+[The official model page](https://developers.openai.com/api/docs/models/gpt-6-luna) was
+re-read: medium and the Standard rates above remain supported. Access in the owner's project
+was not probed and the private provider key was not read. Paid calls remain unauthorized for
+this increment; all new probes use fixtures and cannot certify live-model quality or cost.
