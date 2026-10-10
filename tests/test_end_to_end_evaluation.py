@@ -45,6 +45,8 @@ def test_socket_evaluation_recovers_final_answer_and_does_not_regenerate(tmp_pat
     assert result['invalid_origin_http_status'] == 403
     assert result['isolated_visitor_empty_history']
     assert result['cases'][-1]['replay_new_provider_calls'] == 0
+    assert result['cases'][-1]['replay_history_unchanged']
+    assert stat.S_IMODE((tmp_path / 'evaluation.sqlite3').stat().st_mode) == 0o600
     serialized = json.dumps(result)
     assert 'csrf_token' not in serialized
     assert 'instructions' not in serialized

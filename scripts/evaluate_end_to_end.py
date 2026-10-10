@@ -149,6 +149,9 @@ def evaluate(manifest: dict[str, Any], destination: Path, source_revision: str) 
         messages_per_session_per_day=100,
         service_revision=source_revision,
     )
+    # Create only this isolated database with restrictive permissions before SQLite opens it.
+    descriptor = os.open(settings.database_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+    os.close(descriptor)
     app = create_app(settings, provider=provider)
     with socket.socket() as reservation:
         reservation.bind(('127.0.0.1', 0))
@@ -188,7 +191,14 @@ def evaluate(manifest: dict[str, Any], destination: Path, source_revision: str) 
                         )
                         restored.raise_for_status()
                         history = restored.json()['messages']
-                        history_matches = message is not None and any(m == message for m in history)
+                        history_matches = bool(
+                            len(completed) == 1
+                            and history
+                            and history[-1] == message
+                            and len(history) == 2 * (number + 1)
+                            and len({m['id'] for m in history}) == len(history)
+                            and [m['role'] for m in history] == ['user', 'assistant'] * (number + 1)
+                        )
                         public_evidence = provider.records[before:]
                         observed = (
                             observed_language(message['content'], message['notices'])
@@ -243,6 +253,11 @@ def evaluate(manifest: dict[str, Any], destination: Path, source_revision: str) 
                     before_replay = len(provider.records)
                     replay = ask(client, csrf, turn['question'], case['locale'], key)
                     rows[-1]['replay_new_provider_calls'] = len(provider.records) - before_replay
+                    replay_history = client.post(
+                        '/api/v1/session', headers={'Origin': ORIGIN}, json={'locale': case['locale']}
+                    )
+                    replay_history.raise_for_status()
+                    rows[-1]['replay_history_unchanged'] = replay_history.json()['messages'] == history
                     rows[-1]['replay_terminal'] = [
                         e['type'] for e in replay['events'] if e['type'].startswith('run.')
                     ][-1:]
@@ -275,6 +290,10 @@ def evaluate(manifest: dict[str, Any], destination: Path, source_revision: str) 
                 'SELECT status, count(*), sum(reserved_micro), sum(actual_micro) FROM spend_ledger GROUP BY status'
             )
         ]
+    for suffix in ('', '-wal', '-shm'):
+        state_file = destination / f'evaluation.sqlite3{suffix}'
+        if state_file.exists():
+            os.chmod(state_file, 0o600)
     write_private(destination / 'answers.json', rows)
     summary = {
         'schema': 1,

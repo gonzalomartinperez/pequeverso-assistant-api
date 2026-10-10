@@ -173,7 +173,9 @@ and a separate variants manifest. Inspect evidence and response relevance beyond
 Initial application `b27d35c`, manifest SHA256
 `9bcffa12162143c5dcc2a9e163ddf5a64ba9752e8a954b4580d257fecdf74758`:
 224 queries, 223 fixture calls, one local abstention, zero structural flags, zero history
-mismatches and 35 heuristic language flags. Invalid Origin/CSRF returned403. Actual provider
+mismatches (final-message membership/equality check) and 35 heuristic language flags.
+The post-fix runner additionally requires final-message position, unique ids, complete
+user/assistant ordering and unchanged history after replay. Invalid Origin/CSRF returned403. Actual provider
 cost was$0. Agent inspection of all224 synthetic final answers additionally found irrelevant
 answers, incomplete comparisons, failed follow-up resolution and unrelated citations; those
 are not captured by the structural score. No human review or live-model quality is claimed.
