@@ -166,6 +166,8 @@ def test_url_punctuation_and_host_case_keep_authoritative_paths() -> None:
         'No puedo comprar por ti, pero compré tu pedido.',
         'No he procesado tu reembolso y he procesado tu pedido.',
         'Ya procese tu reembolso.',
+        'Tu reembolso ya fue procesado.',
+        'Your order has been modified.',
     ],
 )
 def test_unavailable_actions_cannot_be_claimed_as_executed(answer: str) -> None:
@@ -201,6 +203,10 @@ def test_unsupported_positive_learning_or_health_guarantees_are_replaced(answer:
         'Para pedir un reembolso, abre el formulario de Hotmart.',
         'La garantía de reembolso es de 7 días.',
         'Solicita que Hotmart procese tu reembolso.',
+        'Si tu reembolso ya fue procesado, revisa el medio de pago.',
+        'If your order has been modified, check your account.',
+        'Tu reembolso no fue procesado.',
+        'Your order has not been modified.',
     ],
 )
 def test_refusals_conditional_language_and_published_policy_are_not_execution_claims(

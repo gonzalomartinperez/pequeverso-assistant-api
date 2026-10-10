@@ -123,7 +123,15 @@ def test_language_mentions_quotes_negation_and_format_are_not_directives(
         ('Use English for your answer, por favor.', Language.EN),
         ('What does "answer in Spanish" mean?', Language.EN),
         ('No respondas en inglés; ¿qué incluye el kit?', Language.ES),
+        ('In Spanish, answer about the kit. Then reply in English.', Language.EN),
+        ('Reply in English about the kit. In Spanish, answer the question.', Language.ES),
+        ('Use Spanish, then answer in English.', Language.EN),
     ],
 )
 def test_supported_language_directives_override_sentence_language(text: str, expected: Language) -> None:
     assert reply_language(text, [], None) is expected
+
+
+def test_unsupported_directive_does_not_become_a_supported_fallback() -> None:
+    assert reply_language('Answer in German. Then reply in English.', [], Language.EN) is None
+    assert reply_language('Reply in English. Then answer in German.', [], Language.EN) is None

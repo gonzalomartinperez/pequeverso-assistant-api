@@ -372,7 +372,7 @@ def _requested_reply_language(text: str) -> Detected | None:
     stripped = _QUOTED.sub(' ', stripped)
     stripped = _URLISH.sub(' ', stripped)
     folded = _fold(stripped).strip()
-    requested: Detected | None = None
+    requests: list[tuple[int, Detected]] = []
     for pattern in (_OUTPUT_LANGUAGE_REQUEST, _OUTPUT_LANGUAGE_FIRST, _OUTPUT_LANGUAGE_USE):
         for match in pattern.finditer(folded):
             prefix = folded[max(0, match.start() - 60) : match.start()]
@@ -380,12 +380,14 @@ def _requested_reply_language(text: str) -> Detected | None:
                 continue
             target = match.group('language')
             if target in {'espanol', 'castellano', 'spanish', 'es'}:
-                requested = Detected.ES
+                requests.append((match.start('language'), Detected.ES))
             elif target in {'ingles', 'english', 'en'}:
-                requested = Detected.EN
+                requests.append((match.start('language'), Detected.EN))
             else:
                 return Detected.OTHER
-    return requested
+    # Pattern traversal order is not conversation order. Only supported requests can change
+    # one another; any positive unsupported target above remains a fail-closed abstention.
+    return max(requests, key=lambda request: request[0])[1] if requests else None
 
 
 def detect(text: str, product_names: Iterable[str] = ()) -> Detected:

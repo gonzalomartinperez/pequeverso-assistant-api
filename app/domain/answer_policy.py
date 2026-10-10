@@ -96,7 +96,13 @@ _ACTION_CLAIM = re.compile(
     r'purchased|reserved|cancelled|canceled|modified|updated|placed)\b[^.!?;\n]{0,60}?'
     r'\b(?:refund|money|order|payment|card|purchase|booking|reservation|email|message)\b'
     r'|\b(?:he|hemos)\s+(?:ya\s+)?reembolsado\b'
-    r'|\b(?:i|we)\s+(?:(?:have|already|just)\s+)*refunded\b',
+    r'|\b(?:i|we)\s+(?:(?:have|already|just)\s+)*refunded\b'
+    r'|\b(?:tu|su)\s+(?:reembolso|devoluci[oó]n|pedido|compra|pago|reserva)\s+'
+    r'(?:(?:ya|ha|sido|fue|est[aá])\s+){1,4}(?:procesad[oa]|emitid[oa]|realizad[oa]|'
+    r'enviad[oa]|modificad[oa]|cancelad[oa]|reservad[oa]|reembolsad[oa]|cobrad[oa]|devuelt[oa])\b'
+    r'|\byour\s+(?:order|refund|purchase|payment|booking|reservation)\s+'
+    r'(?:(?:has|have|already|just|been|was|is)\s+){1,5}(?:processed|issued|sent|modified|'
+    r'updated|canceled|cancelled|refunded|reserved|charged|returned)\b',
     re.IGNORECASE,
 )
 _OUTCOME_CLAIM = re.compile(
