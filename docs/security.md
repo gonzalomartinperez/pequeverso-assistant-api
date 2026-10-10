@@ -23,14 +23,23 @@ has no tools. The controls below are code, not prompt wording.
 | Secrets | Keys only from the environment (`SecretStr`, hidden in validation errors); `.env*` ignored by git and Docker; production refuses a default hash key | `test_configuration_fails_closed` |
 
 Prompt injection is not "solved": a model can still write unhelpful or off-tone text. The
-boundary guarantees that such text cannot carry invented products, links, prices, discounts,
-offers or payment requests to a visitor as a final answer.
+boundary resolves structured product/source ids and enforces specific URL, currency,
+amount and forbidden-phrase rules. It does not establish semantic entailment: an existing
+source may be unrelated to a claim, an invented product may appear in plain prose, and
+unsupported educational benefits or claimed commerce outcomes can evade lexical rules.
+These are activation blockers until an authorized real-model evaluation and reviewed
+commercial-quality evidence are available; a valid source URL or completed stream is not
+a correctness score.
 
 ## Data retention and privacy
 
 - **Stored:** session digest and CSRF token, redacted questions, answers and their validated
   references, run states. Retained 24 h after last activity, then deleted (purge every 10 min).
-  The visitor can delete earlier (`DELETE /api/v1/session`).
+  The visitor can delete earlier (`DELETE /api/v1/session`). Deletion removes logical rows
+  and cancels active work; it does not promise physical erasure from SQLite free pages, WAL
+  files, filesystem snapshots or retained backups. The database uses `secure_delete=0`.
+  vps-ops must protect persistent storage and define backup retention/deletion obligations;
+  do not claim cryptographic erasure or deletion of already transmitted provider data.
 - **Kept longer:** the spend ledger (run id, amounts, token counts, model: no conversation data)
   and hourly or daily rate counters keyed by an HMAC of the IP (purged after 2 days).
 - **Sent to OpenAI (live mode only):** the redacted question, up to 12 recent messages of the same

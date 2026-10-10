@@ -113,8 +113,14 @@ short `CLIENT_HASH_KEY`, or a daily budget above the monthly one.
   The old image also does not record run metrics, and its ledger rows keep status `pending`
   until the newer image starts again, which maps them back to `settled`/`unreported`. Take a
   backup before every deploy that adds a migration.
-- **Graceful stop:** `SIGTERM`, then up to 15 s to finish streams; active runs end as
-  cancelled.
+- **Graceful stop:** Uvicorn first allows15 s for connections, then cancels unfinished
+  response tasks. Application shutdown subsequently cancels admission, drains retained
+  response/run cleanup for up to10 s and closes SQLite afterwards. Interrupted runs persist
+  cancelled and retain unknown-cost reservations; exceptional drain failure falls back to
+  conservative abandoned-run recovery. Allow at least30 s container stop grace and verify
+  it under real VPS load. Do not promise completion within15 s or delivery of a terminal
+  SSE frame over a torn-down connection. The pre-fix image could leave runs active until
+  restart; the real-socket SIGTERM regression checks persisted state before restarting.
 - **Kill switch:** `ASSISTANT_ENABLED=false` or stopping the container. The native storefront
   assistant shows "unavailable" and the store keeps selling.
 

@@ -156,6 +156,7 @@ class _ModelRun(Run):
         self._slot = slot
         self._cancel = cancel
         self._state: RunState | None = None
+        self._finishing: asyncio.Task[None] | None = None
         self._closed = False
         self._started = time.monotonic()
         self._started_at = service.clock.now()
@@ -291,12 +292,15 @@ class _ModelRun(Run):
         assistant_message_id: str | None = None,
         outcome: RunOutcome | None = None,
     ) -> None:
-        if self._state is not None:
-            return
-        self._state = state
+        if self._state is None:
+            self._state = state
+            self._finishing = asyncio.create_task(
+                self._finish_steps(state, code, assistant_message_id, outcome)
+            )
         # Shielded: a disconnect while finishing must not leave the run active, the reservation
         # pending or the metric unrecorded.
-        await asyncio.shield(self._finish_steps(state, code, assistant_message_id, outcome))
+        if self._finishing is not None:
+            await asyncio.shield(self._finishing)
 
     async def _finish_steps(
         self,
@@ -334,6 +338,8 @@ class _ModelRun(Run):
             if self._state is None:
                 # The stream never finished: the client went away or the response was never sent.
                 await self._finish(RunState.CANCELLED, outcome=RunOutcome.INTERRUPTED)
+            elif self._finishing is not None:
+                await asyncio.shield(self._finishing)
         finally:
             self._slot.release()
             self._service.registry.remove(self.id)
@@ -453,6 +459,8 @@ class ChatService:
         locale: str | None = None,
         context: VisitorContext | None = None,
     ) -> Run:
+        if self.registry.closing:
+            raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
         if not self.limits.enabled:
             raise RejectedError(FailureCode.ASSISTANT_DISABLED)
         active = self.catalog.active

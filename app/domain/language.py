@@ -313,6 +313,43 @@ _OTHER = frozenset(
 # Words shared by Spanish and English (or product vocabulary) carry no signal.
 _NEUTRAL = frozenset(['a', 'no', 'kit', 'pdf', 'ok', 'usd', 'hotmart', 'pequeverso'])
 
+# Output-language requests are different from the language of the visitor's sentence. A
+# visitor can write in English while explicitly asking for German; do not dispatch that to
+# the provider. This finite recognizer is deliberately not a general language classifier.
+_UNSUPPORTED_LANGUAGE_NAMES = (
+    'portugues|portuguese|aleman|german|deutsch|frances|french|francais|italiano|italian|'
+    'japones|japanese|ruso|russian|chino|chinese|mandarin|arabe|arabic|coreano|korean|'
+    'turco|turkish|hindi|bengali|holandes|dutch|polaco|polish|sueco|swedish|'
+    'noruego|norwegian|danes|danish|finlandes|finnish|griego|greek|hebreo|hebrew|'
+    'catalan|euskera|basque|quechua|guarani|latin|klingon|esperanto|swahili|'
+    'pt|de|fr|it|ja|zh|ru|ar|ko'
+)
+_REPLY_VERB = (
+    r'(?:responde(?:r|me)?|respond(?:a|as|an|eme)?|contesta(?:r|me)?|'
+    r'habla(?:r|me)?|escribe(?:me)?|traduce|traducir|explica|explique|antworte|antworten|'
+    r'answer|reply|respond|speak|write|translate|explain)'
+)
+_LANGUAGE_NAMES = rf'{_UNSUPPORTED_LANGUAGE_NAMES}|espanol|castellano|spanish|ingles|english|es|en'
+_OUTPUT_LANGUAGE_REQUEST = re.compile(
+    rf'\b{_REPLY_VERB}\b'
+    r'(?:\s+(?:only|exclusively|just|all|every|my|your|the|this|that|a|an|question|questions|'
+    r'answer|answers|response|responses|reply|replies|everything|shopping|solo|solamente|'
+    r'unicamente|todo|todas|todos|mis|mi|tu|tus|la|las|el|los|esta|este|respuesta|respuestas|'
+    r'pregunta|preguntas|mensaje|mensajes|por|favor|porfa|please|about|sobre|kit|product|producto)){0,8}'
+    r'\s+(?:en|in|to|a|al|using|usando|em|auf)\s+'
+    rf'(?:(?:el idioma|idioma|the language)\s+)?(?:brazilian\s+|european\s+)?'
+    rf'(?P<language>{_LANGUAGE_NAMES})\b'
+)
+_OUTPUT_LANGUAGE_FIRST = re.compile(
+    rf'\b(?:en|in)\s+(?P<language>{_LANGUAGE_NAMES})\s*,\s*'
+    rf'(?:por favor\s+|please\s+)?{_REPLY_VERB}\b'
+)
+_OUTPUT_LANGUAGE_USE = re.compile(
+    r'(?:^|[.!?;:,\n]\s*|\b(?:and|y)\s+)\s*(?:please\s+|por favor\s+)?'
+    rf'(?:use|usa|utiliza)\s+(?P<language>{_LANGUAGE_NAMES})\b'
+)
+_NEGATED_REQUEST_PREFIX = re.compile(r"(?:\bno|\bnot|\bnever|\bdon't|\bdo not)\s+(?:\w+\s+){0,4}$")
+
 
 def _fold(text: str) -> str:
     decomposed = unicodedata.normalize('NFKD', text.lower())
@@ -328,6 +365,29 @@ def visitor_words(text: str, product_names: Iterable[str] = ()) -> list[str]:
         if name:
             lowered = lowered.replace(name.lower(), ' ')
     return _WORD.findall(lowered)
+
+
+def _requested_reply_language(text: str) -> Detected | None:
+    stripped = _CODE.sub(' ', text)
+    stripped = _QUOTED.sub(' ', stripped)
+    stripped = _URLISH.sub(' ', stripped)
+    folded = _fold(stripped).strip()
+    requests: list[tuple[int, Detected]] = []
+    for pattern in (_OUTPUT_LANGUAGE_REQUEST, _OUTPUT_LANGUAGE_FIRST, _OUTPUT_LANGUAGE_USE):
+        for match in pattern.finditer(folded):
+            prefix = folded[max(0, match.start() - 60) : match.start()]
+            if _NEGATED_REQUEST_PREFIX.search(prefix):
+                continue
+            target = match.group('language')
+            if target in {'espanol', 'castellano', 'spanish', 'es'}:
+                requests.append((match.start('language'), Detected.ES))
+            elif target in {'ingles', 'english', 'en'}:
+                requests.append((match.start('language'), Detected.EN))
+            else:
+                return Detected.OTHER
+    # Pattern traversal order is not conversation order. Only supported requests can change
+    # one another; any positive unsupported target above remains a fail-closed abstention.
+    return max(requests, key=lambda request: request[0])[1] if requests else None
 
 
 def detect(text: str, product_names: Iterable[str] = ()) -> Detected:
@@ -362,6 +422,13 @@ def reply_language(
     product_names: Iterable[str] = (),
 ) -> Language | None:
     """Language for this answer, or None when the visitor writes in an unsupported language."""
+    requested = _requested_reply_language(question)
+    if requested is Detected.OTHER:
+        return None
+    if requested is Detected.ES:
+        return Language.ES
+    if requested is Detected.EN:
+        return Language.EN
     detected = detect(question, product_names)
     if detected is Detected.ES:
         return Language.ES

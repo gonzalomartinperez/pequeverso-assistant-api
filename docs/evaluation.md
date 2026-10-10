@@ -111,13 +111,14 @@ with the real model.
 | Retrieval | Lexical rank of the evaluated turn | Decides whether ranking needs work (ADR-0002) |
 | Behavior | Outcome (clarifying question, support route), grounding (expected passage referenced), forbidden behaviors by string heuristics | **None.** The fixture answers by lexical match; its 111 flags are expected. Meaningful only in a live run, then reviewed by hand. `invented_policy` has no lexical check (manual review) |
 
-**Findings (fixture, catalog `ae6d237`, API develop `07405d2`).**
+**Historical findings (fixture, catalog `ae6d237`, API develop `07405d2`; superseded language issue explicitly retained).**
 
 - Reply language: 284 of 285 checked cases as expected (272 Spanish, 8 English, 5 unsupported).
   The miss is `lang-016`, "Quanto custa o kit e como faço para comprar?": the detector returns
   `unknown` (the message shares "kit", "como", "para" with Spanish), so the visitor gets a Spanish
-  answer instead of the unsupported-language note. Harmless but wrong; a detector fix should
-  remove it from `KNOWN_LANGUAGE_MISSES` in `tests/test_evaluations.py`.
+  answer instead of the unsupported-language note. This was corrected before the
+  2026-10-10 baseline (`b27d35c`); the current corpus gate expects zero known misses.
+  Keep this initial observation as history, not as an outstanding defect.
 
 - The model always receives the whole catalog: its evidence payload is about 10.8K characters,
   under `MAX_EVIDENCE_CHARS` (40K). Ranking therefore affects only fixture answers and future
@@ -140,3 +141,53 @@ share one `--budget-state`; never create a fresh cap per phase.
 
 Run `dev` first, adjust the prompt, then `holdout` once. Review every behavior flag by hand; a
 heuristic flag is a prompt to read the answer, not a verdict.
+
+## Socket matrix frozen on 2026-10-10
+
+`evals/end_to_end.json` freezes 224 queries in 208 cases: 200 independent questions in
+20 intent families, plus eight three-turn conversations. Spanish and English questions are
+varied by intent, not counted as direct translation pairs. The manifest is development
+evidence, not a reserved independent holdout. No questions or expected answers enter the
+public catalog or runtime indexes.
+
+```sh
+uv sync --frozen
+uv run python scripts/evaluate_end_to_end.py \
+  --source-revision <exact-application-commit> \
+  --output-dir /absolute/private/path/new-initial-run
+```
+
+The runner is fixture-only and has no live-mode option. It forces no provider key, disables
+paid AI and avoids `.env.local`. It starts Uvicorn on loopback and uses real HTTP/SSE, session
+cookies, Origin and CSRF. Each turn records HTTP/terminal outcome, first-content and total
+latency, public evidence hash/ids actually sent, lexical ranking separately, final citations,
+observed-language heuristics and exact restored-history comparison. Completed-request replay
+checks that no new provider call occurs. Invalid Origin/CSRF and fresh-visitor isolation are
+checked explicitly. Fixture token/ledger numbers are synthetic estimates, never an invoice.
+
+Full synthetic answers and database state are private local artifacts (files0600, output
+directory0700), outside Git. Existing output directories cannot be overwritten. Keep the
+initial manifest, catalog and answer hashes before fixes; use a separate post-fix directory
+and a separate variants manifest (`evals/end_to_end_postfix.json`: original224 plus12 new
+queries, passed with `--manifest`). Inspect evidence and response relevance beyond exit status.
+
+Initial application `b27d35c`, manifest SHA256
+`9bcffa12162143c5dcc2a9e163ddf5a64ba9752e8a954b4580d257fecdf74758`:
+224 queries, 223 fixture calls, one local abstention, zero structural flags, zero history
+mismatches (final-message membership/equality check) and 35 heuristic language flags.
+The post-fix runner additionally requires final-message position, unique ids, complete
+user/assistant ordering and unchanged history after replay. Invalid Origin/CSRF returned403. Actual provider
+cost was$0. Agent inspection of all224 synthetic final answers additionally found irrelevant
+answers, incomplete comparisons, failed follow-up resolution and unrelated citations; those
+are not captured by the structural score. No human review or live-model quality is claimed.
+
+Known manifest annotation issue: `languages-10` asks in English to receive Spanish, but the
+original expected metadata was annotated `en` from the UI locale. Preserve the frozen
+manifest; report that error and use an explicit-`es` post-fix variant. Do not retrospectively
+change the baseline or present improved flags as independent quality validation.
+
+The whole current catalog (one product, nine resources, 23 documents) fits the evidence
+bound and is sent in full. Both resources in comparisons were therefore available even
+when the fixture mentioned only one. Low English lexical scores do not establish omitted
+model evidence. Vector and graph search are absent by design. Real-model commercial
+accuracy, source entailment, tone and English fluency remain activation blockers.

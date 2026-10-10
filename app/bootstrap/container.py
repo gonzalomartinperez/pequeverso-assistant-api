@@ -38,6 +38,7 @@ from app.domain.budget import BudgetPolicy, Pricing, to_micro
 from app.presentation.http import CookiePolicy, HttpSettings, Services, health, install_error_handlers, router
 from app.presentation.middleware import BodyLimitMiddleware, OriginMiddleware, RequestContextMiddleware
 from app.presentation.operations import build_router as build_operations_router
+from app.presentation.streaming import ResponseCleanups
 
 log = logging.getLogger(__name__)
 MAINTENANCE_SECONDS = 600
@@ -107,6 +108,7 @@ def create_app(
     model = provider or build_provider(settings)
     ledger = SqliteLedger(db)
     run_metrics = SqliteRunMetrics(db)
+    cleanups = ResponseCleanups()
     budget = BudgetPolicy(
         monthly_limit_micro=to_micro(settings.monthly_budget_usd),
         safety_margin=settings.budget_safety_margin,
@@ -173,7 +175,7 @@ def create_app(
 
     async def ready() -> bool:
         try:
-            return await db.ping() and catalog.active is not None
+            return not chat.registry.closing and await db.ping() and catalog.active is not None
         except Exception:  # noqa: BLE001
             return False
 
@@ -210,6 +212,17 @@ def create_app(
             tasks = [asyncio.create_task(maintenance()), asyncio.create_task(refresh_catalog())]
             yield
         finally:
+            chat.registry.close()
+            try:
+                async with asyncio.timeout(10):
+                    await cleanups.drain()
+                    await chat.registry.drain()
+            except Exception:
+                # Bound shutdown, preserve unknown spend and recover an interrupted run
+                # conservatively if an exceptional finalizer cannot finish.
+                log.exception('{"operation":"shutdown","outcome":"drain_failed"}')
+                await runs.abandon_active()
+                await ledger.abandon_pending()
             for task in tasks:
                 task.cancel()
             for task in tasks:
@@ -231,6 +244,7 @@ def create_app(
         catalog=catalog,
         clock=clock,
         ready=ready,
+        cleanups=cleanups,
         settings=HttpSettings(
             cookie=CookiePolicy(
                 name=settings.cookie_name,
