@@ -1,7 +1,8 @@
 """OpenAI Responses API adapter (streaming, strict JSON-schema output, `store=False`).
 
-Retries are bounded and happen only when the request failed before any stream opened
-(connection errors, 429, 5xx), so a response that may have been billed is never repeated.
+Runtime composition disables SDK and adapter retries: a connection error or timeout before
+stream opening may already have been billed. The generic adapter retains a bounded retry
+option for isolated tests; runtime settings accept only zero.
 Usage is reported whenever the provider includes it, also on an incomplete or failed response
 (reasoning can consume the whole output allowance before any text), so the ledger settles to
 what was actually billed instead of keeping only the estimate.
@@ -95,6 +96,7 @@ class OpenAIResponsesProvider:
             try:
                 return await self._client.responses.create(
                     model=self._model,
+                    service_tier='default',
                     instructions=request.instructions,
                     input=_input(request),
                     text=_text_format(request),

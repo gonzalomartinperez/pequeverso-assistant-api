@@ -33,7 +33,7 @@ def evaluate(k: int = 3) -> dict[str, Any]:
         results.append({'query': case['query'], 'best_rank': best, 'top': ranked[:k]})
     hits = sum(1 for r in results if r['best_rank'] is not None and r['best_rank'] <= k)
     mrr = sum(1 / r['best_rank'] for r in results if r['best_rank']) / len(results)
-    import evaluate_corpus  # sibling script, imported lazily
+    from scripts import evaluate_corpus  # sibling script, imported lazily
 
     corpus = evaluate_corpus.retrieval(evaluate_corpus.load())
     return {

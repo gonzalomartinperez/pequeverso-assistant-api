@@ -90,6 +90,7 @@ def test_request_shape_and_event_mapping() -> None:
     assert (usage.input_tokens, usage.cached_input_tokens, usage.output_tokens) == (900, 600, 120)
     call = client.calls[0]
     assert call['model'] == 'gpt-6-luna' and call['store'] is False and call['stream'] is True
+    assert call['service_tier'] == 'default'
     assert call['text']['format']['strict'] is True and call['max_output_tokens'] == 800
     assert call['reasoning'] == {'effort': 'low'} and call['safety_identifier'] == 'sid'
     assert events.closed
@@ -163,3 +164,81 @@ def test_reasoning_effort_is_sent_as_configured() -> None:
     provider = OpenAIResponsesProvider(client, 'gpt-6-luna', 'medium', max_retries=0)  # type: ignore[arg-type]
     _collect(provider)
     assert client.calls[0]['reasoning'] == {'effort': 'medium'} and client.calls[0]['model'] == 'gpt-6-luna'
+
+
+def test_runtime_timeout_dispatches_once_and_retains_unknown_reservation(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import sqlite3
+    from contextlib import closing
+
+    from app.bootstrap import container
+    from tests.support import ask, client, open_session
+
+    sdk = _Client(
+        [openai.APITimeoutError(request=httpx.Request('POST', 'https://api.openai.com/v1/responses'))]
+    )
+    options = []
+
+    def factory(**kwargs: Any) -> Any:
+        options.append(kwargs)
+        return sdk
+
+    monkeypatch.setattr(container, 'AsyncOpenAI', factory)
+    with client(tmp_path, ai_provider='openai', allow_paid_ai=True, openai_api_key='synthetic-key') as c:
+        status, events, error = ask(c, open_session(c), '¿Qué incluye el kit?')
+        assert status == 200 and error is None
+        assert events[-1]['type'] == 'run.failed'
+        assert events[-1]['code'] == 'provider_unavailable'
+    assert options[0]['max_retries'] == 0
+    assert options[0]['base_url'] == 'https://api.openai.com/v1'
+    assert len(sdk.calls) == 1
+    with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as db:
+        reserved, actual, state = db.execute(
+            'SELECT reserved_micro, actual_micro, status FROM spend_ledger'
+        ).fetchone()
+        assert reserved > 0 and actual is None and state == 'unreported'
+
+
+def test_runtime_retries_fail_closed() -> None:
+    from pydantic import ValidationError
+
+    from app.bootstrap.config import Settings
+
+    assert Settings(_env_file=None).openai_max_retries == 0
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, openai_max_retries=1)
+
+
+def test_input_bound_accounts_for_schema_roles_unicode_and_protocol() -> None:
+    import json
+
+    request = ModelRequest(
+        'instrucción🙂',
+        (ModelInput('user', 'niño'),),
+        {'description': 'á🙂' * 1000},
+        4000,
+        'opaque',
+        'catalog',
+    )
+    expected = {
+        'instructions': request.instructions,
+        'input': [{'role': 'user', 'content': 'niño', 'type': 'message'}],
+        'schema': request.output_schema,
+    }
+    assert request.size_bytes() == len(json.dumps(expected, ensure_ascii=False).encode()) + 1024
+    assert request.size_bytes() > len(request.instructions.encode()) + len('niño'.encode()) + 6000
+
+
+def test_oversize_schema_is_refused_before_any_model_call(
+    tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.ai import composer
+    from tests.support import ScriptedProvider, answer_json, ask, client, open_session
+
+    monkeypatch.setattr(composer, 'OUTPUT_SCHEMA', {'description': '🙂' * 7000})
+    provider = ScriptedProvider(answer_json('Respuesta sintética.'))
+    with client(tmp_path, provider=provider) as c:
+        status, events, error = ask(c, open_session(c), '¿Qué incluye el kit?')
+        assert status == 422 and events == [] and error['error']['code'] == 'invalid_request'
+    assert provider.calls == []

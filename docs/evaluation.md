@@ -26,19 +26,45 @@ or tone. The system prompt and quality checks are ready for `gpt-6-luna` but unv
 
 Preconditions (owner):
 1. Create a separate OpenAI project for Pequeverso with a hard monthly limit.
-2. Export a project key into the shell only.
+2. Put the separate project key in a private mode-600 environment file; never pass it in arguments or logs.
 3. Authorize the spend explicitly.
 
-```
-ALLOW_PAID_AI=true OPENAI_API_KEY=<pequeverso project key> \
-  uv run python scripts/evaluate_conversations.py --live --max-usd 0.25 \
-  --output docs/verification/live-eval-<date>.json
+```bash
+# Explicit current owner authorization is required. Private state must be outside this repo.
+uv run python scripts/run_bounded_real_eval.py --live --phase conversations \
+  --key-file /private/pequeverso-eval.env.local --state-dir /private/pequeverso-eval
+# Review the conversation report before proceeding; both phases reuse the same ledger.
+uv run python scripts/run_bounded_real_eval.py --live --phase dev \
+  --key-file /private/pequeverso-eval.env.local --state-dir /private/pequeverso-eval
+uv run python scripts/run_bounded_real_eval.py --live --phase holdout \
+  --key-file /private/pequeverso-eval.env.local --state-dir /private/pequeverso-eval
 ```
 
-- The service's own ledger caps the run at `--max-usd` (monthly = daily = cap, no margin).
-  The current reservation bound is USD 0.005 per turn (24k input tokens at the highest
-  configured input rate plus 4000 output tokens, including reasoning). Seventeen turns
-  reserve at most USD 0.085; actual usage and quality remain unmeasured.
+- The private file has `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-6-luna` and
+  `OPENAI_REASONING_EFFORT=medium`. It is read within Python, without shell evaluation or
+  environment dumps. Default mode forces fixture/paid=false/key=null even when ambient
+  provider variables request OpenAI, and never reads the private key file.
+- The independent evaluation envelope persists across phases and database resets. It caps
+  this evaluation at **USD 1.00 and 400 dispatched attempts**, sequentially, with SDK and
+  adapter retries disabled. This is separate from the project's USD 10 monthly target;
+  neither proves prior account spend or an administrative billing setting.
+- Before each attempt, reserve USD 0.011: 24k input at the highest input rate (0.125/M), plus
+  4000 output (0.50/M), multiplied by a conservative 2x Fast and 1.1x regional premium.
+  The actual request uses Standard (`service_tier=default`), `store=false`, no tools and
+  medium effort. UTF-8 JSON bytes (including schema, with protocol margin) and actual wire
+  bytes must fit 24k; reasoning counts toward the output cap.
+- Known usage settles at conservative rates (0.275/M input, 1.10/M output), without assuming
+  cache discounts. Missing usage, cancellation and failures retain the reservation. Invalid
+  or duplicate usage halts; duplicates cannot reduce spend. Authentication, permissions,
+  missing model, invalid schema, a gate failure or exhausted budget stops the phase. Preserve
+  partial reports and missing ids; do not retry automatically or claim complete coverage.
+- Older native CLI helpers now require `--budget-state /private/common.sqlite3` with `--live`.
+  `--max-usd` is a shared aggregate cap (positive, at most USD 1), immutable on ledger reopen.
+  They previously reset the ledger per conversation or clock offset; that did **not** enforce
+  an aggregate cap. Do not run independent native ledgers for one shared authorization.
+- The application reservation remains at most USD 0.005 per turn with its configured pricing;
+  this evaluation's stricter independent envelope does not change application limits,
+  contracts, deployment settings or storefront activation.
 - Review each scenario's `quality` list and the answers by hand. Adjust `app/ai/prompt.py` (bump
   `PROMPT_VERSION`), then rerun. Commit the report with the model name and date.
 - Before launch, also run 3–5 manual chats through the native storefront assistant against an isolated staging deployment.
@@ -108,11 +134,9 @@ with the real model.
 
 **Live run (not executed; needs authorization).** Same gate as the conversations suite:
 
-```
-ALLOW_PAID_AI=true OPENAI_API_KEY=<pequeverso project key> \
-  uv run python scripts/evaluate_corpus.py --live --split dev --max-usd 0.50 \
-  --output docs/verification/live-corpus-<date>.json
-```
+Use the bounded runner's `--phase dev`, then `--phase holdout`, with the same private state
+path shown above. The native helpers are for separately authorized evaluations only and must
+share one `--budget-state`; never create a fresh cap per phase.
 
 Run `dev` first, adjust the prompt, then `holdout` once. Review every behavior flag by hand; a
 heuristic flag is a prompt to read the answer, not a verdict.

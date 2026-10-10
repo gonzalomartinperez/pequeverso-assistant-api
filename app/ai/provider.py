@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
@@ -25,8 +26,17 @@ class ModelRequest:
     cache_key: str
 
     def size_bytes(self) -> int:
-        """UTF-8 size of everything sent; an upper bound of the input token count."""
-        return len(self.instructions.encode()) + sum(len(item.text.encode()) + 16 for item in self.inputs)
+        """Conservative input-token bound including instructions, messages and output schema.
+
+        JSON accounts for roles and escaping; the protocol margin covers formatting metadata.
+        It is a deliberately pessimistic byte bound, not a provider tokenization estimate.
+        """
+        payload = {
+            'instructions': self.instructions,
+            'input': [{'role': item.role, 'content': item.text, 'type': 'message'} for item in self.inputs],
+            'schema': self.output_schema,
+        }
+        return len(json.dumps(payload, ensure_ascii=False).encode()) + 1024
 
 
 @dataclass(frozen=True, slots=True)

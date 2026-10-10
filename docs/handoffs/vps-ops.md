@@ -13,10 +13,14 @@ The inventory still describes one web service serving `/` and `/embed` plus `/ap
 
 | Component | Repository | Hosting | Public? |
 |---|---|---|---|
-| Storefront with the **native** assistant (disabled by default; no iframe) | `gonzalomartinperez/pequeverso` | Unchanged: its current Hostinger hosting. Consumes **no** VPS resources or Hostinger Node slots | Yes |
+| Storefront with the **native** assistant (disabled by default; no iframe) | `gonzalomartinperez/pequeverso` | Hostinger hosting. Owner confirmed Git integration is not connected; future target branch is main. Consumes **no** VPS resources or Hostinger Node slots | Yes |
 | Assistant API | `gonzalomartinperez/pequeverso-assistant-api` | VPS, Coolify | `/api/*` only |
 | Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-assistant-backoffice` (renamed from `pequeverso-assistant-web` on 2026-10-05; GitHub redirects the old name, which the vps-ops inventory still uses) | VPS, Coolify | Only behind its own sign-in |
 | Backoffice PostgreSQL (identity and access only) | — | VPS, private network, project volume | Never |
+
+Hostinger has not been connected to Git for this release. A future connection is intended to
+build `main`, which must keep the assistant disabled; no automatic Hostinger deployment is
+claimed from a GitHub merge. Verify the actual connection and public build before activating it.
 
 So the planned `web` service becomes the **backoffice** on a **separate host** and the iframe,
 `frame-ancestors` and `/embed` requirements disappear. The storefront talks to the API
@@ -29,7 +33,10 @@ cross-origin from the browser.
    `scripts/smoke-image.sh`). Both are `linux/amd64`, non-root (API uid 65532; backoffice uid
    1000), read-only root with tmpfs, `--cap-drop ALL`, `no-new-privileges`. Ports: API
    `8000/tcp`, backoffice `3000/tcp`. Measured idle memory (local, fixture data): API ~56 MiB,
-   backoffice ~64–77 MiB; image sizes ~235 MB and ~97 MB uncompressed. Proposed limits: API 0.5
+   backoffice ~64–77 MiB; historical Docker image sizes ~235 MB and ~97 MB
+   (Docker metadata, not compressed registry-transfer bytes). New patched candidates must
+   replace these historical numbers with exact-image evidence; layer whiteouts do not imply
+   physical image shrink. Proposed limits: API 0.5
    CPU / 256 MiB, backoffice 1 CPU / 384 MiB (request 0.1 CPU / 128 MB). Live-model load is not
    measured. Publication to a private registry by digest needs separate authorization.
 2. **Health and persistence.**
@@ -76,8 +83,14 @@ cross-origin from the browser.
    `pequeverso-backoffice-github-oauth`. Budget: USD 10/month (configurable), enforced per request
    with atomic worst-case reservations, a 10 % margin and a daily cap; spend is reported as
    confirmed / estimated / pending; when cost is unknown the reservation stays counted; when the
-   budget is exhausted the API refuses new questions (`budget_exhausted`). Also set a hard limit
-   in the OpenAI project. Aggregate metrics: the private `GET /internal/v1/ops/summary` (bearer
+   budget is exhausted the API refuses new questions (`budget_exhausted`). Verify the actual project billing/spend controls separately; this handoff does not assume
+   an administrative hard cap or prior account spend. Set `OPENAI_MAX_RETRIES=0` (the only
+   accepted runtime value): an ambiguous timeout may already have been billed, so it never
+   silently creates a second request against one reservation. The runtime endpoint is explicitly
+   `https://api.openai.com/v1` and tier explicitly Standard (`default`); ambient
+   `OPENAI_BASE_URL` cannot redirect the key. Regional/custom gateways or another tier require
+   security and pricing review before adoption. Input bounds include serialized
+   instructions, message roles/text and output schema, plus1024 protocol bytes. Aggregate metrics: the private `GET /internal/v1/ops/summary` (bearer
    token) — schema `contracts/ops.schema.json`; no Prometheus endpoint yet (ADR-0005). Proposed
    alerts if vps-ops scrapes later: month spend ≥ 80 % / 100 % of the cutoff, catalog
    `price_status=unverified`, `last_failure` set, readiness failing. No conversation content,

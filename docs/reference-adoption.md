@@ -8,7 +8,7 @@ commits, never its working tree.
 |---|---|---|---|
 | `47219c3` (develop) | Hexagonal layers + AST architecture test | Adapted | Same idea, own layer map (`ai` separate; stdlib-only domain/application) |
 | `47219c3` | Opaque cookie secret stored as a digest + CSRF token in the body; Origin allowlist on mutations | Adopted (own code) | Fits anonymous shoppers; same-origin embed keeps it |
-| `47219c3` | Responses API streaming, `max_retries=0` at the SDK, fixture provider as default | Adapted | Structured JSON output (references) instead of free text; one bounded retry only before a stream opens |
+| `47219c3` | Responses API streaming, `max_retries=0` at the SDK, fixture provider as default | Adapted | Structured JSON output (references) instead of free text; runtime SDK and adapter retries are now0; historical bounded-retry option remains for isolated adapter tests |
 | `47219c3` | Worst-case budget reservation and settlement; missing usage keeps the reservation | Adapted | SQLite `BEGIN IMMEDIATE` instead of a Postgres advisory lock; added a **daily** cap and per-session limits (the reference has no per-session cap); settle fails loudly if no reservation exists (the reference has no row guard) |
 | `47219c3` | SSE envelope with sequence, heartbeat comments, guaranteed close on disconnect | Adapted | Own event set (`message.completed` authoritative); explicit per-step deadline (a task-bound timeout across generator yields never fires, a bug found in testing) |
 | `47219c3` | Redacting JSON log formatter, no access logs, uniform error envelope | Adopted (own code) | — |
