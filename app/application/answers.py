@@ -78,12 +78,26 @@ def answer_rules(
     hosts.update(urlsplit(link.url).hostname or '' for link in catalog.links)
     hosts.update(urlsplit(doc.url).hostname or '' for doc in catalog.documents)
     hosts.discard('')
+    urls = {catalog.site.origin}
+    urls.update(link.url for link in catalog.links)
+    urls.update(doc.url for doc in catalog.documents)
+    urls.update(catalog.url(product.path) for product in catalog.products)
+    urls.update(catalog.url(product.purchase_path) for product in catalog.products)
+    # Published policy prose can name a bare official domain (refund.hotmart.com) while
+    # its structured link points to /refund?lang=es. Permit that literal public mention,
+    # without opening arbitrary paths on the same host or trusting new text-only hosts.
+    for host in hosts:
+        bare_host = re.compile(rf'(?<![\w/.-]){re.escape(host)}(?![\w/?#.-])', re.IGNORECASE)
+        if any(bare_host.search(document.text) for document in catalog.documents):
+            urls.add(f'https://{host}/')
     return AnswerRules(
         allowed_hosts=frozenset(hosts),
         allowed_emails=frozenset({catalog.site.support_email}),
         known_prices=catalog.prices(),
         prices_verified=price_status is PriceStatus.VERIFIED,
         forbidden_terms=(*catalog.forbidden_terms, *extra_forbidden),
+        allowed_urls=frozenset(urls),
+        known_price_pairs=frozenset((p.price.amount, p.price.currency) for p in catalog.products),
     )
 
 
