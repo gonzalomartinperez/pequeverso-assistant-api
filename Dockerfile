@@ -15,6 +15,10 @@ ENV PATH=/opt/venv/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DATABASE_PATH=/data/assistant.sqlite3
+# Signed Debian security patch not yet present in the pinned official base.
+RUN apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update \
+    && apt-get install -y --no-install-recommends liblzma5=5.8.1-1+deb13u2 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /opt/venv /opt/venv
 COPY app ./app

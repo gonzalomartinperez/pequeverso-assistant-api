@@ -270,3 +270,15 @@ vendored msgpack/setuptools/urllib3 findings rather than changing application lo
 The builder retains its tools. Scan each exact candidate image and retain the report/SBOM;
 these targeted changes do not imply that all OS advisories are fixed or that deployment is
 authorized. Unfixed advisories require explicit review before activation.
+
+The pinned base still carries liblzma5 5.8.1-1+deb13u1. A single explicit runtime package
+upgrade pins `liblzma5=5.8.1-1+deb13u2` from signed Debian security repositories and removes apt
+lists in the same layer. This fixes [DSA-6549-1](https://security-tracker.debian.org/tracker/DSA-6549-1),
+whose [upstream advisory](https://github.com/tukaani-project/xz/security/advisories/GHSA-5qpq-xqfv-j9pg)
+is HIGH even though the Debian scanner record is UNKNOWN. No general distro upgrade or
+application dependency update is performed. Repository metadata is live, not a frozen snapshot;
+the exact version fails the build if unavailable. Retain the approved built image by digest and
+revisit its pinned base/package when rebuilding, rather than silently choosing another version.
+Removing an installer from inherited base layers uses whiteouts: it reduces exposed runtime
+files, not the physical bytes of shared image layers. Preserve shared layers and a rollback
+image; do not pursue size reduction by stripping required libraries.
