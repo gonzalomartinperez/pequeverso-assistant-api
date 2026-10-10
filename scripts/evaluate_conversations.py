@@ -22,6 +22,7 @@ import sys
 import tempfile
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -39,6 +40,7 @@ from app.bootstrap.container import create_app
 from app.domain.answer_policy import check_answer, fold
 from app.domain.budget import Usage
 from app.domain.catalog import PriceStatus
+from scripts.real_eval_budget import BoundedProvider, Envelope
 
 ORIGIN = 'http://localhost:3000'
 HEADERS = {'Origin': ORIGIN, 'Content-Type': 'application/json'}
@@ -160,6 +162,8 @@ def run_conversations(settings: Settings, provider: Any = None) -> list[dict[str
     results = []
     counter = 0
     for scenario in scenarios:
+        if isinstance(provider, BoundedProvider) and provider.envelope.snapshot()['stop_reason']:
+            break
         clock = _Clock(scenario.get('clock_offset_days', 0))
         price_status = (
             PriceStatus.UNVERIFIED if scenario.get('clock_offset_days', 0) > 7 else PriceStatus.VERIFIED
@@ -175,12 +179,16 @@ def run_conversations(settings: Settings, provider: Any = None) -> list[dict[str
                 safety: list[str] = []
                 final: dict[str, Any] | None = None
                 for turn in scenario['turns']:
+                    if isinstance(provider, BoundedProvider) and provider.envelope.snapshot()['stop_reason']:
+                        break
                     counter += 1
                     events, error = _ask(client, csrf, turn, counter)
                     if error:
                         safety.append(f'request refused: {error}')
                         continue
                     safety += _safety(events, price_status)
+                    if safety and isinstance(provider, BoundedProvider):
+                        provider.envelope.stop('case_gate_failure')
                     completed = [e for e in events if e['type'] == 'message.completed']
                     final = completed[0]['message'] if completed else None
         results.append(
@@ -233,6 +241,9 @@ def main() -> int:
     parser.add_argument(
         '--live', action='store_true', help='use the OpenAI provider (paid, needs authorization)'
     )
+    parser.add_argument(
+        '--budget-state', type=Path, help='shared persistent aggregate live ledger (required)'
+    )
     parser.add_argument('--max-usd', default='0.25', help='budget cap for a live run, enforced by the ledger')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
@@ -243,7 +254,11 @@ def main() -> int:
         'messages_per_client_per_hour': 1000,
         'sessions_per_client_per_hour': 1000,
     }
+    provider = None
     if args.live:
+        if args.budget_state is None:
+            print('live evaluation requires --budget-state shared across every phase')
+            return 2
         if os.environ.get('ALLOW_PAID_AI', '').lower() != 'true' or not os.environ.get('OPENAI_API_KEY'):
             print('live evaluation needs ALLOW_PAID_AI=true and OPENAI_API_KEY (explicit authorization)')
             return 2
@@ -257,7 +272,11 @@ def main() -> int:
         )
     settings = Settings(_env_file=None, **base)
 
-    conversations = run_conversations(settings)
+    if args.live:
+        provider = BoundedProvider(
+            os.environ['OPENAI_API_KEY'], Envelope(args.budget_state, int(Decimal(args.max_usd) * 1000000))
+        )
+    conversations = run_conversations(settings, provider=provider)
     guards = [] if args.live else run_guards(settings)
     summary: dict[str, int] = {
         'scenarios': len(conversations),
@@ -269,6 +288,9 @@ def main() -> int:
     report: dict[str, Any] = {
         'mode': 'live' if args.live else 'fixture',
         'model': settings.openai_model if args.live else 'fixture',
+        'aggregate_budget': provider.envelope.snapshot() if provider else None,
+        'missing_scenarios': len(json.loads((ROOT / 'evals/conversations.json').read_text())['scenarios'])
+        - len(conversations),
         'catalog_revision': CATALOG.source_revision,
         'conversations': conversations,
         'guards': guards,
@@ -282,8 +304,12 @@ def main() -> int:
         print(
             'note: fixture quality results say nothing about a real model; only safety and guards are gates.'
         )
-    return 1 if summary['safety_failures'] or summary['guard_failures'] else 0
+    return 1 if summary['safety_failures'] or summary['guard_failures'] or report['missing_scenarios'] else 0
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as error:  # noqa: BLE001 -- redact secret-bearing provider errors
+        print(json.dumps({'outcome': 'stopped', 'error_type': type(error).__name__}))
+        sys.exit(2)
