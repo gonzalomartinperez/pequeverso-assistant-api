@@ -252,3 +252,21 @@ For reproducible local verification: `scripts/smoke_container.sh [exact-image]`.
 probe checks an explicit local container with AI_PROVIDER=fixture/ALLOW_PAID_AI=false and four
 concurrent streams. Its cgroup-v2 peak includes page cache and differs from Docker's reported
 cache-subtracted idle usage. This is not a live-provider benchmark or capacity guarantee.
+
+### Image security maintenance
+
+Both Python stages are pinned to the same official Python 3.13.16 amd64 image digest
+`sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024`.
+The inspected base includes Debian libpcre2 10.46-1~deb13u3 and OpenSSL/libssl/provider
+3.5.7-1~deb13u3, fixing the previously scanned patchable HIGH findings
+CVE-2026-103111 and CVE-2026-84782. See the
+[Debian PCRE2 advisory](https://security-tracker.debian.org/tracker/CVE-2026-103111),
+[Debian OpenSSL advisory](https://security-tracker.debian.org/tracker/CVE-2026-84782), and
+[Python 3.13.16 release notes](https://www.python.org/downloads/release/python-31316/).
+
+The runtime removes global pip and its vendored packages; the isolated, frozen `/opt/venv`
+contains application dependencies and does not need an installer. This removes the unused
+vendored msgpack/setuptools/urllib3 findings rather than changing application lockfiles.
+The builder retains its tools. Scan each exact candidate image and retain the report/SBOM;
+these targeted changes do not imply that all OS advisories are fixed or that deployment is
+authorized. Unfixed advisories require explicit review before activation.
