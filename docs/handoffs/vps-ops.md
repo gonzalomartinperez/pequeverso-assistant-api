@@ -37,8 +37,8 @@ cross-origin from the browser.
      `HEALTHCHECK` built in). State: one SQLite file in WAL mode on volume `/data` (sessions 24 h,
      spend ledger, content-free run metrics 90 days, catalog snapshots). Migrations run
      automatically at startup inside a transaction. **Single instance, one worker.** Backup:
-     `sqlite3 /data/assistant.sqlite3 ".backup '<file>'"` (online-safe) before each deploy and
-     daily; the spend ledger is the data worth keeping (it enforces the monthly budget).
+     Python sqlite3 `Connection.backup` from the same image (online-safe; concrete recipe in
+     `docs/deployment-contract.md`) before each deploy and daily; the spend ledger is the data worth keeping (it enforces the monthly budget).
    - Backoffice: `GET /healthz` (liveness), `GET /readyz` (config + PostgreSQL + migrated
      tables). Stateless container; PostgreSQL holds operator identities, encrypted OAuth tokens,
      sessions, invitations and an id-only audit. Migrations are a **one-shot** command of the same
@@ -108,3 +108,24 @@ container address(es). Volumes (proposal): `pequeverso-assistant-production-api-
 
 Activation itself (DNS, Coolify resources, enabling the storefront flag, paid model use) needs
 the owner's explicit, separate authorization.
+
+## Runtime budget and disk handoff update (2026-10-10)
+
+Carry the API's reviewed bounded runtime recipe from `docs/deployment-contract.md` into future
+vps-ops configuration: 256 MiB / 0.5 CPU, no extra swap, 64 PIDs, 64 MiB hardened `/tmp`,
+read-only root, uid65532, cap-drop ALL/no-new-privileges and rotating local logs (10 MiB × 3).
+The application remains one process/worker and does not change proxy, network or deployment
+state. Use the committed smoke and its exact-image evidence, not an assumed aggregate limit.
+
+SQLite WAL now requests FULL synchronization for committed ledger durability. Online backup
+uses Python sqlite3 already in the same image; the smoke performs a real restore into its own
+stopped disposable volume and rechecks charged spend. Recovery from an older backup starts
+with ASSISTANT_ENABLED=false until post-snapshot spend is reconciled or conservatively accounted
+for; unknown usage is never zero and project budget settings are not an assumed hard cap.
+Storage must honor fsync; the VPS has not
+been subjected to a power-loss test. Keep encrypted off-server backups and a separate restore
+exercise. Monitor data/WAL/staged-backup bytes, host free space, image/cache usage and bounded
+container logs; never purge financial history or prune other projects to satisfy a disk alert.
+No monitoring service is added: existing private ops and internal readiness supply aggregates,
+while Docker/host metrics belong to vps-ops. Neither release nor this handoff enables the
+storefront, publishes an image or authorizes an infrastructure action.

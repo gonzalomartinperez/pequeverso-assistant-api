@@ -37,7 +37,8 @@ class Database:
         connection.execute('PRAGMA busy_timeout = 5000')
         if self._path != ':memory:':
             connection.execute('PRAGMA journal_mode = WAL')
-            connection.execute('PRAGMA synchronous = NORMAL')
+            # The ledger survives committed writes across host power loss when storage honors fsync.
+            connection.execute('PRAGMA synchronous = FULL')
         self._connection = connection
         _migrate(connection)
 

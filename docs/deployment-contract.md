@@ -74,7 +74,7 @@ latency percentiles, token usage and spend (confirmed / estimated / pending) to 
 | `ALLOWED_ORIGINS` | `["https://pequeverso.com"]`: the storefront that hosts the native assistant (exact origin; add `https://www.pequeverso.com` only if the store serves pages there, which today it redirects to the apex) | config |
 | `SESSION_COOKIE_SECURE` | `true` (required by production validation) | config |
 | `CLIENT_HASH_KEY` | ≥ 32 random chars (HMAC key for pseudonymous rate limiting) | **secret** |
-| `TRUSTED_PROXY_CIDRS` | Proxy network, e.g. `["10.0.0.0/8"]` | config |
+| `TRUSTED_PROXY_CIDRS` | Exact approved proxy peer CIDRs, e.g. `["10.0.0.4/32"]` (example only) | config |
 | `DATABASE_PATH` | `/data/assistant.sqlite3` (image default) | config |
 | `CATALOG_URL` | unset (bundled snapshot). Set only if the storefront publishes the catalog document | config |
 | `CATALOG_PRICE_MAX_AGE_HOURS` | `168` | config |
@@ -92,10 +92,11 @@ short `CLIENT_HASH_KEY`, or a daily budget above the monthly one.
   applied automatically at startup inside a transaction. There is no separate migration job.
   A new image never edits an old migration.
 - **Backup:** the ledger is the only data worth keeping long term (it enforces the monthly budget).
-  Use `sqlite3 /data/assistant.sqlite3 ".backup '/backup/assistant-<date>.sqlite3'"` (online-safe),
+  Use Python sqlite3 from the same image (online backup recipe below),
   or stop the container and copy the three files together. Losing the volume loses conversations
-  (by design short-lived) and resets the month's spend counter; keep the OpenAI project's hard
-  limit as the backstop.
+  (by design short-lived) and resets the month's spend counter: keep the assistant disabled
+  until safe restoration and spend reconciliation. Verified provider controls are defense in
+  depth, never a substitute for the ledger.
 - **Restart:** runs left active by a crash are marked failed at startup; their pending ledger
   reservations become `unreported` and stay counted as estimated spend.
 
@@ -152,3 +153,102 @@ capability, and the VPS proxy belongs to vps-ops.
 3. One question through the proxy: incremental `message.delta` events arrive before
    `run.completed` (no buffering).
 4. Only with paid use authorized: the ledger shows a settled row (`actual_micro` set).
+
+## Bounded runtime and disk operations (2026-10-10)
+
+The application image does not set host quotas. vps-ops must carry the tested runtime policy
+into its own reviewed configuration; these commands are a local isolation recipe, not a deploy.
+The smoke uses 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs, and a 64 MiB tmpfs at
+`/tmp` with `noexec,nosuid,nodev`. The root is read-only; only the named `/data` volume persists.
+Docker's `local` log driver rotates at 10 MiB × 3 files (compression may use less); stdout is
+already content-free structured JSON, and uvicorn access logging is disabled.
+
+```bash
+# Operator supplies an approved digest, private network and configuration separately.
+# In isolated synthetic acceptance: AI_PROVIDER=fixture and ALLOW_PAID_AI=false.
+# Production can keep ASSISTANT_ENABLED=false; no paid-provider opt-in is implied.
+docker run --name pv-api-isolated --read-only \
+  --memory 256m --memory-swap 256m --cpus 0.5 --pids-limit 64 \
+  --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
+  --cap-drop ALL --security-opt no-new-privileges \
+  --log-driver local --log-opt max-size=10m --log-opt max-file=3 \
+  --network "$PV_API_PRIVATE_NETWORK" --env-file "$PV_API_CONFIG_FILE" \
+  --mount type=volume,src="$PV_API_DATA_VOLUME",dst=/data "$PV_API_IMAGE_DIGEST"
+```
+
+A bind-mounted data directory must be owned by uid/gid 65532; a new named volume inherits the
+image's ownership. Do not run a startup root chown or give the service access to the Docker
+socket. Keep the default Docker seccomp profile. Never place SQLite on NFS/network storage,
+share it across replicas or make `/data` ephemeral. Readiness requires the database and active
+catalog; healthy/readiness does **not** mean the storefront is enabled or the model validated.
+
+### Ledger durability and backup/restore
+
+WAL uses `synchronous=FULL`: each committed transaction syncs the WAL before acknowledging it.
+This strengthens committed ledger durability across host failure, provided the filesystem and
+storage honor sync requests. It does not certify the VPS power-loss behavior or replace backups;
+see [SQLite synchronous](https://sqlite.org/pragma.html#pragma_synchronous). It costs more write
+latency than NORMAL; local fixture measurements are only a small-workload baseline.
+
+The runtime has Python's sqlite3, not the sqlite3 CLI. An online backup can therefore be made
+with the **same image**, without installing tools in the runtime:
+
+```bash
+# Exact running local/approved container; /data belongs to that service alone.
+docker exec "$PV_API_CONTAINER" python -c '
+from contextlib import closing
+import sqlite3
+with closing(sqlite3.connect("file:/data/assistant.sqlite3?mode=ro", uri=True)) as source, closing(sqlite3.connect("/data/assistant-backup.sqlite3")) as backup:
+    assert source.execute("PRAGMA user_version").fetchone()[0] == 2
+    source.execute("SELECT actual_micro,reserved_micro FROM spend_ledger LIMIT 1").fetchall()
+    source.backup(backup)
+    assert backup.execute("PRAGMA user_version").fetchone()[0] == 2
+    assert backup.execute("PRAGMA quick_check").fetchone()[0] == "ok"
+'
+# Transfer the single consistent backup to encrypted off-server retention via vps-ops.
+# Remove its local staging copy only after verifying the transfer and its retention policy.
+```
+
+The smoke restores its online backup into a stopped **disposable** volume, starts the same
+image, and verifies both conversation continuity and charged spend. In production, restore into
+an isolated new volume first; verify quick_check, schema/user_version, ledger month sums,
+readiness and synthetic session before considering an authorized switchover. Start recovery with
+`ASSISTANT_ENABLED=false`: a historical snapshot omits spend incurred after the backup. Keep
+paid turns disabled until the owner reconciles that interval against provider usage and existing
+ledger/run evidence, or accounts for it conservatively in the remaining budget. Unknown spend
+is not zero; a provider project budget must not be assumed to be an enforced hard cap. The
+[official OpenAI spend-limit guide](https://developers.openai.com/api/docs/guides/spend-limits)
+distinguishes spend alerts from an explicitly enforced hard limit; enforcement can lag and
+slightly overshoot. No Pequeverso project configuration or enforcement was inspected here. The
+smoke proves restoration of its just-taken snapshot, not production RPO or spend reconciliation.
+Never replace a live database file or copy only the main file while WAL writes are active. Image rollback does
+not restore or reset ledger data. Preserve the backup taken before a migration.
+
+### Monitoring without new infrastructure
+
+Use existing private ops summary and internal health probes; no public metrics endpoint or
+collector is introduced (ADR-0005). An authorized operator can inspect Docker health,
+`State.OOMKilled`, cgroup `memory.events`, memory/CPU/PIDs and free space through its existing
+host tooling. Proposed warnings: memory sustained ≥ 80% of 256 MiB, any OOM, not-ready for two
+probe intervals, month spend ≥ 80% cutoff, stale price/catalog fetch failure. Collect aggregate
+counts and latencies, never conversation bodies or secrets.
+
+Volume monitoring must include `assistant.sqlite3`, `-wal`, `-shm` and backup staging files.
+SQLite deleted pages are reused but the database need not shrink; run no automatic VACUUM or
+ledger purge. Review sustained WAL > 64 MiB (long readers can delay checkpoint), volume > 1 GiB,
+less than 1 GiB free host space or less than 20% free: warn and diagnose, never delete ledger
+rows to recover space. Reserve room for at least two backup copies and the working database;
+actual retention/RPO/RTO and disk allocation are vps-ops/owner decisions. Spend and catalog
+snapshots are not a substitute for a verified off-server restore drill.
+
+The builder and runtime are separate; uv and developer packages never ship. Dependency layers
+are keyed by pyproject/uv.lock. Revision metadata comes after filesystem layers so rebuilding
+only SERVICE_REVISION reuses them. Build intermediate caches are host-owned, not runtime
+volumes: inspect `docker system df`, retain current and known-good rollback image digests, and
+remove only explicitly retired image tags/cache under the operator's policy. Never use a
+blanket system/volume prune; application data and other projects are out of scope.
+
+For reproducible local verification: `scripts/smoke_container.sh [exact-image]`. The fixture
+probe checks an explicit local container with AI_PROVIDER=fixture/ALLOW_PAID_AI=false and four
+concurrent streams. Its cgroup-v2 peak includes page cache and differs from Docker's reported
+cache-subtracted idle usage. This is not a live-provider benchmark or capacity guarantee.

@@ -74,3 +74,29 @@ def test_settlement_replaces_reservation_and_missing_usage_keeps_it(tmp_path: Pa
         await db.close()
 
     asyncio.run(run())
+
+
+def test_persistent_ledger_uses_full_wal_sync_and_survives_reopen(tmp_path: Path) -> None:
+    async def run() -> None:
+        path = str(tmp_path / 'durable.sqlite3')
+        db = Database(path)
+        await db.open()
+        assert await db.read(lambda c: c.execute('PRAGMA journal_mode').fetchone()[0]) == 'wal'
+        assert await db.read(lambda c: c.execute('PRAGMA synchronous').fetchone()[0]) == 2
+        ledger = SqliteLedger(db)
+        assert await ledger.reserve('settled', 5_000, '2026-10', '2026-10-10', POLICY.allows)
+        await ledger.settle('settled', 500, Usage(1000, 800), 'fixture')
+        assert await ledger.reserve('pending', 5_000, '2026-10', '2026-10-10', POLICY.allows)
+        await db.close()
+        reopened = Database(path)
+        await reopened.open()
+        try:
+            restored = SqliteLedger(reopened)
+            assert await restored.spent('2026-10', '2026-10-10') == (5_500, 5_500)
+            await restored.abandon_pending()
+            assert await restored.spent('2026-10', '2026-10-10') == (5_500, 5_500)
+            assert await reopened.read(lambda c: c.execute('PRAGMA synchronous').fetchone()[0]) == 2
+        finally:
+            await reopened.close()
+
+    asyncio.run(run())
