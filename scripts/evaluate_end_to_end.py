@@ -164,6 +164,7 @@ def evaluate(manifest: dict[str, Any], destination: Path, source_revision: str) 
             if not thread.is_alive() or time.monotonic() > deadline:
                 raise RuntimeError('fixture server did not start')
             time.sleep(0.01)
+        logging.getLogger().setLevel(logging.WARNING)
         rows: list[dict[str, Any]] = []
         try:
             for case in manifest['cases']:
