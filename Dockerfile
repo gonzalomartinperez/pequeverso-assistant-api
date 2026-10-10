@@ -3,27 +3,36 @@
 # SQLite writer; see docs/deployment-contract.md). Persistent state lives in /data.
 FROM ghcr.io/astral-sh/uv:0.12.21@sha256:a7aed3216253ee804de3e2d8afa5073baa1a177335345d43845cd4165e43b711 AS uv
 
-FROM python:3.13-slim@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS build
+FROM python:3.13-slim@sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024 AS build
 COPY --from=uv /uv /usr/local/bin/uv
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV UV_COMPILE_BYTECODE=1 UV_NO_CACHE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_PROJECT_ENVIRONMENT=/opt/venv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
-FROM python:3.13-slim@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS runtime
-# Source commit shown to operators (ops summary). Pass --build-arg SERVICE_REVISION=<git sha>.
-ARG SERVICE_REVISION=
-ENV SERVICE_REVISION=${SERVICE_REVISION}
+FROM python:3.13-slim@sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024 AS runtime
 ENV PATH=/opt/venv/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DATABASE_PATH=/data/assistant.sqlite3
+# Signed Debian security patch not yet present in the pinned official base.
+RUN apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update \
+    && apt-get install -y --no-install-recommends liblzma5=5.8.1-1+deb13u2 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /opt/venv /opt/venv
 COPY app ./app
 COPY migrations ./migrations
 COPY catalog ./catalog
-RUN mkdir -p /data && chown 65532:65532 /data
+# Runtime installs nothing; remove the global installer and its unused vendored dependencies.
+RUN rm -rf /usr/local/lib/python3.13/ensurepip/_bundled \
+        /usr/local/lib/python3.13/site-packages/pip \
+        /usr/local/lib/python3.13/site-packages/pip-*.dist-info \
+        /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.13 \
+    && mkdir -p /data && chown 65532:65532 /data
+# Keep revision metadata after filesystem layers so a new revision reuses dependencies.
+ARG SERVICE_REVISION=
+ENV SERVICE_REVISION=${SERVICE_REVISION}
 USER 65532:65532
 VOLUME ["/data"]
 EXPOSE 8000
