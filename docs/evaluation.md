@@ -36,10 +36,12 @@ ALLOW_PAID_AI=true OPENAI_API_KEY=<pequeverso project key> \
 ```
 
 - The service's own ledger caps the run at `--max-usd` (monthly = daily = cap, no margin).
-  Expected cost: 17 turns × ~6k input tokens (largely cached) + ≤1.2k output ≈ under USD 0.02.
+  The current reservation bound is USD 0.005 per turn (24k input tokens at the highest
+  configured input rate plus 4000 output tokens, including reasoning). Seventeen turns
+  reserve at most USD 0.085; actual usage and quality remain unmeasured.
 - Review each scenario's `quality` list and the answers by hand. Adjust `app/ai/prompt.py` (bump
   `PROMPT_VERSION`), then rerun. Commit the report with the model name and date.
-- Before launch, also run 3–5 manual chats through the web app against a staging deployment.
+- Before launch, also run 3–5 manual chats through the native storefront assistant against an isolated staging deployment.
 
 ## Evaluation corpus (`evals/corpus/`)
 

@@ -2,8 +2,8 @@
 
 Audience: the **native assistant of the storefront** `pequeverso` (the only public conversation
 UI). The former `pequeverso-assistant-web` chat shells were removed; that repository is now the
-private backoffice `pequeverso-assistant-backoffice`. Revision **1.1** (additive within v1, `contract_revision` in `SessionOut` and
-`contracts/manifest.json`): `starters`, `locale`, `language`, notice `language_unsupported`,
+private backoffice `pequeverso-assistant-backoffice`. Current revision: **1.2**, additive within v1
+(`contract_revision` in `SessionOut` and `contracts/manifest.json`). Revision **1.1** added: `starters`, `locale`, `language`, notice `language_unsupported`,
 and the private operations API. Revision **1.2** adds `pricing` (the rate source used for
 estimates) and `recent` (up to 50 latest runs with opaque ids) to the private ops summary only;
 the browser contract is unchanged from 1.1. Clients of 1.0 keep working unchanged.
