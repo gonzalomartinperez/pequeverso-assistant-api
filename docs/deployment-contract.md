@@ -14,7 +14,23 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 | Writable paths | `/data` (volume), `/tmp` (tmpfs) |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
 | Port | `8000/tcp` (HTTP, plain; TLS terminates at the proxy) |
-| Size / resources (measured locally 2026-10-05, fixture mode) | 235 MB uncompressed image (`docker images`); ~56 MiB RSS idle; graceful stop ≈ 1 s. Suggested limits: 256 MiB memory, 0.5 CPU. Live-model load was not measured |
+| Size / resources (measured locally 2026-10-10, fixture mode) | Exact candidate image: 52,884,150 bytes; idle memory 56.77 MiB, cgroup peak 74,072,064 bytes. Idle stop 1.476 s; active-stream stop 16.539 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Container stop grace must be at least 30 s; see evidence below |
+
+These measurements belong to local linux/amd64 image
+`sha256:bcaec035a74f8e738e0cdc63062ec64d9ed9efa9e47721b08f1cffc0f36ea9aa`,
+built from candidate `255feebd5589eb78ca05ba8b6a2b14e8fa575c70`. The application tree
+matches develop squash `6fc5d92d63bbb8f71bce8916f324b86ae0f9237d`; subsequent documentation
+changes do not relabel this digest as a release-built image. It was not published or deployed.
+The local acceptance receipt used fixture mode, no paid calls, a read-only root, dropped
+capabilities, no new privileges, a 64 MiB `/tmp` tmpfs and rotated local logs. Four concurrent
+fixture streams completed in 404–532 ms; live-model load and VPS capacity were not measured.
+
+Active-stream SIGTERM exited with code 0, without OOM. Before restarting, an independent
+volume snapshot already contained three cancelled runs, one completed run and three
+`unreported` reservations; unknown spend remained reserved and no partial assistant answer
+was persisted. Restart restored five messages. The disconnected transport had no terminal
+SSE frame: these checks establish persisted state, not guaranteed terminal delivery. Carry
+the minimum 30-second container grace into Coolify/Compose and verify shutdown under VPS load.
 
 **Single instance only.** Active-run cancellation and the concurrency limit are in-process, and
 SQLite has one writer. Do not run replicas or more workers. Horizontal scaling would need a
