@@ -212,3 +212,25 @@ def test_http_placeholder_link_is_replaced_and_history_preserves_final(tmp_path:
 def test_normalized_follow_up_labels_remain_unique() -> None:
     final = _finalize(Draft('Consulta soporte.', (), (), ('¿Dónde está [Soporte]?', '¿Dónde está Soporte?')))
     assert final.details.follow_ups == ('¿Dónde está Soporte?',)
+
+
+@pytest.mark.parametrize(
+    'text',
+    [
+        '[He] reembolsado tu compra.',
+        'El precio es US$[5].',
+        'El kit [garantiza] que aprenderá a leer en siete días.',
+    ],
+)
+def test_normalizing_brackets_cannot_create_an_unchecked_commercial_claim(text: str) -> None:
+    final = _finalize(Draft(text, (), (), (text,)))
+    assert final.content == REPLACEMENT_ANSWER
+    assert final.details.notices == (Notice.ANSWER_REPLACED,)
+    assert final.details.follow_ups == ()
+
+
+def test_normalized_follow_up_is_checked_for_newly_exposed_price() -> None:
+    final = _finalize(
+        Draft('Consulta el precio publicado.', (), (), ('¿Cuesta US$[5]?', '¿Cuál es el precio publicado?'))
+    )
+    assert final.details.follow_ups == ('¿Cuál es el precio publicado?',)

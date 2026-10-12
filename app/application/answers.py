@@ -168,6 +168,10 @@ def finalize(
     catalog = active.catalog
     content = plain_text(draft.answer)
     violations = check_answer(content, rules) if content else []
+    content = _readable_text(content)
+    # Normalization can expose a previously bracketed price or positive claim. Validate
+    # both representations; never let formatting create a new unchecked assertion.
+    violations = list(dict.fromkeys([*violations, *check_answer(content, rules)]))
     if not content or len(content) > MAX_ANSWER_CHARS or violations:
         return FinalizedAnswer(
             replacement_text(language),
@@ -175,8 +179,6 @@ def finalize(
             tuple(violations),
             len(draft.references),
         )
-
-    content = _readable_text(content)
 
     products: dict[str, ProductRef] = {}
     resources: dict[str, ResourceRef] = {}
@@ -212,6 +214,7 @@ def finalize(
         if (
             0 < len(text) <= MAX_FOLLOW_UP_CHARS
             and text not in follow_ups
+            and not check_answer(text, rules)
             and len(follow_ups) < MAX_FOLLOW_UPS
         ):
             follow_ups.append(text)
