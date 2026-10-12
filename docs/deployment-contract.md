@@ -9,7 +9,7 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 | Item | Value |
 |---|---|
 | Build | `docker build --build-arg SERVICE_REVISION=<sha> -t pequeverso-assistant-api:<sha> .` from a clean checkout of an exact commit (context allowlisted by `.dockerignore`). An empty `SERVICE_REVISION` is allowed; the ops summary then reports `revision: null` |
-| Base | `python:3.13-slim` and `ghcr.io/astral-sh/uv:0.12.21`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-dev`) |
+| Base | `python:3.14.8-slim-trixie` and `ghcr.io/astral-sh/uv:0.13.0`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-dev`) |
 | User | `65532:65532`; runs with a read-only root filesystem, `--cap-drop ALL`, `no-new-privileges` (verified by `scripts/smoke_container.sh`) |
 | Writable paths | `/data` (volume), `/tmp` (tmpfs) |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
@@ -307,3 +307,28 @@ revisit its pinned base/package when rebuilding, rather than silently choosing a
 Removing an installer from inherited base layers uses whiteouts: it reduces exposed runtime
 files, not the physical bytes of shared image layers. Preserve shared layers and a rollback
 image; do not pursue size reduction by stripping required libraries.
+
+
+## Optional application telemetry and current Python candidate
+
+[Application observability](observability/README.md) owns the optional private JSON/Prometheus
+endpoints, manual traces and provisioning transfer artifacts. Infrastructure owns the collector,
+Grafana, Prometheus, private scrape credentials and deployment. Observability is off by default;
+never route `/internal/*` publicly. A telemetry-off API remains fully functional. Provider
+availability is unknown unless separately verified: no paid probes or manufactured uptime.
+
+The new candidate uses stable Python3.14.8, from official linux/amd64
+`python:3.14.8-slim-trixie@sha256:cfe2e24a75302a15934d37c2d86412893c0aa934dc3a97cbb439d04c01890ca9`
+verified2026-10-12, with uv0.13.0 pinned in builder and CI. Host setup pins3.14.8;
+strict mypy targets3.14. Ruff retains the existing3.13-compatible syntax policy, which runs
+unchanged on3.14 and avoids unrelated automatic syntax rewrites. It is not a second runtime.
+Exact-candidate image and full checks must pass before acceptance; earlier Python3.13/container
+measurements above remain historical and are not measurements of this candidate.
+
+Python3.15.0 was [released stable on2026-10-09](https://www.python.org/downloads/release/python-3150/),
+but official Docker tags3.15.0,3.15.0-slim and3.15.0-slim-trixie returned no manifest on2026-10-12.
+Local uv0.12.10 likewise had no3.15.0 managed download. The owner explicitly allowed stable3.14
+instead. No RC, ad hoc source build or untested3.15 image is substituted. Reconsider3.15 only
+once a stable official digest and compatible wheels are available, then independently run
+all checks, socket/model revalidation and exact-image hardening/restore/shutdown tests.
+Python uses its release support lifecycle; no separate "LTS" distribution is claimed.

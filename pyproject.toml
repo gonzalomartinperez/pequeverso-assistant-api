@@ -2,7 +2,7 @@
 name = "pequeverso-assistant-api"
 version = "0.1.0"
 description = "Advisory, read-only shopping assistant backend for Pequeverso."
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "fastapi>=0.141.1",
     "httpx>=0.28.1",
@@ -44,7 +44,7 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Cookie"]
 quote-style = "single"
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 strict = true
 files = ["app", "contracts", "scripts"]
 plugins = ["pydantic.mypy"]
