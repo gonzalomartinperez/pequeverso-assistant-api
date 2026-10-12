@@ -103,4 +103,5 @@ def test_native_policy_is_observed_over_http_without_relabeling_historical_annot
     assert notice['original_expected_language'] == 'en' and notice['expected_language'] == 'unsupported'
     assert not notice['behavior_flags'] and not first['behavior_flags'] and not last['behavior_flags']
     assert all(row['replay_new_provider_calls'] == 0 for row in result['cases'])
+    assert all(row['replay_answer_matches'] for row in result['cases'])
     assert manifest['cases'][0]['turns'][0]['expected_language'] == 'en'

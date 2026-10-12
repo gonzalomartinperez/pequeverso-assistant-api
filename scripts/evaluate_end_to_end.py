@@ -465,6 +465,14 @@ def evaluate(
                             client, csrf, turn['question'], locale, key, response_language=response_language
                         )
                         rows[-1]['replay_new_provider_calls'] = len(provider.records) - before_replay
+                        replay_messages = [
+                            event['message']
+                            for event in replay['events']
+                            if event['type'] == 'message.completed'
+                        ]
+                        rows[-1]['replay_answer_matches'] = (
+                            len(replay_messages) == 1 and replay_messages[0] == message
+                        )
                         replay_history = client.post(
                             '/api/v1/session', headers={'Origin': ORIGIN}, json={'locale': locale}
                         )
@@ -476,6 +484,7 @@ def evaluate(
                         checkpoint(destination / 'answers.json', rows)
                         if envelope and (
                             rows[-1]['replay_new_provider_calls']
+                            or not rows[-1]['replay_answer_matches']
                             or not rows[-1]['replay_history_unchanged']
                             or rows[-1]['replay_terminal'] != ['run.completed']
                         ):

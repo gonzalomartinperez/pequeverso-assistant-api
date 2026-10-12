@@ -25,6 +25,62 @@ def matrix(turns=2):
     }
 
 
+def test_replay_wrong_answer_stops_even_when_history_and_terminal_remain_valid(tmp_path, monkeypatch):
+    from scripts import evaluate_end_to_end as runner
+
+    def success(request):
+        answer = json.dumps(
+            {
+                'answer': 'Puedes consultar la página del producto.',
+                'references': [],
+                'sources': [],
+                'follow_ups': [],
+            }
+        )
+        events = [
+            {'type': 'response.output_text.delta', 'delta': answer},
+            {
+                'type': 'response.completed',
+                'response': {
+                    'id': 'resp-synthetic',
+                    'object': 'response',
+                    'created_at': 0,
+                    'status': 'completed',
+                    'model': 'gpt-6-luna',
+                    'output': [],
+                    'usage': {'input_tokens': 500, 'output_tokens': 50, 'total_tokens': 550},
+                },
+            },
+        ]
+        return httpx2.Response(
+            200,
+            headers={'content-type': 'text/event-stream'},
+            content=''.join(f'data: {json.dumps(e)}\n\n' for e in events),
+        )
+
+    real_ask = runner.ask
+
+    def wrong_replay(*args, **kwargs):
+        result = real_ask(*args, **kwargs)
+        if kwargs.get('on_event') is None:
+            for event in result['events']:
+                if event['type'] == 'message.completed':
+                    event['message']['content'] = 'Una respuesta distinta que no está en el historial.'
+        return result
+
+    monkeypatch.setattr(runner, 'ask', wrong_replay)
+    output = tmp_path / 'answers'
+    output.mkdir(mode=0o700)
+    envelope = Envelope(tmp_path / 'budget.sqlite3')
+    bounded = BoundedProvider('synthetic-key', envelope, transport=httpx2.MockTransport(success))
+    result = runner.evaluate(matrix(), output, 'abcdef0', bounded=bounded)
+    assert result['queries'] == 1 and result['stop_reason'] == 'replay_gate_failure'
+    row = result['cases'][0]
+    assert row['replay_history_unchanged'] and row['replay_terminal'] == ['run.completed']
+    assert row['replay_new_provider_calls'] == 0 and not row['replay_answer_matches']
+    assert envelope.snapshot()['attempts'] == 1
+
+
 def test_live_socket_path_usage_replay_and_private_artifacts(tmp_path):
     calls = []
 
