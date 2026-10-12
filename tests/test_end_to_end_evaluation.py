@@ -75,3 +75,32 @@ def test_private_artifact_cannot_overwrite_initial_run(tmp_path):
     with pytest.raises(FileExistsError):
         write_private(path, {'initial': False})
     assert json.loads(path.read_text()) == {'initial': True}
+
+
+def test_native_policy_is_observed_over_http_without_relabeling_historical_annotations(tmp_path):
+    manifest = {
+        'reply_policy': 'spanish_native',
+        'policy_expected_languages': {'native:1': 'es', 'native:2': 'unsupported', 'native:3': 'es'},
+        'cases': [
+            {
+                'id': 'native',
+                'family': 'language-continuity',
+                'locale': 'en',
+                'turns': [
+                    {'question': 'What is included in the kit?', 'expected_language': 'en'},
+                    {'question': 'Please answer in English.', 'expected_language': 'en'},
+                    {'question': '¿Y cómo lo imprimo?', 'expected_language': 'es'},
+                ],
+            }
+        ],
+    }
+    result = evaluate(manifest, tmp_path, 'abcdef0')
+    assert result['queries'] == 3 and result['provider_calls'] == 2
+    assert result['history_mismatches'] == 0
+    first, notice, last = result['cases']
+    assert first['original_expected_language'] == 'en' and first['expected_language'] == 'es'
+    assert notice['provider_calls'] == 0 and notice['observed_language'] == 'es'
+    assert notice['original_expected_language'] == 'en' and notice['expected_language'] == 'unsupported'
+    assert not notice['behavior_flags'] and not first['behavior_flags'] and not last['behavior_flags']
+    assert all(row['replay_new_provider_calls'] == 0 for row in result['cases'])
+    assert manifest['cases'][0]['turns'][0]['expected_language'] == 'en'

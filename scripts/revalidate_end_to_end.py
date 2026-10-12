@@ -60,6 +60,16 @@ def validate_matrix(manifest: dict[str, Any], baseline: dict[str, Any]) -> dict[
         raise ValueError('revalidation must mix unchanged affected cases and new variants within 64 queries')
     if manifest.get('query_count') != queries:
         raise ValueError('declared query count does not match the frozen cases')
+    if manifest.get('reply_policy') != 'spanish_native':
+        raise ValueError('the current revalidation must declare the Spanish native policy')
+    expected_keys = {f'{c["id"]}:{n + 1}' for c in manifest['cases'] for n, _ in enumerate(c['turns'])}
+    expectations = manifest.get('policy_expected_languages')
+    if (
+        not isinstance(expectations, dict)
+        or set(expectations) != expected_keys
+        or any(value not in ('es', 'unsupported') for value in expectations.values())
+    ):
+        raise ValueError('each turn needs an explicit Spanish-policy expectation outside baseline cases')
     return {'queries': queries, 'repeated_cases': repeats, 'new_variant_cases': variants}
 
 
@@ -78,6 +88,8 @@ def main() -> None:
         logging.getLogger(name).setLevel(logging.CRITICAL)
     manifest = json.loads(args.manifest.read_text())
     baseline = json.loads(args.baseline_manifest.read_text())
+    if manifest.get('baseline_manifest_sha256') != digest(args.baseline_manifest.read_bytes()):
+        parser.error('the baseline manifest does not match its frozen digest')
     counts = validate_matrix(manifest, baseline)
     verify_existing_budget(args.previous_run, args.budget_state, terminal_only=False)
     destination = args.output_dir.resolve()
@@ -91,6 +103,7 @@ def main() -> None:
         {
             **counts,
             'phase': manifest['phase'],
+            'reply_policy': manifest['reply_policy'],
             'baseline_manifest_sha256': digest(args.baseline_manifest.read_bytes()),
             'manifest_sha256': digest(args.manifest.read_bytes()),
             'catalog_sha256': digest(DEFAULT_CATALOG.read_bytes()),

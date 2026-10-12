@@ -54,7 +54,7 @@ UNSUPPORTED_LANGUAGE_ANSWER = (
     'question in one of them?'
 )
 UNSUPPORTED_LANGUAGE_ANSWER_ES = (
-    'Este asistente responde solo en español. Puedo ayudarte en español con tus dudas sobre Pequeverso.'
+    'Por ahora te ayudo solo en español. ¿Qué te gustaría saber sobre Pequeverso?'
 )
 
 

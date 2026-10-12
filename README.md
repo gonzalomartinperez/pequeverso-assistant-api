@@ -5,7 +5,8 @@
 ![SQLite](https://img.shields.io/badge/SQLite-WAL_%2B_FULL-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--6_Luna-06305B?style=flat-square&logo=openai&logoColor=white)
 ![Effort](https://img.shields.io/badge/reasoning-medium-007E80?style=flat-square)
-![Contract](https://img.shields.io/badge/contract-v1_%C2%B7_1.3-06305B?style=flat-square)
+![Contract](https://img.shields.io/badge/contract-v1_%C2%B7_1.4-06305B?style=flat-square)
+![Language](https://img.shields.io/badge/native_assistant-Espa%C3%B1ol-007E80?style=flat-square)
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-opt--in-06305B?style=flat-square&logo=opentelemetry&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-private_metrics-E6522C?style=flat-square&logo=prometheus&logoColor=white)
 ![CI](https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/workflows/quality.yml/badge.svg?branch=develop)
@@ -17,10 +18,13 @@ included and reach the storefront's purchase flow. Public repository; no license
 
 - Python 3.14.8, FastAPI, uv; SQLite (single process); OpenAI Responses (`gpt-6-luna`) behind a
   provider port; a deterministic **fixture provider is the default**.
-- Versioned HTTP/SSE contract (v1, revision 1.3) for the storefront's native assistant, which
+- Versioned HTTP/SSE contract (v1, revision 1.4) for the storefront's native assistant, which
   calls the API cross-origin; private, token-protected operations summary for the backoffice
   (`pequeverso-assistant-backoffice`, formerly `pequeverso-assistant-web`).
-- Answers in Spanish (neutral Latin American, "tú") or English, decided in code per message.
+- The native assistant presents only neutral Latin American Spanish ("tú"), without a language
+  selector. Every new native turn sends `response_language: "es"` and requires API revision1.4
+  or later. Earlier API clients remain compatible when this field is absent, including their
+  legacy ES/EN behavior and stored history; the existing wire enum is preserved.
 - `gpt-6-luna` at **medium** reasoning effort when paid use is authorized; budget USD 10/month
   (configurable) with atomic reservations and confirmed / estimated / pending spend.
 - Grounded in a catalog exported from the storefront at a pinned commit; every product,

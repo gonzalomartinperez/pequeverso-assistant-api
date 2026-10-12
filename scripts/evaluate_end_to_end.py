@@ -85,8 +85,8 @@ class EvidenceProvider:
             yield chunk
 
 
-def observed_language(content: str, notices: list[str]) -> str:
-    if 'language_unsupported' in notices:
+def observed_language(content: str, notices: list[str], *, spanish_native: bool = False) -> str:
+    if 'language_unsupported' in notices and not spanish_native:
         return 'bilingual-unsupported-notice'
     if content.startswith('From the store information (the material is in Spanish):'):
         return 'mixed-en-es-fixture'
@@ -103,6 +103,7 @@ def ask(
     key: str,
     *,
     on_event: Callable[[list[dict[str, Any]]], None] | None = None,
+    response_language: str | None = None,
 ) -> dict[str, Any]:
     started = time.monotonic()
     first: float | None = None
@@ -119,6 +120,7 @@ def ask(
             'content': question,
             'page': 'product',
             'locale': locale,
+            **({'response_language': response_language} if response_language else {}),
             'context': {
                 'opened_path': '/grafismo-fonetico/',
                 'current_path': '/grafismo-fonetico/',
@@ -192,6 +194,9 @@ def evaluate(
     *,
     bounded: BoundedProvider | None = None,
 ) -> dict[str, Any]:
+    spanish_native = manifest.get('reply_policy') == 'spanish_native'
+    response_language = 'es' if spanish_native else None
+    policy_expectations = manifest.get('policy_expected_languages', {})
     provider = EvidenceProvider(bounded)
     envelope = bounded.envelope if bounded else None
     stop_reason: str | None = None
@@ -261,9 +266,10 @@ def evaluate(
             for case in manifest['cases']:
                 if not preflight():
                     break
+                locale = 'es' if spanish_native else case['locale']
                 with httpx.Client(base_url=f'http://127.0.0.1:{port}', timeout=30, trust_env=False) as client:
                     opened = client.post(
-                        '/api/v1/session', headers={'Origin': ORIGIN}, json={'locale': case['locale']}
+                        '/api/v1/session', headers={'Origin': ORIGIN}, json={'locale': locale}
                     )
                     opened.raise_for_status()
                     csrf = opened.json()['csrf_token']
@@ -272,6 +278,11 @@ def evaluate(
                     for number, turn in enumerate(case['turns']):
                         if not preflight():
                             break
+                        expected_language = (
+                            policy_expectations[f'{case["id"]}:{number + 1}']
+                            if spanish_native
+                            else turn['expected_language']
+                        )
                         key = f'matrix-{case["id"]}-{number}'
                         before = len(provider.records)
                         receipt_start = len(bounded.receipts) if bounded else 0
@@ -295,9 +306,10 @@ def evaluate(
                                 client,
                                 csrf,
                                 turn['question'],
-                                case['locale'],
+                                locale,
                                 key,
                                 on_event=capture_event,
+                                response_language=response_language,
                             )
                         except (httpx.HTTPError, ValueError) as error:
                             # No exception text: SDK/network errors can contain private values.
@@ -313,7 +325,7 @@ def evaluate(
                         ]
                         message = completed[-1] if completed else None
                         restored = client.post(
-                            '/api/v1/session', headers={'Origin': ORIGIN}, json={'locale': case['locale']}
+                            '/api/v1/session', headers={'Origin': ORIGIN}, json={'locale': locale}
                         )
                         restored.raise_for_status()
                         history = restored.json()['messages']
@@ -329,21 +341,33 @@ def evaluate(
                         )
                         public_evidence = provider.records[before:]
                         observed = (
-                            observed_language(message['content'], message['notices'])
+                            observed_language(
+                                message['content'], message['notices'], spanish_native=spanish_native
+                            )
                             if message
                             else 'no-answer'
                         )
                         semantic_flags: list[str] = []
                         if observed == 'mixed-en-es-fixture':
                             semantic_flags.append('English response contains untranslated Spanish evidence')
-                        if turn['expected_language'] == 'unsupported' and (
+                        if spanish_native and message:
+                            from app.domain.language import Detected, detect
+
+                            if any(
+                                detect(text) in (Detected.EN, Detected.OTHER)
+                                for text in [message['content'], *message['follow_ups']]
+                            ):
+                                semantic_flags.append(
+                                    'Spanish native text or follow-up detected another language'
+                                )
+                        if expected_language == 'unsupported' and (
                             not message or 'language_unsupported' not in message['notices']
                         ):
                             semantic_flags.append('explicit unsupported language request reached generation')
                         elif (
-                            turn['expected_language'] in ('es', 'en')
+                            expected_language in ('es', 'en')
                             and message
-                            and message['language'] != turn['expected_language']
+                            and message['language'] != expected_language
                         ):
                             semantic_flags.append('expected language differs from output metadata')
                         safety = (
@@ -381,7 +405,9 @@ def evaluate(
                             else 'fixture'
                             if public_evidence
                             else 'local-abstention',
-                            'expected_language': turn['expected_language'],
+                            'expected_language': expected_language,
+                            'original_expected_language': turn['expected_language'],
+                            'reply_policy': 'spanish_native' if spanish_native else 'legacy_bilingual',
                             'observed_language': observed,
                             'evidence': public_evidence,
                             'lexical_top3': [{'id': p.id, 'score': score} for p, score in lexical[:3]],
@@ -433,28 +459,30 @@ def evaluate(
                         )
                         previous_question = turn['question']
                         previous_history = history
+                        # Verify every completed turn, including intermediate conversation turns.
+                        before_replay = len(provider.records)
+                        replay = ask(
+                            client, csrf, turn['question'], locale, key, response_language=response_language
+                        )
+                        rows[-1]['replay_new_provider_calls'] = len(provider.records) - before_replay
+                        replay_history = client.post(
+                            '/api/v1/session', headers={'Origin': ORIGIN}, json={'locale': locale}
+                        )
+                        replay_history.raise_for_status()
+                        rows[-1]['replay_history_unchanged'] = replay_history.json()['messages'] == history
+                        rows[-1]['replay_terminal'] = [
+                            e['type'] for e in replay['events'] if e['type'].startswith('run.')
+                        ][-1:]
+                        checkpoint(destination / 'answers.json', rows)
+                        if envelope and (
+                            rows[-1]['replay_new_provider_calls']
+                            or not rows[-1]['replay_history_unchanged']
+                            or rows[-1]['replay_terminal'] != ['run.completed']
+                        ):
+                            envelope.stop('replay_gate_failure')
+                            preflight()
+                            break
                     if stop_reason:
-                        break
-                    # Replay the completed request; it must not call the provider again.
-                    before_replay = len(provider.records)
-                    replay = ask(client, csrf, turn['question'], case['locale'], key)
-                    rows[-1]['replay_new_provider_calls'] = len(provider.records) - before_replay
-                    replay_history = client.post(
-                        '/api/v1/session', headers={'Origin': ORIGIN}, json={'locale': case['locale']}
-                    )
-                    replay_history.raise_for_status()
-                    rows[-1]['replay_history_unchanged'] = replay_history.json()['messages'] == history
-                    rows[-1]['replay_terminal'] = [
-                        e['type'] for e in replay['events'] if e['type'].startswith('run.')
-                    ][-1:]
-                    checkpoint(destination / 'answers.json', rows)
-                    if envelope and (
-                        rows[-1]['replay_new_provider_calls']
-                        or not rows[-1]['replay_history_unchanged']
-                        or rows[-1]['replay_terminal'] != ['run.completed']
-                    ):
-                        envelope.stop('replay_gate_failure')
-                        preflight()
                         break
             with httpx.Client(base_url=f'http://127.0.0.1:{port}', timeout=10, trust_env=False) as outsider:
                 isolated = (

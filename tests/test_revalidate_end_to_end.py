@@ -1,10 +1,11 @@
 """A targeted paid runner must preserve the initial matrix and existing financial gates."""
 
 import copy
+import json
 
 import pytest
 
-from scripts.revalidate_end_to_end import validate_matrix
+from scripts.revalidate_end_to_end import main, validate_matrix
 
 
 def matrices():
@@ -21,6 +22,8 @@ def matrices():
     manifest = {
         'phase': 'post-adjustment targeted revalidation; not independent holdout',
         'query_count': 2,
+        'reply_policy': 'spanish_native',
+        'policy_expected_languages': {'original:1': 'es', 'revalidation-new:1': 'es'},
         'cases': [copy.deepcopy(original), variant],
     }
     return manifest, baseline
@@ -73,3 +76,46 @@ def test_revalidation_must_disclose_phase_and_actual_query_count():
     manifest['phase'] = 'independent holdout'
     with pytest.raises(ValueError, match='non-independent'):
         validate_matrix(manifest, baseline)
+
+
+@pytest.mark.parametrize('expectations', [{}, {'original:1': 'en', 'revalidation-new:1': 'es'}])
+def test_new_policy_must_annotate_every_turn_without_relabeling_baseline(expectations):
+    manifest, baseline = matrices()
+    manifest['policy_expected_languages'] = expectations
+    with pytest.raises(ValueError, match='explicit Spanish-policy expectation'):
+        validate_matrix(manifest, baseline)
+    assert manifest['cases'][0]['turns'][0]['expected_language'] == 'en'
+
+
+def test_wrong_baseline_digest_stops_before_key_or_budget_access(tmp_path, monkeypatch, capsys):
+    manifest, baseline = matrices()
+    manifest['baseline_manifest_sha256'] = '0' * 64
+    manifest_path, baseline_path = tmp_path / 'matrix.json', tmp_path / 'baseline.json'
+    manifest_path.write_text(json.dumps(manifest))
+    baseline_path.write_text(json.dumps(baseline))
+    budget = tmp_path / 'must-not-be-created.sqlite3'
+    monkeypatch.setattr(
+        'sys.argv',
+        [
+            'revalidate_end_to_end.py',
+            '--manifest',
+            str(manifest_path),
+            '--baseline-manifest',
+            str(baseline_path),
+            '--previous-run',
+            str(tmp_path / 'missing-run'),
+            '--key-file',
+            str(tmp_path / 'missing-key'),
+            '--budget-state',
+            str(budget),
+            '--output-dir',
+            str(tmp_path / 'new-output'),
+            '--source-revision',
+            'synthetic-test-revision',
+        ],
+    )
+    with pytest.raises(SystemExit) as error:
+        main()
+    assert error.value.code == 2
+    assert 'baseline manifest does not match its frozen digest' in capsys.readouterr().err
+    assert not budget.exists()
