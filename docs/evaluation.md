@@ -157,8 +157,8 @@ uv run python scripts/evaluate_end_to_end.py \
   --output-dir /absolute/private/path/new-initial-run
 ```
 
-The runner is fixture-only and has no live-mode option. It forces no provider key, disables
-paid AI and avoids `.env.local`. It starts Uvicorn on loopback and uses real HTTP/SSE, session
+The runner defaults to fixtures. Without `--live` it forces no provider key, disables
+paid AI and avoids `.env.local`, even when key-file arguments or ambient credentials exist. It starts Uvicorn on loopback and uses real HTTP/SSE, session
 cookies, Origin and CSRF. Each turn records HTTP/terminal outcome, first-content and total
 latency, public evidence hash/ids actually sent, lexical ranking separately, final citations,
 observed-language heuristics and exact restored-history comparison. Completed-request replay
@@ -191,3 +191,54 @@ bound and is sent in full. Both resources in comparisons were therefore availabl
 when the fixture mentioned only one. Low English lexical scores do not establish omitted
 model evidence. Vector and graph search are absent by design. Real-model commercial
 accuracy, source entailment, tone and English fluency remain activation blockers.
+
+
+## Explicit opt-in socket evaluation
+
+Owner authorization on 2026-10-12 permits a bounded OpenAI evaluation; this procedure is not
+storefront activation or a deployment. Only `gpt-6-luna`, reasoning `medium`, is supported.
+The runner itself does not verify account availability, official prices, previous monthly
+spend or owner authorization: the operator must verify those before dispatch.
+
+```sh
+uv run python scripts/evaluate_end_to_end.py --live \
+  --manifest evals/end_to_end_postfix.json \
+  --source-revision <exact-application-commit> \
+  --key-file /absolute/private/pequeverso-eval.env.local \
+  --budget-state /absolute/private/common-budget.sqlite3 \
+  --output-dir /absolute/private/new-live-baseline
+```
+
+The environment file must be a regular, non-symlink mode600 file outside the repository,
+with `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-6-luna` and `OPENAI_REASONING_EFFORT=medium`.
+The shared budget directory must be mode700; existing budget files must be mode600.
+The unchanged `Envelope` and `BoundedProvider` enforce the shared immutable USD1 envelope,
+400 attempts, USD0.011 reservations, conservative usage settlement, unknown-cost retention,
+Standard tier, no SDK/adapter retry, no proxy trust and no fallback. Reuse the same budget
+state across baseline and any later revalidation; never reset a stopped ledger or enlarge
+its cap. The USD10 project monthly authorization is separate from this stricter envelope.
+
+All generations still enter through real loopback HTTP/SSE with session, Origin, CSRF,
+idempotency, grounding, persistence and history checks. Provider overrides are isolated
+local test composition, not production runtime configuration. Evidence records distinguish
+retrieved catalog payloads from dispatched OpenAI attempts. Price safety follows the actual
+evidence `price_status`; a stale snapshot is not made fresh by running the evaluator.
+
+The 236-query postfix matrix contains the original224 plus12 development variants; it is
+not an independent holdout. Freeze its manifest and application/catalog revision before
+calling. One progress line per completed turn contains identifiers, counts and terminal
+state only. Full answers, streamed partial events, evidence and usage receipts stay in a new
+private directory. `answers.json` is atomically checkpointed per turn, `inflight.json` per
+SSE event and `budget.json` after each turn; the external SQLite envelope persists reservation
+before dispatch. Summary records missing turns and a safe stop reason even after an orderly
+interrupt. A force-killed process may have only partial artifacts; never retry its uncertain
+attempt automatically.
+
+Live mode stops on a transport/application failure, missing usage, structural/history/replay
+or authorization/isolation gate failure, interruption, or exhausted shared budget. A summary
+with `stop_reason` makes the CLI exit nonzero. No generation is retried to obtain a green run.
+Known token usage is reported separately from conservative accounting and the application
+ledger; `actual_provider_usd` remains null in live mode because none is an invoice. Review
+commercial correctness, citation entailment, usefulness and actual output language separately:
+HTTP completion and automated heuristics do not certify response quality. Publish only reviewed
+metadata; full private responses and credentials never belong in Git.
