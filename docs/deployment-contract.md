@@ -14,7 +14,16 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 | Writable paths | `/data` (volume), `/tmp` (tmpfs) |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
 | Port | `8000/tcp` (HTTP, plain; TLS terminates at the proxy) |
-| Size / resources (measured locally 2026-10-10, fixture mode) | Exact candidate image: 52,884,150 bytes; idle memory 56.77 MiB, cgroup peak 74,072,064 bytes. Idle stop 1.476 s; active-stream stop 16.539 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Container stop grace must be at least 30 s; see evidence below |
+| Size / resources (measured locally 2026-10-12, fixture mode) | Exact application candidate: 56,671,696 bytes; idle memory 66.17 MiB, cgroup peak 82,812,928 bytes. Idle stop 4.938 s; active stream with blocked collector stop 19.077 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; no VPS capacity claim |
+
+Current local acceptance belongs to application commit
+`f2958b6efb2dc6bc099647a86aaa44dac1816fef`, image
+`sha256:48435fc564ff353b9590e9ebed033425d23615815f29a9d69112b88e0b76bf57`.
+See [the current exact-image evidence and OS scan limits](#verified-route-classification-candidate-on-2026-10-12).
+Later documentation/revision metadata changes do not relabel this local digest as a release image.
+Rebuild and smoke the exact commit selected by vps-ops; no image has been published or deployed.
+
+### Historical acceptance — 2026-10-10 (superseded)
 
 These measurements belong to local linux/amd64 image
 `sha256:bcaec035a74f8e738e0cdc63062ec64d9ed9efa9e47721b08f1cffc0f36ea9aa`,
@@ -30,7 +39,8 @@ volume snapshot already contained three cancelled runs, one completed run and th
 `unreported` reservations; unknown spend remained reserved and no partial assistant answer
 was persisted. Restart restored five messages. The disconnected transport had no terminal
 SSE frame: these checks establish persisted state, not guaranteed terminal delivery. Carry
-the minimum 30-second container grace into Coolify/Compose and verify shutdown under VPS load.
+the then-minimum 30-second container grace into Coolify/Compose. The current observability-capable
+candidate requires at least 40 seconds instead; verify it under VPS load.
 
 **Single instance only.** Active-run cancellation and the concurrency limit are in-process, and
 SQLite has one writer. Do not run replicas or more workers. Horizontal scaling would need a
@@ -133,7 +143,7 @@ short `CLIENT_HASH_KEY`, or a daily budget above the monthly one.
   response tasks. Application shutdown subsequently cancels admission, drains retained
   response/run cleanup for up to10 s and closes SQLite afterwards. Interrupted runs persist
   cancelled and retain unknown-cost reservations; exceptional drain failure falls back to
-  conservative abandoned-run recovery. Allow at least40s container stop grace for the current observability-capable image and verify
+  conservative abandoned-run recovery. Allow at least 40s container stop grace for the current observability-capable image and verify
   it under real VPS load. Do not promise completion within15 s or delivery of a terminal
   SSE frame over a torn-down connection. The pre-fix image could leave runs active until
   restart; the real-socket SIGTERM regression checks persisted state before restarting.
@@ -182,7 +192,7 @@ The application image does not set host quotas. vps-ops must carry the tested ru
 into its own reviewed configuration; these commands are a local isolation recipe, not a deploy.
 The smoke uses 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs, and a 64 MiB tmpfs at
 `/tmp` with `noexec,nosuid,nodev`. The root is read-only; only the named `/data` volume persists.
-Set the current container stop timeout to at least40 seconds: Docker's default 10 seconds is shorter
+Set the current container stop timeout to at least 40 seconds: Docker's default 10 seconds is shorter
 than the tested active-stream shutdown. vps-ops must retain this policy in Coolify or Compose
 (`stop_grace_period: 40s`), then verify it under VPS load.
 Docker's `local` log driver rotates at 10 MiB × 3 files (compression may use less); stdout is
@@ -249,10 +259,13 @@ smoke proves restoration of its just-taken snapshot, not production RPO or spend
 Never replace a live database file or copy only the main file while WAL writes are active. Image rollback does
 not restore or reset ledger data. Preserve the backup taken before a migration.
 
-### Monitoring without new infrastructure
+### Monitoring and application-owned telemetry
 
-Use existing private ops summary and internal health probes; no public metrics endpoint or
-collector is introduced (ADR-0005). An authorized operator can inspect Docker health,
+Use the private ops summary and internal health probes. ADR-0005 describes the earlier
+monitoring baseline; ADR-0007 adds optional authenticated private metrics and content-free OTLP
+export. Shared collectors, Prometheus and Grafana are selected and deployed by vps-ops, not
+this repository. The application does not expose a public metrics endpoint.
+An authorized operator can inspect Docker health,
 `State.OOMKilled`, cgroup `memory.events`, memory/CPU/PIDs and free space through its existing
 host tooling. Proposed warnings: memory sustained ≥ 80% of 256 MiB, any OOM, not-ready for two
 probe intervals, month spend ≥ 80% cutoff, stale price/catalog fetch failure. Collect aggregate
@@ -278,7 +291,7 @@ probe checks an explicit local container with AI_PROVIDER=fixture/ALLOW_PAID_AI=
 concurrent streams. Its cgroup-v2 peak includes page cache and differs from Docker's reported
 cache-subtracted idle usage. This is not a live-provider benchmark or capacity guarantee.
 
-### Image security maintenance
+### Historical image security maintenance — 2026-10-10 (superseded base)
 
 Both Python stages are pinned to the same official Python 3.13.16 amd64 image digest
 `sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024`.
@@ -344,11 +357,11 @@ image and under VPS load. Queued traces may be dropped during shutdown; applicat
 persistence remains a separate requirement.
 
 
-## Verified application candidate on2026-10-12
+## Earlier application candidate on 2026-10-12 (superseded route classification)
 
 Source `05ecae7a6b41cbf4445f0514c0e1d05eb11eb344`; exact local image
 `sha256:ba395b5cbbb0dead33ea0573b61f2754c3c94c3488795192d1792509c6a45ed6`
-(56,671,567bytes, UID65532, Python3.14.8). Tested read-only root,256MiB/no additional swap,
+(56,671,567bytes, UID 65532, Python 3.14.8). Tested read-only root,256MiB/no additional swap,
 0.5CPU,64PIDs,64MiB tmpfs, dropped capabilities and no-new-privileges. Core fixture HTTP/SSE,
 auth/CORS/private ops, online backup and restored history/charged ledger passed. Four concurrent
 fixture turns took850–988ms; idle memory64.97MiB, peak cgroup82,100,224bytes; idle stop2.436s.
@@ -366,7 +379,7 @@ window. Two older candidate probes missed20s; those negative observations were p
 reclassified as successful. No healthcheck or test timeout was weakened. The default shipped
 smoke gate remains the application-owned one in scripts/smoke_container.sh.
 
-Trivy0.75.0/checksum-verified, isolated vulnerability database updated2026-10-12T19:08:28Z:
+Trivy 0.75.0/checksum-verified, isolated vulnerability database updated 2026-10-12T19:08:28Z:
 164OS package rows/71CVEs,44high rows,0critical/0Python findings,0 published fixed versions;
 CycloneDX126 components. This is residual OS risk, not an acceptance decision or a certificate
 of security. The source uses signed Debian security packages and removes unnecessary pip/
@@ -376,3 +389,39 @@ review it again when vps-ops selects/builds/publishes its actual deployment dige
 No image was published and no VPS/proxy/collector stack deployed. Real-model development
 results and their separate cost/semantic limits are in
 [the evaluation record](verification/real-model-2026-10-12.md). They do not authorize activation.
+
+
+## Verified route-classification candidate on 2026-10-12
+
+Source `f2958b6efb2dc6bc099647a86aaa44dac1816fef`; exact local image
+`sha256:48435fc564ff353b9590e9ebed033425d23615815f29a9d69112b88e0b76bf57`,
+56,671,696 bytes, UID 65532, Python 3.14.8. This candidate corrects the telemetry allowlist for
+FastAPI's lazily included routes; it changes neither commercial behavior nor the public contract.
+The earlier 05ecae7/ba395 results remain historical, with known-route classification coverage
+explicitly superseded. No digest is relabeled as a later release build.
+
+Shipped core smoke passed in 58.971 s: non-root, read-only, session/CSRF/HTTP/SSE/private auth,
+online backup/restore, conversation continuity and spend-ledger recovery. An isolated collector
+verified 11 actual spans across 9 names, including health, private operations, sessions, messages,
+the templated cancel route and a bounded unknown label. Authenticated private requests inherited
+the expected parent; public or unauthorized requests did not. No visitor path, query, raw run id,
+credential or conversation content appeared in the exported labels/attributes.
+
+An active fixture SSE stream with a blocked collector stopped in 19.077 s with exit 0, no OOM. Before
+restart, readonly SQLite inspection found one completed run, one cancelled run, one settled
+ledger entry and one unreported reservation; quick_check was `ok`. Restart restored 3 messages,
+including one complete assistant answer. Transport ended with EOF without a terminal frame:
+clients must recover stored state and cannot rely on a terminal frame during process drain.
+Keep at least 40 s container stop grace and test it under actual VPS load.
+
+Local idle memory was 66.17 MiB; cgroup peak 82,812,928 bytes. Four concurrent fixture turns
+took 773–820 ms and idle stop took 4.938 s. Diagnostic cold starts measured 19.004, 13.529 and 15.092 s
+under a 60 s observation limit; older 20 s failures remain preserved. These shared-WSL results
+are not an isolated speed comparison, live-provider capacity or a production SLA.
+
+Trivy 0.75.0 with its own vulnerability database updated 2026-10-12T19:08:28Z retained the same
+164 OS package rows / 71 unique CVEs: 44 HIGH, 58 MEDIUM, 61 LOW, 1 UNKNOWN, 0 critical/Python
+findings and no published fixed versions in that database. The CycloneDX SBOM contains 126
+components. Scanner results remain visible and do not constitute production risk acceptance.
+Before deployment, rebuild and smoke the exact approved release commit, review its current
+security inventory and complete the vps-ops activation gates.
