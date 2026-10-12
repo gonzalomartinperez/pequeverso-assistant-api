@@ -14,12 +14,14 @@ import logging
 import os
 import sqlite3
 import sys
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from app.bootstrap.config import DEFAULT_CATALOG
 from scripts.evaluate_end_to_end import digest, evaluate, load_live_provider, write_private
 from scripts.real_eval_budget import CAP_MICRO
 
@@ -29,7 +31,7 @@ def verify_existing_budget(previous: Path, state: Path, terminal_only: bool) -> 
     if not state.is_file() or state.is_symlink():
         raise ValueError('continuation requires the existing shared budget file')
     old = json.loads((previous / 'budget.json').read_text())
-    with sqlite3.connect(state.resolve().as_uri() + '?mode=ro', uri=True) as db:
+    with closing(sqlite3.connect(state.resolve().as_uri() + '?mode=ro', uri=True)) as db:
         count, amount = db.execute('SELECT count(*),coalesce(sum(reserved),0) FROM attempts').fetchone()
         cap = db.execute('SELECT cap FROM limits').fetchone()
         stopped = db.execute('SELECT reason FROM status LIMIT 1').fetchone()
@@ -129,8 +131,6 @@ def main() -> None:
     write_private(destination / 'original-manifest.json', manifest)
     write_private(destination / 'continuation-receipt.json', receipt)
     catalog = args.previous_run / 'catalog.json'
-    from scripts.evaluate_end_to_end import DEFAULT_CATALOG
-
     if catalog.read_bytes() != DEFAULT_CATALOG.read_bytes():
         raise ValueError('continuation cannot silently change the original catalog')
     (destination / 'catalog.json').write_bytes(catalog.read_bytes())
