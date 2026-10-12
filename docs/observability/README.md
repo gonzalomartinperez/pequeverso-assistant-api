@@ -37,7 +37,11 @@ existing bearer is independently validated in constant time. No baggage or trace
 accepted; production cross-service correlation requires the actual backoffice/collector smoke.
 
 Each app owns its SDK/Prometheus registry. Queues are256 spans and batches32, with a256KiB
-serialized export ceiling, a2s default network timeout (maximum5s), and explicit sampling.
+serialized export ceiling, a2s default export-await deadline (maximum5s), and explicit sampling.
+The supported exporter session hook uses an explicit HTTPx client without ambient proxies,
+refuses redirects and reads no collector response body. Closing cancels an active request;
+export/shutdown exceptions produce only safe metadata and do not prevent database cleanup.
+This bounds the awaited transport; OS DNS resolution remains infrastructure-dependent.
 Exporter errors retain only content-free batch outcome/time counters. Telemetry is best effort,
 not durable: shutdown closes the exporter before draining and drops queued spans rather than
 repeating network timeouts. No dropped trace is proof that an application run was lost.
@@ -56,3 +60,17 @@ collectors. Metric labels never contain ids or user-supplied paths. Separate Pro
 References: [manual Python instrumentation](https://opentelemetry.io/docs/languages/python/instrumentation/),
 [OTLP exporters](https://opentelemetry.io/docs/languages/python/exporters/),
 [Prometheus registries](https://prometheus.github.io/client_python/registry/).
+
+
+`deploy/monitoring/` contains transfer examples, not a running monitoring stack: authenticated
+private scrape configuration, four proposed alerts and an eight-panel Grafana dashboard.
+Replace targets and secret mount paths in vps-ops. For file provisioning replace the dashboard's
+`${DS_PROMETHEUS}` variable with the approved datasource UID; the input placeholder supports UI
+import. Missing series remain missing. Scrape/readiness/HTTP5xx panels do not certify model
+availability, SSE success or historical uptime. The selected shared-stack versions and real
+collector/Grafana ingestion require vps-ops validation.
+
+Python SDK/exporter1.45.1 has three explicit beta0.66b1 dependencies: semantic-conventions,
+exporter-http-transport and exporter-otlp-common. The owner accepted this dependency exception;
+these packages are not claimed stable or LTS. Prometheus3.13 LTS and Grafana13.2 are target
+references for the infrastructure owner, not services deployed by this application.

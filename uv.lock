@@ -578,6 +578,7 @@ dependencies = [
     { name = "opentelemetry-sdk" },
     { name = "prometheus-client" },
     { name = "pydantic-settings" },
+    { name = "requests" },
     { name = "uvicorn" },
 ]
 
@@ -598,6 +599,7 @@ requires-dist = [
     { name = "opentelemetry-sdk", specifier = ">=1.45.1" },
     { name = "prometheus-client", specifier = ">=0.26.0" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
+    { name = "requests", specifier = ">=2.34.2,<3" },
     { name = "uvicorn", specifier = ">=0.54.0" },
 ]
 

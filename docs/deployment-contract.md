@@ -327,8 +327,18 @@ measurements above remain historical and are not measurements of this candidate.
 
 Python3.15.0 was [released stable on2026-10-09](https://www.python.org/downloads/release/python-3150/),
 but official Docker tags3.15.0,3.15.0-slim and3.15.0-slim-trixie returned no manifest on2026-10-12.
+These are date-scoped local registry observations, not a universal Python3.15 limitation.
+Pequeverso has no Lingua dependency; the portfolio Lingua-wheel blocker is not applicable.
 Local uv0.12.10 likewise had no3.15.0 managed download. The owner explicitly allowed stable3.14
 instead. No RC, ad hoc source build or untested3.15 image is substituted. Reconsider3.15 only
 once a stable official digest and compatible wheels are available, then independently run
 all checks, socket/model revalidation and exact-image hardening/restore/shutdown tests.
 Python uses its release support lifecycle; no separate "LTS" distribution is claimed.
+
+
+With optional tracing enabled, budget the15-second Uvicorn drain, up to10-second response
+cleanup and bounded exporter shutdown separately. Set a40-second container stop grace for
+this candidate; the30-second minimum above belongs to the historical tracing-off image.
+Validate the actual active-stream and unreachable-collector stop duration for the release
+image and under VPS load. Queued traces may be dropped during shutdown; application run
+persistence remains a separate requirement.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import logging
@@ -13,7 +14,9 @@ import time
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
+import httpx
 import requests
 from opentelemetry.context import Context
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
@@ -68,6 +71,79 @@ def resources() -> RuntimeResources:
     )
 
 
+class DeadlineSession(requests.Session):
+    """Supported SDK Session hook with an overall deadline, no response-body reads or proxies.
+
+    Requests' inactivity timeout alone cannot bound a trickling response. The existing
+    async HTTP client supplies cancellation under asyncio.timeout inside the SDK worker.
+    This does not replace OTLP encoding/export logic or instrument that client's traffic.
+    """
+
+    def __init__(self, ceiling: float) -> None:
+        super().__init__()
+        self.trust_env = False
+        self.ceiling = ceiling
+        self._closed = False
+        self._state_lock = threading.Lock()
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._task: asyncio.Task[requests.Response] | None = None
+
+    def request(self, method: str | bytes, url: str | bytes, *args: Any, **kwargs: Any) -> requests.Response:
+        if args:
+            raise requests.RequestException('positional collector options unsupported')
+        timeout = min(self.ceiling, float(kwargs.get('timeout', self.ceiling)))
+        if timeout <= 0 or self._closed:
+            raise requests.RequestException('collector request stopped')
+
+        async def send() -> requests.Response:
+            with self._state_lock:
+                self._loop = asyncio.get_running_loop()
+                self._task = asyncio.current_task()
+                if self._closed:
+                    raise requests.RequestException('collector request stopped')
+            try:
+                async with (
+                    asyncio.timeout(timeout),
+                    httpx.AsyncClient(
+                        trust_env=False,
+                        timeout=timeout,
+                        follow_redirects=False,
+                        verify=self.verify if self.verify is not None else True,
+                    ) as client,
+                    client.stream(
+                        method.decode() if isinstance(method, bytes) else method,
+                        url.decode() if isinstance(url, bytes) else url,
+                        headers=kwargs.get('headers'),
+                        content=kwargs.get('data'),
+                    ) as response,
+                ):
+                    if 300 <= response.status_code < 400:
+                        raise requests.RequestException('collector redirect refused')
+                    result = requests.Response()
+                    result.status_code = response.status_code
+                    result.headers = requests.structures.CaseInsensitiveDict(response.headers)
+                    # The SDK consumes status and Retry-After only. Do not retain/read a
+                    # collector body or untrusted reason text (including on an error).
+                    result.reason = ''
+                    return result
+            finally:
+                with self._state_lock:
+                    self._loop = None
+                    self._task = None
+
+        try:
+            return asyncio.run(send())
+        except asyncio.CancelledError:
+            raise requests.RequestException('collector request stopped') from None
+
+    def close(self) -> None:
+        with self._state_lock:
+            self._closed = True
+            if self._loop is not None and self._task is not None:
+                self._loop.call_soon_threadsafe(self._task.cancel)
+        super().close()
+
+
 class SafeExporter(SpanExporter):
     """Keep content-free export outcomes; failures never change application requests."""
 
@@ -81,6 +157,9 @@ class SafeExporter(SpanExporter):
         self.closed = False
 
     def export(self, spans: Sequence[ReadableSpan]) -> SpanExportResult:
+        with self.lock:
+            if self.closed:
+                return SpanExportResult.FAILURE
         try:
             result = self.delegate.export(spans)
         except Exception:  # noqa: BLE001 -- telemetry is best effort, never log exception text
@@ -99,7 +178,10 @@ class SafeExporter(SpanExporter):
             if self.closed:
                 return
             self.closed = True
-        self.delegate.shutdown()
+        try:
+            self.delegate.shutdown()
+        except Exception:  # noqa: BLE001 -- monitoring cleanup cannot break application cleanup
+            log.warning('{"operation":"telemetry_shutdown","outcome":"failed"}')
 
     def state(self) -> tuple[int, int, datetime | None, bool | None]:
         with self.lock:
@@ -175,8 +257,7 @@ class RuntimeTelemetry:
         self.trace_provider: TracerProvider | None = None
         if endpoint or exporter:
             if exporter is None:
-                session = requests.Session()
-                session.trust_env = False
+                session = DeadlineSession(export_timeout)
                 exporter = OTLPSpanExporter(
                     endpoint=endpoint,
                     timeout=export_timeout,

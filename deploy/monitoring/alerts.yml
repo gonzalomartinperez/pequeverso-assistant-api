@@ -1,0 +1,33 @@
+# Reviewed application alert proposals, not an installed monitoring stack or SLA.
+groups:
+  - name: pequeverso-assistant-api
+    interval: 30s
+    rules:
+      - alert: PequeversoApiScrapeUnavailable
+        expr: up{job="pequeverso-assistant-api"} == 0
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: Pequeverso API private metrics cannot be scraped
+          description: Check the private network, configured bearer, explicit observability flag and process.
+      - alert: PequeversoApiNotReady
+        expr: pequeverso_ready{job="pequeverso-assistant-api"} == 0
+        for: 2m
+        labels: {severity: warning}
+        annotations:
+          summary: Pequeverso API reports local dependency readiness failure
+          description: This is a database/catalog/process observation, not an OpenAI availability probe.
+      - alert: PequeversoApiMemoryPressure
+        expr: pequeverso_cgroup_memory_current_bytes{job="pequeverso-assistant-api"} / pequeverso_cgroup_memory_limit_bytes{job="pequeverso-assistant-api"} > 0.8
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: Pequeverso API enclosing cgroup exceeds 80 percent of its memory ceiling
+          description: Cgroup usage can include cache and other processes; inspect RSS and actual host capacity before changing limits.
+      - alert: PequeversoApiHttpErrors
+        expr: sum(rate(pequeverso_http_requests_total{job="pequeverso-assistant-api",status_class="5xx"}[5m])) / sum(rate(pequeverso_http_requests_total{job="pequeverso-assistant-api"}[5m])) > 0.05
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: Pequeverso API observed HTTP5xx proportion exceeds the proposed threshold
+          description: HTTP200 SSE run failures are separate recorded outcomes; calibrate this threshold against real traffic.
