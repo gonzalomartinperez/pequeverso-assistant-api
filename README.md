@@ -1,4 +1,12 @@
-# pequeverso-assistant-api
+# Pequeverso · Assistant API
+
+![Python](https://img.shields.io/badge/Python-supported_branch-3776AB?style=flat-square&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-typed_HTTP-009688?style=flat-square&logo=fastapi&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-WAL_%2B_FULL-003B57?style=flat-square&logo=sqlite&logoColor=white)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--6_Luna-06305B?style=flat-square&logo=openai&logoColor=white)
+![Effort](https://img.shields.io/badge/reasoning-medium-007E80?style=flat-square)
+![Contract](https://img.shields.io/badge/contract-v1_%C2%B7_1.3-06305B?style=flat-square)
+![CI](https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/workflows/quality.yml/badge.svg?branch=develop)
 
 Backend of the Pequeverso shopping assistant: an **advisory, read-only** AI assistant that helps
 adult buyers understand the Grafismo Fonético kit, choose where to start, compare what is
@@ -15,6 +23,64 @@ included and reach the storefront's purchase flow. Public repository; no license
   (configurable) with atomic reservations and confirmed / estimated / pending spend.
 - Grounded in a catalog exported from the storefront at a pinned commit; every product,
   link and price shown is server-validated.
+
+The commercial goal is an informed purchase: answer the adult's question, explain the fit and
+offer the authorized next step when relevant. Evidence and budget constraints remain binding;
+a completed response or a valid citation does not establish semantic correctness. The storefront
+assistant stays **disabled in publishable builds** until the VPS and activation gates are verified.
+
+## System at a glance
+
+```mermaid
+flowchart LR
+  Visitor[Adult visitor] --> Store[Pequeverso storefront\nNative assistant · disabled by default]
+  Store -->|Session · CSRF · HTTP/SSE /api/v1| API[Assistant API\nFastAPI · one process]
+  Catalog[Storefront catalog\nPinned Git revision] -->|Validated snapshot| API
+  API --> DB[(SQLite\nCatalog · conversations · ledger)]
+  API -->|One bounded Responses call\nGPT-6 Luna · medium| Model[OpenAI]
+  BO[Private backoffice\nNext.js · Better Auth] -->|Server bearer · private ops| API
+  BO --> PG[(PostgreSQL 18\nIdentity · sessions · invitations)]
+  Ops[vps-ops] -.->|Deployment · TLS · proxy · volumes| API
+  Ops -.-> BO
+  classDef app fill:#fff9ef,stroke:#06305b,color:#06305b;
+  class Store,API,BO app;
+```
+
+| Boundary | Responsibility |
+| --- | --- |
+| Storefront | Conversation UI, safe rendering and continuity; Hotmart checkout and existing consent remain unchanged |
+| API | Sessions, language selection, grounding, streaming, cancellation, validation and budget reservations |
+| SQLite | Isolated conversations and accounting; public catalog snapshots are separate from private messages |
+| Backoffice | OAuth and roles on PostgreSQL; reads private, content-free operations data server-side |
+| vps-ops | Publishes and deploys selected images; owns reverse proxy, Coolify, shared monitoring and backups |
+
+There are no payment/order tools, embeddings, Neo4j, Redis or a graph orchestration framework.
+The complete authorized catalog fits in the evidence budget; lexical ranking is measured separately.
+
+## One question, one accountable generation
+
+```mermaid
+sequenceDiagram
+  participant UI as Native assistant
+  participant API as HTTP boundary
+  participant App as Chat service
+  participant DB as SQLite
+  participant AI as GPT-6 Luna
+  UI->>API: Session + Origin + CSRF + idempotency key
+  API->>App: Validated visitor turn
+  App->>DB: Claim request + reserve worst-case spend
+  App->>AI: Authorized evidence + history, medium, no retries
+  AI-->>App: Structured deltas + usage
+  App-->>UI: Provisional message.delta
+  App->>App: Resolve references + validate commercial claims
+  App->>DB: Persist authoritative answer + settle known usage
+  App-->>UI: message.completed + run.completed
+  Note over App,DB: Cancellation or missing usage keeps its reservation; partial answers are not stored
+```
+
+Provider credentials exist only in the backend. Fixture is the default; real evaluations require
+current owner authorization, private configuration and one shared conservative budget. Model
+errors do not trigger a substitute model or an automatic generation retry.
 
 ## Quick start (clean checkout, no credentials)
 
@@ -58,3 +124,22 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 | Reference adoption (portfolio-assistant-api) | `docs/reference-adoption.md` |
 | Storefront transition, vps-ops handoff, open business questions | `docs/handoffs/storefront-transition.md`, `docs/handoffs/vps-ops.md`, `docs/business-questions.md` |
 | Agent instructions and skills | `AGENTS.md`, `.agents/skills/` |
+
+## Verification and operational limits
+
+- Fixture suites verify the pipeline, guards and persistence; they do not measure model quality.
+  Real model reports must distinguish usage-derived cost estimates from invoices and retain
+  interrupted requests. See [evaluation](docs/evaluation.md).
+- A catalog's Git revision proves provenance, not deployment or the final merchant checkout
+  total. Expired prices are withheld. See [catalog freshness](docs/catalog.md).
+- Logical deletion does not guarantee erasure from SQLite bytes, WAL or backups. Retention,
+  encrypted off-server backup and an operational restore drill remain activation gates.
+- Containers are non-root, read-only and resource-limited. Smoke the exact selected image,
+  including active-stream shutdown; preserve the documented 30-second stop grace.
+- Prefer LTS branches where offered and supported stable releases elsewhere. Most libraries
+  do not publish an LTS guarantee; pins, security review and reproducibility remain necessary.
+- No build, screenshot or local test authorizes a deployment or production activation.
+
+Task branches target `develop` through protected squash PRs. A release into `main` requires
+separate owner authorization and a protected merge commit. Public repository, all rights reserved;
+no license is granted. Never commit secrets, private evaluations or customer conversations.

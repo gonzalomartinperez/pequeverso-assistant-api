@@ -2,6 +2,21 @@
 
 A modular monolith with hexagonal boundaries, sized for one small catalog and one process.
 
+```mermaid
+flowchart TB
+  HTTP[Presentation\nHTTP · SSE · wire contracts] --> App[Application\nSessions · chat lifecycle · budget · private ops]
+  App --> Domain[Domain\nCatalog facts · language · answer rules]
+  AI[AI\nEvidence · prompt · structured composer] --> App
+  Adapters[Adapters\nSQLite · catalog sources · OpenAI Responses] --> App
+  Bootstrap[Bootstrap\nConfiguration · dependency composition · lifespan] --> HTTP
+  Bootstrap --> AI
+  Bootstrap --> Adapters
+```
+
+Arrows show code dependencies, not network traffic. Domain and application remain standard-library
+only; concrete integrations are composed in bootstrap. Instrumentation must preserve those
+boundaries and export no messages, prompts, identities or credentials.
+
 ```
 storefront (native assistant, cross-origin, CORS + cookie + CSRF) ──/api/v1──► presentation
 backoffice server (bearer token, private network) ──/internal/v1/ops──►   (FastAPI routes, SSE, middleware)
