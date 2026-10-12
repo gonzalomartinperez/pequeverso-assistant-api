@@ -53,6 +53,9 @@ UNSUPPORTED_LANGUAGE_ANSWER = (
     'esos idiomas?\n\nFor now I can only answer in Spanish or English. Could you write your '
     'question in one of them?'
 )
+UNSUPPORTED_LANGUAGE_ANSWER_ES = (
+    'Este asistente responde solo en español. Puedo ayudarte en español con tus dudas sobre Pequeverso.'
+)
 
 
 def replacement_text(language: Language) -> str:

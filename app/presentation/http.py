@@ -236,6 +236,7 @@ async def post_message(
             client_key(request, s.settings),
             body.locale,
             context=body.visitor_context(),
+            response_language=body.response_language,
         )
         try:
             await s.sessions.touch(session)
