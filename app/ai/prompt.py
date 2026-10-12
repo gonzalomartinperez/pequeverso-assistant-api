@@ -105,6 +105,9 @@ Output fields:
 - sources: ids of store_data.documents you used (at most three); empty if none.
 - follow_ups: up to three short questions the visitor might ask next, in the reply language,
   written from the visitor's point of view, that store_data can answer; empty if none fit.
+  These become questions sent by the visitor when selected. Never put the assistant's
+  clarification or an offer addressed to the visitor in a follow-up chip; ask a needed
+  clarification in answer instead. Prefer a useful next question over repeating the answer.
 """
 
 OUTPUT_SCHEMA: dict[str, Any] = {

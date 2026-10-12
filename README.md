@@ -1,11 +1,13 @@
 # Pequeverso · Assistant API
 
-![Python](https://img.shields.io/badge/Python-supported_branch-3776AB?style=flat-square&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.14.8-3776AB?style=flat-square&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-typed_HTTP-009688?style=flat-square&logo=fastapi&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-WAL_%2B_FULL-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--6_Luna-06305B?style=flat-square&logo=openai&logoColor=white)
 ![Effort](https://img.shields.io/badge/reasoning-medium-007E80?style=flat-square)
 ![Contract](https://img.shields.io/badge/contract-v1_%C2%B7_1.3-06305B?style=flat-square)
+![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-opt--in-06305B?style=flat-square&logo=opentelemetry&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-private_metrics-E6522C?style=flat-square&logo=prometheus&logoColor=white)
 ![CI](https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/workflows/quality.yml/badge.svg?branch=develop)
 
 Backend of the Pequeverso shopping assistant: an **advisory, read-only** AI assistant that helps
@@ -13,7 +15,7 @@ adult buyers understand the Grafismo Fonético kit, choose where to start, compa
 included and reach the storefront's purchase flow. Public repository; no license is granted
 (all rights reserved). `main` is the default and release branch; development happens on `develop`.
 
-- Python 3.13, FastAPI, uv; SQLite (single process); OpenAI Responses (`gpt-6-luna`) behind a
+- Python 3.14.8, FastAPI, uv; SQLite (single process); OpenAI Responses (`gpt-6-luna`) behind a
   provider port; a deterministic **fixture provider is the default**.
 - Versioned HTTP/SSE contract (v1, revision 1.3) for the storefront's native assistant, which
   calls the API cross-origin; private, token-protected operations summary for the backoffice
@@ -39,7 +41,12 @@ flowchart LR
   API --> DB[(SQLite\nCatalog · conversations · ledger)]
   API -->|One bounded Responses call\nGPT-6 Luna · medium| Model[OpenAI]
   BO[Private backoffice\nNext.js · Better Auth] -->|Server bearer · private ops| API
-  BO --> PG[(PostgreSQL 18\nIdentity · sessions · invitations)]
+  BO --> PG[(PostgreSQL 18.6\nIdentity · sessions · invitations)]
+  API -.->|Opt-in · content-free OTLP| Collector[Private collector\nManaged by vps-ops]
+  Prom[Prometheus 3.13 LTS\nManaged by vps-ops] -.->|Private authenticated scrape| API
+  Collector -.-> TraceStore[Trace backend\nSelected by vps-ops]
+  Graf[Grafana\nManaged by vps-ops] -.-> Prom
+  Graf -.-> TraceStore
   Ops[vps-ops] -.->|Deployment · TLS · proxy · volumes| API
   Ops -.-> BO
   classDef app fill:#fff9ef,stroke:#06305b,color:#06305b;
@@ -119,6 +126,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 | Security, privacy, retention | `docs/security.md` |
 | Catalog source, sync, freshness | `docs/catalog.md` |
 | Evaluation and live procedure | `docs/evaluation.md` |
+| Optional private telemetry, metrics and traces | `docs/observability/README.md` |
 | Deployment handoff (vps-ops/Coolify) | `docs/deployment-contract.md` |
 | Dependency updates and auto-merge policy | `docs/dependency-updates.md` |
 | Reference adoption (portfolio-assistant-api) | `docs/reference-adoption.md` |
@@ -135,9 +143,17 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 - Logical deletion does not guarantee erasure from SQLite bytes, WAL or backups. Retention,
   encrypted off-server backup and an operational restore drill remain activation gates.
 - Containers are non-root, read-only and resource-limited. Smoke the exact selected image,
-  including active-stream shutdown; preserve the documented 30-second stop grace.
+  including active-stream shutdown; preserve the grace specified in the deployment contract.
 - Prefer LTS branches where offered and supported stable releases elsewhere. Most libraries
   do not publish an LTS guarantee; pins, security review and reproducibility remain necessary.
+- Python 3.14 is a supported stable branch, not an official LTS line. The selected Python
+  OpenTelemetry SDK/exporter is 1.45.1; its locked tree includes three 0.66b1 beta packages.
+  Prometheus 3.13 is the monitoring LTS target; Grafana and the collector have their own support
+  and component-stability policies. vps-ops selects and deploys their final images.
+  See the official [Python lifecycle](https://devguide.python.org/versions/),
+  [Prometheus LTS schedule](https://prometheus.io/docs/introduction/release-cycle/),
+  [Grafana policy](https://grafana.com/docs/grafana/latest/upgrade-guide/when-to-upgrade/) and
+  [collector stability table](https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/component-stability.md).
 - No build, screenshot or local test authorizes a deployment or production activation.
 
 Task branches target `develop` through protected squash PRs. A release into `main` requires

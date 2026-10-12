@@ -76,7 +76,7 @@ class EvidenceProvider:
                 'bytes': len(raw.encode()),
                 'price_status': payload['price_status'],
                 'products': [p['id'] for p in payload['products']],
-                'resources': [f'{p["id"]}/{r["id"]}' for p in payload['products'] for r in p['resources']],
+                'resources': [r['id'] for p in payload['products'] for r in p['resources']],
                 'documents': [d['id'] for d in payload['documents']],
                 'links': [link['id'] for link in payload['links']],
             }
