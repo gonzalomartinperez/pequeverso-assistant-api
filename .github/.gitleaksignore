@@ -1,0 +1,5 @@
+# Immutable synthetic OPS bearer used only by isolated observability unit tests.
+# Original author commit and its cherry-pick contain the same reviewed artificial value.
+# Exact commit/file/rule/line only: later commits at the same location are still scanned.
+03898d88859d52ea9df7c2f28ed95a3f66d87f82:tests/test_observability.py:generic-api-key:17
+82ed7cfa89097c21c7d27a38b5034d136fb35317:tests/test_observability.py:generic-api-key:17

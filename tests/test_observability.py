@@ -14,7 +14,7 @@ from app.application.operations import RunWindow
 from app.bootstrap.config import Settings
 from app.bootstrap.container import create_app
 
-TOKEN = 'synthetic-ops-bearer-private-01234567890123456789'
+TOKEN = 'test-only-' + '0' * 32  # Explicit dummy bearer; never a deployable credential.
 AUTH = {'Authorization': f'Bearer {TOKEN}'}
 
 
