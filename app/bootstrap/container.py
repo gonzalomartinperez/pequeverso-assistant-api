@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import iter_route_contexts
 from openai import AsyncOpenAI
 
 from app.adapters.catalog_schema import CatalogParser
@@ -304,7 +305,9 @@ def create_app(
     if telemetry is not None:
         from app.adapters.observability import TelemetryMiddleware
 
-        routes = frozenset(getattr(route, 'path', '') for route in app.routes)
+        # FastAPI includes routers lazily; their top-level entries have no path.
+        # Public route contexts enumerate the registered, effective templates.
+        routes = frozenset(context.path for context in iter_route_contexts(app.routes) if context.path)
         private_digest = (
             hashlib.sha256(settings.ops_read_token.get_secret_value().encode()).digest()
             if settings.ops_read_token
