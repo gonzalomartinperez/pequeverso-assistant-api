@@ -35,6 +35,29 @@ offer the authorized next step when relevant. Evidence and budget constraints re
 a completed response or a valid citation does not establish semantic correctness. The storefront
 assistant stays **disabled in publishable builds** until the VPS and activation gates are verified.
 
+## The native assistant in use
+
+The photograph below shows the actual **408 × 560 px compact panel** in the local storefront,
+connected to this API over credentialed HTTPS/SSE. Its authored, non-personal sample question
+received a real **GPT-6 Luna, medium** answer about digital delivery and the guarantee.
+The visible answer matched the saved HTTP history and the exact completed-request replay;
+the replay did not invoke the provider again. **This is local verification, not a deployed VPS
+or an enabled production assistant.**
+
+[![The real locally connected Spanish assistant in its compact storefront panel](docs/verification/native-assistant-2026-10-12/real-desktop-context.png)](docs/verification/native-assistant-2026-10-12/real-desktop-context.png)
+
+| Complete real-model answer | Actual source disclosure |
+| --- | --- |
+| <a href="docs/verification/native-assistant-2026-10-12/real-desktop-answer.png"><img src="docs/verification/native-assistant-2026-10-12/real-desktop-answer.png" width="408" alt="Complete GPT-6 Luna answer about delivery after payment approval and the conditional seven-day refund request"></a> | <a href="docs/verification/native-assistant-2026-10-12/real-desktop-sources.png"><img src="docs/verification/native-assistant-2026-10-12/real-desktop-sources.png" width="408" alt="Expanded authorized digital-delivery and guarantee sources at a separate real scroll position"></a> |
+
+Each image opens at its original **DPR 2** resolution. Source details use a separate genuine
+scroll position; the panel was not enlarged and the photographs were not stitched.
+The [gallery and provenance](docs/verification/native-assistant-2026-10-12/README.md) also show
+the welcome, provisional streaming, complete mobile product card and recoverable network error.
+Those additional states use the **fixture API** and are labeled separately. The two native
+photo probes used independent browser sessions; their original capture failures are retained.
+Neither a real-provider reload/mobile result nor a production deployment is claimed.
+
 ## System at a glance
 
 ```mermaid

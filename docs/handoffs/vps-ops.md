@@ -33,11 +33,14 @@ cross-origin from the browser.
    CI builds the exact image and smoke-tests it (API: `scripts/smoke_container.sh`; backoffice:
    `scripts/smoke-image.sh`). Both are `linux/amd64`, non-root (API uid 65532; backoffice uid
    1000), read-only root with tmpfs, `--cap-drop ALL`, `no-new-privileges`. Ports: API
-   `8000/tcp`, backoffice `3000/tcp`. Measured idle memory (local, fixture data): API ~56 MiB,
-   backoffice ~64–77 MiB; historical Docker image sizes ~235 MB and ~97 MB
-   (Docker metadata, not compressed registry-transfer bytes). New patched candidates must
-   replace these historical numbers with exact-image evidence; layer whiteouts do not imply
-   physical image shrink. Proposed limits: API 0.5
+   `8000/tcp`, backoffice `3000/tcp`. Latest API local fixture acceptance (2026-10-12):
+   application `f2958b6`, image `48435fc`, 56,671,696 bytes, idle 66.17 MiB and active-stream shutdown
+   with a blocked collector took 19.077 s; use at least 40 s stop grace. Exact digests and limits are in
+   [the deployment contract](../deployment-contract.md). Historical backoffice measurements
+   were 64–77 MiB idle and about 97 MB image metadata; its new PostgreSQL 18.6/telemetry candidate
+   requires fresh exact-image acceptance from that repository before selection.
+   Sizes are Docker metadata, not compressed transfer or physical disk use; layer whiteouts do
+   not imply physical image shrink. Proposed limits: API 0.5
    CPU / 256 MiB, backoffice 1 CPU / 384 MiB (request 0.1 CPU / 128 MB). Real-model socket timings exist, but live-model container load and VPS capacity are not
    measured. Publication to a private registry by digest needs separate authorization.
 2. **Health and persistence.**
@@ -161,13 +164,13 @@ storefront, publishes an image or authorizes an infrastructure action.
   consumes them server-side after `read_operations`; Prometheus scraping and OTLP export
   complement that UI rather than replace its budget/run ledger. No metric equals a billing
   invoice or proves the provider is available.
-- Current API container grace is at least40s:15s Uvicorn stream grace, separate10s registry
+- Current API container grace is at least 40s:15s Uvicorn stream grace, separate10s registry
   cleanup and bounded exporter shutdown/headroom. Dropped best-effort traces must not delay
   application cleanup. Historical30s tracing-off evidence is not the current target.
-- Keep API SQLite on its own `/data` volume, backoffice identity on its own PostgreSQL18.6
+- Keep API SQLite on its own `/data` volume, backoffice identity on its own PostgreSQL 18.6
   database/volume, and shared infrastructure in vps-ops. No Neo4j/vector/Redis is needed for
   this catalog. Verify backup/restore, WAL/disk limits and physical erasure before activation.
-- LTS applies only where an official policy exists. Python3.14.8 and PostgreSQL18.6 are
+- LTS applies only where an official policy exists. Python3.14.8 and PostgreSQL 18.6 are
   supported stable releases; Node24 is LTS. Python OTEL1.45.1 contains three explicit0.66b1
   dependencies. Prometheus3.13 LTS, Grafana13.2 and collector components require final image
   and compatibility selection by vps-ops. Examples are application handoff artifacts, not
