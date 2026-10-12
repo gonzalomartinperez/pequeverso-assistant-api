@@ -78,8 +78,8 @@ rounded application cost rather than an invented cache-write count.
 
 The53-query run reported203,454 input /13,213 output /73,935 cached /129,381 cache-write /
 7,702 reasoning tokens. Its application ledger rounds each call to microUSD (23,555 total),
-which differs slightly from the unrounded SDK estimate. Total usage-derived estimate for both
-runs is about USD0.150207; conservative shared accounting is USD0.351214 across267 attempts.
+which differs slightly from the unrounded SDK estimate. At that stage the usage-derived estimate for both
+runs was about USD0.150207; conservative shared accounting was USD0.351214 across267 attempts.
 Neither is an invoice. The key could not read account costs (`api.usage.read` missing), so prior
 external monthly spend and the administrative project limit remain unverified.
 
@@ -99,3 +99,46 @@ contract>=1.4; HTTPS/CORS/host-only cookies/CSRF; actual proxy SSE/disconnect ha
 failure and interruption accounting; physical mobile keyboard/screen-reader checks; backup/restore
 and retention/physical erasure; VPS load/headroom/disk; private observability receiver and access
 controls; owner acceptance and separate activation. No measured sales-conversion uplift is claimed.
+
+
+## Final targeted revalidation after normalization fix
+
+Application `05ecae7a6b41cbf4445f0514c0e1d05eb11eb344`, prompt `2026-10-12.2`, uses
+`evals/end_to_end_final_quality_revalidation.json`, SHA256
+`dc8d90a3f4862e9a051a0874c868f845ba1b4d5a7cbc1bb0717fc1989cda3e96`. The matrix was fixed
+before dispatch: six prior cases plus four new variants,14 turns. Thirteen generations and one
+local Spanish notice completed; all14 histories and exact per-turn replays matched, with no
+additional provider calls, structural/heuristic failures or unknown paid usage.
+
+An independent agent reviewed all14 finals,13 drafts, chips and13 exact evidence receipts. The
+six prior observations were resolved in the affected turns: authorized support references without
+placeholder Markdown; known listing separated from current checkout; local-currency budget not
+promised as sufficient; neutral correction acknowledgement; natural support-time qualifier.
+A minor repetition of true format/language information remains a stylistic variation rather than
+a reason to purchase another evaluation. No claim of perfect future consistency or conversion
+uplift follows from this finite development set.
+
+Before paid execution, root review found that formatting normalization could expose an unchecked
+price/action/outcome claim. Commit05ecae7 preserves raw destination checks and rechecks final
+normalized content and follow-ups; negative controls cover all three claim types and follow-up
+prices. Independent approval of the previous candidate was superseded explicitly. No real call
+ran on that intermediate candidate. Its original full check447pass/1subprocess readiness failure
+remains recorded; the unchanged readiness gate was not relaxed. Final452tests passed94.46s,
+with strict types, Ruff, contract drift, retrieval and fixture safety/guard suites green.
+
+This last run reported60,175 input /4,063 output /21,828 cached /38,308 cache-write /2,310
+reasoning tokens; Standard usage estimateUSD0.00704218. Across the three runs:303 HTTP query
+turns,280 real generations and23 local notices. Repeated development cases are not counted as
+unique independent questions. Estimated totalUSD0.157249; conservative shared accounting
+USD0.372239, within the unchanged USD1/400 envelope. Billing and previous external spend remain
+unverified. First-content latency13 provider samples: median4.502s, p955.939s; total14 samples:
+median5.531s, p959.236s, shared local WSL only.
+
+Exact local image of05ecae7: `sha256:ba395b5cbbb0dead33ea0573b61f2754c3c94c3488795192d1792509c6a45ed6`,
+56,671,567bytes, Python3.14.8, UID65532/read-only. Core/backup/restore/private OTLP smokes passed;
+active stream with blocked collector stopped17.244s without OOM and retained canceled run plus
+unknown-cost reservation before restart. That interruption test used fixtures, not the real
+provider. Trivy0.75.0 with vulnerability DB updated2026-10-12T19:08:28Z found71 unique OS CVEs
+(164 package rows), including44 high rows and no critical/Python findings; none had a published
+fixed version in that database. This is not risk acceptance or production readiness. Application
+image and shared infrastructure still require the deployment owner's security review.

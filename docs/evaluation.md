@@ -1,7 +1,8 @@
 # Evaluation
 
 Deterministic fixture suites run in CI. The owner-authorized real-model socket evaluation
-completed on 2026-10-12: 236 initial queries and 53 post-adjustment queries. See
+completed on 2026-10-12: 236 initial queries,53 post-adjustment queries and14 final targeted
+queries. See
 [the dated evidence and limits](verification/real-model-2026-10-12.md); automated completion
 is distinct from semantic correctness, and agent review is not human review.
 
@@ -28,7 +29,9 @@ it does not turn fixture quality scores into model evidence or certify every fut
 ## Bounded live evaluation (separate corpus phases not executed)
 
 Preconditions (owner):
-1. Create a separate OpenAI project for Pequeverso with a hard monthly limit.
+1. Create a separate OpenAI project for Pequeverso; verify its billing controls rather than
+   assuming a project budget alert is a hard cap. Keep the application budget and the stricter
+   evaluation ledger enforced independently.
 2. Put the separate project key in a private mode-600 environment file; never pass it in arguments or logs.
 3. Authorize the spend explicitly.
 
@@ -278,3 +281,10 @@ The initial baseline only replayed each case's final turn (219 HTTP replays), no
 intermediate turn; it verified235 histories, with one additional terminal completion checked
 offline after interruption. The later53-query run checks history and replay for every turn.
 Original artifacts remain untouched. Full responses and usage receipts stay private.
+
+
+The final14-query matrix uses the same helper with
+`--manifest evals/end_to_end_final_quality_revalidation.json` and
+`--previous-run /absolute/private/spanish-native-post-adjustment`, retaining the same original
+baseline manifest and shared budget state. It repairs the six recorded quality observations
+without mutating either preceding run. See the dated report for results and actual code revisions.
