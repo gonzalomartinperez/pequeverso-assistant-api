@@ -1,0 +1,44 @@
+{
+  "schema_version": "1",
+  "generated_at": "2026-09-28T15:00:00Z",
+  "process_started_at": "2026-09-28T14:59:00Z",
+  "process_uptime_seconds": 60.0,
+  "synthetic": true,
+  "readiness": {
+    "status": "ready",
+    "checked_at": "2026-09-28T15:00:00Z",
+    "measurement": "point_in_time"
+  },
+  "provider_observation": {
+    "status": "unknown",
+    "reason": "not_probed"
+  },
+  "active_runs": 0,
+  "max_concurrent_runs": 4,
+  "resources": {
+    "process_rss_bytes": null,
+    "process_peak_rss_bytes": null,
+    "cgroup_memory_current_bytes": null,
+    "cgroup_memory_limit_bytes": null,
+    "cgroup_cpu_limit_cores": null,
+    "cgroup_pids_current": null,
+    "cgroup_pids_limit": null,
+    "cgroup_scope": "enclosing_cgroup_may_be_shared"
+  },
+  "http": {
+    "requests": 0,
+    "server_errors": 0,
+    "inflight": 1,
+    "window": "since_process_start",
+    "error_scope": "http_5xx_only_not_sse_run_outcomes"
+  },
+  "traces": {
+    "enabled": false,
+    "sampling_ratio": 0.1,
+    "export_successes": 0,
+    "export_failures": 0,
+    "last_export_at": null,
+    "last_export_success": null,
+    "durable": false
+  }
+}

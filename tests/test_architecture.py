@@ -21,7 +21,15 @@ THIRD_PARTY: dict[str, set[str]] = {
     'domain': set(),
     'application': set(),
     'ai': set(),
-    'adapters': {'pydantic', 'httpx', 'openai'},
+    'adapters': {
+        'pydantic',
+        'httpx',
+        'openai',
+        'opentelemetry',
+        'prometheus_client',
+        'requests',
+        'starlette',
+    },
     'presentation': {'fastapi', 'starlette', 'pydantic'},
     'bootstrap': {'fastapi', 'openai', 'pydantic', 'pydantic_settings'},
 }

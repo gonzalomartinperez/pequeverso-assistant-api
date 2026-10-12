@@ -1,0 +1,12 @@
+# TRANSFER ARTIFACT ONLY. vps-ops owns the actual Prometheus stack and credentials.
+# Enable app observability separately; no public ports or deployment is authorized here.
+scrape_configs:
+  - job_name: pequeverso-assistant-api
+    metrics_path: /internal/v1/ops/metrics
+    scrape_interval: 15s
+    scrape_timeout: 5s
+    authorization:
+      type: Bearer
+      credentials_file: /run/secrets/pequeverso-ops-read-token
+    static_configs:
+      - targets: [pequeverso-assistant-api:8000]

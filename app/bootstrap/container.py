@@ -10,9 +10,14 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.adapters.observability import RuntimeTelemetry
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.routing import iter_route_contexts
 from openai import AsyncOpenAI
 
 from app.adapters.catalog_schema import CatalogParser
@@ -38,6 +43,7 @@ from app.domain.budget import BudgetPolicy, Pricing, to_micro
 from app.presentation.http import CookiePolicy, HttpSettings, Services, health, install_error_handlers, router
 from app.presentation.middleware import BodyLimitMiddleware, OriginMiddleware, RequestContextMiddleware
 from app.presentation.operations import build_router as build_operations_router
+from app.presentation.streaming import ResponseCleanups
 
 log = logging.getLogger(__name__)
 MAINTENANCE_SECONDS = 600
@@ -107,6 +113,7 @@ def create_app(
     model = provider or build_provider(settings)
     ledger = SqliteLedger(db)
     run_metrics = SqliteRunMetrics(db)
+    cleanups = ResponseCleanups()
     budget = BudgetPolicy(
         monthly_limit_micro=to_micro(settings.monthly_budget_usd),
         safety_margin=settings.budget_safety_margin,
@@ -144,8 +151,9 @@ def create_app(
         ),
     )
 
+    operations_queries = SqliteOperationsQueries(db)
     operations = OperationsService(
-        SqliteOperationsQueries(db),
+        operations_queries,
         catalog,
         catalog.live,
         clock,
@@ -173,9 +181,26 @@ def create_app(
 
     async def ready() -> bool:
         try:
-            return await db.ping() and catalog.active is not None
+            return not chat.registry.closing and await db.ping() and catalog.active is not None
         except Exception:  # noqa: BLE001
             return False
+
+    telemetry: RuntimeTelemetry | None = None
+    if settings.observability_enabled:
+        from app.adapters.observability import RuntimeTelemetry
+
+        telemetry = RuntimeTelemetry(
+            started_at=clock.now(),
+            synthetic=settings.ai_provider == 'fixture',
+            revision=settings.service_revision,
+            ready=ready,
+            active_runs=lambda: len(chat.registry),
+            max_runs=settings.max_concurrent_runs,
+            run_window=lambda: operations_queries.run_window(clock.now() - timedelta(hours=24)),
+            endpoint=settings.telemetry_otlp_endpoint,
+            sampling_ratio=settings.telemetry_trace_sampling_ratio,
+            export_timeout=settings.telemetry_export_timeout_seconds,
+        )
 
     async def maintenance() -> None:
         while True:
@@ -210,12 +235,25 @@ def create_app(
             tasks = [asyncio.create_task(maintenance()), asyncio.create_task(refresh_catalog())]
             yield
         finally:
+            chat.registry.close()
+            try:
+                async with asyncio.timeout(10):
+                    await cleanups.drain()
+                    await chat.registry.drain()
+            except Exception:
+                # Bound shutdown, preserve unknown spend and recover an interrupted run
+                # conservatively if an exceptional finalizer cannot finish.
+                log.exception('{"operation":"shutdown","outcome":"drain_failed"}')
+                await runs.abandon_active()
+                await ledger.abandon_pending()
             for task in tasks:
                 task.cancel()
             for task in tasks:
                 with contextlib.suppress(asyncio.CancelledError):
                     await task
             await db.close()
+            if telemetry is not None:
+                await asyncio.to_thread(telemetry.shutdown)
 
     app = FastAPI(
         title='Pequeverso assistant API',
@@ -231,6 +269,7 @@ def create_app(
         catalog=catalog,
         clock=clock,
         ready=ready,
+        cleanups=cleanups,
         settings=HttpSettings(
             cookie=CookiePolicy(
                 name=settings.cookie_name,
@@ -249,7 +288,7 @@ def create_app(
     app.include_router(health)
     if settings.ops_read_token is not None:
         digest = hashlib.sha256(settings.ops_read_token.get_secret_value().encode()).digest()
-        app.include_router(build_operations_router(operations, digest))
+        app.include_router(build_operations_router(operations, digest, telemetry))
     install_error_handlers(app)
     # Outermost first at runtime: context → CORS → origin policy → body limit → routes.
     app.add_middleware(BodyLimitMiddleware, max_bytes=settings.max_body_bytes)
@@ -263,5 +302,19 @@ def create_app(
         expose_headers=['X-Request-ID', 'X-Run-ID', 'Retry-After'],
         max_age=600,
     )
+    if telemetry is not None:
+        from app.adapters.observability import TelemetryMiddleware
+
+        # FastAPI includes routers lazily; their top-level entries have no path.
+        # Public route contexts enumerate the registered, effective templates.
+        routes = frozenset(context.path for context in iter_route_contexts(app.routes) if context.path)
+        private_digest = (
+            hashlib.sha256(settings.ops_read_token.get_secret_value().encode()).digest()
+            if settings.ops_read_token
+            else None
+        )
+        app.add_middleware(
+            TelemetryMiddleware, telemetry=telemetry, routes=routes, private_token_digest=private_digest
+        )
     app.add_middleware(RequestContextMiddleware)
     return app

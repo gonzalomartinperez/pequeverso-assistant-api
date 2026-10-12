@@ -36,5 +36,11 @@ def configure_logging(level: str = 'INFO') -> None:
     root = logging.getLogger()
     root.handlers[:] = [handler]
     root.setLevel(level)
+    # Uvicorn installs its own stderr handler before lifespan startup; it would
+    # otherwise render raw ASGI exception text/tracebacks outside this allowlist.
+    for name in ('uvicorn', 'uvicorn.error'):
+        server_logger = logging.getLogger(name)
+        server_logger.handlers.clear()
+        server_logger.propagate = True
     for noisy in ('uvicorn.access', 'httpx', 'openai'):
         logging.getLogger(noisy).setLevel(logging.WARNING)

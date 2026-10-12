@@ -9,12 +9,38 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 | Item | Value |
 |---|---|
 | Build | `docker build --build-arg SERVICE_REVISION=<sha> -t pequeverso-assistant-api:<sha> .` from a clean checkout of an exact commit (context allowlisted by `.dockerignore`). An empty `SERVICE_REVISION` is allowed; the ops summary then reports `revision: null` |
-| Base | `python:3.13-slim` and `ghcr.io/astral-sh/uv:0.12.21`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-dev`) |
+| Base | `python:3.14.8-slim-trixie` and `ghcr.io/astral-sh/uv:0.13.0`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-dev`) |
 | User | `65532:65532`; runs with a read-only root filesystem, `--cap-drop ALL`, `no-new-privileges` (verified by `scripts/smoke_container.sh`) |
 | Writable paths | `/data` (volume), `/tmp` (tmpfs) |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
 | Port | `8000/tcp` (HTTP, plain; TLS terminates at the proxy) |
-| Size / resources (measured locally 2026-10-05, fixture mode) | 235 MB uncompressed image (`docker images`); ~56 MiB RSS idle; graceful stop ≈ 1 s. Suggested limits: 256 MiB memory, 0.5 CPU. Live-model load was not measured |
+| Size / resources (measured locally 2026-10-12, fixture mode) | Exact application candidate: 56,671,696 bytes; idle memory 66.17 MiB, cgroup peak 82,812,928 bytes. Idle stop 4.938 s; active stream with blocked collector stop 19.077 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; no VPS capacity claim |
+
+Current local acceptance belongs to application commit
+`f2958b6efb2dc6bc099647a86aaa44dac1816fef`, image
+`sha256:48435fc564ff353b9590e9ebed033425d23615815f29a9d69112b88e0b76bf57`.
+See [the current exact-image evidence and OS scan limits](#verified-route-classification-candidate-on-2026-10-12).
+Later documentation/revision metadata changes do not relabel this local digest as a release image.
+Rebuild and smoke the exact commit selected by vps-ops; no image has been published or deployed.
+
+### Historical acceptance — 2026-10-10 (superseded)
+
+These measurements belong to local linux/amd64 image
+`sha256:bcaec035a74f8e738e0cdc63062ec64d9ed9efa9e47721b08f1cffc0f36ea9aa`,
+built from candidate `255feebd5589eb78ca05ba8b6a2b14e8fa575c70`. The application tree
+matches develop squash `6fc5d92d63bbb8f71bce8916f324b86ae0f9237d`; subsequent documentation
+changes do not relabel this digest as a release-built image. It was not published or deployed.
+The local acceptance receipt used fixture mode, no paid calls, a read-only root, dropped
+capabilities, no new privileges, a 64 MiB `/tmp` tmpfs and rotated local logs. Four concurrent
+fixture streams completed in 404–532 ms; live-model load and VPS capacity were not measured.
+
+Active-stream SIGTERM exited with code 0, without OOM. Before restarting, an independent
+volume snapshot already contained three cancelled runs, one completed run and three
+`unreported` reservations; unknown spend remained reserved and no partial assistant answer
+was persisted. Restart restored five messages. The disconnected transport had no terminal
+SSE frame: these checks establish persisted state, not guaranteed terminal delivery. Carry
+the then-minimum 30-second container grace into Coolify/Compose. The current observability-capable
+candidate requires at least 40 seconds instead; verify it under VPS load.
 
 **Single instance only.** Active-run cancellation and the concurrency limit are in-process, and
 SQLite has one writer. Do not run replicas or more workers. Horizontal scaling would need a
@@ -113,8 +139,14 @@ short `CLIENT_HASH_KEY`, or a daily budget above the monthly one.
   The old image also does not record run metrics, and its ledger rows keep status `pending`
   until the newer image starts again, which maps them back to `settled`/`unreported`. Take a
   backup before every deploy that adds a migration.
-- **Graceful stop:** `SIGTERM`, then up to 15 s to finish streams; active runs end as
-  cancelled.
+- **Graceful stop:** Uvicorn first allows15 s for connections, then cancels unfinished
+  response tasks. Application shutdown subsequently cancels admission, drains retained
+  response/run cleanup for up to10 s and closes SQLite afterwards. Interrupted runs persist
+  cancelled and retain unknown-cost reservations; exceptional drain failure falls back to
+  conservative abandoned-run recovery. Allow at least 40s container stop grace for the current observability-capable image and verify
+  it under real VPS load. Do not promise completion within15 s or delivery of a terminal
+  SSE frame over a torn-down connection. The pre-fix image could leave runs active until
+  restart; the real-socket SIGTERM regression checks persisted state before restarting.
 - **Kill switch:** `ASSISTANT_ENABLED=false` or stopping the container. The native storefront
   assistant shows "unavailable" and the store keeps selling.
 
@@ -160,6 +192,9 @@ The application image does not set host quotas. vps-ops must carry the tested ru
 into its own reviewed configuration; these commands are a local isolation recipe, not a deploy.
 The smoke uses 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs, and a 64 MiB tmpfs at
 `/tmp` with `noexec,nosuid,nodev`. The root is read-only; only the named `/data` volume persists.
+Set the current container stop timeout to at least 40 seconds: Docker's default 10 seconds is shorter
+than the tested active-stream shutdown. vps-ops must retain this policy in Coolify or Compose
+(`stop_grace_period: 40s`), then verify it under VPS load.
 Docker's `local` log driver rotates at 10 MiB × 3 files (compression may use less); stdout is
 already content-free structured JSON, and uvicorn access logging is disabled.
 
@@ -167,7 +202,7 @@ already content-free structured JSON, and uvicorn access logging is disabled.
 # Operator supplies an approved digest, private network and configuration separately.
 # In isolated synthetic acceptance: AI_PROVIDER=fixture and ALLOW_PAID_AI=false.
 # Production can keep ASSISTANT_ENABLED=false; no paid-provider opt-in is implied.
-docker run --name pv-api-isolated --read-only \
+docker run --name pv-api-isolated --read-only --stop-timeout 40 \
   --memory 256m --memory-swap 256m --cpus 0.5 --pids-limit 64 \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
   --cap-drop ALL --security-opt no-new-privileges \
@@ -224,10 +259,13 @@ smoke proves restoration of its just-taken snapshot, not production RPO or spend
 Never replace a live database file or copy only the main file while WAL writes are active. Image rollback does
 not restore or reset ledger data. Preserve the backup taken before a migration.
 
-### Monitoring without new infrastructure
+### Monitoring and application-owned telemetry
 
-Use existing private ops summary and internal health probes; no public metrics endpoint or
-collector is introduced (ADR-0005). An authorized operator can inspect Docker health,
+Use the private ops summary and internal health probes. ADR-0005 describes the earlier
+monitoring baseline; ADR-0007 adds optional authenticated private metrics and content-free OTLP
+export. Shared collectors, Prometheus and Grafana are selected and deployed by vps-ops, not
+this repository. The application does not expose a public metrics endpoint.
+An authorized operator can inspect Docker health,
 `State.OOMKilled`, cgroup `memory.events`, memory/CPU/PIDs and free space through its existing
 host tooling. Proposed warnings: memory sustained ≥ 80% of 256 MiB, any OOM, not-ready for two
 probe intervals, month spend ≥ 80% cutoff, stale price/catalog fetch failure. Collect aggregate
@@ -253,7 +291,7 @@ probe checks an explicit local container with AI_PROVIDER=fixture/ALLOW_PAID_AI=
 concurrent streams. Its cgroup-v2 peak includes page cache and differs from Docker's reported
 cache-subtracted idle usage. This is not a live-provider benchmark or capacity guarantee.
 
-### Image security maintenance
+### Historical image security maintenance — 2026-10-10 (superseded base)
 
 Both Python stages are pinned to the same official Python 3.13.16 amd64 image digest
 `sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024`.
@@ -282,3 +320,108 @@ revisit its pinned base/package when rebuilding, rather than silently choosing a
 Removing an installer from inherited base layers uses whiteouts: it reduces exposed runtime
 files, not the physical bytes of shared image layers. Preserve shared layers and a rollback
 image; do not pursue size reduction by stripping required libraries.
+
+
+## Optional application telemetry and current Python candidate
+
+[Application observability](observability/README.md) owns the optional private JSON/Prometheus
+endpoints, manual traces and provisioning transfer artifacts. Infrastructure owns the collector,
+Grafana, Prometheus, private scrape credentials and deployment. Observability is off by default;
+never route `/internal/*` publicly. A telemetry-off API remains fully functional. Provider
+availability is unknown unless separately verified: no paid probes or manufactured uptime.
+
+The new candidate uses stable Python3.14.8, from official linux/amd64
+`python:3.14.8-slim-trixie@sha256:cfe2e24a75302a15934d37c2d86412893c0aa934dc3a97cbb439d04c01890ca9`
+verified2026-10-12, with uv0.13.0 pinned in builder and CI. Host setup pins3.14.8;
+strict mypy targets3.14. Ruff retains the existing3.13-compatible syntax policy, which runs
+unchanged on3.14 and avoids unrelated automatic syntax rewrites. It is not a second runtime.
+Exact-candidate image and full checks must pass before acceptance; earlier Python3.13/container
+measurements above remain historical and are not measurements of this candidate.
+
+Python3.15.0 was [released stable on2026-10-09](https://www.python.org/downloads/release/python-3150/),
+but official Docker tags3.15.0,3.15.0-slim and3.15.0-slim-trixie returned no manifest on2026-10-12.
+These are date-scoped local registry observations, not a universal Python3.15 limitation.
+Pequeverso has no Lingua dependency; the portfolio Lingua-wheel blocker is not applicable.
+Local uv0.12.10 likewise had no3.15.0 managed download. The owner explicitly allowed stable3.14
+instead. No RC, ad hoc source build or untested3.15 image is substituted. Reconsider3.15 only
+once a stable official digest and compatible wheels are available, then independently run
+all checks, socket/model revalidation and exact-image hardening/restore/shutdown tests.
+Python uses its release support lifecycle; no separate "LTS" distribution is claimed.
+
+
+With optional tracing enabled, budget the15-second Uvicorn drain, up to10-second response
+cleanup and bounded exporter shutdown separately. Set a40-second container stop grace for
+this candidate; the30-second minimum above belongs to the historical tracing-off image.
+Validate the actual active-stream and unreachable-collector stop duration for the release
+image and under VPS load. Queued traces may be dropped during shutdown; application run
+persistence remains a separate requirement.
+
+
+## Earlier application candidate on 2026-10-12 (superseded route classification)
+
+Source `05ecae7a6b41cbf4445f0514c0e1d05eb11eb344`; exact local image
+`sha256:ba395b5cbbb0dead33ea0573b61f2754c3c94c3488795192d1792509c6a45ed6`
+(56,671,567bytes, UID 65532, Python 3.14.8). Tested read-only root,256MiB/no additional swap,
+0.5CPU,64PIDs,64MiB tmpfs, dropped capabilities and no-new-privileges. Core fixture HTTP/SSE,
+auth/CORS/private ops, online backup and restored history/charged ledger passed. Four concurrent
+fixture turns took850–988ms; idle memory64.97MiB, peak cgroup82,100,224bytes; idle stop2.436s.
+These shared-WSL numbers do not establish VPS capacity or live-model container load.
+
+Optional actual local OTLP capture validated safe attributes and authenticated private W3C
+parenting. With the collector blocked and a fixture stream active, SIGTERM stopped17.244s,
+exit0/no OOM. Read-only inspection before restart found completed1/canceled1 and
+settled1/unreported1, retaining uncertain spend; SQLite quick_check passed. After restart history
+had three messages/one assistant and no partial answer. The outgoing SSE ended EOF without a
+terminal event during process drain; client recovery must tolerate that. Keep current40s grace.
+
+Diagnostic optional-container startup measured10.129/14.962/11.541s against a60s observation
+window. Two older candidate probes missed20s; those negative observations were preserved, not
+reclassified as successful. No healthcheck or test timeout was weakened. The default shipped
+smoke gate remains the application-owned one in scripts/smoke_container.sh.
+
+Trivy 0.75.0/checksum-verified, isolated vulnerability database updated 2026-10-12T19:08:28Z:
+164OS package rows/71CVEs,44high rows,0critical/0Python findings,0 published fixed versions;
+CycloneDX126 components. This is residual OS risk, not an acceptance decision or a certificate
+of security. The source uses signed Debian security packages and removes unnecessary pip/
+ensurepip artifacts, but cannot promise a vulnerability-free image. Preserve the scan and
+review it again when vps-ops selects/builds/publishes its actual deployment digest.
+
+No image was published and no VPS/proxy/collector stack deployed. Real-model development
+results and their separate cost/semantic limits are in
+[the evaluation record](verification/real-model-2026-10-12.md). They do not authorize activation.
+
+
+## Verified route-classification candidate on 2026-10-12
+
+Source `f2958b6efb2dc6bc099647a86aaa44dac1816fef`; exact local image
+`sha256:48435fc564ff353b9590e9ebed033425d23615815f29a9d69112b88e0b76bf57`,
+56,671,696 bytes, UID 65532, Python 3.14.8. This candidate corrects the telemetry allowlist for
+FastAPI's lazily included routes; it changes neither commercial behavior nor the public contract.
+The earlier 05ecae7/ba395 results remain historical, with known-route classification coverage
+explicitly superseded. No digest is relabeled as a later release build.
+
+Shipped core smoke passed in 58.971 s: non-root, read-only, session/CSRF/HTTP/SSE/private auth,
+online backup/restore, conversation continuity and spend-ledger recovery. An isolated collector
+verified 11 actual spans across 9 names, including health, private operations, sessions, messages,
+the templated cancel route and a bounded unknown label. Authenticated private requests inherited
+the expected parent; public or unauthorized requests did not. No visitor path, query, raw run id,
+credential or conversation content appeared in the exported labels/attributes.
+
+An active fixture SSE stream with a blocked collector stopped in 19.077 s with exit 0, no OOM. Before
+restart, readonly SQLite inspection found one completed run, one cancelled run, one settled
+ledger entry and one unreported reservation; quick_check was `ok`. Restart restored 3 messages,
+including one complete assistant answer. Transport ended with EOF without a terminal frame:
+clients must recover stored state and cannot rely on a terminal frame during process drain.
+Keep at least 40 s container stop grace and test it under actual VPS load.
+
+Local idle memory was 66.17 MiB; cgroup peak 82,812,928 bytes. Four concurrent fixture turns
+took 773–820 ms and idle stop took 4.938 s. Diagnostic cold starts measured 19.004, 13.529 and 15.092 s
+under a 60 s observation limit; older 20 s failures remain preserved. These shared-WSL results
+are not an isolated speed comparison, live-provider capacity or a production SLA.
+
+Trivy 0.75.0 with its own vulnerability database updated 2026-10-12T19:08:28Z retained the same
+164 OS package rows / 71 unique CVEs: 44 HIGH, 58 MEDIUM, 61 LOW, 1 UNKNOWN, 0 critical/Python
+findings and no published fixed versions in that database. The CycloneDX SBOM contains 126
+components. Scanner results remain visible and do not constitute production risk acceptance.
+Before deployment, rebuild and smoke the exact approved release commit, review its current
+security inventory and complete the vps-ops activation gates.

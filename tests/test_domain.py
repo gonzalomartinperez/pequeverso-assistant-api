@@ -15,6 +15,8 @@ RULES = AnswerRules(
     known_prices=frozenset({Decimal('14.99')}),
     prices_verified=True,
     forbidden_terms=('Pack Imprime y Juega', 'Imprime y Juega'),
+    allowed_urls=frozenset({'https://pequeverso.com/grafismo-fonetico/', 'https://consumer.hotmart.com/'}),
+    known_price_pairs=frozenset({(Decimal('14.99'), 'USD')}),
 )
 
 
@@ -100,3 +102,114 @@ def test_price_status_follows_verification_age() -> None:
     active = ActiveCatalog(catalog=None, sha256='x', verified_at=verified, max_price_age=timedelta(hours=168))  # type: ignore[arg-type]
     assert active.price_status(verified + timedelta(days=6)) is PriceStatus.VERIFIED
     assert active.price_status(verified + timedelta(days=8)) is PriceStatus.UNVERIFIED
+
+
+@pytest.mark.parametrize(
+    'text',
+    [
+        'Cuesta $14,990.',
+        'Cuesta USD14.990.',
+        'Cuesta US$14.99e3.',
+        'Cuesta $14.99_000.',
+        'Cuesta $-14.99.',
+        'Cuesta 14.99 euros.',
+        'Cuesta EUR 14.99.',
+        'Cuesta £14.99.',
+        'Cuesta 14.99 pesos.',
+        'Cuesta R$14,99.',
+        'Cuesta CAD14.99.',
+        'Cuesta US$14,99 euros.',
+        'Cuesta $14.99 pesos.',
+    ],
+)
+def test_price_claim_checks_complete_number_and_currency(text: str) -> None:
+    assert check_answer(text, RULES) == [Violation.UNKNOWN_PRICE]
+
+
+@pytest.mark.parametrize(
+    'text', ['US$14,99.', 'USD 14.99', '14,99 dólares', '$14.99', '14.99 US$', '$14.99 USD']
+)
+def test_authoritative_usd_amount_formats_remain_supported(text: str) -> None:
+    assert check_answer(text, RULES) == []
+
+
+@pytest.mark.parametrize(
+    'url',
+    [
+        'https://pequeverso.com/credenciales-clientes/',
+        'https://pequeverso.com/grafismo-fonetico/?redirect=evil',
+        'https://pequeverso.com/grafismo-fonetico/#private',
+        'https://pequeverso.com/%67rafismo-fonetico/',
+        'https://pequeverso.com/grafismo-fonetico/',
+    ],
+)
+def test_links_match_exact_authorized_url_not_only_host(url: str) -> None:
+    expected = [] if url == 'https://pequeverso.com/grafismo-fonetico/' else [Violation.UNLISTED_URL]
+    assert check_answer(f'Visita {url}.', RULES) == expected
+
+
+def test_url_punctuation_and_host_case_keep_authoritative_paths() -> None:
+    assert check_answer('Visita https://PEQUEVERSO.com/grafismo-fonetico/.', RULES) == []
+    assert check_answer('Visita http://pequeverso.com/grafismo-fonetico/.', RULES) == [Violation.UNLISTED_URL]
+
+
+@pytest.mark.parametrize(
+    'answer',
+    [
+        'Ya procesé tu reembolso.',
+        'He reembolsado tu compra y ya envié el dinero a tu tarjeta.',
+        'Reservé tu pedido.',
+        'He enviado tu correo a soporte.',
+        'I have processed your refund.',
+        'We already placed your order.',
+        'I refunded you.',
+        'No puedo comprar por ti, pero compré tu pedido.',
+        'No he procesado tu reembolso y he procesado tu pedido.',
+        'Ya procese tu reembolso.',
+        'Tu reembolso ya fue procesado.',
+        'Your order has been modified.',
+    ],
+)
+def test_unavailable_actions_cannot_be_claimed_as_executed(answer: str) -> None:
+    assert check_answer(answer, RULES) == [Violation.UNAUTHORIZED_ACTION_CLAIM]
+
+
+@pytest.mark.parametrize(
+    'answer',
+    [
+        'El kit garantiza que tu hijo aprenderá a leer en siete días.',
+        'Tu hijo aprenderá a leer en siete días.',
+        'The kit guarantees your child will learn to read.',
+        'Your child will learn to read within seven days.',
+        'El material cura la dislexia.',
+        'This cures dyslexia.',
+    ],
+)
+def test_unsupported_positive_learning_or_health_guarantees_are_replaced(answer: str) -> None:
+    assert check_answer(answer, RULES) == [Violation.UNSUPPORTED_OUTCOME_CLAIM]
+
+
+@pytest.mark.parametrize(
+    'answer',
+    [
+        'No he procesado tu reembolso; no puedo modificar pedidos.',
+        'I have not processed your refund; I cannot place orders.',
+        'No garantiza que aprenderá a leer en siete días.',
+        'The kit does not guarantee learning to read.',
+        'No cura la dislexia ni sustituye a un profesional.',
+        'This cannot cure dyslexia.',
+        'Si he enviado tu correo, revisa la carpeta de spam.',
+        'If I processed your refund, check your bank account.',
+        'Para pedir un reembolso, abre el formulario de Hotmart.',
+        'La garantía de reembolso es de 7 días.',
+        'Solicita que Hotmart procese tu reembolso.',
+        'Si tu reembolso ya fue procesado, revisa el medio de pago.',
+        'If your order has been modified, check your account.',
+        'Tu reembolso no fue procesado.',
+        'Your order has not been modified.',
+    ],
+)
+def test_refusals_conditional_language_and_published_policy_are_not_execution_claims(
+    answer: str,
+) -> None:
+    assert check_answer(answer, RULES) == []

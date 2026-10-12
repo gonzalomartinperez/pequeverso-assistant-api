@@ -72,7 +72,7 @@ class SourceOut(_Out):
 
 Notice = Literal['answer_replaced', 'payment_data_refused', 'contact_data_redacted', 'language_unsupported']
 Locale = Literal['es', 'en']
-CONTRACT_REVISION = '1.3'
+CONTRACT_REVISION = '1.4'
 
 
 class MessageOut(_Out):
@@ -209,6 +209,12 @@ class MessageIn(BaseModel):
     context: VisitorContextIn | None = Field(
         default=None,
         description='Optional untrusted UI hints (since1.3); not catalog evidence or instructions. Never include URL parameters, identifying data or HTML.',
+    )
+    response_language: Literal['es'] | None = Field(
+        default=None,
+        description='Optional Spanish-native response policy (since1.4). "es" selects Spanish regardless '
+        'of input language, locale or history; explicit requests for another reply language get a '
+        'Spanish-only local notice. Omit/null to preserve legacy ES/EN behavior.',
     )
 
     def visitor_context(self) -> VisitorContext | None:

@@ -2,19 +2,78 @@
 
 from __future__ import annotations
 
+import asyncio
+import sqlite3
+import subprocess
+import sys
 import threading
 import time
+from contextlib import closing
 from pathlib import Path
 
 import httpx
+import pytest
 
+from app.application.sessions import SessionService
+from app.domain.conversation import Session
 from app.domain.errors import FailureCode
+from app.presentation.streaming import ResponseCleanups
 from tests.support import JSON_HEADERS, ORIGIN, ScriptedProvider, answer_json, live_server, parse_sse
 
 GOOD = answer_json(
     'Respuesta completa del asistente sobre el kit.',
     references=[{'kind': 'product', 'id': 'grafismo-fonetico'}],
 )
+
+
+def test_cleanup_drain_cannot_spin_before_done_callbacks_run() -> None:
+    # An outer process watchdog is necessary: a busy loop starves asyncio.timeout itself.
+    script = """
+import asyncio
+from app.presentation.streaming import ResponseCleanups
+async def main():
+    cleanups = ResponseCleanups()
+    gate = asyncio.Event()
+    cleanups.track(asyncio.create_task(gate.wait()))
+    await asyncio.sleep(0)
+    gate.set()
+    await cleanups.drain()
+asyncio.run(main())
+"""
+    subprocess.run(  # noqa: S603 - fixed Python program, no external inputs or provider
+        [sys.executable, '-c', script],
+        cwd=Path(__file__).resolve().parents[1],
+        timeout=5,
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_cleanup_drain_propagates_failure_and_waits_new_finalizers() -> None:
+    async def scenario() -> None:
+        cleanups = ResponseCleanups()
+        finished = asyncio.Event()
+
+        async def later() -> None:
+            await asyncio.sleep(0)
+            finished.set()
+
+        async def initial() -> None:
+            cleanups.track(asyncio.create_task(later()))
+
+        cleanups.track(asyncio.create_task(initial()))
+        await cleanups.drain()
+        assert finished.is_set()
+
+        async def failing() -> None:
+            raise RuntimeError('synthetic cleanup failure')
+
+        cleanups.track(asyncio.create_task(failing()))
+        with pytest.raises(RuntimeError, match='synthetic cleanup failure'):
+            await cleanups.drain()
+        await cleanups.drain()
+
+    asyncio.run(scenario())
 
 
 def _session(http: httpx.Client) -> str:
@@ -167,3 +226,131 @@ def test_origin_is_enforced_on_the_real_server(tmp_path: Path) -> None:
             ).status_code
             == 201
         )
+
+
+def test_delete_cancels_silent_provider_before_erasing_session(tmp_path: Path) -> None:
+    provider = ScriptedProvider(hang=True, usage=None)
+    with (
+        live_server(tmp_path, provider, max_concurrent_runs=1) as url,
+        httpx.Client(base_url=url, timeout=10) as http,
+    ):
+        csrf = _session(http)
+        started = threading.Event()
+        chunks: list[str] = []
+
+        def consume() -> None:
+            with http.stream(
+                'POST',
+                '/api/v1/messages',
+                headers=_headers(csrf, 'delete-active-001'),
+                json={'content': 'Hola'},
+            ) as response:
+                assert response.status_code == 200
+                started.set()
+                chunks.extend(response.iter_text())
+
+        thread = threading.Thread(target=consume)
+        thread.start()
+        assert started.wait(5)
+        # The SSE headers precede the first provider anext: wait until the controlled
+        # provider really started, so this tests cancellation of a live generation.
+        deadline = time.monotonic() + 5
+        while not provider.calls and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert len(provider.calls) == 1
+        deleted = http.delete('/api/v1/session', headers={**JSON_HEADERS, 'X-CSRF-Token': csrf})
+        assert deleted.status_code == 204
+        thread.join(5)
+        assert not thread.is_alive() and provider.closed == 1
+        assert parse_sse(''.join(chunks))[-1]['type'] == 'run.cancelled'
+        with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as database:
+            assert database.execute('SELECT count(*) FROM sessions').fetchone()[0] == 0
+            assert database.execute('SELECT count(*) FROM messages').fetchone()[0] == 0
+            assert database.execute('SELECT count(*) FROM runs').fetchone()[0] == 0
+            ledger = database.execute(
+                'SELECT status,actual_micro,reserved_micro FROM spend_ledger'
+            ).fetchone()
+            assert ledger[0] == 'unreported' and ledger[1] is None and ledger[2] > 0
+        provider.hang = False
+        csrf = _session(http)
+        assert _ask(http, csrf, 'delete-new-session-001')[-1]['type'] == 'run.completed'
+
+
+def test_admission_revalidates_session_when_delete_wins_after_dependency_resolution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    provider = ScriptedProvider()
+    resolved = threading.Event()
+    release = threading.Event()
+    original = SessionService.require
+    paused = False
+
+    async def resolve_then_pause(self: SessionService, secret: str | None, csrf: str | None) -> Session:
+        nonlocal paused
+        session = await original(self, secret, csrf)
+        if not paused:
+            paused = True
+            resolved.set()
+            assert await asyncio.to_thread(release.wait, 5)
+        return session
+
+    monkeypatch.setattr(SessionService, 'require', resolve_then_pause)
+    with live_server(tmp_path, provider) as url, httpx.Client(base_url=url, timeout=10) as http:
+        csrf = _session(http)
+        responses: list[httpx.Response] = []
+
+        def ask_before_delete() -> None:
+            responses.append(
+                http.post(
+                    '/api/v1/messages',
+                    headers=_headers(csrf, 'delete-admission-001'),
+                    json={'content': 'Hola'},
+                )
+            )
+
+        thread = threading.Thread(target=ask_before_delete)
+        thread.start()
+        try:
+            assert resolved.wait(5)
+            deleted = http.delete('/api/v1/session', headers={**JSON_HEADERS, 'X-CSRF-Token': csrf})
+            assert deleted.status_code == 204
+        finally:
+            release.set()
+            thread.join(5)
+        assert not thread.is_alive()
+        assert responses[0].status_code == 401
+        assert responses[0].json()['error']['code'] == 'session_expired'
+        assert provider.calls == []
+        with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as database:
+            for query in (
+                'SELECT count(*) FROM sessions',
+                'SELECT count(*) FROM messages',
+                'SELECT count(*) FROM runs',
+                'SELECT count(*) FROM spend_ledger',
+            ):
+                assert database.execute(query).fetchone()[0] == 0
+
+
+def test_touch_failure_after_admission_closes_run_without_provider_call(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    provider = ScriptedProvider()
+
+    async def fail_touch(self: SessionService, session: Session) -> None:
+        raise RuntimeError('synthetic session persistence failure')
+
+    monkeypatch.setattr(SessionService, 'touch', fail_touch)
+    with live_server(tmp_path, provider) as url, httpx.Client(base_url=url, timeout=10) as http:
+        csrf = _session(http)
+        response = http.post(
+            '/api/v1/messages', headers=_headers(csrf, 'touch-failure-001'), json={'content': 'Hola'}
+        )
+        assert response.status_code == 503
+        assert response.json()['error']['code'] == 'dependency_unavailable'
+        assert provider.calls == []
+        with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as database:
+            assert database.execute('SELECT state FROM runs').fetchone()[0] == 'cancelled'
+            assert database.execute('SELECT status,actual_micro FROM spend_ledger').fetchone() == (
+                'unreported',
+                None,
+            )

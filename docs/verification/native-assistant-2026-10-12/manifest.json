@@ -1,0 +1,125 @@
+{
+  "captured_at": "2026-10-12",
+  "kind": "actual rendered UI photographs; authored synthetic samples, no customer conversations",
+  "device_scale_factor": 2,
+  "desktop_css_viewport": [
+    1440,
+    1000
+  ],
+  "mobile_css_viewport": [
+    390,
+    844
+  ],
+  "default_compact_panel_css": [
+    408,
+    560
+  ],
+  "public_contract": "v1 revision1.4",
+  "catalog_sha256": "ddddf3d05182fc4f77fd1f26e5bbd621bb09f2fe1f4425ee82f536fd77559a76",
+  "production_assistant": "disabled",
+  "deployed_vps": false,
+  "visual_review": "root independently inspected each selected PNG; agent review, not human review",
+  "semantic_review": "runtime_audit independently reviewed both native sample finals against public catalog; no human or held-out review",
+  "native_verification_limits": [
+    "Two independent browser sessions, not a two-turn follow-up",
+    "First native result preserved from SQLite after body-capture failure; not photographed as a final",
+    "Second visible final equals HTTP history and its exact completed replay, with no provider call during replay",
+    "Original raw native SSE/draft trace unavailable; reload capturer failed after final photographs; no real-provider mobile/reload success claim"
+  ],
+  "files": [
+    {
+      "file": "real-desktop-context.png",
+      "sha256": "b3d9a586aa59b730ffb39fb1d60fe8b40db06aaa354095fa7160e0d5899ea384",
+      "width_px": 2880,
+      "height_px": 2000,
+      "bytes": 1282135,
+      "caption": "gpt-6-luna medium; actual local native UI after its authored delivery/guarantee question",
+      "visually_inspected": true,
+      "source_build": "8865edd5ff9fe471f1eb335a195a33cbc8662898",
+      "presentation_source": "ec32eb1a3bbcd11eae49f20dfb6da670ddce4b5d",
+      "provider_mode": "gpt-6-luna medium",
+      "backend_source_revision": "e7e36645d2351e3c805b3fb07e1929a803d3b126"
+    },
+    {
+      "file": "real-desktop-answer.png",
+      "sha256": "df0cd64587bb8d0c133952721d28da10b256032360c878b80734138a2f081c15",
+      "width_px": 816,
+      "height_px": 1120,
+      "bytes": 135646,
+      "caption": "gpt-6-luna medium; complete answer in default compact panel",
+      "visually_inspected": true,
+      "source_build": "8865edd5ff9fe471f1eb335a195a33cbc8662898",
+      "presentation_source": "ec32eb1a3bbcd11eae49f20dfb6da670ddce4b5d",
+      "provider_mode": "gpt-6-luna medium",
+      "backend_source_revision": "e7e36645d2351e3c805b3fb07e1929a803d3b126"
+    },
+    {
+      "file": "real-desktop-sources.png",
+      "sha256": "3615a9351fcea5f5320a20adb20e437ff61a0ce0750e7fafe633de2b0e018e61",
+      "width_px": 816,
+      "height_px": 1120,
+      "bytes": 122980,
+      "caption": "gpt-6-luna medium; actual source disclosure at a separate genuine scroll position",
+      "visually_inspected": true,
+      "source_build": "8865edd5ff9fe471f1eb335a195a33cbc8662898",
+      "presentation_source": "ec32eb1a3bbcd11eae49f20dfb6da670ddce4b5d",
+      "provider_mode": "gpt-6-luna medium",
+      "backend_source_revision": "e7e36645d2351e3c805b3fb07e1929a803d3b126"
+    },
+    {
+      "file": "fixture-desktop-welcome.png",
+      "sha256": "ed0bbc6c501d7d1c2915ed6abe1b04173c76ac04734a7117047e5516672f3ce5",
+      "width_px": 816,
+      "height_px": 1120,
+      "bytes": 104411,
+      "caption": "fixture-mode API; actual local rendered welcome",
+      "visually_inspected": true,
+      "source_build": "3514aca47482d6e57a8db224defa7dbad8990096",
+      "provider_mode": "fixture",
+      "backend_source_revision": "b7dcb0c27d214cb1b560a8ee6101f858545646fc"
+    },
+    {
+      "file": "fixture-desktop-streaming.png",
+      "sha256": "3943dd0fc9fd94b30d1ea9636d5e005e09b951a7946e112b773cc3439b1f4dbf",
+      "width_px": 816,
+      "height_px": 1120,
+      "bytes": 92913,
+      "caption": "fixture-mode API; actual provisional SSE draft",
+      "visually_inspected": true,
+      "source_build": "3514aca47482d6e57a8db224defa7dbad8990096",
+      "provider_mode": "fixture",
+      "backend_source_revision": "b7dcb0c27d214cb1b560a8ee6101f858545646fc"
+    },
+    {
+      "file": "fixture-mobile-product.png",
+      "sha256": "3bc4219dda6ba530cc3de772147e2426bfc20f23603ee6263b78ab08487b47d7",
+      "width_px": 780,
+      "height_px": 1672,
+      "bytes": 208690,
+      "caption": "fixture-mode API; full product card and input at a genuine mobile scroll position",
+      "visually_inspected": true,
+      "source_build": "3514aca47482d6e57a8db224defa7dbad8990096",
+      "provider_mode": "fixture",
+      "backend_source_revision": "b7dcb0c27d214cb1b560a8ee6101f858545646fc"
+    },
+    {
+      "file": "fixture-desktop-error.png",
+      "sha256": "3042fc54fd35fde306d57d59405d802bea6f760cb30ee51eded66c58df8f4e70",
+      "width_px": 816,
+      "height_px": 1120,
+      "bytes": 118848,
+      "caption": "fixture-mode API; interrupted transport, retained draft, no generation retry",
+      "visually_inspected": true,
+      "source_build": "3514aca47482d6e57a8db224defa7dbad8990096",
+      "provider_mode": "fixture",
+      "backend_source_revision": "b7dcb0c27d214cb1b560a8ee6101f858545646fc"
+    }
+  ],
+  "producer_revision": "b7dcb0c27d214cb1b560a8ee6101f858545646fc",
+  "real_sample_store_build": "8865edd5ff9fe471f1eb335a195a33cbc8662898",
+  "real_sample_presentation_source": "ec32eb1a3bbcd11eae49f20dfb6da670ddce4b5d",
+  "fixture_store_build": "3514aca47482d6e57a8db224defa7dbad8990096",
+  "fixture_visual_review_receipt": "root-gallery-visual-review-351.json; all14 selected fixture PNG inspected independently",
+  "real_sample_backend_source_revision": "e7e36645d2351e3c805b3fb07e1929a803d3b126",
+  "fixture_backend_source_revision": "b7dcb0c27d214cb1b560a8ee6101f858545646fc"
+}

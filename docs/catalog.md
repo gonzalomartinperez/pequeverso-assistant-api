@@ -2,7 +2,8 @@
 
 `catalog/catalog.v1.json` is the assistant's only product and policy knowledge. It is generated
 from the storefront's own typed registry and copy (`gonzalomartinperez/pequeverso`, public) at a
-pinned commit of `main`, the branch customers see.
+pinned commit reachable from `main`. Git provenance and deployment provenance are separate:
+reachability alone does not prove that customers currently see that revision.
 
 ## What it contains (and excludes)
 
@@ -35,8 +36,10 @@ generation time, SHA-256 of the snapshot and of the exporter, counts, and a sema
 (products added or **retired**, price changes, resources, documents, links, forbidden terms).
 A retired product disappears from answers as soon as the new snapshot is active, because every
 reference is resolved against the active catalog. Re-syncing an unchanged `main` commit only
-refreshes `generated_at`: that is a real verification that production still states those
-facts, and it restarts the price-freshness window.
+refreshes `generated_at` and restarts the price-freshness window. It verifies the Git source
+only; before enabling the assistant, reconcile the snapshot with the actually deployed
+storefront revision and its public commercial content. Do not use repeated exports as proof
+of production freshness.
 
 The script reads the storefront through `git archive <sha>` into a temporary directory. No
 storefront working tree, branch or index is touched. It links the storefront's installed
@@ -58,7 +61,13 @@ counts sum, that the offer never appears, and that every URL is https on an allo
 - **Operationally:** re-sync after any storefront price or content change. At the latest,
   re-sync weekly to keep prices quotable. A storefront release that changes a price must be
   followed by a catalog PR here.
-- **Stock and availability:** not applicable (digital). **Promotions:** none exist.
+- **Stock and availability:** the catalog lists a digital product, not live inventory, payment
+  approval or per-order access. It cannot confirm those dynamic states. **Promotions:** none
+  are present in this snapshot; do not infer future discounts.
+
+The 2026-10-10 audit compared bundled source `ae6d237` with Git main `a0ae53e`: public
+commercial source files are unchanged. Hostinger is not connected; no new deployment was
+performed or inferred from that comparison.
 
 ## Live source (optional, future)
 

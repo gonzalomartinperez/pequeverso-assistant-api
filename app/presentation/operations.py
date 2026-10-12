@@ -10,11 +10,13 @@ from datetime import datetime
 from typing import Annotated, Literal, Self
 
 from fastapi import APIRouter, Depends, Header, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.application.operations import OperationsService, Summary
+from app.application.telemetry import TelemetryPort
 from app.presentation.middleware import request_id_of
+from app.presentation.telemetry import OpsTelemetryOut
 
 
 class _Out(BaseModel):
@@ -220,7 +222,11 @@ def _unauthorized(request: Request) -> JSONResponse:
     )
 
 
-def build_router(service: OperationsService, token_digest: bytes) -> APIRouter:
+def build_router(
+    service: OperationsService,
+    token_digest: bytes,
+    telemetry: TelemetryPort | None = None,
+) -> APIRouter:
     router = APIRouter(prefix='/internal/v1/ops', include_in_schema=False)
 
     def authorized(authorization: Annotated[str | None, Header()] = None) -> bool:
@@ -236,5 +242,26 @@ def build_router(service: OperationsService, token_digest: bytes) -> APIRouter:
         if not ok:
             return _unauthorized(request)
         return OpsSummaryOut.of(await service.summary())
+
+    if telemetry is not None:
+
+        @router.get('/telemetry', response_model=OpsTelemetryOut)
+        async def runtime_telemetry(
+            request: Request,
+            ok: Annotated[bool, Depends(authorized)],
+        ) -> OpsTelemetryOut | JSONResponse:
+            if not ok:
+                return _unauthorized(request)
+            return OpsTelemetryOut.of(await telemetry.snapshot())
+
+        @router.get('/metrics')
+        async def metrics(request: Request, ok: Annotated[bool, Depends(authorized)]) -> Response:
+            if not ok:
+                return _unauthorized(request)
+            return Response(
+                await telemetry.prometheus(),
+                media_type='text/plain; version=0.0.4; charset=utf-8',
+                headers={'Cache-Control': 'no-store'},
+            )
 
     return router

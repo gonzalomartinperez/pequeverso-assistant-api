@@ -15,3 +15,18 @@ Rendering rules: unknown values are `null` → "no disponible", never 0; `daily`
 with records and `metrics_since` marks the start of history (do not draw gaps as zeros);
 `service.synthetic` must be shown prominently; money is USD decimal strings; spend is
 confirmed / estimated / pending (definitions in docs/api-contract.md).
+
+
+## Optional telemetry extension (2026-10-12)
+
+Private summary revision1.2 stays unchanged. When API observability is explicitly enabled,
+`GET /internal/v1/ops/telemetry` adds an independent schema1.0 snapshot using the same server-side
+bearer. Pin `contracts/ops.telemetry.schema.json` and its example from the exact merged API
+commit. A404/unavailable telemetry snapshot must not prevent the older summary from rendering.
+Use null/unknown labels for unavailable process resources and provider checks; do not infer
+provider availability from readiness or historical uptime from one process's lifetime.
+
+Prometheus text metrics are private and authenticated; OTLP only exports safe manual attributes.
+The backoffice's own metrics token is separate from the API ops token; neither reaches client
+props, browser code or URLs. The backoffice owns its authorization, private endpoint and SDK
+contract. vps-ops owns shared receivers and scrapes. See [observability](../observability/README.md).

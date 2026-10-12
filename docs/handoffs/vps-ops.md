@@ -2,8 +2,9 @@
 
 Answers the "Concrete request to the application agent" in vps-ops
 `docs/handoffs/pequeverso-assistant.md` (inspected at vps-ops `develop` `04be619`). This is a
-handoff, not an authorization: no image is published, and no DNS record, route, database,
-secret, Coolify resource or paid provider use exists or is approved by this document. vps-ops
+handoff, not an authorization: no image is published, and this document does not approve any
+DNS record, route, database, secret or Coolify resource. Owner-authorized paid evaluations ran
+only in isolated local services; see docs/verification/real-model-2026-10-12.md. vps-ops
 remains the only infrastructure authority; nothing here modifies vps-ops.
 
 ## Topology change since the vps-ops planning record
@@ -32,12 +33,15 @@ cross-origin from the browser.
    CI builds the exact image and smoke-tests it (API: `scripts/smoke_container.sh`; backoffice:
    `scripts/smoke-image.sh`). Both are `linux/amd64`, non-root (API uid 65532; backoffice uid
    1000), read-only root with tmpfs, `--cap-drop ALL`, `no-new-privileges`. Ports: API
-   `8000/tcp`, backoffice `3000/tcp`. Measured idle memory (local, fixture data): API ~56 MiB,
-   backoffice ~64–77 MiB; historical Docker image sizes ~235 MB and ~97 MB
-   (Docker metadata, not compressed registry-transfer bytes). New patched candidates must
-   replace these historical numbers with exact-image evidence; layer whiteouts do not imply
-   physical image shrink. Proposed limits: API 0.5
-   CPU / 256 MiB, backoffice 1 CPU / 384 MiB (request 0.1 CPU / 128 MB). Live-model load is not
+   `8000/tcp`, backoffice `3000/tcp`. Latest API local fixture acceptance (2026-10-12):
+   application `f2958b6`, image `48435fc`, 56,671,696 bytes, idle 66.17 MiB and active-stream shutdown
+   with a blocked collector took 19.077 s; use at least 40 s stop grace. Exact digests and limits are in
+   [the deployment contract](../deployment-contract.md). Historical backoffice measurements
+   were 64–77 MiB idle and about 97 MB image metadata; its new PostgreSQL 18.6/telemetry candidate
+   requires fresh exact-image acceptance from that repository before selection.
+   Sizes are Docker metadata, not compressed transfer or physical disk use; layer whiteouts do
+   not imply physical image shrink. Proposed limits: API 0.5
+   CPU / 256 MiB, backoffice 1 CPU / 384 MiB (request 0.1 CPU / 128 MB). Real-model socket timings exist, but live-model container load and VPS capacity are not
    measured. Publication to a private registry by digest needs separate authorization.
 2. **Health and persistence.**
    - API: `GET /health/live` (liveness), `GET /health/ready` (database + valid catalog; Docker
@@ -51,7 +55,8 @@ cross-origin from the browser.
      sessions, invitations and an id-only audit. Migrations are a **one-shot** command of the same
      image digest (`node scripts/db-migrate.ts`), additive, advisory-locked, idempotent; run them
      before starting a new digest. Backups: daily encrypted `pg_dump -Fc`, off-server, restore
-     drill before activation. Tested with PostgreSQL 17.6 and 18.4.
+     drill before activation. Historical tests used PostgreSQL17.6 and18.4; the current backoffice target is18.6,
+     with its exact-image migration/restore evidence owned by that repository.
    - Rollback: previous digest on the same data. Across API migration 002 see
      `docs/deployment-contract.md` (needs the backup or clearing conversations). Image rollback
      never restores data.
@@ -91,8 +96,11 @@ cross-origin from the browser.
    `OPENAI_BASE_URL` cannot redirect the key. Regional/custom gateways or another tier require
    security and pricing review before adoption. Input bounds include serialized
    instructions, message roles/text and output schema, plus1024 protocol bytes. Aggregate metrics: the private `GET /internal/v1/ops/summary` (bearer
-   token) — schema `contracts/ops.schema.json`; no Prometheus endpoint yet (ADR-0005). Proposed
-   alerts if vps-ops scrapes later: month spend ≥ 80 % / 100 % of the cutoff, catalog
+   token) — schema `contracts/ops.schema.json` revision1.2. Optional authenticated
+   `/internal/v1/ops/telemetry` (independent schema1.0) and `/internal/v1/ops/metrics` are
+   opt-in, default off. OTLP traces, bounded queues, safe attributes and monitoring handoff
+   artifacts are documented in docs/observability/README.md; no monitoring server is installed.
+   Alerts for vps-ops integration: month spend ≥ 80 % / 100 % of the cutoff, catalog
    `price_status=unverified`, `last_failure` set, readiness failing. No conversation content,
    e-mail, cookie or secret is ever in logs or metrics.
 
@@ -142,3 +150,28 @@ container logs; never purge financial history or prune other projects to satisfy
 No monitoring service is added: existing private ops and internal readiness supply aggregates,
 while Docker/host metrics belong to vps-ops. Neither release nor this handoff enables the
 storefront, publishes an image or authorizes an infrastructure action.
+
+
+## Current consumer and lifecycle requirements
+
+- Keep public routing as `/api/v1/*`, with no prefix rewrite. `/v1` is the version within
+  the application-owned `/api` namespace; changing it requires coordinated contracts. The
+  native Spanish-only storefront requires public revision>=1.4 and sends `response_language:
+  "es"`; absence/null keeps legacy ES/EN compatibility. Existing saved English history is not
+  rewritten. Consume the exact merged contract artifacts, not a mutable branch or another
+  application's contract.
+- Preserve the private summary revision1.2 and independent telemetry1.0. Backoffice custom UI
+  consumes them server-side after `read_operations`; Prometheus scraping and OTLP export
+  complement that UI rather than replace its budget/run ledger. No metric equals a billing
+  invoice or proves the provider is available.
+- Current API container grace is at least 40s:15s Uvicorn stream grace, separate10s registry
+  cleanup and bounded exporter shutdown/headroom. Dropped best-effort traces must not delay
+  application cleanup. Historical30s tracing-off evidence is not the current target.
+- Keep API SQLite on its own `/data` volume, backoffice identity on its own PostgreSQL 18.6
+  database/volume, and shared infrastructure in vps-ops. No Neo4j/vector/Redis is needed for
+  this catalog. Verify backup/restore, WAL/disk limits and physical erasure before activation.
+- LTS applies only where an official policy exists. Python3.14.8 and PostgreSQL 18.6 are
+  supported stable releases; Node24 is LTS. Python OTEL1.45.1 contains three explicit0.66b1
+  dependencies. Prometheus3.13 LTS, Grafana13.2 and collector components require final image
+  and compatibility selection by vps-ops. Examples are application handoff artifacts, not
+  permission to deploy a monitoring stack.

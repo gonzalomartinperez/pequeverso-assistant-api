@@ -7,9 +7,10 @@ import json
 import logging
 from pathlib import Path
 
+import pytest
 from starlette.requests import Request
 
-from app.bootstrap.logging import SafeJsonFormatter
+from app.bootstrap.logging import SafeJsonFormatter, configure_logging
 from app.presentation.http import client_ip
 from tests.support import ScriptedProvider, answer_json, ask, client, open_session
 
@@ -34,6 +35,46 @@ def test_logs_never_contain_conversation_content_or_ips(tmp_path: Path) -> None:
     lines = [json.loads(line) for line in output.splitlines()]
     assert any(line.get('operation') == 'run' and line.get('outcome') == 'completed' for line in lines)
     assert any(line.get('operation') == 'unstructured_event' for line in lines)
+
+
+def test_uvicorn_error_handler_uses_safe_formatter_without_raw_exception(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = logging.getLogger()
+    error = logging.getLogger('uvicorn.error')
+    parent = logging.getLogger('uvicorn')
+    previous_root, previous_level = root.handlers[:], root.level
+    previous_error, previous_propagate = error.handlers[:], error.propagate
+    previous_parent, parent_propagate = parent.handlers[:], parent.propagate
+    try:
+        # Uvicorn installs a separate stderr handler before lifespan startup.
+        error.handlers[:] = [logging.StreamHandler()]
+        error.propagate = False
+        # The default Uvicorn config also stops propagation at its parent logger.
+        parent.handlers[:] = [logging.StreamHandler()]
+        parent.propagate = False
+        configure_logging()
+        assert error.handlers == [] and error.propagate
+        assert parent.handlers == [] and parent.propagate
+        try:
+            raise RuntimeError('synthetic-provider-secret-private-question')
+        except RuntimeError:
+            error.exception('unsafe synthetic-provider-secret-private-question')
+        captured = capsys.readouterr()
+        assert captured.err == ''
+        assert 'synthetic-provider-secret-private-question' not in captured.out
+        assert 'Traceback' not in captured.out
+        record = json.loads(captured.out)
+        assert record['logger'] == 'uvicorn.error'
+        assert record['level'] == 'error' and record['exception'] == 'RuntimeError'
+        assert record['operation'] == 'unstructured_event'
+    finally:
+        root.handlers[:] = previous_root
+        root.setLevel(previous_level)
+        error.handlers[:] = previous_error
+        error.propagate = previous_propagate
+        parent.handlers[:] = previous_parent
+        parent.propagate = parent_propagate
 
 
 def _request(peer: str, forwarded: str | None) -> Request:

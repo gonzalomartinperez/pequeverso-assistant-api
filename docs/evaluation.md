@@ -1,15 +1,18 @@
 # Evaluation
 
-Four deterministic suites run in CI; a live procedure is prepared and has **not** been run. No
-paid calls have been made.
+Deterministic fixture suites run in CI. The owner-authorized real-model socket evaluation
+completed on 2026-10-12: 236 initial queries,53 post-adjustment queries and14 final targeted
+queries. See
+[the dated evidence and limits](verification/real-model-2026-10-12.md); automated completion
+is distinct from semantic correctness, and agent review is not human review.
 
 | Suite | Command | What it proves | Latest result (fixture) |
 |---|---|---|---|
 | Retrieval | `uv run python scripts/evaluate_retrieval.py` | Lexical ranking finds the right passage (20 cases, `evals/retrieval.json`) | recall@3 = 0.95, MRR = 0.908 (miss: "correo postal" vs "producto físico") |
 | Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 16 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 16/16 safe |
-| Guards | same command (`evals/guards.json`) | 10 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup) are dropped or replaced server-side | 10/10 |
+| Guards | same command (`evals/guards.json`) | 11 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup) are dropped or replaced server-side | 11/11 |
 | Corpus | `uv run python scripts/evaluate_corpus.py` | 288 hand-written cases in 18 intent families (`evals/corpus/`), retrieval per family/split/language, and every case through the full HTTP/SSE path | Gates: 0/288 pipeline failures; reply language 285/285 as expected (`lang-016` fixed with Portuguese markers). Retrieval recall@3 = 0.70 overall (dev 0.67, holdout 0.77), 0.17 on English questions. Report: `evals/reports/corpus-fixture.json` |
-| Conversations: quality | same command with `--live` | Budget recommendation, low budget honesty, resource comparison, clarification, no-match (fluent reader, app), stale price, follow-up reference, invented discount, injection, unknown shipping and license policy, refused order action, offer probe, child-data minimization, English visitor | **Not run** (needs authorization). The fixture scores 9/16 on quality checks, which says nothing about a real model |
+| Conversations: quality | same command with `--live` | Budget recommendation, low budget honesty, resource comparison, clarification, no-match (fluent reader, app), stale price, follow-up reference, invented discount, injection, unknown shipping and license policy, refused order action, payment data, offer probe, child-data minimization, English visitor | This specific conversations CLI has not been run live. The separate 303-turn socket evaluation is documented below; fixture scores do not measure model quality |
 
 `tests/test_evaluations.py` gates CI on retrieval ≥ 0.9 recall@3, zero safety failures, zero
 guard failures, zero corpus gate failures, the exact set of known reply-language misses and
@@ -20,12 +23,15 @@ the corpus retrieval floors. `docs/verification/fixture-eval.json` holds the lat
 The fixture provider receives the same `store_data` and `visitor_turn` payloads as the model. It
 answers with the best lexical match, streamed as schema-valid JSON. It exercises retrieval,
 streaming, validation and persistence. It does not demonstrate understanding, recommendations
-or tone. The system prompt and quality checks are ready for `gpt-6-luna` but unvalidated.
+or tone. The dated real-model socket evaluation covers the current prompt and native Spanish policy;
+it does not turn fixture quality scores into model evidence or certify every future answer.
 
-## Bounded live evaluation (prepared, not executed)
+## Bounded live evaluation (separate corpus phases not executed)
 
 Preconditions (owner):
-1. Create a separate OpenAI project for Pequeverso with a hard monthly limit.
+1. Create a separate OpenAI project for Pequeverso; verify its billing controls rather than
+   assuming a project budget alert is a hard cap. Keep the application budget and the stricter
+   evaluation ledger enforced independently.
 2. Put the separate project key in a private mode-600 environment file; never pass it in arguments or logs.
 3. Authorize the spend explicitly.
 
@@ -99,8 +105,8 @@ read `holdout` only to confirm.
 fixture run proves that the code path (session, streaming, validation, persistence, language
 selection, notices) behaves; it says nothing about how `gpt-6-luna` answers. The production
 model setting is `gpt-6-luna` with reasoning effort `medium` and `max_output_tokens` 4000
-(reasoning tokens count toward that cap and are billed as output). Neither has been evaluated
-with the real model.
+(reasoning tokens count toward that cap and are billed as output). The 2026-10-12 socket evaluation used both settings; the separate dev/holdout
+corpus CLI phases below have not been executed with the real model.
 
 **Four kinds of result.**
 
@@ -111,13 +117,14 @@ with the real model.
 | Retrieval | Lexical rank of the evaluated turn | Decides whether ranking needs work (ADR-0002) |
 | Behavior | Outcome (clarifying question, support route), grounding (expected passage referenced), forbidden behaviors by string heuristics | **None.** The fixture answers by lexical match; its 111 flags are expected. Meaningful only in a live run, then reviewed by hand. `invented_policy` has no lexical check (manual review) |
 
-**Findings (fixture, catalog `ae6d237`, API develop `07405d2`).**
+**Historical findings (fixture, catalog `ae6d237`, API develop `07405d2`; superseded language issue explicitly retained).**
 
 - Reply language: 284 of 285 checked cases as expected (272 Spanish, 8 English, 5 unsupported).
   The miss is `lang-016`, "Quanto custa o kit e como faço para comprar?": the detector returns
   `unknown` (the message shares "kit", "como", "para" with Spanish), so the visitor gets a Spanish
-  answer instead of the unsupported-language note. Harmless but wrong; a detector fix should
-  remove it from `KNOWN_LANGUAGE_MISSES` in `tests/test_evaluations.py`.
+  answer instead of the unsupported-language note. This was corrected before the
+  2026-10-10 baseline (`b27d35c`); the current corpus gate expects zero known misses.
+  Keep this initial observation as history, not as an outstanding defect.
 
 - The model always receives the whole catalog: its evidence payload is about 10.8K characters,
   under `MAX_EVIDENCE_CHARS` (40K). Ranking therefore affects only fixture answers and future
@@ -140,3 +147,144 @@ share one `--budget-state`; never create a fresh cap per phase.
 
 Run `dev` first, adjust the prompt, then `holdout` once. Review every behavior flag by hand; a
 heuristic flag is a prompt to read the answer, not a verdict.
+
+## Socket matrix frozen on 2026-10-10
+
+`evals/end_to_end.json` freezes 224 queries in 208 cases: 200 independent questions in
+20 intent families, plus eight three-turn conversations. Spanish and English questions are
+varied by intent, not counted as direct translation pairs. The manifest is development
+evidence, not a reserved independent holdout. No questions or expected answers enter the
+public catalog or runtime indexes.
+
+```sh
+uv sync --frozen
+uv run python scripts/evaluate_end_to_end.py \
+  --source-revision <exact-application-commit> \
+  --output-dir /absolute/private/path/new-initial-run
+```
+
+The runner defaults to fixtures. Without `--live` it forces no provider key, disables
+paid AI and avoids `.env.local`, even when key-file arguments or ambient credentials exist. It starts Uvicorn on loopback and uses real HTTP/SSE, session
+cookies, Origin and CSRF. Each turn records HTTP/terminal outcome, first-content and total
+latency, public evidence hash/ids actually sent, lexical ranking separately, final citations,
+observed-language heuristics and exact restored-history comparison. Completed-request replay
+checks that no new provider call occurs. Invalid Origin/CSRF and fresh-visitor isolation are
+checked explicitly. Fixture token/ledger numbers are synthetic estimates, never an invoice.
+
+Full synthetic answers and database state are private local artifacts (files0600, output
+directory0700), outside Git. Existing output directories cannot be overwritten. Keep the
+initial manifest, catalog and answer hashes before fixes; use a separate post-fix directory
+and a separate variants manifest (`evals/end_to_end_postfix.json`: original224 plus12 new
+queries, passed with `--manifest`). Inspect evidence and response relevance beyond exit status.
+
+Initial application `b27d35c`, manifest SHA256
+`9bcffa12162143c5dcc2a9e163ddf5a64ba9752e8a954b4580d257fecdf74758`:
+224 queries, 223 fixture calls, one local abstention, zero structural flags, zero history
+mismatches (final-message membership/equality check) and 35 heuristic language flags.
+The post-fix runner additionally requires final-message position, unique ids, complete
+user/assistant ordering and unchanged history after replay. Invalid Origin/CSRF returned403. Actual provider
+cost was$0. Agent inspection of all224 synthetic final answers additionally found irrelevant
+answers, incomplete comparisons, failed follow-up resolution and unrelated citations; those
+are not captured by the structural score. No human review or live-model quality is claimed.
+
+Known manifest annotation issue: `languages-10` asks in English to receive Spanish, but the
+original expected metadata was annotated `en` from the UI locale. Preserve the frozen
+manifest; report that error and use an explicit-`es` post-fix variant. Do not retrospectively
+change the baseline or present improved flags as independent quality validation.
+
+The whole current catalog (one product, nine resources, 23 documents) fits the evidence
+bound and is sent in full. Both resources in comparisons were therefore available even
+when the fixture mentioned only one. Low English lexical scores do not establish omitted
+model evidence. Vector and graph search are absent by design. Real-model commercial
+accuracy, source entailment and tone now have dated agent-reviewed evidence; physical-device,
+VPS and staged acceptance checks still gate activation. Legacy English replies remain supported
+by the API; the native storefront now requests Spanish only.
+
+
+## Explicit opt-in socket evaluation
+
+Owner authorization on 2026-10-12 permits a bounded OpenAI evaluation; this procedure is not
+storefront activation or a deployment. Only `gpt-6-luna`, reasoning `medium`, is supported.
+The runner itself does not verify account availability, official prices, previous monthly
+spend or owner authorization: the operator must verify those before dispatch.
+
+```sh
+uv run python scripts/evaluate_end_to_end.py --live \
+  --manifest evals/end_to_end_postfix.json \
+  --source-revision <exact-application-commit> \
+  --key-file /absolute/private/pequeverso-eval.env.local \
+  --budget-state /absolute/private/common-budget.sqlite3 \
+  --output-dir /absolute/private/new-live-baseline
+```
+
+The environment file must be a regular, non-symlink mode600 file outside the repository,
+with `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-6-luna` and `OPENAI_REASONING_EFFORT=medium`.
+The shared budget directory must be mode700; existing budget files must be mode600.
+The unchanged `Envelope` and `BoundedProvider` enforce the shared immutable USD1 envelope,
+400 attempts, USD0.011 reservations, conservative usage settlement, unknown-cost retention,
+Standard tier, no SDK/adapter retry, no proxy trust and no fallback. Reuse the same budget
+state across baseline and any later revalidation; never reset a stopped ledger or enlarge
+its cap. The USD10 project monthly authorization is separate from this stricter envelope.
+
+All generations still enter through real loopback HTTP/SSE with session, Origin, CSRF,
+idempotency, grounding, persistence and history checks. Provider overrides are isolated
+local test composition, not production runtime configuration. Evidence records distinguish
+retrieved catalog payloads from dispatched OpenAI attempts. Price safety follows the actual
+evidence `price_status`; a stale snapshot is not made fresh by running the evaluator.
+
+The 236-query postfix matrix contains the original224 plus12 development variants; it is
+not an independent holdout. Freeze its manifest and application/catalog revision before
+calling. One progress line per completed turn contains identifiers, counts and terminal
+state only. Full answers, streamed partial events, evidence and usage receipts stay in a new
+private directory. `answers.json` is atomically checkpointed per turn, `inflight.json` per
+SSE event and `budget.json` after each turn; the external SQLite envelope persists reservation
+before dispatch. Summary records missing turns and a safe stop reason even after an orderly
+interrupt. A force-killed process may have only partial artifacts; never retry its uncertain
+attempt automatically.
+
+Live mode stops on a transport/application failure, missing usage, structural/history/replay
+or authorization/isolation gate failure, interruption, or exhausted shared budget. A summary
+with `stop_reason` makes the CLI exit nonzero. No generation is retried to obtain a green run.
+Known token usage is reported separately from conservative accounting and the application
+ledger; `actual_provider_usd` remains null in live mode because none is an invoice. Review
+commercial correctness, citation entailment, usefulness and actual output language separately:
+HTTP completion and automated heuristics do not certify response quality. Publish only reviewed
+metadata; full private responses and credentials never belong in Git.
+
+
+## Native Spanish post-adjustment evaluation
+
+`evals/end_to_end_spanish_native_revalidation.json` freezes 53 development queries: 25
+unchanged baseline cases plus 20 new variants (45 cases, including follow-ups). Original case
+annotations stay intact; `reply_policy` and `policy_expectations` express the new native
+Spanish requirement separately. This is post-adjustment development evidence, not a holdout.
+
+```sh
+uv run python scripts/revalidate_end_to_end.py \
+  --manifest evals/end_to_end_spanish_native_revalidation.json \
+  --baseline-manifest /absolute/private/original/manifest.json \
+  --previous-run /absolute/private/baseline-continuation \
+  --key-file /absolute/private/pequeverso-eval.env.local \
+  --budget-state /absolute/private/common-budget.sqlite3 \
+  --output-dir /absolute/private/new-spanish-revalidation \
+  --source-revision <exact-application-commit>
+```
+
+The helper requires an original baseline of at least200 queries, exact equality of repeated
+cases and the already-used shared ledger before reading the key. It refuses a stopped ledger,
+new cap, overwrite or symlink. Native messages and replays use `locale: "es"` and
+`response_language: "es"`. Every turn must have exactly one completed replay message identical
+to the original final message and unchanged HTTP history, with no new generation. A negative
+control proves that an incorrect replay with otherwise valid history stops evaluation.
+
+The initial baseline only replayed each case's final turn (219 HTTP replays), not every
+intermediate turn; it verified235 histories, with one additional terminal completion checked
+offline after interruption. The later53-query run checks history and replay for every turn.
+Original artifacts remain untouched. Full responses and usage receipts stay private.
+
+
+The final14-query matrix uses the same helper with
+`--manifest evals/end_to_end_final_quality_revalidation.json` and
+`--previous-run /absolute/private/spanish-native-post-adjustment`, retaining the same original
+baseline manifest and shared budget state. It repairs the six recorded quality observations
+without mutating either preceding run. See the dated report for results and actual code revisions.

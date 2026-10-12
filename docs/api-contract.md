@@ -2,13 +2,16 @@
 
 Audience: the **native assistant of the storefront** `pequeverso` (the only public conversation
 UI). The former `pequeverso-assistant-web` chat shells were removed; that repository is now the
-private backoffice `pequeverso-assistant-backoffice`. Current revision: **1.3**, additive within v1
+private backoffice `pequeverso-assistant-backoffice`. Current revision: **1.4**, additive within v1
 (`contract_revision` in `SessionOut` and `contracts/manifest.json`). Revision **1.1** added: `starters`, `locale`, `language`, notice `language_unsupported`,
 and the private operations API. Revision **1.2** adds `pricing` (the rate source used for
 estimates) and `recent` (up to 50 latest runs with opaque ids) to the private ops summary only;
 the browser response contract is unchanged from1.1. Revision **1.3** adds optional nested
 `context` navigation/presentation hints to `MessageIn`; existing1.0–1.2 clients work unchanged,
 and the private ops schema is unchanged from1.2.
+Revision **1.4** adds optional `MessageIn.response_language: "es" | null` for the Spanish-native
+storefront. Omitted/null preserves the legacy ES/EN selection and exact request fingerprint;
+neither the response language enum nor existing English history is removed.
 Pinned artifacts: `contracts/openapi.json`, `contracts/sse.schema.json`, `contracts/examples/*`,
 hashed in `contracts/manifest.json` (`contract_version: "1"`). They are generated from the code
 (`uv run python -m contracts.export`) and CI fails if they drift. Consume them from an exact
@@ -60,7 +63,8 @@ cookies and CSRF.
 ## Asking and streaming
 
 Request body: `{"content": "<1..600 chars>", "page": "home" | "product" | "support" | null,
-"locale": "es" | "en" | null, "context": {"opened_path": "/grafismo-fonetico/",
+"locale": "es" | "en" | null, "response_language": "es" | null,
+"context": {"opened_path": "/grafismo-fonetico/",
 "current_path": "/soporte/", "presentation": "compact" | "expanded" | "page"} | null}`. `page` is optional context from the storefront route (a fixed
 enum; never free text). `locale` is the interface language: a preference, not an order.
 The default application limit is 600 characters (`MAX_MESSAGE_CHARS`, configurable within
@@ -92,6 +96,29 @@ message in another language gets a fixed bilingual note (notice `language_unsupp
 a model call. `MessageOut.language` says which language `content` is in: set it as the `lang`
 attribute of the rendered message. Product and resource names stay in Spanish; the material is
 in Spanish.
+
+**Spanish-native responses (1.4).** The native storefront always sends `response_language:
+"es"`, opens its session with `locale: "es"` and offers no language selector. With this policy,
+ordinary questions written in English may be answered in Spanish; neither an English locale
+hint nor prior English replies overrides the selected Spanish language. Recognized explicit
+requests for another reply language, including English, get a short Spanish-only
+`language_unsupported` notice without a provider call or spend reservation. Quoted text,
+negated requests and questions about the material's language do not request another reply
+language. The recognizer is finite; it is not universal semantic language detection.
+
+The optional policy is included in the idempotency digest only when it is `"es"`: adding or
+removing it on an existing key yields `409 idempotency_conflict`, preventing replay of an old
+English response as a new Spanish-native generation. Omitted/null keeps the exact legacy
+digest, including existing context rules. Other values such as `"en"` are rejected with
+`422 invalid_request` before generation. Historical English messages remain unchanged and
+must retain their original `lang` attribute. Clients that omit the field keep the legacy
+selection/bilingual notice above; this is not a global Spanish-only restriction on v1 clients.
+
+The server selects Spanish in the model request and response metadata. Neither that metadata
+nor final grounding validates the actual prose language of every provider sentence; provisional
+SSE text is still provisional. Real-model language/quality review remains an activation gate.
+Require backend contract revision at least1.4 before enabling this native policy. This additive
+field authorizes no storefront activation or deployment.
 
 **Starters (1.1).** `SessionOut.starters` holds up to four opening questions in the requested
 locale, built from approved catalog topics (the storefront FAQ). Show them only before the first
