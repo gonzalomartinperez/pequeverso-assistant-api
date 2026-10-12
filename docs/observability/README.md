@@ -32,6 +32,11 @@ only when observability is enabled; an absent endpoint starts no exporter/networ
 Manual HTTP spans contain only a normalized method, allowlisted route template and observed
 status. No raw URL/path/query, body, prompt/answer, SQL, provider payload, customer/session/run
 id, cookie, IP, credential or request id is exported. Incoming browser trace context is ignored.
+The allowlist is frozen at application construction from FastAPI's public `iter_route_contexts`,
+including its lazy included routers; reading only top-level `app.routes[*].path` previously
+classified registered routes as `unmatched`. Unknown routes still use that fixed label. The
+real HTTP/SSE/OTLP regression checks health, private operations, sessions, messages and the
+cancel template (including an application 404 for an already completed run), with no raw run id.
 A bounded W3C00 traceparent can be inherited only on three exact private ops routes after the
 existing bearer is independently validated in constant time. No baggage or tracestate is
 accepted; production cross-service correlation requires the actual backoffice/collector smoke.
