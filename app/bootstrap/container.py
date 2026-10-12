@@ -10,6 +10,10 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.adapters.observability import RuntimeTelemetry
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -146,8 +150,9 @@ def create_app(
         ),
     )
 
+    operations_queries = SqliteOperationsQueries(db)
     operations = OperationsService(
-        SqliteOperationsQueries(db),
+        operations_queries,
         catalog,
         catalog.live,
         clock,
@@ -178,6 +183,23 @@ def create_app(
             return not chat.registry.closing and await db.ping() and catalog.active is not None
         except Exception:  # noqa: BLE001
             return False
+
+    telemetry: RuntimeTelemetry | None = None
+    if settings.observability_enabled:
+        from app.adapters.observability import RuntimeTelemetry
+
+        telemetry = RuntimeTelemetry(
+            started_at=clock.now(),
+            synthetic=settings.ai_provider == 'fixture',
+            revision=settings.service_revision,
+            ready=ready,
+            active_runs=lambda: len(chat.registry),
+            max_runs=settings.max_concurrent_runs,
+            run_window=lambda: operations_queries.run_window(clock.now() - timedelta(hours=24)),
+            endpoint=settings.telemetry_otlp_endpoint,
+            sampling_ratio=settings.telemetry_trace_sampling_ratio,
+            export_timeout=settings.telemetry_export_timeout_seconds,
+        )
 
     async def maintenance() -> None:
         while True:
@@ -229,6 +251,8 @@ def create_app(
                 with contextlib.suppress(asyncio.CancelledError):
                     await task
             await db.close()
+            if telemetry is not None:
+                await asyncio.to_thread(telemetry.shutdown)
 
     app = FastAPI(
         title='Pequeverso assistant API',
@@ -263,7 +287,7 @@ def create_app(
     app.include_router(health)
     if settings.ops_read_token is not None:
         digest = hashlib.sha256(settings.ops_read_token.get_secret_value().encode()).digest()
-        app.include_router(build_operations_router(operations, digest))
+        app.include_router(build_operations_router(operations, digest, telemetry))
     install_error_handlers(app)
     # Outermost first at runtime: context → CORS → origin policy → body limit → routes.
     app.add_middleware(BodyLimitMiddleware, max_bytes=settings.max_body_bytes)
@@ -277,5 +301,17 @@ def create_app(
         expose_headers=['X-Request-ID', 'X-Run-ID', 'Retry-After'],
         max_age=600,
     )
+    if telemetry is not None:
+        from app.adapters.observability import TelemetryMiddleware
+
+        routes = frozenset(getattr(route, 'path', '') for route in app.routes)
+        private_digest = (
+            hashlib.sha256(settings.ops_read_token.get_secret_value().encode()).digest()
+            if settings.ops_read_token
+            else None
+        )
+        app.add_middleware(
+            TelemetryMiddleware, telemetry=telemetry, routes=routes, private_token_digest=private_digest
+        )
     app.add_middleware(RequestContextMiddleware)
     return app

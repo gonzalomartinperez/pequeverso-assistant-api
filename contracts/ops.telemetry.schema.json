@@ -1,0 +1,332 @@
+{
+  "$defs": {
+    "HttpTelemetryOut": {
+      "additionalProperties": false,
+      "properties": {
+        "requests": {
+          "minimum": 0,
+          "title": "Requests",
+          "type": "integer"
+        },
+        "server_errors": {
+          "minimum": 0,
+          "title": "Server Errors",
+          "type": "integer"
+        },
+        "inflight": {
+          "minimum": 0,
+          "title": "Inflight",
+          "type": "integer"
+        },
+        "window": {
+          "const": "since_process_start",
+          "default": "since_process_start",
+          "title": "Window",
+          "type": "string"
+        },
+        "error_scope": {
+          "const": "http_5xx_only_not_sse_run_outcomes",
+          "default": "http_5xx_only_not_sse_run_outcomes",
+          "title": "Error Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requests",
+        "server_errors",
+        "inflight"
+      ],
+      "title": "HttpTelemetryOut",
+      "type": "object"
+    },
+    "ProviderObservationOut": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "unknown",
+          "default": "unknown",
+          "title": "Status",
+          "type": "string"
+        },
+        "reason": {
+          "const": "not_probed",
+          "default": "not_probed",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "title": "ProviderObservationOut",
+      "type": "object"
+    },
+    "ReadinessOut": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "ready",
+            "not_ready"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "measurement": {
+          "const": "point_in_time",
+          "default": "point_in_time",
+          "title": "Measurement",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "checked_at"
+      ],
+      "title": "ReadinessOut",
+      "type": "object"
+    },
+    "ResourcesOut": {
+      "additionalProperties": false,
+      "properties": {
+        "process_rss_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Process Rss Bytes"
+        },
+        "process_peak_rss_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Process Peak Rss Bytes"
+        },
+        "cgroup_memory_current_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cgroup Memory Current Bytes"
+        },
+        "cgroup_memory_limit_bytes": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cgroup Memory Limit Bytes"
+        },
+        "cgroup_cpu_limit_cores": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cgroup Cpu Limit Cores"
+        },
+        "cgroup_pids_current": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cgroup Pids Current"
+        },
+        "cgroup_pids_limit": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cgroup Pids Limit"
+        },
+        "cgroup_scope": {
+          "const": "enclosing_cgroup_may_be_shared",
+          "default": "enclosing_cgroup_may_be_shared",
+          "title": "Cgroup Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "process_rss_bytes",
+        "process_peak_rss_bytes",
+        "cgroup_memory_current_bytes",
+        "cgroup_memory_limit_bytes",
+        "cgroup_cpu_limit_cores",
+        "cgroup_pids_current",
+        "cgroup_pids_limit"
+      ],
+      "title": "ResourcesOut",
+      "type": "object"
+    },
+    "TracesOut": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "sampling_ratio": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Sampling Ratio",
+          "type": "number"
+        },
+        "export_successes": {
+          "minimum": 0,
+          "title": "Export Successes",
+          "type": "integer"
+        },
+        "export_failures": {
+          "minimum": 0,
+          "title": "Export Failures",
+          "type": "integer"
+        },
+        "last_export_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Export At"
+        },
+        "last_export_success": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Last Export Success"
+        },
+        "durable": {
+          "const": false,
+          "default": false,
+          "title": "Durable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled",
+        "sampling_ratio",
+        "export_successes",
+        "export_failures",
+        "last_export_at",
+        "last_export_success"
+      ],
+      "title": "TracesOut",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "process_started_at": {
+      "format": "date-time",
+      "title": "Process Started At",
+      "type": "string"
+    },
+    "process_uptime_seconds": {
+      "description": "Current process lifetime, not availability percentage.",
+      "minimum": 0,
+      "title": "Process Uptime Seconds",
+      "type": "number"
+    },
+    "synthetic": {
+      "description": "Fixture provider configuration; HTTP/resource measurements remain real.",
+      "title": "Synthetic",
+      "type": "boolean"
+    },
+    "readiness": {
+      "$ref": "#/$defs/ReadinessOut"
+    },
+    "provider_observation": {
+      "$ref": "#/$defs/ProviderObservationOut"
+    },
+    "active_runs": {
+      "minimum": 0,
+      "title": "Active Runs",
+      "type": "integer"
+    },
+    "max_concurrent_runs": {
+      "minimum": 1,
+      "title": "Max Concurrent Runs",
+      "type": "integer"
+    },
+    "resources": {
+      "$ref": "#/$defs/ResourcesOut"
+    },
+    "http": {
+      "$ref": "#/$defs/HttpTelemetryOut"
+    },
+    "traces": {
+      "$ref": "#/$defs/TracesOut"
+    }
+  },
+  "required": [
+    "generated_at",
+    "process_started_at",
+    "process_uptime_seconds",
+    "synthetic",
+    "readiness",
+    "provider_observation",
+    "active_runs",
+    "max_concurrent_runs",
+    "resources",
+    "http",
+    "traces"
+  ],
+  "title": "OpsTelemetryOut",
+  "type": "object"
+}
