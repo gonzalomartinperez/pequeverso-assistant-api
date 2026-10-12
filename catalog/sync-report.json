@@ -2,12 +2,12 @@
   "schema_version": 1,
   "source": {
     "repository": "gonzalomartinperez/pequeverso",
-    "revision": "ae6d237877c248551be988af9be920eac69b16da",
+    "revision": "eb68a041b4515d71a734626fdaee0ef06d8693c3",
     "published_ref": "origin/main"
   },
   "previous_revision": "ae6d237877c248551be988af9be920eac69b16da",
-  "generated_at": "2026-10-05T02:13:53+00:00",
-  "snapshot_sha256": "dacf90067dcd15185f149cca4d22eeed34367559fadf2c90fd34587c8b206f08",
+  "generated_at": "2026-10-12T17:18:06+00:00",
+  "snapshot_sha256": "ddddf3d05182fc4f77fd1f26e5bbd621bb09f2fe1f4425ee82f536fd77559a76",
   "exporter_sha256": "37395e563eab6eac077239c7ee154cbd308de78067895ed1d7bfef2917b3900a",
   "counts": {
     "products": 1,
