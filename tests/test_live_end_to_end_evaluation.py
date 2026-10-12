@@ -234,3 +234,57 @@ def test_default_cli_ignores_key_file_and_live_ambient_settings(tmp_path, monkey
         ],
     )
     runner.main()
+
+
+def test_prepared_evidence_is_distinct_from_dispatch_and_live_settings_are_accurate(tmp_path, monkeypatch):
+    from scripts import evaluate_end_to_end as runner
+
+    actual_create = runner.create_app
+    configurations = []
+
+    def inspect_settings(settings, **kwargs):
+        configurations.append(settings)
+        assert settings.ai_provider == 'openai' and settings.allow_paid_ai
+        assert settings.openai_api_key.get_secret_value() == 'synthetic-key'
+        return actual_create(settings, **kwargs)
+
+    monkeypatch.setattr(runner, 'create_app', inspect_settings)
+    monkeypatch.setattr('scripts.real_eval_budget.bound_bytes', lambda _: 25000)
+    output = tmp_path / 'answers'
+    output.mkdir(mode=0o700)
+    envelope = Envelope(tmp_path / 'budget.sqlite3')
+    bounded = BoundedProvider(
+        'synthetic-key', envelope, transport=httpx2.MockTransport(lambda _: pytest.fail('no dispatch'))
+    )
+    result = runner.evaluate(matrix(), output, '156a0cd', bounded=bounded)
+    assert len(configurations) == 1
+    assert result['provider_calls'] == result['dispatched_attempts'] == 0
+    assert result['prepared_evidence_count'] == 1
+    assert result['cases'][0]['provider_calls'] == 0
+    assert result['cases'][0]['prepared_evidence_count'] == 1
+    assert result['cases'][0]['provider'] == 'not-dispatched'
+    assert result['stop_reason'] == 'request_bound'
+    assert 'synthetic-key' not in json.dumps(result)
+
+
+def test_prior_history_mutation_is_detected_even_when_final_message_matches(tmp_path, monkeypatch):
+    import httpx
+
+    from scripts import evaluate_end_to_end as runner
+
+    original = httpx.Client.post
+
+    def mutate_restore(client, url, *args, **kwargs):
+        response = original(client, url, *args, **kwargs)
+        if url == '/api/v1/session' and response.status_code == 200:
+            payload = response.json()
+            if len(payload['messages']) == 4:
+                payload['messages'][1]['content'] = 'synthetic changed earlier answer'
+                response._content = json.dumps(payload).encode()
+        return response
+
+    monkeypatch.setattr(httpx.Client, 'post', mutate_restore)
+    result = runner.evaluate(matrix(), tmp_path, '156a0cd')
+    assert result['history_mismatches'] == 1
+    assert not result['cases'][-1]['prior_history_preserved']
+    assert not result['cases'][-1]['history_matches']

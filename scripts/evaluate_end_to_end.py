@@ -28,6 +28,7 @@ sys.path.insert(0, str(ROOT))
 import httpx
 import uvicorn
 from dotenv import dotenv_values
+from pydantic import SecretStr
 
 from app.adapters.fixture_provider import FixtureProvider
 from app.ai.evidence import passages, rank
@@ -132,10 +133,10 @@ def ask(
                 if line.startswith('data: '):
                     event = json.loads(line[6:])
                     events.append(event)
-                    if on_event:
-                        on_event(events)
                     if event['type'] == 'message.delta' and first is None:
                         first = time.monotonic() - started
+                    if on_event:
+                        on_event(events)
         else:
             error = json.loads(response.read())['error']['code']
     return {
@@ -217,9 +218,9 @@ def evaluate(
     settings = Settings(
         _env_file=None,
         environment='test',
-        ai_provider='fixture',
-        allow_paid_ai=False,
-        openai_api_key=None,
+        ai_provider='openai' if bounded else 'fixture',
+        allow_paid_ai=bounded is not None,
+        openai_api_key=SecretStr(bounded._key) if bounded else None,
         catalog_url=None,
         catalog_file=DEFAULT_CATALOG,
         openai_model='gpt-6-luna',
@@ -267,6 +268,7 @@ def evaluate(
                     opened.raise_for_status()
                     csrf = opened.json()['csrf_token']
                     previous_question = ''
+                    previous_history: list[dict[str, Any]] = []
                     for number, turn in enumerate(case['turns']):
                         if not preflight():
                             break
@@ -315,8 +317,10 @@ def evaluate(
                         )
                         restored.raise_for_status()
                         history = restored.json()['messages']
+                        prior_history_preserved = history[:-2] == previous_history if completed else False
                         history_matches = bool(
                             len(completed) == 1
+                            and prior_history_preserved
                             and history
                             and history[-1] == message
                             and len(history) == 2 * (number + 1)
@@ -362,13 +366,27 @@ def evaluate(
                             'terminal': [e['type'] for e in result['events'] if e['type'].startswith('run.')][
                                 -1:
                             ],
-                            'provider_calls': len(public_evidence),
-                            'provider': provider.model if public_evidence else 'local-abstention',
+                            'provider_calls': len(bounded.receipts[receipt_start:])
+                            if bounded
+                            else len(public_evidence),
+                            'prepared_evidence_count': len(public_evidence),
+                            'provider': (
+                                provider.model
+                                if bounded.receipts[receipt_start:]
+                                else 'not-dispatched'
+                                if public_evidence
+                                else 'local-abstention'
+                            )
+                            if bounded
+                            else 'fixture'
+                            if public_evidence
+                            else 'local-abstention',
                             'expected_language': turn['expected_language'],
                             'observed_language': observed,
                             'evidence': public_evidence,
                             'lexical_top3': [{'id': p.id, 'score': score} for p, score in lexical[:3]],
                             'history_matches': history_matches,
+                            'prior_history_preserved': prior_history_preserved,
                             'structural_flags': safety,
                             'behavior_flags': semantic_flags,
                             'semantic_correctness': 'not certified: automated structural and heuristic checks only',
@@ -414,6 +432,7 @@ def evaluate(
                             flush=True,
                         )
                         previous_question = turn['question']
+                        previous_history = history
                     if stop_reason:
                         break
                     # Replay the completed request; it must not call the provider again.
@@ -501,7 +520,8 @@ def evaluate(
         'catalog_sha256': digest(DEFAULT_CATALOG.read_bytes()),
         'catalog_generated_at': CATALOG.generated_at.isoformat(),
         'queries': len(rows),
-        'provider_calls': len(provider.records),
+        'provider_calls': len(bounded.receipts) if bounded else len(provider.records),
+        'prepared_evidence_count': len(provider.records),
         'actual_provider_usd': None if bounded else '0',
         'conservative_budget_not_invoice': envelope.snapshot() if envelope else None,
         'dispatched_attempts': len(bounded.receipts) if bounded else 0,
