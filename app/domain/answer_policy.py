@@ -29,6 +29,7 @@ _URL = re.compile(
     r'(?:https?://|www\.)[^\s)>\]]+|\b(?:[a-z0-9-]+\.)+(?:com|net|org|io|ar|es|mx|co|br|ai|app|link|ly)\b(?:/[^\s)>\]]*)?',
     re.IGNORECASE,
 )
+_MARKDOWN_LINK = re.compile(r'\[[^\]\n]{1,180}\]\(([^)\n]{0,512})\)')
 _EMAIL = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
 _NUMBER = r'[+-]?[0-9](?:[0-9.,_]*[0-9])?(?:[eE][+-]?[0-9]+)?'
 _CURRENCY = r'US\$|U\$S|R\$|USD|EUR|ARS|MXN|BRL|GBP|JPY|CLP|COP|PEN|UYU|CHF|CAD|AUD|\$|€|£|¥'
@@ -176,6 +177,9 @@ def check_answer(text: str, rules: AnswerRules) -> list[Violation]:
         violations.append(Violation.UNLISTED_EMAIL)
     without_emails = _EMAIL.sub(' ', text)
     urls = {_url_key(match.group()) for match in _URL.finditer(without_emails)}
+    # Plain-text rendering cannot turn model-authored links into authorized navigation.
+    # Still reject relative/empty/fragment/dangerous Markdown targets as final prose.
+    urls.update(_url_key(match.group(1).strip()) for match in _MARKDOWN_LINK.finditer(without_emails))
     allowed_urls = {_url_key(url) for url in rules.allowed_urls}
     if None in urls or any(url not in allowed_urls for url in urls):
         violations.append(Violation.UNLISTED_URL)

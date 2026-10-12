@@ -129,7 +129,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 | Architecture and decisions | `docs/architecture.md`, `docs/decisions/` |
 | Security, privacy, retention | `docs/security.md` |
 | Catalog source, sync, freshness | `docs/catalog.md` |
-| Evaluation and live procedure | `docs/evaluation.md` |
+| Evaluation and live procedure | [Procedures](docs/evaluation.md), [real-model evidence and limits](docs/verification/real-model-2026-10-12.md) |
 | Optional private telemetry, metrics and traces | `docs/observability/README.md` |
 | Deployment handoff (vps-ops/Coolify) | `docs/deployment-contract.md` |
 | Dependency updates and auto-merge policy | `docs/dependency-updates.md` |

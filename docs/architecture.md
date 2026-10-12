@@ -75,8 +75,10 @@ backoffice server (bearer token, private network) ──/internal/v1/ops──�
 ## Language, metrics and spend states
 
 - `domain/language.py` decides the reply language (es/en, or unsupported) before the model call;
-  the composer passes it as `reply_language`. Unsupported languages get a static bilingual
-  reply (no model call, no reservation).
+  the composer passes it as `reply_language`. Native `response_language: "es"` selects Spanish
+  independently of locale/history; recognized explicit foreign-language reply requests get a
+  Spanish-only local notice (no model call or reservation). Legacy omitted/null policy retains
+  ES/EN selection and its bilingual unsupported-language notice. See ADR-0006.
 - Every accepted or refused run writes one content-free row to `run_metrics` (outcome, failure
   code, model call yes/no, replaced, language, first-delta and total latency). Writing it is best
   effort: a failure is logged and never affects the answer. Retained 90 days.

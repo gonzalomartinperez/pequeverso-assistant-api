@@ -1,15 +1,17 @@
 # Evaluation
 
-Four deterministic suites run in CI; a live procedure is prepared and has **not** been run. No
-paid calls have been made.
+Deterministic fixture suites run in CI. The owner-authorized real-model socket evaluation
+completed on 2026-10-12: 236 initial queries and 53 post-adjustment queries. See
+[the dated evidence and limits](verification/real-model-2026-10-12.md); automated completion
+is distinct from semantic correctness, and agent review is not human review.
 
 | Suite | Command | What it proves | Latest result (fixture) |
 |---|---|---|---|
 | Retrieval | `uv run python scripts/evaluate_retrieval.py` | Lexical ranking finds the right passage (20 cases, `evals/retrieval.json`) | recall@3 = 0.95, MRR = 0.908 (miss: "correo postal" vs "producto físico") |
 | Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 16 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 16/16 safe |
-| Guards | same command (`evals/guards.json`) | 10 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup) are dropped or replaced server-side | 10/10 |
+| Guards | same command (`evals/guards.json`) | 11 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup) are dropped or replaced server-side | 11/11 |
 | Corpus | `uv run python scripts/evaluate_corpus.py` | 288 hand-written cases in 18 intent families (`evals/corpus/`), retrieval per family/split/language, and every case through the full HTTP/SSE path | Gates: 0/288 pipeline failures; reply language 285/285 as expected (`lang-016` fixed with Portuguese markers). Retrieval recall@3 = 0.70 overall (dev 0.67, holdout 0.77), 0.17 on English questions. Report: `evals/reports/corpus-fixture.json` |
-| Conversations: quality | same command with `--live` | Budget recommendation, low budget honesty, resource comparison, clarification, no-match (fluent reader, app), stale price, follow-up reference, invented discount, injection, unknown shipping and license policy, refused order action, offer probe, child-data minimization, English visitor | **Not run** (needs authorization). The fixture scores 9/16 on quality checks, which says nothing about a real model |
+| Conversations: quality | same command with `--live` | Budget recommendation, low budget honesty, resource comparison, clarification, no-match (fluent reader, app), stale price, follow-up reference, invented discount, injection, unknown shipping and license policy, refused order action, offer probe, child-data minimization, English visitor | This specific conversations CLI has not been run live. The separate 289-query socket evaluation is documented below; fixture scores do not measure model quality |
 
 `tests/test_evaluations.py` gates CI on retrieval ≥ 0.9 recall@3, zero safety failures, zero
 guard failures, zero corpus gate failures, the exact set of known reply-language misses and
@@ -20,9 +22,10 @@ the corpus retrieval floors. `docs/verification/fixture-eval.json` holds the lat
 The fixture provider receives the same `store_data` and `visitor_turn` payloads as the model. It
 answers with the best lexical match, streamed as schema-valid JSON. It exercises retrieval,
 streaming, validation and persistence. It does not demonstrate understanding, recommendations
-or tone. The system prompt and quality checks are ready for `gpt-6-luna` but unvalidated.
+or tone. The dated real-model socket evaluation covers the current prompt and native Spanish policy;
+it does not turn fixture quality scores into model evidence or certify every future answer.
 
-## Bounded live evaluation (prepared, not executed)
+## Bounded live evaluation (separate corpus phases not executed)
 
 Preconditions (owner):
 1. Create a separate OpenAI project for Pequeverso with a hard monthly limit.
@@ -99,8 +102,8 @@ read `holdout` only to confirm.
 fixture run proves that the code path (session, streaming, validation, persistence, language
 selection, notices) behaves; it says nothing about how `gpt-6-luna` answers. The production
 model setting is `gpt-6-luna` with reasoning effort `medium` and `max_output_tokens` 4000
-(reasoning tokens count toward that cap and are billed as output). Neither has been evaluated
-with the real model.
+(reasoning tokens count toward that cap and are billed as output). The 2026-10-12 socket evaluation used both settings; the separate dev/holdout
+corpus CLI phases below have not been executed with the real model.
 
 **Four kinds of result.**
 
@@ -190,7 +193,9 @@ The whole current catalog (one product, nine resources, 23 documents) fits the e
 bound and is sent in full. Both resources in comparisons were therefore available even
 when the fixture mentioned only one. Low English lexical scores do not establish omitted
 model evidence. Vector and graph search are absent by design. Real-model commercial
-accuracy, source entailment, tone and English fluency remain activation blockers.
+accuracy, source entailment and tone now have dated agent-reviewed evidence; physical-device,
+VPS and staged acceptance checks still gate activation. Legacy English replies remain supported
+by the API; the native storefront now requests Spanish only.
 
 
 ## Explicit opt-in socket evaluation
@@ -242,3 +247,34 @@ ledger; `actual_provider_usd` remains null in live mode because none is an invoi
 commercial correctness, citation entailment, usefulness and actual output language separately:
 HTTP completion and automated heuristics do not certify response quality. Publish only reviewed
 metadata; full private responses and credentials never belong in Git.
+
+
+## Native Spanish post-adjustment evaluation
+
+`evals/end_to_end_spanish_native_revalidation.json` freezes 53 development queries: 25
+unchanged baseline cases plus 20 new variants (45 cases, including follow-ups). Original case
+annotations stay intact; `reply_policy` and `policy_expectations` express the new native
+Spanish requirement separately. This is post-adjustment development evidence, not a holdout.
+
+```sh
+uv run python scripts/revalidate_end_to_end.py \
+  --manifest evals/end_to_end_spanish_native_revalidation.json \
+  --baseline-manifest /absolute/private/original/manifest.json \
+  --previous-run /absolute/private/baseline-continuation \
+  --key-file /absolute/private/pequeverso-eval.env.local \
+  --budget-state /absolute/private/common-budget.sqlite3 \
+  --output-dir /absolute/private/new-spanish-revalidation \
+  --source-revision <exact-application-commit>
+```
+
+The helper requires an original baseline of at least200 queries, exact equality of repeated
+cases and the already-used shared ledger before reading the key. It refuses a stopped ledger,
+new cap, overwrite or symlink. Native messages and replays use `locale: "es"` and
+`response_language: "es"`. Every turn must have exactly one completed replay message identical
+to the original final message and unchanged HTTP history, with no new generation. A negative
+control proves that an incorrect replay with otherwise valid history stops evaluation.
+
+The initial baseline only replayed each case's final turn (219 HTTP replays), not every
+intermediate turn; it verified235 histories, with one additional terminal completion checked
+offline after interruption. The later53-query run checks history and replay for every turn.
+Original artifacts remain untouched. Full responses and usage receipts stay private.

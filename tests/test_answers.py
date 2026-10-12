@@ -161,3 +161,54 @@ def test_http_explicit_unsupported_language_never_calls_provider(tmp_path: Path,
         assert events[-1]['type'] == 'run.completed'
         assert events[-2]['message']['notices'] == ['language_unsupported']
         assert provider.calls == []
+
+
+@pytest.mark.parametrize(
+    'target',
+    [
+        '#',
+        '',
+        '/soporte/',
+        '//evil.example/',
+        'javascript:alert',
+        'data:text/html,x',
+        'https://pequeverso.com/private/',
+    ],
+)
+def test_markdown_destination_must_be_an_exact_authorized_url(target: str) -> None:
+    final = _finalize(Draft(f'Consulta [Soporte y contacto]({target}).', (), (), ()))
+    assert final.content == REPLACEMENT_ANSWER
+    assert final.details.notices == (Notice.ANSWER_REPLACED,)
+    assert [link.id for link in final.details.links] == ['support']
+
+
+def test_authorized_markdown_and_incomplete_label_become_readable_plain_text() -> None:
+    url = CATALOG.link('support').url
+    final = _finalize(Draft(f'Consulta [Soporte]({url}). Después revisa [Soporte y contacto].', (), (), ()))
+    assert final.content == f'Consulta Soporte ({url}). Después revisa Soporte y contacto.'
+    assert final.violations == ()
+
+
+def test_unsafe_follow_up_markdown_is_dropped_before_plain_text_normalization() -> None:
+    final = _finalize(
+        Draft('Puedes consultar soporte.', (), (), ('[Soporte](#)', '¿Dónde está [Soporte y contacto]?'))
+    )
+    assert final.details.follow_ups == ('¿Dónde está Soporte y contacto?',)
+
+
+def test_http_placeholder_link_is_replaced_and_history_preserves_final(tmp_path: Path) -> None:
+    provider = ScriptedProvider(output=answer_json('Consulta [Soporte y contacto](#).'))
+    with client(tmp_path, provider) as c:
+        csrf = open_session(c)
+        status, events, _ = ask(c, csrf, '¿Cómo funciona el pago?')
+        assert status == 200
+        final = events[-2]['message']
+        assert final['content'] == REPLACEMENT_ANSWER
+        assert final['notices'] == ['answer_replaced']
+        assert c.post('/api/v1/session', headers=JSON_HEADERS, json={}).json()['messages'][-1] == final
+        assert len(provider.calls) == 1
+
+
+def test_normalized_follow_up_labels_remain_unique() -> None:
+    final = _finalize(Draft('Consulta soporte.', (), (), ('¿Dónde está [Soporte]?', '¿Dónde está Soporte?')))
+    assert final.details.follow_ups == ('¿Dónde está Soporte?',)

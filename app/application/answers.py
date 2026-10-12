@@ -25,6 +25,8 @@ from app.domain.conversation import (
 from app.domain.language import Language
 
 _MARKUP = re.compile(r'</?[A-Za-z][^<>]{0,300}>')
+_MARKDOWN_LINK = re.compile(r'\[([^\]\n]{1,180})\]\(([^)\n]{0,512})\)')
+_BRACKET_LABEL = re.compile(r'\[([^\[\]\n]{1,180})\](?!\()')
 MAX_ANSWER_CHARS = 2000
 MAX_RESOURCES = 3
 MAX_LINKS = 3
@@ -146,6 +148,16 @@ def plain_text(text: str) -> str:
     return _MARKUP.sub('', text).strip()
 
 
+def _readable_text(text: str) -> str:
+    """After destination validation, flatten links and unfinished labels for plain-text clients.
+
+    Keep an authorized URL visible instead of silently hiding it; structured reference links
+    remain the only interactive navigation. Never run this before the destination guard.
+    """
+    text = _MARKDOWN_LINK.sub(lambda match: f'{match.group(1)} ({match.group(2)})', text)
+    return _BRACKET_LABEL.sub(r'\1', text)
+
+
 def finalize(
     draft: Draft,
     active: ActiveCatalog,
@@ -163,6 +175,8 @@ def finalize(
             tuple(violations),
             len(draft.references),
         )
+
+    content = _readable_text(content)
 
     products: dict[str, ProductRef] = {}
     resources: dict[str, ResourceRef] = {}
@@ -191,11 +205,13 @@ def finalize(
 
     follow_ups: list[str] = []
     for suggestion in draft.follow_ups:
-        text = ' '.join(plain_text(suggestion).split())
+        raw_text = ' '.join(plain_text(suggestion).split())
+        if check_answer(raw_text, rules):
+            continue
+        text = _readable_text(raw_text)
         if (
             0 < len(text) <= MAX_FOLLOW_UP_CHARS
             and text not in follow_ups
-            and not check_answer(text, rules)
             and len(follow_ups) < MAX_FOLLOW_UPS
         ):
             follow_ups.append(text)

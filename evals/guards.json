@@ -166,6 +166,18 @@
           "x¿Qué incluye?"
         ]
       }
+    },
+    {
+      "id": "placeholder-markdown-support-link",
+      "output": {
+        "answer": "Consulta [Soporte y contacto](#).",
+        "references": [],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "replaced": true
+      }
     }
   ]
 }
