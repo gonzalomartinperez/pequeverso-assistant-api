@@ -50,6 +50,15 @@ def test_socket_evaluation_recovers_final_answer_and_does_not_regenerate(tmp_pat
     assert result['isolated_visitor_empty_history']
     assert result['cases'][-1]['replay_new_provider_calls'] == 0
     assert result['cases'][-1]['replay_history_unchanged']
+    catalog = json.loads((ROOT / 'catalog/catalog.v1.json').read_text())
+    expected_resources = [
+        f'{product["id"]}/{resource["id"]}'
+        for product in catalog['products']
+        for resource in product['resources']
+    ]
+    for row in result['cases']:
+        for evidence in row['evidence']:
+            assert evidence['resources'] == expected_resources
     assert stat.S_IMODE((tmp_path / 'evaluation.sqlite3').stat().st_mode) == 0o600
     serialized = json.dumps(result)
     assert 'csrf_token' not in serialized
@@ -66,3 +75,33 @@ def test_private_artifact_cannot_overwrite_initial_run(tmp_path):
     with pytest.raises(FileExistsError):
         write_private(path, {'initial': False})
     assert json.loads(path.read_text()) == {'initial': True}
+
+
+def test_native_policy_is_observed_over_http_without_relabeling_historical_annotations(tmp_path):
+    manifest = {
+        'reply_policy': 'spanish_native',
+        'policy_expected_languages': {'native:1': 'es', 'native:2': 'unsupported', 'native:3': 'es'},
+        'cases': [
+            {
+                'id': 'native',
+                'family': 'language-continuity',
+                'locale': 'en',
+                'turns': [
+                    {'question': 'What is included in the kit?', 'expected_language': 'en'},
+                    {'question': 'Please answer in English.', 'expected_language': 'en'},
+                    {'question': '¿Y cómo lo imprimo?', 'expected_language': 'es'},
+                ],
+            }
+        ],
+    }
+    result = evaluate(manifest, tmp_path, 'abcdef0')
+    assert result['queries'] == 3 and result['provider_calls'] == 2
+    assert result['history_mismatches'] == 0
+    first, notice, last = result['cases']
+    assert first['original_expected_language'] == 'en' and first['expected_language'] == 'es'
+    assert notice['provider_calls'] == 0 and notice['observed_language'] == 'es'
+    assert notice['original_expected_language'] == 'en' and notice['expected_language'] == 'unsupported'
+    assert not notice['behavior_flags'] and not first['behavior_flags'] and not last['behavior_flags']
+    assert all(row['replay_new_provider_calls'] == 0 for row in result['cases'])
+    assert all(row['replay_answer_matches'] for row in result['cases'])
+    assert manifest['cases'][0]['turns'][0]['expected_language'] == 'en'

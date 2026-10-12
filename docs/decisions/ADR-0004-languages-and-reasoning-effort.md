@@ -45,3 +45,13 @@ that a too-low cap ends a response as `incomplete` before visible text, still bi
 re-read: medium and the Standard rates above remain supported. Access in the owner's project
 was not probed and the private provider key was not read. Paid calls remain unauthorized for
 this increment; all new probes use fixtures and cannot certify live-model quality or cost.
+
+
+## Native storefront policy and real evidence (2026-10-12)
+
+The later owner decision makes the native storefront Spanish-only, with no language selector.
+[ADR-0006](ADR-0006-native-spanish-compatible-policy.md) adds an optional v1.4 request policy
+without removing legacy ES/EN clients or rewriting history. Owner-authorized socket tests
+used the real model and medium effort; [dated evidence](../verification/real-model-2026-10-12.md)
+distinguishes model usage estimates, agent review, fixtures and unverified VPS activation gates.
+The 2026-10-10 statement above remains historical rather than current authorization status.

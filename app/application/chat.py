@@ -21,6 +21,7 @@ from datetime import datetime, timedelta
 
 from app.application.answers import (
     UNSUPPORTED_LANGUAGE_ANSWER,
+    UNSUPPORTED_LANGUAGE_ANSWER_ES,
     FinalizedAnswer,
     answer_rules,
     finalize,
@@ -51,7 +52,7 @@ from app.domain.budget import BudgetPolicy, Pricing, Usage, cost_micro, worst_ca
 from app.domain.catalog import ActiveCatalog
 from app.domain.conversation import AnswerDetails, Message, Notice, Role, Session
 from app.domain.errors import FailureCode, RejectedError
-from app.domain.language import Language, reply_language
+from app.domain.language import Language, reply_language, spanish_native_language
 from app.domain.redaction import contains_card_number, redact_contact_data
 from app.domain.visitor_context import VisitorContext
 
@@ -362,11 +363,18 @@ def _message_id() -> str:
     return f'msg_{secrets.token_urlsafe(12)}'
 
 
-def _request_hash(content: str, page: str | None, context: VisitorContext | None = None) -> str:
+def _request_hash(
+    content: str,
+    page: str | None,
+    context: VisitorContext | None = None,
+    response_language: str | None = None,
+) -> str:
     # Preserve the exact pre-1.3 hash when optional hints are absent or all null.
     payload: list[object] = [content, page]
     if context is not None and not context.empty:
         payload.append(context.payload())
+    if response_language is not None:
+        payload.append({'response_language': response_language})
     return hashlib.sha256(json.dumps(payload).encode()).hexdigest()
 
 
@@ -458,6 +466,7 @@ class ChatService:
         client_key: str,
         locale: str | None = None,
         context: VisitorContext | None = None,
+        response_language: str | None = None,
     ) -> Run:
         if self.registry.closing:
             raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
@@ -473,14 +482,20 @@ class ChatService:
             raise RejectedError(FailureCode.INVALID_REQUEST)
         if locale is not None and locale not in LOCALES:
             raise RejectedError(FailureCode.INVALID_REQUEST)
+        if response_language is not None and response_language != Language.ES.value:
+            raise RejectedError(FailureCode.INVALID_REQUEST)
 
         now = self.clock.now()
         run_id = f'run_{secrets.token_urlsafe(12)}'
         record = await self.runs.claim(
-            run_id, session.id, idempotency_key, _request_hash(question, page, context), now
+            run_id,
+            session.id,
+            idempotency_key,
+            _request_hash(question, page, context, response_language),
+            now,
         )
         if record.id != run_id:
-            return await self._existing(record, session, question, page, context)
+            return await self._existing(record, session, question, page, context, response_language)
 
         language: Language | None = None
         try:
@@ -494,11 +509,22 @@ class ChatService:
                 and Notice.LANGUAGE_UNSUPPORTED not in m.details.notices
             ]
             names = [p.name for p in active.catalog.products]
-            language = reply_language(question, previous, Language(locale) if locale else None, names)
+            language = (
+                spanish_native_language(question)
+                if response_language == Language.ES.value
+                else reply_language(question, previous, Language(locale) if locale else None, names)
+            )
             if contains_card_number(question):
                 return await self._refuse_payment_data(run_id, session, now, active, language or Language.ES)
             if language is None:
-                return await self._unsupported_language(run_id, session, now, active, question)
+                return await self._unsupported_language(
+                    run_id,
+                    session,
+                    now,
+                    active,
+                    question,
+                    spanish_native=response_language == Language.ES.value,
+                )
             redacted = redact_contact_data(question)
             turn = Turn(
                 active=active,
@@ -560,8 +586,9 @@ class ChatService:
         question: str,
         page: str | None,
         context: VisitorContext | None = None,
+        response_language: str | None = None,
     ) -> Run:
-        if record.request_hash != _request_hash(question, page, context):
+        if record.request_hash != _request_hash(question, page, context, response_language):
             raise RejectedError(FailureCode.IDEMPOTENCY_CONFLICT)
         if record.state is RunState.ACTIVE:
             raise RejectedError(FailureCode.RUN_IN_PROGRESS)
@@ -605,9 +632,16 @@ class ChatService:
         return _StaticRun(run_id, user_message, answer)
 
     async def _unsupported_language(
-        self, run_id: str, session: Session, now: datetime, active: ActiveCatalog, question: str
+        self,
+        run_id: str,
+        session: Session,
+        now: datetime,
+        active: ActiveCatalog,
+        question: str,
+        *,
+        spanish_native: bool = False,
     ) -> Run:
-        """A short bilingual note, without a model call or budget use."""
+        """A local policy notice, without a model call or budget use."""
         redacted = redact_contact_data(question)
         notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
         user_message = Message(_message_id(), Role.USER, redacted.text, now, AnswerDetails(notices=notices))
@@ -615,13 +649,15 @@ class ChatService:
         answer = Message(
             _message_id(),
             Role.ASSISTANT,
-            UNSUPPORTED_LANGUAGE_ANSWER,
+            UNSUPPORTED_LANGUAGE_ANSWER_ES if spanish_native else UNSUPPORTED_LANGUAGE_ANSWER,
             now,
             AnswerDetails(notices=(Notice.LANGUAGE_UNSUPPORTED,), language=Language.ES.value),
         )
         await self.messages.append(session.id, answer)
         await self.runs.finish(run_id, RunState.COMPLETED, answer.id)
-        await self._record_static(run_id, now, RunOutcome.COMPLETED, None, None)
+        await self._record_static(
+            run_id, now, RunOutcome.COMPLETED, None, Language.ES if spanish_native else None
+        )
         return _StaticRun(run_id, user_message, answer)
 
     def cancel(self, session: Session, run_id: str) -> None:

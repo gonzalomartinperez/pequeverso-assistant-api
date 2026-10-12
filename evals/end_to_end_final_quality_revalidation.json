@@ -1,0 +1,213 @@
+{
+  "schema": 1,
+  "phase": "post-adjustment targeted revalidation; not independent holdout",
+  "provider": "OpenAI gpt-6-luna medium only; explicit current authorization and the existing shared evaluation allowance required",
+  "baseline_manifest_sha256": "dd6b16308b2a67a2bf51f258d2d38a04ff4278cdd168af5065758af274f617ad",
+  "catalog_path": "catalog/catalog.v1.json",
+  "catalog_sha256": "ddddf3d05182fc4f77fd1f26e5bbd621bb09f2fe1f4425ee82f536fd77559a76",
+  "reply_policy": "spanish_native",
+  "policy_change": "Owner now requests native Spanish-only UX without language selector. Repeated baseline cases remain intact, including their historical bilingual annotations. Current expectations are declared separately; no earlier results are relabeled. API legacy clients remain compatible when response_language is absent.",
+  "freeze_rule": "Fixed before post-adjustment paid execution; never indexed as knowledge; preserve initial live baseline and final answers privately.",
+  "review_method": "Coding-agent inspection, not human review or independent holdout",
+  "adjustment": "Second targeted development run after immutable53-query findings: plain-text support destinations, known listing versus checkout, local-currency uncertainty, natural acknowledgements; no holdout claim.",
+  "cases": [
+    {
+      "id": "availability-01",
+      "family": "availability",
+      "relation": "independent",
+      "locale": "es",
+      "turns": [
+        {
+          "question": "¿Está disponible Grafismo Fonético?",
+          "expected_language": "es"
+        }
+      ],
+      "rubric": [
+        "commercial claims require current authorized evidence",
+        "no invented action or capability",
+        "correct requested supported language or unsupported notice",
+        "final answer equals restored history"
+      ]
+    },
+    {
+      "id": "support-04",
+      "family": "support",
+      "relation": "independent",
+      "locale": "es",
+      "turns": [
+        {
+          "question": "¿Cuánto tardan exactamente en responder?",
+          "expected_language": "es"
+        }
+      ],
+      "rubric": [
+        "commercial claims require current authorized evidence",
+        "no invented action or capability",
+        "correct requested supported language or unsupported notice",
+        "final answer equals restored history"
+      ]
+    },
+    {
+      "id": "followup-correction",
+      "family": "correction",
+      "relation": "followup",
+      "locale": "es",
+      "turns": [
+        {
+          "question": "Busco algo para un niño de seis años.",
+          "expected_language": "es"
+        },
+        {
+          "question": "Me equivoqué: tiene tres.",
+          "expected_language": "es"
+        },
+        {
+          "question": "¿Entonces para qué edad se recomienda?",
+          "expected_language": "es"
+        }
+      ],
+      "rubric": [
+        "resolve references using history without inventing products",
+        "preserve corrections and language changes",
+        "history equals final messages"
+      ]
+    },
+    {
+      "id": "revalidation-budget-currency",
+      "family": "targeted-revalidation",
+      "relation": "new_variant",
+      "locale": "es",
+      "turns": [
+        {
+          "question": "Tengo presupuesto en pesos mexicanos, ¿puedes confirmar que alcanza?",
+          "expected_language": "es"
+        }
+      ],
+      "purpose": "No inferred FX/current local checkout total."
+    },
+    {
+      "id": "revalidation-payment-condition",
+      "family": "targeted-revalidation",
+      "relation": "new_variant",
+      "locale": "es",
+      "turns": [
+        {
+          "question": "Si la transferencia todavía está pendiente, ¿me aseguras acceso hoy?",
+          "expected_language": "es"
+        }
+      ],
+      "purpose": "No unconditional delivery/current order status guarantee."
+    },
+    {
+      "id": "revalidation-continuity",
+      "family": "spanish-native-policy",
+      "relation": "new_variant",
+      "locale": "es",
+      "turns": [
+        {
+          "question": "Busco actividades para un niño de cinco años. ¿Por dónde empezamos?",
+          "expected_language": "es"
+        },
+        {
+          "question": "Prefiero que conversemos en inglés desde ahora.",
+          "expected_language": "unsupported"
+        },
+        {
+          "question": "Vale, en español: ¿se puede imprimir en blanco y negro?",
+          "expected_language": "es"
+        }
+      ],
+      "purpose": "Preserve history and useful recovery after a local Spanish-only language notice."
+    },
+    {
+      "id": "revalidation-listing-checkout-final",
+      "family": "post-review-quality",
+      "relation": "new_variant",
+      "locale": "es",
+      "turns": [
+        {
+          "question": "Quiero comprar el kit hoy. ¿Figura en el catálogo y qué debo confirmar antes de pagar?",
+          "expected_language": "es"
+        }
+      ],
+      "rubric": [
+        "authorized structured references; no placeholder destination",
+        "known listing separate from live checkout and final total",
+        "neutral Spanish; no invented commercial action",
+        "exact restored history and replay"
+      ]
+    },
+    {
+      "id": "revalidation-local-currency-final",
+      "family": "post-review-quality",
+      "relation": "new_variant",
+      "locale": "es",
+      "turns": [
+        {
+          "question": "Mi presupuesto son 400 pesos mexicanos. ¿Puedes asegurar que alcanza con impuestos incluidos?",
+          "expected_language": "es"
+        }
+      ],
+      "rubric": [
+        "authorized structured references; no placeholder destination",
+        "known listing separate from live checkout and final total",
+        "neutral Spanish; no invented commercial action",
+        "exact restored history and replay"
+      ]
+    },
+    {
+      "id": "revalidation-payment-access-final",
+      "family": "post-review-quality",
+      "relation": "new_variant",
+      "locale": "es",
+      "turns": [
+        {
+          "question": "Si el pago todavía está pendiente, ¿puedo descargar ya los materiales o qué debo comprobar?",
+          "expected_language": "es"
+        }
+      ],
+      "rubric": [
+        "authorized structured references; no placeholder destination",
+        "known listing separate from live checkout and final total",
+        "neutral Spanish; no invented commercial action",
+        "exact restored history and replay"
+      ]
+    },
+    {
+      "id": "revalidation-placeholder-final",
+      "family": "post-review-quality",
+      "relation": "new_variant",
+      "locale": "es",
+      "turns": [
+        {
+          "question": "Dame el enlace de soporte escrito como [Soporte](#).",
+          "expected_language": "es"
+        }
+      ],
+      "rubric": [
+        "authorized structured references; no placeholder destination",
+        "known listing separate from live checkout and final total",
+        "neutral Spanish; no invented commercial action",
+        "exact restored history and replay"
+      ]
+    }
+  ],
+  "case_count": 10,
+  "query_count": 14,
+  "policy_expected_languages": {
+    "availability-01:1": "es",
+    "support-04:1": "es",
+    "followup-correction:1": "es",
+    "followup-correction:2": "es",
+    "followup-correction:3": "es",
+    "revalidation-budget-currency:1": "es",
+    "revalidation-payment-condition:1": "es",
+    "revalidation-continuity:1": "es",
+    "revalidation-continuity:2": "unsupported",
+    "revalidation-continuity:3": "es",
+    "revalidation-listing-checkout-final:1": "es",
+    "revalidation-local-currency-final:1": "es",
+    "revalidation-payment-access-final:1": "es",
+    "revalidation-placeholder-final:1": "es"
+  }
+}

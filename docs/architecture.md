@@ -2,6 +2,21 @@
 
 A modular monolith with hexagonal boundaries, sized for one small catalog and one process.
 
+```mermaid
+flowchart TB
+  HTTP[Presentation\nHTTP · SSE · wire contracts] --> App[Application\nSessions · chat lifecycle · budget · private ops]
+  App --> Domain[Domain\nCatalog facts · language · answer rules]
+  AI[AI\nEvidence · prompt · structured composer] --> App
+  Adapters[Adapters\nSQLite · catalog sources · OpenAI Responses] --> App
+  Bootstrap[Bootstrap\nConfiguration · dependency composition · lifespan] --> HTTP
+  Bootstrap --> AI
+  Bootstrap --> Adapters
+```
+
+Arrows show code dependencies, not network traffic. Domain and application remain standard-library
+only; concrete integrations are composed in bootstrap. Instrumentation must preserve those
+boundaries and export no messages, prompts, identities or credentials.
+
 ```
 storefront (native assistant, cross-origin, CORS + cookie + CSRF) ──/api/v1──► presentation
 backoffice server (bearer token, private network) ──/internal/v1/ops──►   (FastAPI routes, SSE, middleware)
@@ -60,8 +75,10 @@ backoffice server (bearer token, private network) ──/internal/v1/ops──�
 ## Language, metrics and spend states
 
 - `domain/language.py` decides the reply language (es/en, or unsupported) before the model call;
-  the composer passes it as `reply_language`. Unsupported languages get a static bilingual
-  reply (no model call, no reservation).
+  the composer passes it as `reply_language`. Native `response_language: "es"` selects Spanish
+  independently of locale/history; recognized explicit foreign-language reply requests get a
+  Spanish-only local notice (no model call or reservation). Legacy omitted/null policy retains
+  ES/EN selection and its bilingual unsupported-language notice. See ADR-0006.
 - Every accepted or refused run writes one content-free row to `run_metrics` (outcome, failure
   code, model call yes/no, replaced, language, first-delta and total latency). Writing it is best
   effort: a failure is logged and never affects the answer. Retained 90 days.

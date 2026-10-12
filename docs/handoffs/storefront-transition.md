@@ -1,4 +1,4 @@
-# Storefront handoff: native assistant (revision 1.3)
+# Storefront handoff: native assistant (revision 1.4)
 
 The storefront (`gonzalomartinperez/pequeverso`) renders the only public conversation UI,
 natively (no iframe), **disabled by default** behind its own build-time flag. It calls this API
@@ -14,7 +14,7 @@ cross-origin. This repository does not edit the storefront.
 | CSRF | `csrf_token` from `POST /session`, in memory, sent as `X-CSRF-Token`; `Idempotency-Key` per attempt |
 | Page context | `page`: `home` \| `product` \| `support`; never on the thank-you page, the post-purchase offer or legal pages |
 | Navigation hints (1.3) | Optional nested `context: {opened_path, current_path, presentation}`; exact public route allowlist in docs/api-contract.md. Capture initial open separately from current pathname. UI uses compact/expanded; API also accepts page. No query/fragment/referrer/theme/identifying data, no offer/thank-you path; omit on ineligible routes. Context is untrusted data and does not extend widget eligibility. |
-| Language | UI `locale` (`es` or `en`); render `message.language` as `lang` |
+| Native language (1.4) | Always open with `locale: "es"` and send `response_language: "es"` on every message; no assistant language selector. Render each saved `message.language` as `lang`; do not rewrite legacy English history. Explicit requests for another reply language get a Spanish-only local notice without provider calls. |
 | Starters | `SessionOut.starters` before the first message |
 | Availability | `availability` in `SessionOut` / `GET /availability`; when unavailable show the support link and keep the store fully usable |
 | Storefront CSP | add the API origin to `connect-src` when enabling |
@@ -29,11 +29,18 @@ cross-origin. This repository does not edit the storefront.
 - The post-purchase offer stays excluded before purchase.
 - Privacy: the owner-approved `/privacidad/` assistant section must be live before enabling.
 
-## Pinning revision1.3
+## Pinning revision1.4
 
 After the producer PR merges with required checks, pin its exact merged commit and regenerate
-consumer types from `contracts/openapi.json`. Existing clients may omit `context`; responses
+consumer types from `contracts/openapi.json`. Require backend revision at least1.4 for the
+native Spanish policy; a1.3 backend rejects the new field. Existing clients may omit `context`
+and `response_language`; responses
 and SSE are compatible and the private ops schema remains1.2-compatible. No backoffice pin
-update is required solely for these public request hints. Preserve local draft/history while
-switching UI locale; the server's existing language precedence remains message, conversation,
-locale fallback. Neither this handoff nor its new fields enable the storefront build flag.
+update is required solely for these public request hints. Preserve local draft/history and old
+English messages. The native response policy selects Spanish regardless of input language,
+locale hints or previous English answers. Absence/null retains the legacy ES/EN precedence,
+bilingual unsupported notice and exact idempotency digest; do not claim that every legacy v1
+client is now Spanish-only. Including the policy in a reused legacy key conflicts rather than
+replaying an English answer. Language metadata does not prove actual generated prose language:
+inspect real replies and provisional streams before activation. Neither this handoff nor its
+new fields enable the storefront build flag.

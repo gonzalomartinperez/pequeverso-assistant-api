@@ -5,6 +5,7 @@ providers need explicit opt-in, production needs https origins, secure cookies a
 from __future__ import annotations
 
 import ipaddress
+import os
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
@@ -75,6 +76,12 @@ class Settings(BaseSettings):
     trusted_proxy_cidrs: list[str] = []
     client_hash_key: SecretStr = SecretStr(DEV_CLIENT_HASH_KEY)
 
+    # App-owned observability, disabled until explicitly configured by infrastructure.
+    observability_enabled: bool = False
+    telemetry_otlp_endpoint: str | None = None
+    telemetry_trace_sampling_ratio: float = Field(default=0.1, ge=0, le=1)
+    telemetry_export_timeout_seconds: float = Field(default=2.0, gt=0, le=5)
+
     # Catalog.
     catalog_url: str | None = None
     catalog_file: Path = DEFAULT_CATALOG
@@ -96,6 +103,32 @@ class Settings(BaseSettings):
 
     @model_validator(mode='after')
     def fail_closed(self) -> Settings:
+        if self.telemetry_otlp_endpoint:
+            if any(name.startswith('OTEL_') and value for name, value in os.environ.items()):
+                raise ValueError(
+                    'ambient OTEL configuration is unsupported; use explicit application telemetry settings'
+                )
+            parts = urlsplit(self.telemetry_otlp_endpoint)
+            if (
+                not self.observability_enabled
+                or parts.scheme not in ('http', 'https')
+                or not parts.hostname
+                or parts.username
+                or parts.password
+                or parts.query
+                or parts.fragment
+                or parts.path != '/v1/traces'
+            ):
+                raise ValueError(
+                    'OTLP requires enabled observability and an explicit safe /v1/traces endpoint'
+                )
+            if parts.scheme == 'http' and not (
+                '.' not in parts.hostname or parts.hostname in ('localhost', '127.0.0.1', '::1')
+            ):
+                raise ValueError(
+                    'plain HTTP OTLP is restricted to a private single-label service or loopback'
+                )
+
         if self.ai_provider == 'openai' and not (self.allow_paid_ai and self.openai_api_key):
             raise ValueError('AI_PROVIDER=openai requires ALLOW_PAID_AI=true and OPENAI_API_KEY')
         if self.ai_provider == 'fixture' and self.environment == 'production' and self.assistant_enabled:

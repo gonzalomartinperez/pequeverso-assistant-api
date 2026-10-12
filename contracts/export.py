@@ -47,6 +47,7 @@ from app.presentation.events import (
 from app.presentation.middleware import error_payload
 from app.presentation.operations import OpsSummaryOut
 from app.presentation.schemas import CONTRACT_REVISION, AvailabilityOut, LimitsOut, MessageOut, SessionOut
+from app.presentation.telemetry import OpsTelemetryOut
 
 ROOT = Path(__file__).resolve().parent
 CONTRACT_VERSION = '1'
@@ -229,6 +230,8 @@ def build() -> dict[str, bytes]:
         'examples/stream.language-unsupported.sse': _sse(
             _transcript(_user('Quanto custa o kit?'), unsupported)
         ),
+        'ops.telemetry.schema.json': _dump(OpsTelemetryOut.model_json_schema()),
+        'examples/ops.telemetry.json': _dump(_telemetry_example().model_dump(mode='json')),
         'ops.schema.json': _dump(OpsSummaryOut.model_json_schema()),
         'examples/ops.summary.json': _dump(_ops_example().model_dump(mode='json')),
         'examples/errors.json': _dump(
@@ -370,6 +373,40 @@ def main() -> int:
         print('stale contract artifacts (run: uv run python -m contracts.export):', ', '.join(stale))
         return 1
     return 0
+
+
+# Independent optional telemetry endpoint: no additions to legacy ops summary.
+def _telemetry_example() -> OpsTelemetryOut:
+    return OpsTelemetryOut.model_validate(
+        {
+            'generated_at': NOW,
+            'process_started_at': NOW - timedelta(seconds=60),
+            'process_uptime_seconds': 60.0,
+            'synthetic': True,
+            'readiness': {'status': 'ready', 'checked_at': NOW},
+            'provider_observation': {},
+            'active_runs': 0,
+            'max_concurrent_runs': 4,
+            'resources': {
+                'process_rss_bytes': None,
+                'process_peak_rss_bytes': None,
+                'cgroup_memory_current_bytes': None,
+                'cgroup_memory_limit_bytes': None,
+                'cgroup_cpu_limit_cores': None,
+                'cgroup_pids_current': None,
+                'cgroup_pids_limit': None,
+            },
+            'http': {'requests': 0, 'server_errors': 0, 'inflight': 1},
+            'traces': {
+                'enabled': False,
+                'sampling_ratio': 0.1,
+                'export_successes': 0,
+                'export_failures': 0,
+                'last_export_at': None,
+                'last_export_success': None,
+            },
+        }
+    )
 
 
 if __name__ == '__main__':

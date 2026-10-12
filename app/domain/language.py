@@ -349,6 +349,18 @@ _OUTPUT_LANGUAGE_USE = re.compile(
     rf'(?:use|usa|utiliza)\s+(?P<language>{_LANGUAGE_NAMES})\b'
 )
 _NEGATED_REQUEST_PREFIX = re.compile(r"(?:\bno|\bnot|\bnever|\bdon't|\bdo not)\s+(?:\w+\s+){0,4}$")
+_NATIVE_CONVERSATION_LANGUAGE = re.compile(
+    r'\b(?:conversemos|conversar|charlemos|charlar|hablemos|continuemos|sigamos|'
+    r'chat|talk|converse|continue)\b'
+    r'(?:\s+(?:only|solo|solamente|exclusively|por|favor|please)){0,4}'
+    r'\s+(?:en|in|using|usando)\s+(?:idioma\s+|the language\s+)?'
+    rf'(?P<language>{_LANGUAGE_NAMES})\b'
+)
+_NATIVE_LANGUAGE_USE = re.compile(
+    r'(?:^|[.!?;:,\n]\s*|\b(?:and|y|then|luego|despues)\s+)\s*'
+    r'(?:please\s+|por favor\s+)?'
+    rf'(?:use|usa|utiliza)\s+(?P<language>{_LANGUAGE_NAMES})\b'
+)
 
 
 def _fold(text: str) -> str:
@@ -388,6 +400,32 @@ def _requested_reply_language(text: str) -> Detected | None:
     # Pattern traversal order is not conversation order. Only supported requests can change
     # one another; any positive unsupported target above remains a fail-closed abstention.
     return max(requests, key=lambda request: request[0])[1] if requests else None
+
+
+def spanish_native_language(question: str) -> Language | None:
+    """Opt-in Spanish response policy; a recognized other-language request abstains locally.
+
+    The input's language, locale and history do not select the output language here. Keep the
+    legacy detector unchanged; the native recognizer is finite, not semantic verification of
+    generated text or a classifier of the material's language.
+    """
+    stripped = _CODE.sub(' ', question)
+    stripped = _QUOTED.sub(' ', stripped)
+    folded = _fold(_URLISH.sub(' ', stripped)).strip()
+    for pattern in (
+        _OUTPUT_LANGUAGE_REQUEST,
+        _OUTPUT_LANGUAGE_FIRST,
+        _OUTPUT_LANGUAGE_USE,
+        _NATIVE_CONVERSATION_LANGUAGE,
+        _NATIVE_LANGUAGE_USE,
+    ):
+        for match in pattern.finditer(folded):
+            prefix = folded[max(0, match.start() - 60) : match.start()]
+            if _NEGATED_REQUEST_PREFIX.search(prefix):
+                continue
+            if match.group('language') not in {'espanol', 'castellano', 'spanish', 'es'}:
+                return None
+    return Language.ES
 
 
 def detect(text: str, product_names: Iterable[str] = ()) -> Detected:
