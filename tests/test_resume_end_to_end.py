@@ -4,7 +4,8 @@ import json
 
 import pytest
 
-from scripts.resume_end_to_end import remaining_cases
+from scripts.real_eval_budget import Envelope
+from scripts.resume_end_to_end import remaining_cases, verify_existing_budget
 
 
 @pytest.fixture
@@ -65,3 +66,25 @@ def test_original_matrix_still_requires_200_queries(state):
     manifest['cases'] = manifest['cases'][:3]
     with pytest.raises(ValueError, match='at least 200'):
         remaining_cases(manifest, path)
+
+
+def test_continuation_cannot_create_a_fresh_allowance(tmp_path):
+    path = tmp_path / 'typo.sqlite3'
+    with pytest.raises(ValueError, match='existing shared budget'):
+        verify_existing_budget(tmp_path, path, False)
+    assert not path.exists()
+
+
+def test_budget_preserves_prior_charge_and_terminal_completion(tmp_path):
+    ledger = Envelope(tmp_path / 'budget.sqlite3')
+    first = ledger.reserve()
+    ledger.settle(first, 100, 100)
+    (tmp_path / 'budget.json').write_text(json.dumps(ledger.snapshot()))
+    with pytest.raises(ValueError, match='previous run allowance'):
+        verify_existing_budget(tmp_path, ledger.path, True)
+    second = ledger.reserve()
+    ledger.settle(second, 100, 100)
+    verify_existing_budget(tmp_path, ledger.path, True)
+    ledger.stop('do_not_restart')
+    with pytest.raises(ValueError, match='never reset'):
+        verify_existing_budget(tmp_path, ledger.path, True)
