@@ -426,3 +426,9 @@ findings and no published fixed versions in that database. The CycloneDX SBOM co
 components. Scanner results remain visible and do not constitute production risk acceptance.
 Before deployment, rebuild and smoke the exact approved release commit, review its current
 security inventory and complete the vps-ops activation gates.
+
+## Shared runtime baseline
+
+See [runtime-baseline.md](runtime-baseline.md) for the2026-10-13 shared cohort and image
+acceptance. Actual committed locks and Dockerfiles supersede historical version/size samples;
+no production publication, deployment or live OAuth/provider check is implied.
