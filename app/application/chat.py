@@ -16,7 +16,7 @@ import secrets
 import time
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, AsyncIterator
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from app.application.answers import (
@@ -279,7 +279,13 @@ class _ModelRun(Run):
         price_status = self._active.price_status(service.clock.now())
         rules = answer_rules(self._active.catalog, price_status, service.limits.extra_forbidden_terms)
         return finalize(
-            event.draft, self._active, price_status, rules, self._prepared_language, self._web_evidence
+            event.draft,
+            self._active,
+            price_status,
+            rules,
+            self._prepared_language,
+            self._web_evidence,
+            self._prepared.catalog_source_ids,
         )
 
     async def _complete(self, event: DraftEvent, final: FinalizedAnswer) -> Message:
@@ -584,14 +590,10 @@ class ChatService:
                 language=language,
                 context=context,
                 web_evidence=web_evidence,
+                input_size_limit=self.limits.max_input_tokens,
             )
             prepared = self.composer.prepare(turn)
-            # Optional evidence never increases the existing request envelope. Remove the last
-            # selected source until the actual serialized request fits; validate those sent only.
-            while prepared.input_size_bytes > self.limits.max_input_tokens and turn.web_evidence:
-                turn = replace(turn, web_evidence=turn.web_evidence[:-1])
-                prepared = self.composer.prepare(turn)
-            web_evidence = turn.web_evidence
+            web_evidence = prepared.web_evidence
             if prepared.input_size_bytes > self.limits.max_input_tokens:
                 raise RejectedError(FailureCode.INVALID_REQUEST)
             if time.monotonic() - accepted_monotonic >= self.limits.run_timeout.total_seconds():

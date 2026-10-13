@@ -181,6 +181,7 @@ class Turn:
     language: Language = Language.ES
     context: VisitorContext | None = None
     web_evidence: tuple[WebEvidence, ...] = ()
+    input_size_limit: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -222,6 +223,12 @@ class GenerationError(RejectedError):
 
 
 class PreparedTurn(Protocol):
+    @property
+    def web_evidence(self) -> tuple[WebEvidence, ...]: ...
+
+    @property
+    def catalog_source_ids(self) -> frozenset[str]: ...
+
     @property
     def input_size_bytes(self) -> int: ...
 

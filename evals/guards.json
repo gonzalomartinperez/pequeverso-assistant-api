@@ -193,6 +193,36 @@
         "resources": [],
         "sources": []
       }
+    },
+    {
+      "id": "unsupported-resource-page-count",
+      "output": {
+        "answer": "Safari y Juega tienen 40 páginas cada uno.",
+        "references": [],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "replaced": true,
+        "products": [],
+        "resources": [],
+        "sources": []
+      }
+    },
+    {
+      "id": "unsupported-mandatory-processing-delay",
+      "output": {
+        "answer": "La solicitud no se procesa de inmediato.",
+        "references": [],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "replaced": true,
+        "products": [],
+        "resources": [],
+        "sources": []
+      }
     }
   ]
 }

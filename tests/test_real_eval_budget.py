@@ -49,6 +49,127 @@ def test_stopped_envelope_rejects_after_reopen(tmp_path: Path) -> None:
     assert Envelope(path).snapshot()['reserved_micro_usd'] == 11000
 
 
+def _acknowledge(envelope: Envelope, *, attempts: int = 1, reserved: int = 2475) -> None:
+    envelope.acknowledge_fixed_case_gate(
+        expected_attempts=attempts,
+        expected_reserved_micro=reserved,
+        source_revision='a' * 40,
+        verification_sha256='b' * 64,
+        manifest_sha256='c' * 64,
+    )
+
+
+def _original_ledger_rows(envelope: Envelope) -> tuple[list[tuple], ...]:
+    with envelope.connect() as db:
+        return (
+            db.execute('SELECT * FROM attempts').fetchall(),
+            db.execute('SELECT * FROM status').fetchall(),
+            db.execute('SELECT * FROM limits').fetchall(),
+            db.execute('SELECT * FROM attempt_limits').fetchall(),
+        )
+
+
+def test_explicit_gate_acknowledgment_preserves_all_original_accounting_and_stops(tmp_path: Path) -> None:
+    path = tmp_path / 'budget.sqlite3'
+    envelope = Envelope(path, max_attempts=650)
+    envelope.settle(envelope.reserve(), 5000, 1000)
+    envelope.stop('case_gate_failure')
+    original = _original_ledger_rows(envelope)
+    with pytest.raises(RejectedError):
+        envelope.reserve()
+    _acknowledge(envelope)
+    assert _original_ledger_rows(envelope) == original
+    with envelope.connect() as db:
+        assert db.execute('SELECT count(*) FROM gate_resolutions').fetchone() == (1,)
+    assert Envelope(path, max_attempts=650).snapshot() == {
+        'attempts': 1,
+        'reserved_micro_usd': 2475,
+        'stop_reason': None,
+    }
+    with pytest.raises(ValueError, match='only a fixed case gate'):
+        _acknowledge(envelope)
+    assert envelope.reserve() == 2
+    envelope.stop('case_gate_failure')  # A new failure is never implicitly acknowledged.
+    with pytest.raises(RejectedError):
+        envelope.reserve()
+    with envelope.connect() as db:
+        assert db.execute('SELECT reason FROM status').fetchall() == [
+            ('case_gate_failure',),
+            ('case_gate_failure',),
+        ]
+
+
+@pytest.mark.parametrize(
+    'reason',
+    [
+        'AuthenticationError',
+        'PermissionDeniedError',
+        'missing_usage',
+        'request_bound',
+        'budget_or_attempt_limit',
+    ],
+)
+def test_gate_acknowledgment_cannot_bypass_other_stop_types(tmp_path: Path, reason: str) -> None:
+    envelope = Envelope(tmp_path / 'budget.sqlite3')
+    envelope.settle(envelope.reserve(), 5000, 1000)
+    envelope.stop(reason)
+    with pytest.raises(ValueError, match='only a fixed case gate'):
+        _acknowledge(envelope)
+    assert envelope.snapshot()['stop_reason'] == reason
+    with envelope.connect() as db:
+        assert db.execute('SELECT count(*) FROM gate_resolutions').fetchone() == (0,)
+
+
+@pytest.mark.parametrize('mismatch', ['unknown_usage', 'attempts', 'reserved', 'additional_stop'])
+def test_gate_acknowledgment_rejects_uncertain_or_changed_accounting(tmp_path: Path, mismatch: str) -> None:
+    envelope = Envelope(tmp_path / 'budget.sqlite3')
+    attempt = envelope.reserve()
+    if mismatch != 'unknown_usage':
+        envelope.settle(attempt, 5000, 1000)
+    envelope.stop('case_gate_failure')
+    if mismatch == 'additional_stop':
+        envelope.stop('missing_usage')
+    before = envelope.snapshot()
+    with pytest.raises(ValueError, match='only a fixed case gate'):
+        _acknowledge(
+            envelope,
+            attempts=2 if mismatch == 'attempts' else 1,
+            reserved=1 if mismatch == 'reserved' else 2475,
+        )
+    assert envelope.snapshot() == before
+    with envelope.connect() as db:
+        assert db.execute('SELECT count(*) FROM gate_resolutions').fetchone() == (0,)
+
+
+def test_gate_acknowledgment_rejects_invalid_provenance_hash(tmp_path: Path) -> None:
+    envelope = Envelope(tmp_path / 'budget.sqlite3')
+    envelope.settle(envelope.reserve(), 5000, 1000)
+    envelope.stop('case_gate_failure')
+    with pytest.raises(ValueError, match='revision hashes'):
+        envelope.acknowledge_fixed_case_gate(
+            expected_attempts=1,
+            expected_reserved_micro=2475,
+            source_revision='not-a-revision',
+            verification_sha256='b' * 64,
+            manifest_sha256='c' * 64,
+        )
+    assert envelope.snapshot()['stop_reason'] == 'case_gate_failure'
+
+
+def test_acknowledged_gate_does_not_create_more_spending_allowance(tmp_path: Path) -> None:
+    envelope = Envelope(tmp_path / 'budget.sqlite3', cap_micro=12000)
+    envelope.settle(envelope.reserve(), 24000, 4000)
+    envelope.stop('case_gate_failure')
+    _acknowledge(envelope, reserved=11000)
+    with pytest.raises(RejectedError):
+        envelope.reserve()
+    assert envelope.snapshot() == {
+        'attempts': 1,
+        'reserved_micro_usd': 11000,
+        'stop_reason': 'budget_or_attempt_limit',
+    }
+
+
 def test_auth_failure_is_one_request_and_unknown_usage_stays_reserved(tmp_path: Path) -> None:
     requests: list[dict[str, object]] = []
 

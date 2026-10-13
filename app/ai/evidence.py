@@ -191,7 +191,13 @@ def _documents_payload(documents: Iterable[Document]) -> list[dict[str, str]]:
     return [{'id': d.id, 'kind': d.kind.value, 'title': d.title, 'text': d.text} for d in documents]
 
 
-def catalog_payload(catalog: Catalog, price_status: PriceStatus, query: str, max_chars: int) -> str:
+def catalog_payload(
+    catalog: Catalog,
+    price_status: PriceStatus,
+    query: str,
+    max_chars: int,
+    mandatory_document_ids: frozenset[str] = frozenset(),
+) -> str:
     """Compact JSON evidence; drops the lowest-ranked documents only when over `max_chars`."""
     base: dict[str, Any] = {
         'store': {
@@ -212,8 +218,10 @@ def catalog_payload(catalog: Catalog, price_status: PriceStatus, query: str, max
         for p, _ in rank(query, passages(catalog))
         if p.id.startswith('document:')
     ]
-    kept: list[Document] = []
+    kept: list[Document] = [d for d in catalog.documents if d.id in mandatory_document_ids]
     for document_id in ranked:
+        if document_id in mandatory_document_ids:
+            continue
         document = catalog.document(document_id)
         if document is None:
             continue
