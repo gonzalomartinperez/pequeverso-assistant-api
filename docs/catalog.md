@@ -19,6 +19,31 @@ reachability alone does not prove that customers currently see that revision.
   Also excluded are seller tax id and address, legal-only mailboxes, and anything not
   customer-facing.
 
+## Current coverage (2026-10-13)
+
+The snapshot is exported from storefront `main` revision
+`18b68692867ddd379a3e30130a473dcb7e8a355b`: one core product, nine resources,
+23 documents and six links. Every commercial field is identical to the prior
+`eb68a041b4515d71a734626fdaee0ef06d8693c3` snapshot; this sync updates source provenance
+and verification time only. It does not prove the checkout or the deployed storefront was
+verified, and original evaluation artifacts retain their original catalog hashes.
+
+**Known coverage gap:** the home now recommends the third-party video course “Guía de
+Alimentación para Bebés” through `config/affiliates.ts`. The exporter reads `coreProducts()`
+and `offerProducts()` from the separate product registry, not the affiliate registry. This is
+missing support for the new registry, not an explicit decision to exclude affiliates. The
+course is absent from catalog products, documents and links; its name, content and producer
+policies cannot be supplied by generic Hotmart procedure evidence. The current assistant
+coverage remains Grafismo Fonético and authorized general platform procedures.
+
+Affiliate support requires a separate reviewed exporter/grounding increment. The PDF product
+schema requires page/PDF/resource counts and a positive USD price; do not fabricate those
+fields for a video course whose price is not supplied by the public affiliate configuration.
+Keep the third-party producer and sponsorship distinct from Pequeverso's own kit, preserve
+source-scoped guarantees, and do not claim health outcomes. No affiliate deployment hotlink,
+price or additional product has been introduced by this sync. Post-purchase offers remain
+excluded by the existing explicit policy.
+
 ## Updating
 
 ```
