@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -399,7 +400,7 @@ def test_web_preparation_time_is_in_metrics_and_spend_period_uses_actual_reserva
         csrf = open_session(c)
         status, _, _ = ask(c, csrf, 'Cómo solicitar reembolso', 'web-time-001')
         assert status == 200 and len(provider.calls) == 1
-        with sqlite3.connect(tmp_path / 'test.sqlite3') as db:
+        with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as db:
             metric = db.execute('SELECT first_delta_ms,total_ms,model_call FROM run_metrics').fetchone()
             assert metric == (2000, 2000, 1)
             assert db.execute('SELECT month,day,status FROM spend_ledger').fetchone() == (
@@ -432,7 +433,7 @@ def test_preparation_deadline_expires_before_reservation_without_provider_attemp
         status, events, error = ask(c, csrf, 'Cómo solicitar reembolso', 'web-expired-001')
         assert status == 504 and events == [] and error['error']['code'] == 'timeout'
         assert provider.calls == []
-        with sqlite3.connect(tmp_path / 'test.sqlite3') as db:
+        with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as db:
             assert db.execute('SELECT count(*) FROM spend_ledger').fetchone()[0] == 0
             assert db.execute('SELECT model_call FROM run_metrics').fetchone()[0] == 0
 
@@ -465,7 +466,7 @@ def test_deadline_after_reservation_keeps_conservative_cost_and_releases_run(
         assert chat._slot._value == chat.limits.max_concurrent_runs
         response = c.post('/api/v1/runs/' + events[0]['run_id'] + '/cancel', headers=mutation_headers(csrf))
         assert response.status_code == 404
-        with sqlite3.connect(tmp_path / 'test.sqlite3') as db:
+        with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as db:
             row = db.execute('SELECT status,actual_micro,reserved_micro FROM spend_ledger').fetchone()
             assert row[0] == 'unreported' and row[1] is None and row[2] > 0
             assert db.execute('SELECT model_call FROM run_metrics').fetchone()[0] == 0

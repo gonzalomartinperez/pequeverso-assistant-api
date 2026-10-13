@@ -116,3 +116,42 @@ def test_evaluator_accepts_only_exact_actually_sent_external_citation_without_mu
         altered = events_for({**citation, **changes})
         assert safety_with_official_evidence(altered, PriceStatus.VERIFIED, evidence)
     assert safety_with_official_evidence(events, PriceStatus.VERIFIED, [])
+
+
+@pytest.mark.parametrize('cap', [0, 651, True, 1.5, '650'])
+def test_helper_rejects_invalid_attempt_cap_before_reading_key(tmp_path, monkeypatch, cap):
+    from scripts import evaluate_end_to_end as evaluator
+
+    reads = []
+    monkeypatch.setattr(evaluator, 'dotenv_values', lambda *args, **kwargs: reads.append(True))
+    with pytest.raises(ValueError, match='attempt cap must be an integer'):
+        evaluator.load_live_provider(tmp_path / 'key.env', tmp_path / 'shared.sqlite3', max_attempts=cap)
+    assert reads == [] and list(tmp_path.iterdir()) == []
+
+
+def test_extended_helper_refuses_new_budget_path_before_key_read(tmp_path, monkeypatch):
+    from scripts import evaluate_end_to_end as evaluator
+
+    reads = []
+    monkeypatch.setattr(evaluator, 'dotenv_values', lambda *args, **kwargs: reads.append(True))
+    with pytest.raises(ValueError, match='existing shared evaluation budget'):
+        evaluator.load_live_provider(tmp_path / 'key.env', tmp_path / 'new.sqlite3', max_attempts=650)
+    assert reads == [] and list(tmp_path.iterdir()) == []
+
+
+def test_existing_attempt_cap_mismatch_is_checked_before_credential_read(tmp_path, monkeypatch):
+    from scripts import evaluate_end_to_end as evaluator
+    from scripts.real_eval_budget import Envelope
+
+    budget = tmp_path / 'shared.sqlite3'
+    envelope = Envelope(budget)
+    envelope.reserve()
+    before = envelope.snapshot()
+    key = tmp_path / 'synthetic.env'
+    key.write_text('This is not a real credential and must not be read.\n')
+    key.chmod(0o600)
+    reads = []
+    monkeypatch.setattr(evaluator, 'dotenv_values', lambda *args, **kwargs: reads.append(True))
+    with pytest.raises(ValueError, match='attempt limit|attempt cap'):
+        evaluator.load_live_provider(key, budget, max_attempts=650)
+    assert reads == [] and envelope.snapshot() == before

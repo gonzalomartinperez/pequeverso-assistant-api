@@ -198,8 +198,14 @@ def ask(
     }
 
 
-def load_live_provider(key_file: Path, budget_state: Path) -> BoundedProvider:
-    """Only explicit live mode calls this; no shell evaluation or ambient key lookup."""
+def load_live_provider(
+    key_file: Path, budget_state: Path, *, max_attempts: int = MAX_ATTEMPTS
+) -> BoundedProvider:
+    """Only explicit live mode calls this; validate the shared cap before reading the key."""
+    if type(max_attempts) is not int or not 1 <= max_attempts <= 650:
+        raise ValueError('evaluation attempt cap must be an integer from 1 to 650')
+    if max_attempts > MAX_ATTEMPTS and not budget_state.is_file():
+        raise ValueError('extended attempt cap requires the existing shared evaluation budget')
     for path in (key_file, budget_state):
         if path.resolve().is_relative_to(ROOT):
             raise ValueError('live private files must be outside the repository')
@@ -212,6 +218,11 @@ def load_live_provider(key_file: Path, budget_state: Path) -> BoundedProvider:
     budget_state.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if stat.S_IMODE(budget_state.parent.stat().st_mode) != 0o700:
         raise ValueError('shared budget directory must be private mode700')
+    # Persisted-cap mismatch fails before any credential read. Extending the owner-approved
+    # existing run must not accidentally create a fresh allowance through a mistyped path.
+    envelope = Envelope(budget_state, max_attempts=max_attempts)
+    if max_attempts > MAX_ATTEMPTS and envelope.snapshot()['attempts'] == 0:
+        raise ValueError('extended attempt cap requires an already-used shared evaluation budget')
     values = dotenv_values(key_file, interpolate=False)
     key = values.get('OPENAI_API_KEY')
     if (
@@ -220,7 +231,7 @@ def load_live_provider(key_file: Path, budget_state: Path) -> BoundedProvider:
         or values.get('OPENAI_REASONING_EFFORT') != 'medium'
     ):
         raise ValueError('private configuration does not match the authorized model')
-    return BoundedProvider(key, Envelope(budget_state))
+    return BoundedProvider(key, envelope)
 
 
 def checkpoint(path: Path, value: object) -> None:
@@ -262,7 +273,7 @@ def evaluate(
             if snapshot['stop_reason']:
                 stop_reason = snapshot['stop_reason']
             elif (
-                snapshot['attempts'] >= MAX_ATTEMPTS
+                snapshot['attempts'] >= envelope.max_attempts
                 or snapshot['reserved_micro_usd'] + ATTEMPT_MICRO > envelope.cap_micro
             ):
                 envelope.stop('budget_or_attempt_limit')
@@ -634,28 +645,32 @@ def main() -> None:
     parser.add_argument('--live', action='store_true')
     parser.add_argument('--key-file', type=Path)
     parser.add_argument('--budget-state', type=Path)
+    parser.add_argument('--max-attempts', type=int, default=MAX_ATTEMPTS)
     parser.add_argument('--manifest', type=Path, default=ROOT / 'evals/end_to_end.json')
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--source-revision', required=True)
     args = parser.parse_args()
     os.umask(0o077)
-    bounded = None
-    if args.live:
-        if args.key_file is None or args.budget_state is None:
-            parser.error('--live requires --key-file and shared --budget-state')
-        bounded = load_live_provider(args.key_file, args.budget_state)
+    manifest = json.loads(args.manifest.read_text())
+    official_help_requested(manifest)
+    if not 1 <= args.max_attempts <= 650:
+        parser.error('--max-attempts must be from 1 to 650')
+    if sum(len(c['turns']) for c in manifest['cases']) < 200:
+        parser.error('at least 200 frozen queries required')
     destination = args.output_dir.resolve()
     if destination == ROOT or ROOT in destination.parents:
         parser.error('full answers must be outside the repository')
     if destination.exists():
         parser.error('destination must be new; initial results must never be overwritten')
+    bounded = None
+    if args.live:
+        if args.key_file is None or args.budget_state is None:
+            parser.error('--live requires --key-file and shared --budget-state')
+        bounded = load_live_provider(args.key_file, args.budget_state, max_attempts=args.max_attempts)
     destination.mkdir(parents=True, mode=0o700)
     os.chmod(destination, 0o700)
     for name in ('httpx', 'httpx2', 'httpcore', 'httpcore2', 'openai'):
         logging.getLogger(name).setLevel(logging.CRITICAL)
-    manifest = json.loads(args.manifest.read_text())
-    if sum(len(c['turns']) for c in manifest['cases']) < 200:
-        parser.error('at least 200 frozen queries required')
     write_private(destination / 'manifest.json', manifest)
     (destination / 'catalog.json').write_bytes(DEFAULT_CATALOG.read_bytes())
     os.chmod(destination / 'catalog.json', 0o600)
