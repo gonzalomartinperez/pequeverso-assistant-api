@@ -79,3 +79,12 @@ Python SDK/exporter1.45.1 has three explicit beta0.66b1 dependencies: semantic-c
 exporter-http-transport and exporter-otlp-common. The owner accepted this dependency exception;
 these packages are not claimed stable or LTS. Prometheus3.13 LTS and Grafana13.2 are target
 references for the infrastructure owner, not services deployed by this application.
+
+### Framework instrumentation boundary
+
+FastAPI native tracing, metrics, logs, operation spans and auto-configuration are
+explicitly disabled, including on FastAPI versions that enable them by default.
+Only the application-owned, opt-in telemetry described above may instrument requests.
+Ambient OpenTelemetry providers and incoming public trace context do not authorize
+export of query strings, headers or visitor content. This configuration does not
+change the application telemetry switch or the private operations contract.

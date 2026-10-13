@@ -267,6 +267,15 @@ def create_app(
         title='Pequeverso assistant API',
         version='1',
         lifespan=lifespan,
+        # Only the explicit, content-free application telemetry may instrument requests.
+        # FastAPI 0.142 introduces native instrumentation enabled by default.
+        telemetry={
+            'tracing': False,
+            'metrics': False,
+            'logs': False,
+            'operation_spans': False,
+            'auto_configure': False,
+        },
         docs_url=None,
         redoc_url=None,
         openapi_url='/api/v1/openapi.json' if settings.environment != 'production' else None,
