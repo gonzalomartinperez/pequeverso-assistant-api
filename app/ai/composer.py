@@ -21,6 +21,7 @@ from app.application.ports import (
 from app.domain.budget import Usage
 from app.domain.conversation import Role
 from app.domain.errors import RejectedError
+from app.domain.web_evidence import evidence_payload
 
 MAX_HISTORY_CHARS = 1200
 
@@ -84,10 +85,15 @@ class GroundedComposer:
             ensure_ascii=False,
             separators=(',', ':'),
         )
+        web_inputs: tuple[ModelInput, ...] = ()
+        if turn.web_evidence:
+            web_payload = evidence_payload(turn.web_evidence)
+            web_inputs = (ModelInput('user', f'official_platform_data:\n{web_payload}'),)
         request = ModelRequest(
             instructions=INSTRUCTIONS,
             inputs=(
                 ModelInput('user', f'store_data:\n{evidence}'),
+                *web_inputs,
                 ModelInput('user', f'visitor_turn:\n{question}'),
             ),
             output_schema=OUTPUT_SCHEMA,

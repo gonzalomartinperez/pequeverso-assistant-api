@@ -23,6 +23,7 @@ from app.domain.conversation import (
     SourceRef,
 )
 from app.domain.language import Language
+from app.domain.web_evidence import WebEvidence, unsupported_platform_policy
 
 _MARKUP = re.compile(r'</?[A-Za-z][^<>]{0,300}>')
 _MARKDOWN_LINK = re.compile(r'\[([^\]\n]{1,180})\]\(([^)\n]{0,512})\)')
@@ -164,6 +165,7 @@ def finalize(
     price_status: PriceStatus,
     rules: AnswerRules,
     language: Language = Language.ES,
+    web_evidence: tuple[WebEvidence, ...] = (),
 ) -> FinalizedAnswer:
     catalog = active.catalog
     content = plain_text(draft.answer)
@@ -172,6 +174,8 @@ def finalize(
     # Normalization can expose a previously bracketed price or positive claim. Validate
     # both representations; never let formatting create a new unchecked assertion.
     violations = list(dict.fromkeys([*violations, *check_answer(content, rules)]))
+    if web_evidence and unsupported_platform_policy(content, tuple(d.text for d in catalog.documents)):
+        violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
     if not content or len(content) > MAX_ANSWER_CHARS or violations:
         return FinalizedAnswer(
             replacement_text(language),
@@ -198,9 +202,15 @@ def finalize(
             dropped += 1
 
     sources: dict[str, SourceRef] = {}
+    external_sources = {item.id: item for item in web_evidence}
     for source_id in draft.sources:
         document = catalog.document(source_id)
-        if document is None:
+        if document is None and (external := external_sources.get(source_id)):
+            if len(sources) < MAX_SOURCES:
+                sources.setdefault(
+                    external.id, SourceRef(external.id, external.source.title, external.source.url)
+                )
+        elif document is None:
             dropped += 1
         elif len(sources) < MAX_SOURCES:
             sources.setdefault(document.id, SourceRef(document.id, document.title, document.url))

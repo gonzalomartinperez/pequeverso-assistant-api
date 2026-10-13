@@ -16,6 +16,7 @@ from app.domain.conversation import Message, Session
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.language import Language
 from app.domain.visitor_context import VisitorContext
+from app.domain.web_evidence import HelpTopic, WebEvidence
 
 
 class Clock(Protocol):
@@ -130,6 +131,10 @@ class CatalogView(Protocol):
     def active(self) -> ActiveCatalog | None: ...
 
 
+class OfficialHelp(Protocol):
+    async def read(self, topics: tuple[HelpTopic, ...]) -> tuple[WebEvidence, ...]: ...
+
+
 class CatalogSource(Protocol):
     @property
     def live(self) -> bool:
@@ -175,6 +180,7 @@ class Turn:
     safety_identifier: str
     language: Language = Language.ES
     context: VisitorContext | None = None
+    web_evidence: tuple[WebEvidence, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

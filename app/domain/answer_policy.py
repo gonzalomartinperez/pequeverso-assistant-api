@@ -23,6 +23,7 @@ class Violation(StrEnum):
     PAYMENT_DATA_REQUEST = 'payment_data_request'
     UNAUTHORIZED_ACTION_CLAIM = 'unauthorized_action_claim'
     UNSUPPORTED_OUTCOME_CLAIM = 'unsupported_outcome_claim'
+    UNSUPPORTED_POLICY_CLAIM = 'unsupported_policy_claim'
 
 
 _URL = re.compile(

@@ -234,3 +234,12 @@ cannot be used against the public API.
 Within v1, fields may be added and new optional notices or error codes may appear; clients must
 ignore unknown fields and treat unknown codes as generic failures. Removing or renaming a field,
 changing an event's meaning or the terminal grammar requires v2 under `/api/v2`.
+
+
+## Optional official platform evidence (2026-10-13)
+
+Optional [official platform evidence](official-web-evidence.md) can populate the existing
+`sources[{id,title,url}]` fields with the three server-owned `hotmart:<article_id>` references.
+Only a source actually supplied for that turn can resolve. Their scope is general platform
+procedures, not merchant price/policy verification or order access. No wire revision or new
+SSE stage is introduced. Stored citations/history/replays remain immutable after cache expiry.

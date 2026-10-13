@@ -27,6 +27,8 @@ included and reach the storefront's purchase flow. Public repository; no license
   legacy ES/EN behavior and stored history; the existing wire enum is preserved.
 - `gpt-6-luna` at **medium** reasoning effort when paid use is authorized; budget USD 10/month
   (configurable) with atomic reservations and confirmed / estimated / pending spend.
+- Optional [official Hotmart procedure evidence](docs/official-web-evidence.md) is server-owned,
+  bounded to three public articles and disabled by default; no autonomous searches or buyer-account tools.
 - Grounded in a catalog exported from the storefront at a pinned commit; every product,
   link and price shown is server-validated.
 
@@ -65,6 +67,7 @@ flowchart LR
   Visitor[Adult visitor] --> Store[Pequeverso storefront\nNative assistant · disabled by default]
   Store -->|Session · CSRF · HTTP/SSE /api/v1| API[Assistant API\nFastAPI · one process]
   Catalog[Storefront catalog\nPinned Git revision] -->|Validated snapshot| API
+  Help[Official Hotmart help\nThree fixed public articles] -.->|Optional server retrieval · default off| API
   API --> DB[(SQLite\nCatalog · conversations · ledger)]
   API -->|One bounded Responses call\nGPT-6 Luna · medium| Model[OpenAI]
   BO[Private backoffice\nNext.js · Better Auth] -->|Server bearer · private ops| API

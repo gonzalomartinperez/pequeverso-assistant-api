@@ -25,8 +25,40 @@ from dependabot_policy import (
 )
 
 POLICY = Policy.load()
-PYPROJECT = (ROOT / 'pyproject.toml').read_text()
-LOCK = (ROOT / 'uv.lock').read_text()
+# Policy scenarios must not change when Dependabot updates the application lock.
+# The live workflow separately compares the actual authenticated base/head manifests.
+PYPROJECT = """[project]
+name = "policy-fixture"
+dependencies = [
+    "fastapi>=0.141.1",
+    "httpx>=0.28.1",
+    "openai>=3.19.2",
+]
+[dependency-groups]
+dev = ["pytest>=9.1.1", "ruff>=0.16.9", "mypy>=2.3.1"]
+[tool.uv]
+package = false
+"""
+LOCK = """version = 1
+[[package]]
+name = "fastapi"
+version = "0.141.1"
+[[package]]
+name = "pytest"
+version = "9.1.1"
+[[package]]
+name = "ruff"
+version = "0.16.9"
+[[package]]
+name = "openai"
+version = "3.19.2"
+[[package]]
+name = "starlette"
+version = "1.7.0"
+[[package]]
+name = "pydantic"
+version = "2.13.5"
+"""
 SHA = 'a' * 40
 
 

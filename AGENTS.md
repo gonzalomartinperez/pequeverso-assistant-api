@@ -9,8 +9,10 @@ their compatibility and historical messages. Read this file, then the doc for yo
 
 ## Non-negotiables
 
-- **Advisory and read-only.** No tools, orders, payments, refunds, carts, discounts or account
-  changes. Checkout stays in the storefront and Hotmart.
+- **Advisory and read-only.** No model-callable or transactional tools, orders, payments,
+  refunds, carts, discounts or account changes. Optional server-owned retrieval reads only
+  three approved public Hotmart procedure articles (ADR-0008); default off, fixture network off.
+  Checkout stays in the storefront and Hotmart.
 - **Fixture mode by default.** Never read, request or use a real API key, and never run
   `--live` evaluations or paid calls, without explicit current authorization from the owner.
   Pequeverso uses its own OpenAI project, key and budget, never the portfolio's.

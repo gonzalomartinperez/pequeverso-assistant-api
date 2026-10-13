@@ -16,7 +16,7 @@ import secrets
 import time
 from abc import ABC, abstractmethod
 from collections.abc import AsyncGenerator, AsyncIterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 
 from app.application.answers import (
@@ -37,6 +37,7 @@ from app.application.ports import (
     GenerationError,
     Ledger,
     MessageStore,
+    OfficialHelp,
     PreparedTurn,
     RateLimiter,
     RunMetric,
@@ -55,6 +56,7 @@ from app.domain.errors import FailureCode, RejectedError
 from app.domain.language import Language, reply_language, spanish_native_language
 from app.domain.redaction import contains_card_number, redact_contact_data
 from app.domain.visitor_context import VisitorContext
+from app.domain.web_evidence import MAX_WEB_EVIDENCE_CHARS, WebEvidence, evidence_payload, topics_for
 
 log = logging.getLogger(__name__)
 
@@ -146,9 +148,13 @@ class _ModelRun(Run):
         slot: asyncio.Semaphore,
         cancel: asyncio.Event,
         language: Language,
+        web_evidence: tuple[WebEvidence, ...] = (),
+        accepted_monotonic: float | None = None,
+        accepted_at: datetime | None = None,
     ) -> None:
         super().__init__(run_id)
         self._language = language
+        self._web_evidence = web_evidence
         self._service = service
         self._session = session
         self._active = active
@@ -159,8 +165,9 @@ class _ModelRun(Run):
         self._state: RunState | None = None
         self._finishing: asyncio.Task[None] | None = None
         self._closed = False
-        self._started = time.monotonic()
-        self._started_at = service.clock.now()
+        self._started = time.monotonic() if accepted_monotonic is None else accepted_monotonic
+        self._started_at = service.clock.now() if accepted_at is None else accepted_at
+        self._dispatched = False
         self._first_delta_ms: int | None = None
         self._settled = False
         self._replaced = False
@@ -170,7 +177,7 @@ class _ModelRun(Run):
         service = self._service
         # An explicit deadline, checked at every step: each step may resume in a different task,
         # so a task-bound asyncio.timeout() held across yields would never fire.
-        deadline = time.monotonic() + service.limits.run_timeout.total_seconds()
+        deadline = self._started + service.limits.run_timeout.total_seconds()
         stream = service.composer.compose(self._prepared)
         try:
             while True:
@@ -218,6 +225,7 @@ class _ModelRun(Run):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise TimeoutError
+        self._dispatched = True  # scheduling may already dispatch; retain uncertain spend conservatively
         step = asyncio.ensure_future(anext(stream))
         cancelled = asyncio.ensure_future(self._cancel.wait())
         try:
@@ -244,7 +252,7 @@ class _ModelRun(Run):
         price_status = self._active.price_status(now)
         rules = answer_rules(self._active.catalog, price_status, service.limits.extra_forbidden_terms)
         final: FinalizedAnswer = finalize(
-            event.draft, self._active, price_status, rules, self._prepared_language
+            event.draft, self._active, price_status, rules, self._prepared_language, self._web_evidence
         )
         self._replaced = Notice.ANSWER_REPLACED in final.details.notices
         message = Message(_message_id(), Role.ASSISTANT, final.content, now, final.details)
@@ -323,7 +331,7 @@ class _ModelRun(Run):
                 ended_at=service.clock.now(),
                 outcome=outcome or RunOutcome(state.value),
                 code=code,
-                model_call=True,
+                model_call=self._dispatched,
                 replaced=self._replaced,
                 language=self._language,
                 first_delta_ms=self._first_delta_ms,
@@ -394,8 +402,10 @@ class ChatService:
         budget: BudgetPolicy,
         limits: ChatLimits,
         metrics: RunMetrics,
+        official_help: OfficialHelp | None = None,
     ) -> None:
         self.metrics = metrics
+        self.official_help = official_help
         self.composer = composer
         self.catalog = catalog
         self.messages = messages
@@ -468,6 +478,7 @@ class ChatService:
         context: VisitorContext | None = None,
         response_language: str | None = None,
     ) -> Run:
+        accepted_monotonic = time.monotonic()
         if self.registry.closing:
             raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
         if not self.limits.enabled:
@@ -526,6 +537,12 @@ class ChatService:
                     spanish_native=response_language == Language.ES.value,
                 )
             redacted = redact_contact_data(question)
+            web_evidence: tuple[WebEvidence, ...] = ()
+            if self.official_help:
+                previous_question = next((m.content for m in reversed(history) if m.role is Role.USER), '')
+                web_evidence = await self.official_help.read(topics_for(redacted.text, previous_question))
+                while len(evidence_payload(web_evidence)) > MAX_WEB_EVIDENCE_CHARS:
+                    web_evidence = web_evidence[:-1]
             turn = Turn(
                 active=active,
                 price_status=active.price_status(now),
@@ -535,10 +552,19 @@ class ChatService:
                 safety_identifier=hashlib.sha256(session.id.encode()).hexdigest()[:32],
                 language=language,
                 context=context,
+                web_evidence=web_evidence,
             )
             prepared = self.composer.prepare(turn)
+            # Optional evidence never increases the existing request envelope. Remove the last
+            # selected source until the actual serialized request fits; validate those sent only.
+            while prepared.input_size_bytes > self.limits.max_input_tokens and turn.web_evidence:
+                turn = replace(turn, web_evidence=turn.web_evidence[:-1])
+                prepared = self.composer.prepare(turn)
+            web_evidence = turn.web_evidence
             if prepared.input_size_bytes > self.limits.max_input_tokens:
                 raise RejectedError(FailureCode.INVALID_REQUEST)
+            if time.monotonic() - accepted_monotonic >= self.limits.run_timeout.total_seconds():
+                raise RejectedError(FailureCode.TIMEOUT)
             if self._slot.locked():
                 raise RejectedError(FailureCode.BUSY)
             await self._slot.acquire()
@@ -554,7 +580,7 @@ class ChatService:
             reservation = worst_case_micro(
                 prepared.input_size_bytes, self.limits.max_output_tokens, self.pricing
             )
-            month, day = _periods(now)
+            month, day = _periods(self.clock.now())
             if not await self.ledger.reserve(run_id, reservation, month, day, self.budget.allows):
                 raise RejectedError(FailureCode.BUDGET_EXHAUSTED)
             notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
@@ -573,7 +599,20 @@ class ChatService:
             self._slot.release()
             await asyncio.shield(self._close_failed_start(run_id))
             raise
-        return _ModelRun(self, run_id, session, active, prepared, user_message, self._slot, cancel, language)
+        return _ModelRun(
+            self,
+            run_id,
+            session,
+            active,
+            prepared,
+            user_message,
+            self._slot,
+            cancel,
+            language,
+            web_evidence,
+            accepted_monotonic,
+            now,
+        )
 
     async def _close_failed_start(self, run_id: str) -> None:
         await self.runs.finish(run_id, RunState.FAILED, None)
