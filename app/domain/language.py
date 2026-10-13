@@ -327,7 +327,7 @@ _UNSUPPORTED_LANGUAGE_NAMES = (
 _REPLY_VERB = (
     r'(?:responde(?:r|me)?|respond(?:a|as|an|eme)?|contesta(?:r|me)?|'
     r'habla(?:r|me)?|escribe(?:me)?|traduce|traducir|explica|explique|antworte|antworten|'
-    r'answer|reply|respond|speak|write|translate|explain)'
+    r'answer|reply|respond|speak|write|translate|explain|reponds|repondez)'
 )
 _LANGUAGE_NAMES = rf'{_UNSUPPORTED_LANGUAGE_NAMES}|espanol|castellano|spanish|ingles|english|es|en'
 _OUTPUT_LANGUAGE_REQUEST = re.compile(

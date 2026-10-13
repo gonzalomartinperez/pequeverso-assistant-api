@@ -64,6 +64,13 @@ class Envelope:
                 raise ValueError('existing evaluation attempt limit cannot be changed')
             if saved_attempt_limit is None:
                 db.execute('INSERT INTO attempt_limits (id,max_attempts) VALUES (1,?)', (attempt_limit,))
+            db.execute(
+                'CREATE TABLE IF NOT EXISTS gate_resolutions ('
+                'status_rowid INTEGER PRIMARY KEY, reason TEXT NOT NULL, '
+                'source_revision TEXT NOT NULL, verification_sha256 TEXT NOT NULL, '
+                'manifest_sha256 TEXT NOT NULL, attempts INTEGER NOT NULL, '
+                'reserved_micro INTEGER NOT NULL)'
+            )
         path.chmod(0o600)
 
     @property
@@ -86,7 +93,11 @@ class Envelope:
             count, reserved = db.execute(
                 'SELECT count(*), coalesce(sum(reserved),0) FROM attempts'
             ).fetchone()
-            stopped = db.execute('SELECT reason FROM status LIMIT 1').fetchone()
+            stopped = db.execute(
+                'SELECT s.reason FROM status s WHERE NOT EXISTS '
+                '(SELECT 1 FROM gate_resolutions r WHERE r.status_rowid=s.rowid '
+                'AND r.reason=s.reason) ORDER BY s.rowid LIMIT 1'
+            ).fetchone()
         return {
             'attempts': count,
             'reserved_micro_usd': reserved,
@@ -96,6 +107,67 @@ class Envelope:
     def stop(self, reason: str) -> None:
         with self.connect() as db:
             db.execute('INSERT INTO status (reason) VALUES (?)', (reason,))
+
+    def acknowledge_fixed_case_gate(
+        self,
+        *,
+        expected_attempts: int,
+        expected_reserved_micro: int,
+        source_revision: str,
+        verification_sha256: str,
+        manifest_sha256: str,
+    ) -> None:
+        """Explicit operator acknowledgment after an authorized fix, never an automatic retry.
+
+        Preserve the original stop row and every monetary/attempt record. Only a known-usage
+        case gate is eligible; authentication, provider, budget and unknown-usage stops remain
+        blocking. Hashes identify independently verified code and a separately frozen phase;
+        they do not grant permission or prove that verification occurred. Keep ledger rows
+        append-only; do not delete status rows or rewrite their identities.
+        """
+        if (
+            type(expected_attempts) is not int
+            or expected_attempts < 1
+            or type(expected_reserved_micro) is not int
+            or expected_reserved_micro < 0
+        ):
+            raise ValueError('gate acknowledgment requires exact existing accounting')
+        for value, size in (
+            (source_revision, 40),
+            (verification_sha256, 64),
+            (manifest_sha256, 64),
+        ):
+            if len(value) != size or any(c not in '0123456789abcdef' for c in value):
+                raise ValueError('gate acknowledgment requires exact lowercase revision hashes')
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            active = db.execute(
+                'SELECT s.rowid,s.reason FROM status s WHERE NOT EXISTS '
+                '(SELECT 1 FROM gate_resolutions r WHERE r.status_rowid=s.rowid '
+                'AND r.reason=s.reason) ORDER BY s.rowid'
+            ).fetchall()
+            accounting = db.execute(
+                'SELECT count(*),coalesce(sum(reserved),0),'
+                'sum(CASE WHEN settled=0 THEN 1 ELSE 0 END) FROM attempts'
+            ).fetchone()
+            if (
+                len(active) != 1
+                or active[0][1] != 'case_gate_failure'
+                or accounting != (expected_attempts, expected_reserved_micro, 0)
+            ):
+                raise ValueError('only a fixed case gate with unchanged known usage can be acknowledged')
+            db.execute(
+                'INSERT INTO gate_resolutions VALUES (?,?,?,?,?,?,?)',
+                (
+                    active[0][0],
+                    active[0][1],
+                    source_revision,
+                    verification_sha256,
+                    manifest_sha256,
+                    expected_attempts,
+                    expected_reserved_micro,
+                ),
+            )
 
     def settle(self, attempt: int, inputs: int, outputs: int) -> None:
         if (
@@ -129,7 +201,11 @@ class Envelope:
         attempt = None
         with self.connect() as db:
             db.execute('BEGIN IMMEDIATE')
-            stopped = db.execute('SELECT reason FROM status LIMIT 1').fetchone()
+            stopped = db.execute(
+                'SELECT s.reason FROM status s WHERE NOT EXISTS '
+                '(SELECT 1 FROM gate_resolutions r WHERE r.status_rowid=s.rowid '
+                'AND r.reason=s.reason) ORDER BY s.rowid LIMIT 1'
+            ).fetchone()
             count, used = db.execute('SELECT count(*), coalesce(sum(reserved),0) FROM attempts').fetchone()
             if not stopped and count < self.max_attempts and used + ATTEMPT_MICRO <= self.cap_micro:
                 cursor = db.execute('INSERT INTO attempts (reserved) VALUES (?)', (ATTEMPT_MICRO,))

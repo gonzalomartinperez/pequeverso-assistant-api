@@ -1,18 +1,27 @@
 # ADR-0003: Structured streaming with authoritative final validation
 
-Status: accepted (2026-09-27)
+Status: accepted (2026-09-27); presentation boundary updated 2026-10-13
 
-**Context.** Answers must stream, but references, links, prices and commercial claims must be
-validated in code before a visitor can rely on them.
+**Context.** The original pipeline checked complete answers but forwarded raw decoded answer
+fragments first. A deterministic HTTP/SSE reproduction showed a false $999 price reaching a
+delta before final replacement. Completion alone does not establish commercial correctness.
 
 **Decision.** One Responses API call per turn with a strict JSON schema
-`{answer, references[{kind,id}], sources[], follow_ups[]}`, `answer` first. The server decodes
-the `answer` string incrementally and streams it as provisional `message.delta`. On completion
-it parses the whole object, resolves every id against the catalog (dropping unknown ones) and
-applies the answer rules. A violating answer is replaced whole. The server then emits
-`message.completed`, which clients must treat as authoritative, replacing the draft.
+`{answer, references[{kind,id}], sources[], follow_ups[]}`, `answer` first. Decoded text enters a
+buffer bounded by the existing 2000-character answer limit. Only cumulative complete sentence
+or paragraph prefixes passing the same normalization and business checks as final answers
+may produce `message.delta`. Decimal/URL dots without whitespace are not boundaries. Rejected,
+oversized or ambiguous-markup prefixes halt provisional output; generation is not retried.
 
-**Consequences.** Visitors may briefly see streamed text that is later replaced. This is rare,
-signalled by the `answer_replaced` notice, and the replaced text is never stored or re-sent
-to the model. There are no tools and no multi-step agent loop, so each turn is bounded to one
-call. Product cards carry only server data.
+The remainder may be emitted only after the complete draft produces an accepted canonical
+`FinalizedAnswer`; that identical answer is then persisted. A replaced answer is terminal-only
+when no valid earlier prefix was emitted. Known usage is settled before the new terminal-tail
+yield; missing usage remains conservative. Cancellation and the existing deadline are checked
+before and after that yield. Disconnect/cancel/timeout never persist a partial assistant answer.
+
+**Consequences.** Streaming is coarser and a short answer may wait until full validation. An
+earlier checked prefix can remain visible until `message.completed` replaces the draft if a
+later sentence invalidates the full answer. Deterministic recognizers do not prove general
+semantic truth, all claims or citation entailment. Clients must always render the authoritative
+final message. Public schemas and v1 revision1.4 are unchanged. Server-owned public-source
+retrieval (ADR-0008) is separate from model tools; each turn still has one generation.

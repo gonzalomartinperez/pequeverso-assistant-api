@@ -125,14 +125,27 @@ _REFUND_ENTITLEMENT = re.compile(
 )
 
 
-def _negated_at(text: str, position: int) -> bool:
+_CATEGORICAL_PROCESSING_DELAY = re.compile(
+    r'(?:^|[.!?;\n])\s*(?:'
+    r'(?:la solicitud|el reembolso) no se procesa (?:de inmediato|inmediatamente)|'
+    r'(?:the request|the refund|the refund request) is not processed immediately)\b'
+)
+
+
+def negated_at(text: str, position: int) -> bool:
     prefix = re.split(r'[.!?;,\n]|\b(?:pero|but|however|y|and)\b', text[max(0, position - 80) : position])[-1]
-    return bool(re.search(r'\b(?:no|not|nunca|never)\s+(?:\w+\s+){0,4}$', prefix))
+    negation = re.search(r'\b(?:no|not|nunca|never)\s+(?:\w+\s+){0,4}$', prefix)
+    if negation is None:
+        return False
+    # A reminder not to forget asserts the following policy; it does not deny it.
+    return not re.match(r'(?:no|not|nunca|never)\s+(?:olvida|olvides|olvidar|forget)\b', negation.group())
 
 
 def unsupported_platform_policy(text: str, merchant_policy_texts: tuple[str, ...]) -> bool:
     """Bounded positive-claim guard, not a claim of complete semantic entailment checking."""
     normalized = fold(text)
+    if _CATEGORICAL_PROCESSING_DELAY.search(normalized):
+        return True
     # Merchant's published buyer window; processing/bank delays elsewhere are not guarantee terms.
     days = {
         int(match.group(1))
@@ -141,7 +154,7 @@ def unsupported_platform_policy(text: str, merchant_policy_texts: tuple[str, ...
     }
     for match in _GUARANTEE_DAYS.finditer(normalized):
         day_group = next(index for index, group in enumerate(match.groups(), 1) if group is not None)
-        if int(match.group(day_group)) not in days and not _negated_at(normalized, match.start(day_group)):
+        if int(match.group(day_group)) not in days and not negated_at(normalized, match.start(day_group)):
             return True
     for match in [*_REFUND_ENTITLEMENT.finditer(normalized), *_PRIVATE_DETAIL_REQUEST.finditer(normalized)]:
         assertion = re.search(
@@ -149,6 +162,6 @@ def unsupported_platform_policy(text: str, merchant_policy_texts: tuple[str, ...
             match.group(),
         )
         position = match.start() + assertion.start() if assertion else match.start()
-        if not _negated_at(normalized, position):
+        if not negated_at(normalized, position):
             return True
     return False

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 from contextlib import closing
 from datetime import UTC, datetime
@@ -282,7 +283,7 @@ def test_cancelled_source_read_releases_singleflight_lock() -> None:
     asyncio.run(run())
 
 
-def test_optional_evidence_is_dropped_instead_of_expanding_request_budget(tmp_path: Path) -> None:
+def test_optional_evidence_keeps_only_complete_paragraphs_within_request_budget(tmp_path: Path) -> None:
     from dataclasses import replace
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -312,10 +313,16 @@ def test_optional_evidence_is_dropped_instead_of_expanding_request_budget(tmp_pa
         )
         status, events, _ = ask(c, csrf, '¿Cómo solicitar un reembolso?', 'web-small-001')
         assert status == 200 and len(provider.calls) == 2
-        assert not any(i.text.startswith('official_platform_data:') for i in provider.calls[-1].inputs)
+        sent = next(i for i in provider.calls[-1].inputs if i.text.startswith('official_platform_data:'))
+        selected = json.loads(sent.text.split('\n', 1)[1])
+        assert len(selected) == 1 and selected[0]['id'] == 'hotmart:360061973392'
+        paragraph = 'Información general sin promesas. Solo texto sintético de procedimiento público.'
+        assert all(line == paragraph for line in selected[0]['text'].splitlines())
+        assert len(selected[0]['text']) < 2000
+        assert selected[0]['sha256'] == hashlib.sha256(selected[0]['text'].encode()).hexdigest()
         assert provider.calls[-1].size_bytes() <= base_bytes + 600
         message = next(e['message'] for e in events if e['type'] == 'message.completed')
-        assert message['sources'] == []
+        assert [source['id'] for source in message['sources']] == ['hotmart:360061973392']
 
 
 def test_cross_session_history_never_acquires_other_visitors_external_citations(tmp_path: Path) -> None:

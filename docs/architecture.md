@@ -60,14 +60,17 @@ backoffice server (bearer token, private network) ──/internal/v1/ops──�
    - worst-case budget reservation (`BEGIN IMMEDIATE`)
    - storing the user message
 3. The stream: `GroundedComposer` makes **one** provider call. The strict JSON output is parsed
-   incrementally, so `answer` text streams as `message.delta`.
+   incrementally. A bounded buffer validates cumulative complete sentence/paragraph prefixes
+   with the same normalization and business checks as the final answer before `message.delta`.
+   Ambiguous formatting, overflow and rejected prefixes are withheld, not forwarded raw.
 4. On completion `finalize()` does three things:
    - resolves every product, resource, link and source id against the catalog
    - builds card metadata from catalog data only
    - applies the answer rules (and replaces the answer on a violation)
 
-   It then stores the answer, settles the ledger to the reported usage and emits
-   `message.completed` + `run.completed`.
+   Known usage is settled before any accepted canonical tail delta; the same finalized answer
+   is stored and emitted as `message.completed` + `run.completed`. Cancellation and the existing
+   deadline are checked before/after that tail; missing usage stays conservatively charged.
 5. Cancellation (endpoint or disconnect), deadline and provider failures each end the stream with
    exactly one terminal event. `ClosingStreamingResponse` guarantees cleanup (slot, registry, run
    state) even when the client vanishes. Partial answers are never stored.

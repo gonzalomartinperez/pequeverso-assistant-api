@@ -23,6 +23,7 @@ from app.domain.conversation import (
     SourceRef,
 )
 from app.domain.language import Language
+from app.domain.page_claims import unsupported_page_claim
 from app.domain.web_evidence import WebEvidence, unsupported_platform_policy
 
 _MARKUP = re.compile(r'</?[A-Za-z][^<>]{0,300}>')
@@ -159,6 +160,91 @@ def _readable_text(text: str) -> str:
     return _BRACKET_LABEL.sub(r'\1', text)
 
 
+@dataclass(frozen=True, slots=True)
+class CheckedContent:
+    content: str
+    violations: tuple[Violation, ...]
+
+    @property
+    def accepted(self) -> bool:
+        return bool(self.content) and len(self.content) <= MAX_ANSWER_CHARS and not self.violations
+
+
+def check_content(
+    text: str,
+    catalog: Catalog,
+    rules: AnswerRules,
+    web_evidence: tuple[WebEvidence, ...] = (),
+) -> CheckedContent:
+    """The same normalization and business boundary for cumulative prefixes and final answers."""
+    content = plain_text(text)
+    violations = check_answer(content, rules) if content else []
+    content = _readable_text(content)
+    violations = list(dict.fromkeys([*violations, *check_answer(content, rules)]))
+    # Merchant policy authority never depends on optional external evidence availability.
+    if unsupported_platform_policy(content, tuple(d.text for d in catalog.documents)):
+        violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
+    if unsupported_page_claim(content, catalog):
+        violations.append(Violation.UNSUPPORTED_PAGE_CLAIM)
+    return CheckedContent(content, tuple(violations))
+
+
+_COMPLETE_PREFIX = re.compile(r'[.!?](?=\s)|\n[ \t]*\n')
+
+
+class ValidatedStreamPrefix:
+    """Bounded, append-only presentation of checked complete sentences/paragraphs.
+
+    A numeric decimal or URL dot without following whitespace is not a boundary. Ambiguous
+    markup stays terminal-only; later text cannot retroactively rewrite an emitted prefix.
+    These deterministic checks do not establish general semantic truth or citation entailment.
+    """
+
+    def __init__(self) -> None:
+        self._buffer = ''
+        self._emitted = ''
+        self._blocked = False
+
+    def feed(
+        self,
+        chunk: str,
+        catalog: Catalog,
+        rules: AnswerRules,
+        web_evidence: tuple[WebEvidence, ...] = (),
+    ) -> str:
+        if self._blocked:
+            return ''
+        if len(self._buffer) + len(chunk) > MAX_ANSWER_CHARS:
+            self._blocked = True
+            return ''
+        self._buffer += chunk
+        if any(marker in self._buffer for marker in '<>[]'):
+            self._blocked = True
+            return ''
+        end = max((match.end() for match in _COMPLETE_PREFIX.finditer(self._buffer)), default=0)
+        if not end:
+            return ''
+        checked = check_content(self._buffer[:end], catalog, rules, web_evidence)
+        if not checked.accepted or not checked.content.startswith(self._emitted):
+            self._blocked = True
+            return ''
+        return self._append(checked.content)
+
+    def finish(self, final: FinalizedAnswer) -> str:
+        # Full canonical validation has completed; never turn a replacement into fake typing.
+        if self._blocked or Notice.ANSWER_REPLACED in final.details.notices:
+            return ''
+        if not final.content.startswith(self._emitted):
+            self._blocked = True
+            return ''
+        return self._append(final.content)
+
+    def _append(self, content: str) -> str:
+        delta = content[len(self._emitted) :]
+        self._emitted = content
+        return delta
+
+
 def finalize(
     draft: Draft,
     active: ActiveCatalog,
@@ -166,21 +252,16 @@ def finalize(
     rules: AnswerRules,
     language: Language = Language.ES,
     web_evidence: tuple[WebEvidence, ...] = (),
+    catalog_source_ids: frozenset[str] | None = None,
 ) -> FinalizedAnswer:
     catalog = active.catalog
-    content = plain_text(draft.answer)
-    violations = check_answer(content, rules) if content else []
-    content = _readable_text(content)
-    # Normalization can expose a previously bracketed price or positive claim. Validate
-    # both representations; never let formatting create a new unchecked assertion.
-    violations = list(dict.fromkeys([*violations, *check_answer(content, rules)]))
-    if web_evidence and unsupported_platform_policy(content, tuple(d.text for d in catalog.documents)):
-        violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
-    if not content or len(content) > MAX_ANSWER_CHARS or violations:
+    checked = check_content(draft.answer, catalog, rules, web_evidence)
+    content = checked.content
+    if not checked.accepted:
         return FinalizedAnswer(
             replacement_text(language),
             replacement(catalog, Notice.ANSWER_REPLACED, language),
-            tuple(violations),
+            checked.violations,
             len(draft.references),
         )
 
@@ -210,7 +291,7 @@ def finalize(
                 sources.setdefault(
                     external.id, SourceRef(external.id, external.source.title, external.source.url)
                 )
-        elif document is None:
+        elif document is None or (catalog_source_ids is not None and source_id not in catalog_source_ids):
             dropped += 1
         elif len(sources) < MAX_SOURCES:
             sources.setdefault(document.id, SourceRef(document.id, document.title, document.url))

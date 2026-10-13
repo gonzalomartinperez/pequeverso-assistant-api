@@ -155,6 +155,7 @@ def ask(
 ) -> dict[str, Any]:
     started = time.monotonic()
     first: float | None = None
+    first_visible: float | None = None
     events: list[dict[str, Any]] = []
     with client.stream(
         'POST',
@@ -183,8 +184,20 @@ def ask(
                 if line.startswith('data: '):
                     event = json.loads(line[6:])
                     events.append(event)
-                    if event['type'] == 'message.delta' and first is None:
-                        first = time.monotonic() - started
+                    is_delta = event['type'] == 'message.delta'
+                    message = event.get('message')
+                    visible = (is_delta and bool(event.get('text', '').strip())) or (
+                        event['type'] == 'message.completed'
+                        and isinstance(message, dict)
+                        and isinstance(message.get('content'), str)
+                        and bool(message['content'].strip())
+                    )
+                    if (is_delta and first is None) or (visible and first_visible is None):
+                        elapsed = time.monotonic() - started
+                        if is_delta and first is None:
+                            first = elapsed
+                        if visible and first_visible is None:
+                            first_visible = elapsed
                     if on_event:
                         on_event(events)
         else:
@@ -194,6 +207,7 @@ def ask(
         'error': error,
         'events': events,
         'first_content_seconds': first,
+        'first_visible_content_seconds': first_visible,
         'duration_seconds': time.monotonic() - started,
     }
 
@@ -379,6 +393,7 @@ def evaluate(
                                 'error': type(error).__name__,
                                 'events': [],
                                 'first_content_seconds': None,
+                                'first_visible_content_seconds': None,
                                 'duration_seconds': None,
                             }
                         completed = [

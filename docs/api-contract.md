@@ -143,7 +143,12 @@ run.cancelled                                     terminal (instead of completed
 Every stream ends with exactly one terminal event. Every event carries `schema_version: "1"`,
 `run_id`, a 0-based strictly increasing `sequence` and a `timestamp`. The final content can
 differ from the streamed draft: when the server-side answer rules replace an answer, the notice
-`answer_replaced` is set. Always render `message.completed.message.content`.
+`answer_replaced` is set. Always render `message.completed.message.content`. Deltas contain
+checked cumulative sentence/paragraph prefixes, not raw provider token fragments. Checks are
+bounded deterministic recognizers, not complete semantic verification. A later rejected
+sentence can still cause replacement of an earlier valid prefix; some answers have no delta.
+The remaining text is sent only after complete canonical validation, with known usage retained
+if the visitor disconnects. These presentation changes do not change v1 revision1.4.
 
 **Interruption.** If the connection drops before a terminal event, the client cannot know
 whether the answer was stored: a drop after the server finished leaves a completed run, a drop
