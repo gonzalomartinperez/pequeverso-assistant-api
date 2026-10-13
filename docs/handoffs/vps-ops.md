@@ -34,8 +34,8 @@ cross-origin from the browser.
    `scripts/smoke-image.sh`). Both are `linux/amd64`, non-root (API uid 65532; backoffice uid
    1000), read-only root with tmpfs, `--cap-drop ALL`, `no-new-privileges`. Ports: API
    `8000/tcp`, backoffice `3000/tcp`. Latest API local fixture acceptance (2026-10-13):
-   application `3f230f4`, image `e783762`, 56,834,339 bytes, idle 66.55 MiB, cgroup peak 84,242,432 bytes
-   and core shutdown 1.619 s. The separately identified checked-stream candidate 68c97bb/5a8526a
+   application `cf19c3b`, image `0691367`, 57,024,366 bytes, idle 69.27 MiB, cgroup peak 89,403,392 bytes
+   and core shutdown 2.02 s. BuildKit is required; vps-ops selects compatible build tooling. The separately identified checked-stream candidate 68c97bb/5a8526a
    stopped an active stream with a blocked collector in 7.508 s; keep at least 40 s grace. These
    feature-image digests are not relabeled as later integration/main builds. Exact evidence is in
    [the deployment contract](../deployment-contract.md). Historical backoffice measurements

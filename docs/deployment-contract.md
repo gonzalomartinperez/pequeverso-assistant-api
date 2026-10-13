@@ -14,16 +14,18 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 | Writable paths | `/data` (volume), `/tmp` (tmpfs) |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
 | Port | `8000/tcp` (HTTP, plain; TLS terminates at the proxy) |
-| Size / resources (measured locally 2026-10-13, fixture mode) | Exact final-corrections candidate: 56,834,339 bytes; idle memory 66.55 MiB, cgroup peak 84,242,432 bytes. Core smoke stop 1.619 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; see separately identified active-stream evidence below. No VPS capacity claim |
+| Size / resources (measured locally 2026-10-13, fixture mode) | Exact combined candidate: 57,024,366 bytes; idle memory 69.27 MiB, cgroup peak 89,403,392 bytes. Core smoke stop 2.02 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; see separately identified active-stream evidence below. No VPS capacity claim |
 
-Current local acceptance belongs to application commit
-`3f230f46524011fe34a3fe14715bb342d75c2d32`, image
-`sha256:e783762c446e3bafc0dd5bff0608725786a3da6587413bb730b3ea5642814a8b`.
-See [the final exact-image evidence and OS scan limits](#verified-final-corrections-candidate-on-2026-10-13).
-Its protected squash integration is `110535fcdca009df4b63be4cd30eacfde20d8a4c`;
-the image was built from the reviewed feature commit, not that integration or a future main release.
-Later documentation/revision metadata changes do not relabel this local digest as a release image.
-Rebuild and smoke the exact commit selected by vps-ops; no image has been published or deployed.
+Current local acceptance belongs to combined application commit
+`cf19c3beac8e51bcb4ed805af7d92a99c42f8ce6`, image
+`sha256:0691367b0a86087d2fc0904f7507e16aa77d8599d6bcd8b953343fc5472cde8d`.
+See [the phased exact-image evidence](verification/post-tools-2026-10-13.md).
+The combined head normally merges reviewed runtime/dependency PR52 and the finite final
+language/citation fix. Later squash integrations or documentation changes do not relabel this
+local image as a main release build. BuildKit is required by the pinned Dockerfile frontend and
+cache mounts; the local acceptance used verified official Buildx 0.38.0 with the existing Docker
+driver. vps-ops selects its compatible build tooling and rebuilds/smokes the exact release commit.
+No image has been published or deployed.
 
 ### Historical acceptance — 2026-10-10 (superseded)
 
