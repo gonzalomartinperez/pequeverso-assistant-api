@@ -189,3 +189,5 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 Task branches target `develop` through protected squash PRs. A release into `main` requires
 separate owner authorization and a protected merge commit. Public repository, all rights reserved;
 no license is granted. Never commit secrets, private evaluations or customer conversations.
+
+Shared runtime/version acceptance: [runtime baseline](docs/runtime-baseline.md).
