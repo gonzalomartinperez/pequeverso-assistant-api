@@ -178,6 +178,21 @@
       "expect": {
         "replaced": true
       }
+    },
+    {
+      "id": "unsupported-merchant-guarantee",
+      "output": {
+        "answer": "Tienes una garantía de 30 días para el kit.",
+        "references": [],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "replaced": true,
+        "products": [],
+        "resources": [],
+        "sources": []
+      }
     }
   ]
 }

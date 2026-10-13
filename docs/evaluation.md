@@ -9,8 +9,8 @@ is distinct from semantic correctness, and agent review is not human review.
 | Suite | Command | What it proves | Latest result (fixture) |
 |---|---|---|---|
 | Retrieval | `uv run python scripts/evaluate_retrieval.py` | Lexical ranking finds the right passage (20 cases, `evals/retrieval.json`) | recall@3 = 0.95, MRR = 0.908 (miss: "correo postal" vs "producto físico") |
-| Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 16 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 16/16 safe |
-| Guards | same command (`evals/guards.json`) | 11 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup) are dropped or replaced server-side | 11/11 |
+| Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 17 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 17/17 safe |
+| Guards | same command (`evals/guards.json`) | 12 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup) are dropped or replaced server-side | 12/12 |
 | Corpus | `uv run python scripts/evaluate_corpus.py` | 288 hand-written cases in 18 intent families (`evals/corpus/`), retrieval per family/split/language, and every case through the full HTTP/SSE path | Gates: 0/288 pipeline failures; reply language 285/285 as expected (`lang-016` fixed with Portuguese markers). Retrieval recall@3 = 0.70 overall (dev 0.67, holdout 0.77), 0.17 on English questions. Report: `evals/reports/corpus-fixture.json` |
 | Conversations: quality | same command with `--live` | Budget recommendation, low budget honesty, resource comparison, clarification, no-match (fluent reader, app), stale price, follow-up reference, invented discount, injection, unknown shipping and license policy, refused order action, payment data, offer probe, child-data minimization, English visitor | This specific conversations CLI has not been run live. The separate 303-turn socket evaluation is documented below; fixture scores do not measure model quality |
 
@@ -334,3 +334,11 @@ historical `first_content_seconds` meaning (first delta received) and adds
 content received. It measures client receipt, not provider token timing, browser paint or the
 later `run.completed` marker. Historical reports are not rewritten. The frozen real matrix
 remains evaluation input only; no questions are indexed and no new paid attempts are implied.
+
+
+The follow-up catalog-only fixture audit found a false 30-day guarantee could reach both
+checked deltas and the final answer when optional web evidence was absent. The same existing
+policy recognizer now runs regardless of that evidence. Its narrow negation handling also
+rejects positive reminders ("No olvides…" / "Do not forget…") about unsupported guarantees,
+while preserving honest denials and the published seven-day window. Canonical fixture guards
+include the false window; frozen real matrices and historical checkpoints are unchanged.

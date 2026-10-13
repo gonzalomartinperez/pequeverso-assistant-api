@@ -127,7 +127,11 @@ _REFUND_ENTITLEMENT = re.compile(
 
 def _negated_at(text: str, position: int) -> bool:
     prefix = re.split(r'[.!?;,\n]|\b(?:pero|but|however|y|and)\b', text[max(0, position - 80) : position])[-1]
-    return bool(re.search(r'\b(?:no|not|nunca|never)\s+(?:\w+\s+){0,4}$', prefix))
+    negation = re.search(r'\b(?:no|not|nunca|never)\s+(?:\w+\s+){0,4}$', prefix)
+    if negation is None:
+        return False
+    # A reminder not to forget asserts the following policy; it does not deny it.
+    return not re.match(r'(?:no|not|nunca|never)\s+(?:olvida|olvides|olvidar|forget)\b', negation.group())
 
 
 def unsupported_platform_policy(text: str, merchant_policy_texts: tuple[str, ...]) -> bool:

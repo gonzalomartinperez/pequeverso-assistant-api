@@ -180,7 +180,8 @@ def check_content(
     violations = check_answer(content, rules) if content else []
     content = _readable_text(content)
     violations = list(dict.fromkeys([*violations, *check_answer(content, rules)]))
-    if web_evidence and unsupported_platform_policy(content, tuple(d.text for d in catalog.documents)):
+    # Merchant policy authority never depends on optional external evidence availability.
+    if unsupported_platform_policy(content, tuple(d.text for d in catalog.documents)):
         violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
     return CheckedContent(content, tuple(violations))
 
