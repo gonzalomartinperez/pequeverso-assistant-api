@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from app.application.answers import UNSUPPORTED_LANGUAGE_ANSWER, UNSUPPORTED_LANGUAGE_ANSWER_ES
-from app.domain.language import Language, spanish_native_language
+from app.domain.language import Language, reply_language, spanish_native_language
 from tests.support import (
     JSON_HEADERS,
     ScriptedProvider,
@@ -33,6 +33,9 @@ from tests.support import (
         'Explique em português o material.',
         'Use English, then answer in Spanish.',
         'Answer in Spanish, then use French.',
+        'Switch to French now.',
+        'Please switch to French.',
+        'Switch to English now.',
     ],
 )
 def test_native_other_reply_language_is_local_spanish_notice(tmp_path, question):
@@ -75,6 +78,11 @@ def test_native_other_reply_language_is_local_spanish_notice(tmp_path, question)
         '```reply in English``` What does the kit include?',
         'Is the material available in English?',
         'Prefiero material en inglés. ¿En qué idioma viene el kit?',
+        'Do not switch to French; tell me about the kit.',
+        'Never switch to French; tell me about the kit.',
+        'The quoted text says "Switch to French now."; what does the kit include?',
+        'What does `Switch to French` mean?',
+        'Can the material switch to French?',
     ],
 )
 def test_native_selects_spanish_without_treating_data_as_a_language_request(tmp_path, question):
@@ -203,3 +211,9 @@ def test_native_does_not_claim_semantic_validation_of_generated_language(tmp_pat
         assert final['language'] == 'es'
         assert final['content'] == 'This is deliberately synthetic English.'
         assert spanish_native_language('What does the kit include?') is Language.ES
+
+
+def test_explicit_switch_preserves_legacy_supported_languages_and_rejects_french():
+    assert reply_language('Switch to English now.', [], Language.ES) is Language.EN
+    assert reply_language('Switch to Spanish now.', [], Language.EN) is Language.ES
+    assert reply_language('Switch to French now.', [], Language.ES) is None
