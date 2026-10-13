@@ -104,6 +104,7 @@ latency percentiles, token usage and spend (confirmed / estimated / pending) to 
 | `DATABASE_PATH` | `/data/assistant.sqlite3` (image default) | config |
 | `CATALOG_URL` | unset (bundled snapshot). Set only if the storefront publishes the catalog document | config |
 | `CATALOG_PRICE_MAX_AGE_HOURS` | `168` | config |
+| `OFFICIAL_HELP_ENABLED` | `false` (default). Optional three fixed public Hotmart procedure reads; fixture mode never uses their network adapter. Review [source/egress limits](official-web-evidence.md) before a separately authorized enablement | config |
 
 Validation refuses to start with unsafe combinations: a paid provider without opt-in and key,
 fixture answers in production, non-https or localhost origins, insecure cookies, a missing or
