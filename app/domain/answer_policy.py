@@ -24,6 +24,7 @@ class Violation(StrEnum):
     UNAUTHORIZED_ACTION_CLAIM = 'unauthorized_action_claim'
     UNSUPPORTED_OUTCOME_CLAIM = 'unsupported_outcome_claim'
     UNSUPPORTED_POLICY_CLAIM = 'unsupported_policy_claim'
+    UNSUPPORTED_PAGE_CLAIM = 'unsupported_page_claim'
 
 
 _URL = re.compile(

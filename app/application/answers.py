@@ -23,6 +23,7 @@ from app.domain.conversation import (
     SourceRef,
 )
 from app.domain.language import Language
+from app.domain.page_claims import unsupported_page_claim
 from app.domain.web_evidence import WebEvidence, unsupported_platform_policy
 
 _MARKUP = re.compile(r'</?[A-Za-z][^<>]{0,300}>')
@@ -183,6 +184,8 @@ def check_content(
     # Merchant policy authority never depends on optional external evidence availability.
     if unsupported_platform_policy(content, tuple(d.text for d in catalog.documents)):
         violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
+    if unsupported_page_claim(content, catalog):
+        violations.append(Violation.UNSUPPORTED_PAGE_CLAIM)
     return CheckedContent(content, tuple(violations))
 
 

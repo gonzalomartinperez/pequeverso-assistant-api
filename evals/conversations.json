@@ -233,6 +233,22 @@
           "garantía de treinta días"
         ]
       }
+    },
+    {
+      "id": "resource-page-count-comparison",
+      "turns": [
+        "¿Cuántas páginas tienen Safari y Juega?"
+      ],
+      "quality": {
+        "mentions_any": [
+          "40",
+          "50"
+        ],
+        "forbid_any": [
+          "40 páginas cada uno",
+          "40 pages each"
+        ]
+      }
     }
   ]
 }
