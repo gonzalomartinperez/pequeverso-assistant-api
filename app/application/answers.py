@@ -29,6 +29,8 @@ from app.domain.web_evidence import WebEvidence, unsupported_platform_policy
 _MARKUP = re.compile(r'</?[A-Za-z][^<>]{0,300}>')
 _MARKDOWN_LINK = re.compile(r'\[([^\]\n]{1,180})\]\(([^)\n]{0,512})\)')
 _BRACKET_LABEL = re.compile(r'\[([^\[\]\n]{1,180})\](?!\()')
+_PROVIDER_CITATION = re.compile(r'[ \t]*\ue200cite\ue202[^\ue200\ue201\n]{1,256}\ue201[ \t]*')
+_PROVIDER_CITATION_MARKERS = ('\ue200', '\ue201', '\ue202')
 MAX_ANSWER_CHARS = 2000
 MAX_RESOURCES = 3
 MAX_LINKS = 3
@@ -156,6 +158,8 @@ def _readable_text(text: str) -> str:
     Keep an authorized URL visible instead of silently hiding it; structured reference links
     remain the only interactive navigation. Never run this before the destination guard.
     """
+    # Raw destinations/prices were checked before this bounded presentation cleanup.
+    text = _PROVIDER_CITATION.sub(' ', text).strip()
     text = _MARKDOWN_LINK.sub(lambda match: f'{match.group(1)} ({match.group(2)})', text)
     return _BRACKET_LABEL.sub(r'\1', text)
 
@@ -167,7 +171,12 @@ class CheckedContent:
 
     @property
     def accepted(self) -> bool:
-        return bool(self.content) and len(self.content) <= MAX_ANSWER_CHARS and not self.violations
+        return (
+            bool(self.content)
+            and len(self.content) <= MAX_ANSWER_CHARS
+            and not self.violations
+            and not any(marker in self.content for marker in _PROVIDER_CITATION_MARKERS)
+        )
 
 
 def check_content(
@@ -178,15 +187,17 @@ def check_content(
 ) -> CheckedContent:
     """The same normalization and business boundary for cumulative prefixes and final answers."""
     content = plain_text(text)
+    raw_content = content
     violations = check_answer(content, rules) if content else []
     content = _readable_text(content)
     violations = list(dict.fromkeys([*violations, *check_answer(content, rules)]))
     # Merchant policy authority never depends on optional external evidence availability.
-    if unsupported_platform_policy(content, tuple(d.text for d in catalog.documents)):
-        violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
-    if unsupported_page_claim(content, catalog):
-        violations.append(Violation.UNSUPPORTED_PAGE_CLAIM)
-    return CheckedContent(content, tuple(violations))
+    for candidate in (raw_content, content):
+        if unsupported_platform_policy(candidate, tuple(d.text for d in catalog.documents)):
+            violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
+        if unsupported_page_claim(candidate, catalog):
+            violations.append(Violation.UNSUPPORTED_PAGE_CLAIM)
+    return CheckedContent(content, tuple(dict.fromkeys(violations)))
 
 
 _COMPLETE_PREFIX = re.compile(r'[.!?](?=\s)|\n[ \t]*\n')
@@ -218,7 +229,7 @@ class ValidatedStreamPrefix:
             self._blocked = True
             return ''
         self._buffer += chunk
-        if any(marker in self._buffer for marker in '<>[]'):
+        if any(marker in self._buffer for marker in ('<', '>', '[', ']', *_PROVIDER_CITATION_MARKERS)):
             self._blocked = True
             return ''
         end = max((match.end() for match in _COMPLETE_PREFIX.finditer(self._buffer)), default=0)

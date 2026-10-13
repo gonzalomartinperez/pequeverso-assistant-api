@@ -59,6 +59,8 @@ the welcome, provisional streaming, complete mobile product card and recoverable
 Those additional states use the **fixture API** and are labeled separately. The two native
 photo probes used independent browser sessions; their original capture failures are retained.
 Neither a real-provider reload/mobile result nor a production deployment is claimed.
+These dated captures retain their original storefront/API revisions in the gallery manifest;
+they do not depict the later 2026-10-13 post-tool evaluation or its corrected backend.
 
 ## System at a glance
 
@@ -92,7 +94,8 @@ flowchart LR
 | vps-ops | Publishes and deploys selected images; owns reverse proxy, Coolify, shared monitoring and backups |
 
 There are no payment/order tools, embeddings, Neo4j, Redis or a graph orchestration framework.
-The complete authorized catalog fits in the evidence budget; lexical ranking is measured separately.
+Structured catalog facts remain present; exact request packing can prune optional passages and
+old model-context text to retain the unchanged 24KB bound. Lexical ranking is measured separately.
 
 ## One question, one accountable generation
 
@@ -105,19 +108,34 @@ sequenceDiagram
   participant AI as GPT-6 Luna
   UI->>API: Session + Origin + CSRF + idempotency key
   API->>App: Validated visitor turn
+  App->>App: Pack merchant context and complete source paragraphs within 24k
   App->>DB: Claim request + reserve worst-case spend
   App->>AI: Authorized evidence + history, medium, no retries
   AI-->>App: Structured deltas + usage
-  App-->>UI: Provisional message.delta
+  App->>App: Normalize and check complete cumulative prefixes
+  App-->>UI: Checked provisional message.delta
   App->>App: Resolve references + validate commercial claims
   App->>DB: Persist authoritative answer + settle known usage
   App-->>UI: message.completed + run.completed
-  Note over App,DB: Cancellation or missing usage keeps its reservation; partial answers are not stored
+  Note over App,DB: Known usage is settled; missing usage retains its reservation. Partial answers are not stored.
 ```
 
 Provider credentials exist only in the backend. Fixture is the default; real evaluations require
 current owner authorization, private configuration and one shared conservative budget. Model
 errors do not trigger a substitute model or an automatic generation retry.
+
+Only complete sentence/paragraph prefixes passing the same bounded commercial checks as the
+final answer can stream. A later invalid claim can still replace an earlier checked prefix;
+the client must render the authoritative `message.completed`. Catalog guarantee checks apply
+even when optional Hotmart retrieval is disabled or unavailable. These deterministic checks
+do not establish complete semantic correctness or citation entailment.
+
+Explicit resource page counts are checked against structured catalog metadata. Request packing
+preserves products/resources and merchant policies, trims only model-context history and optional
+documents when needed, and leaves saved conversations unchanged. Citations resolve only to
+evidence actually sent in that generation. The [post-tool report](docs/verification/post-tools-2026-10-13.md)
+preserves the original halted run separately from subsequent fixes and revalidation; completion
+and agent review are distinct from semantic correctness and human acceptance.
 
 ## Quick start (clean checkout, no credentials)
 
@@ -155,7 +173,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 | Architecture and decisions | `docs/architecture.md`, `docs/decisions/` |
 | Security, privacy, retention | `docs/security.md` |
 | Catalog source, sync, freshness | `docs/catalog.md` |
-| Evaluation and live procedure | [Procedures](docs/evaluation.md), [real-model evidence and limits](docs/verification/real-model-2026-10-12.md) |
+| Evaluation and live procedure | [Procedures](docs/evaluation.md), [historical real-model evidence](docs/verification/real-model-2026-10-12.md), [post-tool verification and limits](docs/verification/post-tools-2026-10-13.md) |
 | Optional private telemetry, metrics and traces | `docs/observability/README.md` |
 | Deployment handoff (vps-ops/Coolify) | `docs/deployment-contract.md` |
 | Dependency updates and auto-merge policy | `docs/dependency-updates.md` |

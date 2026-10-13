@@ -348,6 +348,10 @@ _OUTPUT_LANGUAGE_USE = re.compile(
     r'(?:^|[.!?;:,\n]\s*|\b(?:and|y)\s+)\s*(?:please\s+|por favor\s+)?'
     rf'(?:use|usa|utiliza)\s+(?P<language>{_LANGUAGE_NAMES})\b'
 )
+_OUTPUT_LANGUAGE_SWITCH = re.compile(
+    r'(?:^|[.!?;:,\n]\s*|\b(?:and|y|then)\s+)\s*(?:please\s+|por favor\s+)?'
+    rf'switch\s+to\s+(?P<language>{_LANGUAGE_NAMES})\b'
+)
 _NEGATED_REQUEST_PREFIX = re.compile(r"(?:\bno|\bnot|\bnever|\bdon't|\bdo not)\s+(?:\w+\s+){0,4}$")
 _NATIVE_CONVERSATION_LANGUAGE = re.compile(
     r'\b(?:conversemos|conversar|charlemos|charlar|hablemos|continuemos|sigamos|'
@@ -385,7 +389,12 @@ def _requested_reply_language(text: str) -> Detected | None:
     stripped = _URLISH.sub(' ', stripped)
     folded = _fold(stripped).strip()
     requests: list[tuple[int, Detected]] = []
-    for pattern in (_OUTPUT_LANGUAGE_REQUEST, _OUTPUT_LANGUAGE_FIRST, _OUTPUT_LANGUAGE_USE):
+    for pattern in (
+        _OUTPUT_LANGUAGE_REQUEST,
+        _OUTPUT_LANGUAGE_FIRST,
+        _OUTPUT_LANGUAGE_USE,
+        _OUTPUT_LANGUAGE_SWITCH,
+    ):
         for match in pattern.finditer(folded):
             prefix = folded[max(0, match.start() - 60) : match.start()]
             if _NEGATED_REQUEST_PREFIX.search(prefix):
@@ -416,6 +425,7 @@ def spanish_native_language(question: str) -> Language | None:
         _OUTPUT_LANGUAGE_REQUEST,
         _OUTPUT_LANGUAGE_FIRST,
         _OUTPUT_LANGUAGE_USE,
+        _OUTPUT_LANGUAGE_SWITCH,
         _NATIVE_CONVERSATION_LANGUAGE,
         _NATIVE_LANGUAGE_USE,
     ):

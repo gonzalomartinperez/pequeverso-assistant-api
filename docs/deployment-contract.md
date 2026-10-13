@@ -14,14 +14,18 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 | Writable paths | `/data` (volume), `/tmp` (tmpfs) |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
 | Port | `8000/tcp` (HTTP, plain; TLS terminates at the proxy) |
-| Size / resources (measured locally 2026-10-12, fixture mode) | Exact application candidate: 56,671,696 bytes; idle memory 66.17 MiB, cgroup peak 82,812,928 bytes. Idle stop 4.938 s; active stream with blocked collector stop 19.077 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; no VPS capacity claim |
+| Size / resources (measured locally 2026-10-13, fixture mode) | Exact combined candidate: 57,024,366 bytes; idle memory 69.27 MiB, cgroup peak 89,403,392 bytes. Core smoke stop 2.02 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; see separately identified active-stream evidence below. No VPS capacity claim |
 
-Current local acceptance belongs to application commit
-`f2958b6efb2dc6bc099647a86aaa44dac1816fef`, image
-`sha256:48435fc564ff353b9590e9ebed033425d23615815f29a9d69112b88e0b76bf57`.
-See [the current exact-image evidence and OS scan limits](#verified-route-classification-candidate-on-2026-10-12).
-Later documentation/revision metadata changes do not relabel this local digest as a release image.
-Rebuild and smoke the exact commit selected by vps-ops; no image has been published or deployed.
+Current local acceptance belongs to combined application commit
+`cf19c3beac8e51bcb4ed805af7d92a99c42f8ce6`, image
+`sha256:0691367b0a86087d2fc0904f7507e16aa77d8599d6bcd8b953343fc5472cde8d`.
+See [the phased exact-image evidence](verification/post-tools-2026-10-13.md).
+The combined head normally merges reviewed runtime/dependency PR52 and the finite final
+language/citation fix. Later squash integrations or documentation changes do not relabel this
+local image as a main release build. BuildKit is required by the pinned Dockerfile frontend and
+cache mounts; the local acceptance used verified official Buildx 0.38.0 with the existing Docker
+driver. vps-ops selects its compatible build tooling and rebuilds/smokes the exact release commit.
+No image has been published or deployed.
 
 ### Historical acceptance — 2026-10-10 (superseded)
 
@@ -96,7 +100,7 @@ latency percentiles, token usage and spend (confirmed / estimated / pending) to 
 | `MAX_OUTPUT_TOKENS` | `4000` (includes reasoning tokens; tune after the authorized live evaluation) | config |
 | `OPS_READ_TOKEN` | ≥ 32 random chars, shared only with the backoffice container | **secret** |
 | `SERVICE_REVISION` | Set at build time (image `ARG`); not a runtime secret | build |
-| `MONTHLY_BUDGET_USD` / `DAILY_BUDGET_USD` / `BUDGET_SAFETY_MARGIN` | `10.00` / `1.00` / `0.10` (design target; not a billing setting). Also set a hard limit in the OpenAI project | config |
+| `MONTHLY_BUDGET_USD` / `DAILY_BUDGET_USD` / `BUDGET_SAFETY_MARGIN` | `10.00` / `1.00` / `0.10` (design target; not a billing setting). Verify actual project billing controls separately; budget alerts are not assumed hard caps | config |
 | `ALLOWED_ORIGINS` | `["https://pequeverso.com"]`: the storefront that hosts the native assistant (exact origin; add `https://www.pequeverso.com` only if the store serves pages there, which today it redirects to the apex) | config |
 | `SESSION_COOKIE_SECURE` | `true` (required by production validation) | config |
 | `CLIENT_HASH_KEY` | ≥ 32 random chars (HMAC key for pseudonymous rate limiting) | **secret** |
@@ -331,7 +335,7 @@ Grafana, Prometheus, private scrape credentials and deployment. Observability is
 never route `/internal/*` publicly. A telemetry-off API remains fully functional. Provider
 availability is unknown unless separately verified: no paid probes or manufactured uptime.
 
-The new candidate uses stable Python3.14.8, from official linux/amd64
+The new candidate uses stable Python 3.14.8, from official linux/amd64
 `python:3.14.8-slim-trixie@sha256:cfe2e24a75302a15934d37c2d86412893c0aa934dc3a97cbb439d04c01890ca9`
 verified2026-10-12, with uv0.13.0 pinned in builder and CI. Host setup pins3.14.8;
 strict mypy targets3.14. Ruff retains the existing3.13-compatible syntax policy, which runs
@@ -370,7 +374,7 @@ These shared-WSL numbers do not establish VPS capacity or live-model container l
 
 Optional actual local OTLP capture validated safe attributes and authenticated private W3C
 parenting. With the collector blocked and a fixture stream active, SIGTERM stopped17.244s,
-exit0/no OOM. Read-only inspection before restart found completed1/canceled1 and
+exit 0/no OOM. Read-only inspection before restart found completed1/canceled1 and
 settled1/unreported1, retaining uncertain spend; SQLite quick_check passed. After restart history
 had three messages/one assistant and no partial answer. The outgoing SSE ended EOF without a
 terminal event during process drain; client recovery must tolerate that. Keep current40s grace.
@@ -392,7 +396,7 @@ results and their separate cost/semantic limits are in
 [the evaluation record](verification/real-model-2026-10-12.md). They do not authorize activation.
 
 
-## Verified route-classification candidate on 2026-10-12
+## Historical route-classification candidate on 2026-10-12
 
 Source `f2958b6efb2dc6bc099647a86aaa44dac1816fef`; exact local image
 `sha256:48435fc564ff353b9590e9ebed033425d23615815f29a9d69112b88e0b76bf57`,
@@ -427,8 +431,71 @@ components. Scanner results remain visible and do not constitute production risk
 Before deployment, rebuild and smoke the exact approved release commit, review its current
 security inventory and complete the vps-ops activation gates.
 
+## Historical commercial-guard candidate on 2026-10-13
+
+Source `6afb5f380303847b26cabfcf424e07ddc344e177`, exact local image
+`sha256:76b5bcd440d43628276bb12efd1358a9ede4c7a2276cf38c394c8d402839141b`,
+56,831,248 bytes, Python 3.14.8, UID 65532:65532. The image was not published or deployed.
+[PR49](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/49) introduced
+checked cumulative streaming prefixes and terminal-tail cancellation/deadline/known-usage
+regressions. [PR50](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/50)
+applies the same catalog guarantee recognizer with optional web evidence enabled, disabled
+or unavailable, including positive reminder probes. Neither changes public v1 revision1.4.
+
+The shipped container smoke passed non-root/read-only, live/readiness, session/Origin/CSRF,
+HTTP/SSE, private operations authorization, online backup/restore with two retained messages
+and charged ledger, four concurrent fixture streams and graceful stop. No OOM occurred.
+Cgroup peak was 83,767,296 bytes under 256 MiB; core stop took 1.954 s. These fixture measurements
+do not establish real-provider load, proxy behavior, VPS capacity or a production SLA.
+
+The separate active-SSE/blocked-collector probe belongs to source
+`68c97bb2fe2937f43c26e4c830310c4919fb73cb`, image
+`sha256:5a8526adaf0cf2cbda6213a098a2dc5576bc2cb0dea280ddf72e1419644ce8e4`.
+With a stalled local collector, bounded export failures did not prevent live/readiness HTTP 200.
+Cancel returned 202 and persisted no partial assistant; a second active stream stopped with
+exit 0, no OOM, in 7.508 s. During shutdown readiness was observed as 200 then unreachable,
+not 503. PR50 changes merchant-policy checks, not that lifecycle code; this earlier probe is
+not relabeled as a test of the later digest. Keep at least 40 s stop grace and test the exact
+selected release image through the actual VPS proxy before activation.
+
+An offline Trivy 0.75.0 scan on 2026-10-13 used vulnerability DB updated 2026-10-12T19:08:28Z:
+164 OS package rows, 71 unique CVEs (44 HIGH, 58 MEDIUM, 61 LOW, 1 UNKNOWN), no critical or
+Python findings, and 126 CycloneDX components. No finding had a published fixed version in
+that database. This inventory is not risk acceptance or a vulnerability-free guarantee;
+vps-ops must review current findings and the separately selected PostgreSQL image before
+deployment. Application scans do not certify the host, shared services or production security.
+
+
+## Verified final-corrections candidate on 2026-10-13
+
+[PR51](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/51) integrates explicit
+page-count validation, exact request packing, effective-source citation filtering, local recognition
+of confirmed French reply commands and processing-window safeguards. Public schemas and v1
+revision1.4 remain unchanged. The [post-tool evidence](verification/post-tools-2026-10-13.md)
+preserves the original halted evaluation separately from fixes and subsequent phases.
+
+Source `3f230f46524011fe34a3fe14715bb342d75c2d32`; exact local image
+`sha256:e783762c446e3bafc0dd5bff0608725786a3da6587413bb730b3ea5642814a8b`,
+56,834,339 bytes, Python 3.14.8, UID 65532:65532. Core smoke passed non-root/read-only,
+health/readiness, session/Origin/CSRF, HTTP/SSE, private operations authorization, online
+backup/restore with two retained messages and charged ledger, four concurrent fixture streams
+and graceful stop. Peak 84,242,432 bytes under 256 MiB; stop 1.619 s; idle 66.55 MiB; no OOM.
+These shared-WSL fixtures do not establish actual provider load, VPS headroom or proxy behavior.
+The earlier active-stream/blocked-collector measurement remains tied to 68c97bb/5a8526a;
+keep at least 40 s grace and verify the exact selected deployment image under the real proxy.
+
+An exact-image offline Trivy 0.75.0 scan retained 164 OS package rows / 71 unique CVEs, 44 HIGH,
+0 critical/Python findings and 126 SBOM components, using the DB updated 2026-10-12T19:08:28Z.
+No published fixed versions were reported in that database. Findings remain visible, without
+production risk acceptance; separately selected PostgreSQL/monitoring/host services need their
+own security review. The image is local only, not published or deployed.
+
+One initial build used an incorrectly transcribed SERVICE_REVISION and was discarded as
+acceptance evidence before any smoke. The selected image above was rebuilt with the verified
+full Git SHA; its inspected SERVICE_REVISION matches that SHA exactly. No earlier digest is
+relabeled as this build. vps-ops must rebuild and smoke its exact approved release commit.
 ## Shared runtime baseline
 
-See [runtime-baseline.md](runtime-baseline.md) for the2026-10-13 shared cohort and image
+See [runtime-baseline.md](runtime-baseline.md) for the 2026-10-13 shared cohort and image
 acceptance. Actual committed locks and Dockerfiles supersede historical version/size samples;
 no production publication, deployment or live OAuth/provider check is implied.
