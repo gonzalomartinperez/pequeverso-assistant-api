@@ -28,10 +28,14 @@ CAP_MICRO = 1000000
 
 
 class Envelope:
-    def __init__(self, path: Path, cap_micro: int = CAP_MICRO) -> None:
+    def __init__(self, path: Path, cap_micro: int = CAP_MICRO, *, max_attempts: int | None = None) -> None:
         if not 0 < cap_micro <= CAP_MICRO:
             raise ValueError('evaluation cap must be positive and at most 1 USD')
+        attempt_limit = MAX_ATTEMPTS if max_attempts is None else max_attempts
+        if type(attempt_limit) is not int or not 1 <= attempt_limit <= 650:
+            raise ValueError('evaluation attempt limit must be an integer between 1 and 650')
         self.cap_micro = cap_micro
+        self._max_attempts = attempt_limit
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.path = path
         with self.connect() as db:
@@ -47,7 +51,25 @@ class Envelope:
                 raise ValueError('existing evaluation cap cannot be changed')
             if saved is None:
                 db.execute('INSERT INTO limits (cap) VALUES (?)', (cap_micro,))
+            # Independent metadata leaves the legacy ledger and monetary cap untouched.
+            # Adding it to an old ledger requires an explicit owner-authorized procedure;
+            # configuring this helper never grants permission to read keys or make calls.
+            db.execute(
+                'CREATE TABLE IF NOT EXISTS attempt_limits '
+                '(id INTEGER PRIMARY KEY CHECK (id=1), max_attempts INTEGER NOT NULL '
+                "CHECK (typeof(max_attempts)='integer' AND max_attempts BETWEEN 1 AND 650))"
+            )
+            saved_attempt_limit = db.execute('SELECT max_attempts FROM attempt_limits WHERE id=1').fetchone()
+            if saved_attempt_limit is not None and saved_attempt_limit[0] != attempt_limit:
+                raise ValueError('existing evaluation attempt limit cannot be changed')
+            if saved_attempt_limit is None:
+                db.execute('INSERT INTO attempt_limits (id,max_attempts) VALUES (1,?)', (attempt_limit,))
         path.chmod(0o600)
+
+    @property
+    def max_attempts(self) -> int:
+        """The persisted, immutable attempt ceiling; independent of the monetary cap."""
+        return self._max_attempts
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
@@ -109,7 +131,7 @@ class Envelope:
             db.execute('BEGIN IMMEDIATE')
             stopped = db.execute('SELECT reason FROM status LIMIT 1').fetchone()
             count, used = db.execute('SELECT count(*), coalesce(sum(reserved),0) FROM attempts').fetchone()
-            if not stopped and count < MAX_ATTEMPTS and used + ATTEMPT_MICRO <= self.cap_micro:
+            if not stopped and count < self.max_attempts and used + ATTEMPT_MICRO <= self.cap_micro:
                 cursor = db.execute('INSERT INTO attempts (reserved) VALUES (?)', (ATTEMPT_MICRO,))
                 attempt = cursor.lastrowid
             elif not stopped:
