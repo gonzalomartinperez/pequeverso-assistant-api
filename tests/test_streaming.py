@@ -154,7 +154,12 @@ def test_cancel_endpoint_stops_a_silent_provider_with_heartbeats(tmp_path: Path)
 
 
 def test_client_disconnect_cancels_upstream_and_stores_nothing_partial(tmp_path: Path) -> None:
-    provider = ScriptedProvider(output=GOOD, delay=0.05, chunk=2)
+    # Disconnect at a checked first sentence while generation is still in progress.
+    provider = ScriptedProvider(
+        output=answer_json('Primera frase sobre el kit. Otra frase que todavía se está generando.'),
+        delay=0.05,
+        chunk=2,
+    )
     with (
         live_server(tmp_path, provider, max_concurrent_runs=1) as url,
         httpx.Client(base_url=url, timeout=10) as http,

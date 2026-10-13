@@ -344,3 +344,33 @@ def test_prior_history_mutation_is_detected_even_when_final_message_matches(tmp_
     assert result['history_mismatches'] == 1
     assert not result['cases'][-1]['prior_history_preserved']
     assert not result['cases'][-1]['history_matches']
+
+
+@pytest.mark.parametrize('stream_delta', [False, True])
+def test_first_visible_content_measures_final_only_without_reinterpreting_delta_metric(
+    monkeypatch, stream_delta
+):
+    from types import SimpleNamespace
+
+    import httpx
+
+    from scripts import evaluate_end_to_end
+
+    events = []
+    if stream_delta:
+        events.append({'type': 'message.delta', 'text': 'Contenido visible.'})
+    events.extend(
+        [
+            {'type': 'message.completed', 'message': {'content': 'Contenido visible.'}},
+            {'type': 'run.completed'},
+        ]
+    )
+    body = ''.join('data: ' + json.dumps(e) + '\n\n' for e in events)
+    ticks = iter([10.0, 12.0, 15.0])
+    monkeypatch.setattr(evaluate_end_to_end, 'time', SimpleNamespace(monotonic=lambda: next(ticks)))
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, text=body))
+    with httpx.Client(base_url='http://fixture.invalid', transport=transport) as http:
+        result = evaluate_end_to_end.ask(http, 'dummy-csrf', '¿Qué incluye?', 'es', 'dummy-key')
+    assert result['first_content_seconds'] == (2.0 if stream_delta else None)
+    assert result['first_visible_content_seconds'] == 2.0
+    assert result['duration_seconds'] == 5.0
