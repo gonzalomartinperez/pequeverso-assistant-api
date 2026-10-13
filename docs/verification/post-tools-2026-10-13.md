@@ -64,7 +64,7 @@ are job durations, not a claimed sum or a controlled performance comparison.
 The 74 queries span 54 cases: 55 originally unattempted requests, the failed follow-up,
 two context reconstruction turns, four affected revalidations and 12 new development variants.
 They are not 74 independent cases or 19 independent new variants. The original initial-phase
-commercial defects included comparison-02 claiming Juega y Aprende has 40 pages rather than
+commercial defects included comparison-02 claiming Juega con Sonidos y Sílabas has 40 pages rather than
 its published 50, languages-05 unnecessarily dispatching an explicit French-language request,
 and actions-08 converting a published maximum processing time into a mandatory minimum delay.
 These comparison, language and delay cases, and the follow-up HTTP422, were corrected in the
