@@ -95,6 +95,18 @@ Private complete answers, prompts and keys are not published. Local reviewed rec
 per-case terminal, provider/local use, latency, selected evidence, citations, history/replay and
 usage metadata; the public record publishes only reviewed non-personal summaries.
 
+Initial-source local HTTP timing remains historical, not a speed comparison with corrected code:
+
+| Receipt metric | Samples | Median | Nearest-rank p95 |
+| --- | ---: | ---: | ---: |
+| First received checked delta | 194 | 3.248 s | 5.881 s |
+| First visible delta or authoritative final | 202 | 3.202 s | 5.692 s |
+| Total request duration, including the pre-provider failure | 203 | 3.989 s | 7.187 s |
+
+These shared-WSL client measurements are neither browser paint nor provider-only timing or a
+production SLA. The initial phase recorded 921,990 input tokens and 48,191 output tokens;
+27,618 reasoning tokens are included in provider usage, not added as a separate generation.
+
 ## Later corrections and exact combined validation
 
 [PR51](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/51) adds bounded explicit resource page-count checks, exact-budget context packing and the
