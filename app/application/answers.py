@@ -252,6 +252,7 @@ def finalize(
     rules: AnswerRules,
     language: Language = Language.ES,
     web_evidence: tuple[WebEvidence, ...] = (),
+    catalog_source_ids: frozenset[str] | None = None,
 ) -> FinalizedAnswer:
     catalog = active.catalog
     checked = check_content(draft.answer, catalog, rules, web_evidence)
@@ -290,7 +291,7 @@ def finalize(
                 sources.setdefault(
                     external.id, SourceRef(external.id, external.source.title, external.source.url)
                 )
-        elif document is None:
+        elif document is None or (catalog_source_ids is not None and source_id not in catalog_source_ids):
             dropped += 1
         elif len(sources) < MAX_SOURCES:
             sources.setdefault(document.id, SourceRef(document.id, document.title, document.url))
