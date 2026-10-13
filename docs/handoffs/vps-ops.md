@@ -31,8 +31,8 @@ cross-origin from the browser.
 
 1. **Images.** Not published. Each repository builds from `Dockerfile` at a reviewed commit;
    CI builds the exact image and smoke-tests it (API: `scripts/smoke_container.sh`; backoffice:
-   `scripts/smoke-image.sh`). Both are `linux/amd64`, non-root (API uid 65532; backoffice uid
-   1000), read-only root with tmpfs, `--cap-drop ALL`, `no-new-privileges`. Ports: API
+   `scripts/smoke-image.sh`). Both are `linux/amd64`, non-root (API and current distroless backoffice UID/GID
+   65532), read-only root with tmpfs, `--cap-drop ALL`, `no-new-privileges`. Ports: API
    `8000/tcp`, backoffice `3000/tcp`. Latest API local fixture acceptance (2026-10-13):
    application `cf19c3b`, image `0691367`, 57,024,366 bytes, idle 69.27 MiB, cgroup peak 89,403,392 bytes
    and core shutdown 2.02 s. BuildKit is required; vps-ops selects compatible build tooling. The separately identified checked-stream candidate 68c97bb/5a8526a
