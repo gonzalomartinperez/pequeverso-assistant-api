@@ -39,7 +39,7 @@ This section defines scope, not a completed real-model result.
 The fixture provider receives the same `store_data` and `visitor_turn` payloads as the model. It
 answers with the best lexical match, streamed as schema-valid JSON. It exercises retrieval,
 streaming, validation and persistence. It does not demonstrate understanding, recommendations
-or tone. The dated real-model socket evaluation covers the current prompt and native Spanish policy;
+or tone. The 2026-10-12 real-model socket evaluation covers its frozen prompt/source and native Spanish policy;
 it does not turn fixture quality scores into model evidence or certify every future answer.
 
 ## Bounded live evaluation (separate corpus phases not executed)
@@ -236,11 +236,16 @@ uv run python scripts/evaluate_end_to_end.py --live \
 The environment file must be a regular, non-symlink mode600 file outside the repository,
 with `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-6-luna` and `OPENAI_REASONING_EFFORT=medium`.
 The shared budget directory must be mode700; existing budget files must be mode600.
-The unchanged `Envelope` and `BoundedProvider` enforce the shared immutable USD1 envelope,
-400 attempts, USD0.011 reservations, conservative usage settlement, unknown-cost retention,
-Standard tier, no SDK/adapter retry, no proxy trust and no fallback. Reuse the same budget
-state across baseline and any later revalidation; never reset a stopped ledger or enlarge
-its cap. The USD10 project monthly authorization is separate from this stricter envelope.
+`Envelope` and `BoundedProvider` enforce the shared immutable USD1 envelope, USD0.011
+reservations, conservative usage settlement, unknown-cost retention, Standard tier, no
+SDK/adapter retry, no proxy trust and no fallback. The default remains 400 dispatched attempts.
+The socket CLI accepts an explicit `--max-attempts` integer up to 650; it must match the
+persisted ledger metadata on reopening and does not increase the USD cap. On 2026-10-13 the
+owner separately authorized 650 accumulated attempts for the post-tool evaluation; the audited
+migration retained the original 282 attempts, USD0.376257 conservative accounting and zero
+unknown-cost attempts. Reuse that same ledger across phases, with the explicitly authorized
+cap; never reset counts or costs, create a bypass ledger or expand authorization automatically.
+The USD10 project monthly authorization is separate from this stricter envelope.
 
 All generations still enter through real loopback HTTP/SSE with session, Origin, CSRF,
 idempotency, grounding, persistence and history checks. Provider overrides are isolated

@@ -78,8 +78,8 @@ Each accepted run retains the exact immutable evidence tuple used to prepare the
 a model-authored URL. Catalog sources and external sources share the existing maximum 3 slots.
 Source titles and URLs come from fixed server metadata; invented/unretrieved ids are dropped.
 
-Existing price/action/outcome/URL guards apply. When external evidence was included, an
-additional bounded guard rejects numeric guarantee windows different from the merchant's
+Existing price/action/outcome/URL guards apply. Regardless of optional external evidence
+availability, the bounded merchant-policy guard rejects numeric guarantee windows different from the merchant's
 published buyer window and positive claims of individual refund eligibility/guaranteed approval.
 These recognizers address specific failure modes, **not complete semantic entailment**. An
 agent/human must still review source support, uncertainty, usefulness and every commercial

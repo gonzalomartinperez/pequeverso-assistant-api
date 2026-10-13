@@ -14,12 +14,14 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 | Writable paths | `/data` (volume), `/tmp` (tmpfs) |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
 | Port | `8000/tcp` (HTTP, plain; TLS terminates at the proxy) |
-| Size / resources (measured locally 2026-10-12, fixture mode) | Exact application candidate: 56,671,696 bytes; idle memory 66.17 MiB, cgroup peak 82,812,928 bytes. Idle stop 4.938 s; active stream with blocked collector stop 19.077 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; no VPS capacity claim |
+| Size / resources (measured locally 2026-10-13, fixture mode) | Exact guarantee-guard candidate: 56,831,248 bytes; idle memory 66.41 MiB, cgroup peak 83,767,296 bytes. Core smoke stop 1.954 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; see the separately identified active-stream evidence below. No VPS capacity claim |
 
 Current local acceptance belongs to application commit
-`f2958b6efb2dc6bc099647a86aaa44dac1816fef`, image
-`sha256:48435fc564ff353b9590e9ebed033425d23615815f29a9d69112b88e0b76bf57`.
-See [the current exact-image evidence and OS scan limits](#verified-route-classification-candidate-on-2026-10-12).
+`6afb5f380303847b26cabfcf424e07ddc344e177`, image
+`sha256:76b5bcd440d43628276bb12efd1358a9ede4c7a2276cf38c394c8d402839141b`.
+See [the exact-image evidence and OS scan limits](#verified-commercial-guard-candidate-on-2026-10-13).
+Its protected squash integration is `bfb3588d5cf6313eedd675eb1e6db75398108ce5`;
+the image was built from the reviewed feature commit, not that integration or a future main release.
 Later documentation/revision metadata changes do not relabel this local digest as a release image.
 Rebuild and smoke the exact commit selected by vps-ops; no image has been published or deployed.
 
@@ -96,7 +98,7 @@ latency percentiles, token usage and spend (confirmed / estimated / pending) to 
 | `MAX_OUTPUT_TOKENS` | `4000` (includes reasoning tokens; tune after the authorized live evaluation) | config |
 | `OPS_READ_TOKEN` | ≥ 32 random chars, shared only with the backoffice container | **secret** |
 | `SERVICE_REVISION` | Set at build time (image `ARG`); not a runtime secret | build |
-| `MONTHLY_BUDGET_USD` / `DAILY_BUDGET_USD` / `BUDGET_SAFETY_MARGIN` | `10.00` / `1.00` / `0.10` (design target; not a billing setting). Also set a hard limit in the OpenAI project | config |
+| `MONTHLY_BUDGET_USD` / `DAILY_BUDGET_USD` / `BUDGET_SAFETY_MARGIN` | `10.00` / `1.00` / `0.10` (design target; not a billing setting). Verify actual project billing controls separately; budget alerts are not assumed hard caps | config |
 | `ALLOWED_ORIGINS` | `["https://pequeverso.com"]`: the storefront that hosts the native assistant (exact origin; add `https://www.pequeverso.com` only if the store serves pages there, which today it redirects to the apex) | config |
 | `SESSION_COOKIE_SECURE` | `true` (required by production validation) | config |
 | `CLIENT_HASH_KEY` | ≥ 32 random chars (HMAC key for pseudonymous rate limiting) | **secret** |
@@ -370,7 +372,7 @@ These shared-WSL numbers do not establish VPS capacity or live-model container l
 
 Optional actual local OTLP capture validated safe attributes and authenticated private W3C
 parenting. With the collector blocked and a fixture stream active, SIGTERM stopped17.244s,
-exit0/no OOM. Read-only inspection before restart found completed1/canceled1 and
+exit 0/no OOM. Read-only inspection before restart found completed1/canceled1 and
 settled1/unreported1, retaining uncertain spend; SQLite quick_check passed. After restart history
 had three messages/one assistant and no partial answer. The outgoing SSE ended EOF without a
 terminal event during process drain; client recovery must tolerate that. Keep current40s grace.
@@ -392,7 +394,7 @@ results and their separate cost/semantic limits are in
 [the evaluation record](verification/real-model-2026-10-12.md). They do not authorize activation.
 
 
-## Verified route-classification candidate on 2026-10-12
+## Historical route-classification candidate on 2026-10-12
 
 Source `f2958b6efb2dc6bc099647a86aaa44dac1816fef`; exact local image
 `sha256:48435fc564ff353b9590e9ebed033425d23615815f29a9d69112b88e0b76bf57`,
@@ -426,3 +428,37 @@ findings and no published fixed versions in that database. The CycloneDX SBOM co
 components. Scanner results remain visible and do not constitute production risk acceptance.
 Before deployment, rebuild and smoke the exact approved release commit, review its current
 security inventory and complete the vps-ops activation gates.
+
+## Verified commercial-guard candidate on 2026-10-13
+
+Source `6afb5f380303847b26cabfcf424e07ddc344e177`, exact local image
+`sha256:76b5bcd440d43628276bb12efd1358a9ede4c7a2276cf38c394c8d402839141b`,
+56,831,248 bytes, Python 3.14.8, UID 65532:65532. The image was not published or deployed.
+[PR49](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/49) introduced
+checked cumulative streaming prefixes and terminal-tail cancellation/deadline/known-usage
+regressions. [PR50](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/50)
+applies the same catalog guarantee recognizer with optional web evidence enabled, disabled
+or unavailable, including positive reminder probes. Neither changes public v1 revision1.4.
+
+The shipped container smoke passed non-root/read-only, live/readiness, session/Origin/CSRF,
+HTTP/SSE, private operations authorization, online backup/restore with two retained messages
+and charged ledger, four concurrent fixture streams and graceful stop. No OOM occurred.
+Cgroup peak was 83,767,296 bytes under 256 MiB; core stop took 1.954 s. These fixture measurements
+do not establish real-provider load, proxy behavior, VPS capacity or a production SLA.
+
+The separate active-SSE/blocked-collector probe belongs to source
+`68c97bb2fe2937f43c26e4c830310c4919fb73cb`, image
+`sha256:5a8526adaf0cf2cbda6213a098a2dc5576bc2cb0dea280ddf72e1419644ce8e4`.
+With a stalled local collector, bounded export failures did not prevent live/readiness HTTP 200.
+Cancel returned 202 and persisted no partial assistant; a second active stream stopped with
+exit 0, no OOM, in 7.508 s. During shutdown readiness was observed as 200 then unreachable,
+not 503. PR50 changes merchant-policy checks, not that lifecycle code; this earlier probe is
+not relabeled as a test of the later digest. Keep at least 40 s stop grace and test the exact
+selected release image through the actual VPS proxy before activation.
+
+An offline Trivy 0.75.0 scan on 2026-10-13 used vulnerability DB updated 2026-10-12T19:08:28Z:
+164 OS package rows, 71 unique CVEs (44 HIGH, 58 MEDIUM, 61 LOW, 1 UNKNOWN), no critical or
+Python findings, and 126 CycloneDX components. No finding had a published fixed version in
+that database. This inventory is not risk acceptance or a vulnerability-free guarantee;
+vps-ops must review current findings and the separately selected PostgreSQL image before
+deployment. Application scans do not certify the host, shared services or production security.

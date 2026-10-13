@@ -108,16 +108,23 @@ sequenceDiagram
   App->>DB: Claim request + reserve worst-case spend
   App->>AI: Authorized evidence + history, medium, no retries
   AI-->>App: Structured deltas + usage
-  App-->>UI: Provisional message.delta
+  App->>App: Normalize and check complete cumulative prefixes
+  App-->>UI: Checked provisional message.delta
   App->>App: Resolve references + validate commercial claims
   App->>DB: Persist authoritative answer + settle known usage
   App-->>UI: message.completed + run.completed
-  Note over App,DB: Cancellation or missing usage keeps its reservation; partial answers are not stored
+  Note over App,DB: Known usage is settled; missing usage retains its reservation. Partial answers are not stored.
 ```
 
 Provider credentials exist only in the backend. Fixture is the default; real evaluations require
 current owner authorization, private configuration and one shared conservative budget. Model
 errors do not trigger a substitute model or an automatic generation retry.
+
+Only complete sentence/paragraph prefixes passing the same bounded commercial checks as the
+final answer can stream. A later invalid claim can still replace an earlier checked prefix;
+the client must render the authoritative `message.completed`. Catalog guarantee checks apply
+even when optional Hotmart retrieval is disabled or unavailable. These deterministic checks
+do not establish complete semantic correctness or citation entailment.
 
 ## Quick start (clean checkout, no credentials)
 
@@ -155,7 +162,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 | Architecture and decisions | `docs/architecture.md`, `docs/decisions/` |
 | Security, privacy, retention | `docs/security.md` |
 | Catalog source, sync, freshness | `docs/catalog.md` |
-| Evaluation and live procedure | [Procedures](docs/evaluation.md), [real-model evidence and limits](docs/verification/real-model-2026-10-12.md) |
+| Evaluation and live procedure | [Procedures](docs/evaluation.md), [historical real-model evidence](docs/verification/real-model-2026-10-12.md), [post-tool verification and limits](docs/verification/post-tools-2026-10-13.md) |
 | Optional private telemetry, metrics and traces | `docs/observability/README.md` |
 | Deployment handoff (vps-ops/Coolify) | `docs/deployment-contract.md` |
 | Dependency updates and auto-merge policy | `docs/dependency-updates.md` |

@@ -33,9 +33,11 @@ cross-origin from the browser.
    CI builds the exact image and smoke-tests it (API: `scripts/smoke_container.sh`; backoffice:
    `scripts/smoke-image.sh`). Both are `linux/amd64`, non-root (API uid 65532; backoffice uid
    1000), read-only root with tmpfs, `--cap-drop ALL`, `no-new-privileges`. Ports: API
-   `8000/tcp`, backoffice `3000/tcp`. Latest API local fixture acceptance (2026-10-12):
-   application `f2958b6`, image `48435fc`, 56,671,696 bytes, idle 66.17 MiB and active-stream shutdown
-   with a blocked collector took 19.077 s; use at least 40 s stop grace. Exact digests and limits are in
+   `8000/tcp`, backoffice `3000/tcp`. Latest API local fixture acceptance (2026-10-13):
+   application `6afb5f3`, image `76b5bcd`, 56,831,248 bytes, idle 66.41 MiB, cgroup peak 83,767,296 bytes
+   and core shutdown 1.954 s. The separately identified checked-stream candidate 68c97bb/5a8526a
+   stopped an active stream with a blocked collector in 7.508 s; keep at least 40 s grace. These
+   feature-image digests are not relabeled as later integration/main builds. Exact evidence is in
    [the deployment contract](../deployment-contract.md). Historical backoffice measurements
    were 64–77 MiB idle and about 97 MB image metadata; its new PostgreSQL 18.6/telemetry candidate
    requires fresh exact-image acceptance from that repository before selection.
