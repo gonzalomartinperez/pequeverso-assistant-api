@@ -45,7 +45,7 @@ def _entities(catalog: Catalog) -> tuple[_Entity, ...]:
                         ),
                     )
                 )
-        aliases = (_normalize(product.name), _normalize(product.id))
+        aliases: tuple[str, ...] = (_normalize(product.name), _normalize(product.id))
         if len(catalog.products) == 1:
             aliases += ('kit',)
         items.append(_Entity(product.id, product.page_count, True, aliases))
