@@ -14,13 +14,13 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 | Writable paths | `/data` (volume), `/tmp` (tmpfs) |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
 | Port | `8000/tcp` (HTTP, plain; TLS terminates at the proxy) |
-| Size / resources (measured locally 2026-10-13, fixture mode) | Exact guarantee-guard candidate: 56,831,248 bytes; idle memory 66.41 MiB, cgroup peak 83,767,296 bytes. Core smoke stop 1.954 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; see the separately identified active-stream evidence below. No VPS capacity claim |
+| Size / resources (measured locally 2026-10-13, fixture mode) | Exact final-corrections candidate: 56,834,339 bytes; idle memory 66.55 MiB, cgroup peak 84,242,432 bytes. Core smoke stop 1.619 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; see separately identified active-stream evidence below. No VPS capacity claim |
 
 Current local acceptance belongs to application commit
-`6afb5f380303847b26cabfcf424e07ddc344e177`, image
-`sha256:76b5bcd440d43628276bb12efd1358a9ede4c7a2276cf38c394c8d402839141b`.
-See [the exact-image evidence and OS scan limits](#verified-commercial-guard-candidate-on-2026-10-13).
-Its protected squash integration is `bfb3588d5cf6313eedd675eb1e6db75398108ce5`;
+`3f230f46524011fe34a3fe14715bb342d75c2d32`, image
+`sha256:e783762c446e3bafc0dd5bff0608725786a3da6587413bb730b3ea5642814a8b`.
+See [the final exact-image evidence and OS scan limits](#verified-final-corrections-candidate-on-2026-10-13).
+Its protected squash integration is `110535fcdca009df4b63be4cd30eacfde20d8a4c`;
 the image was built from the reviewed feature commit, not that integration or a future main release.
 Later documentation/revision metadata changes do not relabel this local digest as a release image.
 Rebuild and smoke the exact commit selected by vps-ops; no image has been published or deployed.
@@ -333,7 +333,7 @@ Grafana, Prometheus, private scrape credentials and deployment. Observability is
 never route `/internal/*` publicly. A telemetry-off API remains fully functional. Provider
 availability is unknown unless separately verified: no paid probes or manufactured uptime.
 
-The new candidate uses stable Python3.14.8, from official linux/amd64
+The new candidate uses stable Python 3.14.8, from official linux/amd64
 `python:3.14.8-slim-trixie@sha256:cfe2e24a75302a15934d37c2d86412893c0aa934dc3a97cbb439d04c01890ca9`
 verified2026-10-12, with uv0.13.0 pinned in builder and CI. Host setup pins3.14.8;
 strict mypy targets3.14. Ruff retains the existing3.13-compatible syntax policy, which runs
@@ -429,7 +429,7 @@ components. Scanner results remain visible and do not constitute production risk
 Before deployment, rebuild and smoke the exact approved release commit, review its current
 security inventory and complete the vps-ops activation gates.
 
-## Verified commercial-guard candidate on 2026-10-13
+## Historical commercial-guard candidate on 2026-10-13
 
 Source `6afb5f380303847b26cabfcf424e07ddc344e177`, exact local image
 `sha256:76b5bcd440d43628276bb12efd1358a9ede4c7a2276cf38c394c8d402839141b`,
@@ -462,3 +462,33 @@ Python findings, and 126 CycloneDX components. No finding had a published fixed 
 that database. This inventory is not risk acceptance or a vulnerability-free guarantee;
 vps-ops must review current findings and the separately selected PostgreSQL image before
 deployment. Application scans do not certify the host, shared services or production security.
+
+
+## Verified final-corrections candidate on 2026-10-13
+
+[PR51](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/51) integrates explicit
+page-count validation, exact request packing, effective-source citation filtering, local recognition
+of confirmed French reply commands and processing-window safeguards. Public schemas and v1
+revision1.4 remain unchanged. The [post-tool evidence](verification/post-tools-2026-10-13.md)
+preserves the original halted evaluation separately from fixes and subsequent phases.
+
+Source `3f230f46524011fe34a3fe14715bb342d75c2d32`; exact local image
+`sha256:e783762c446e3bafc0dd5bff0608725786a3da6587413bb730b3ea5642814a8b`,
+56,834,339 bytes, Python 3.14.8, UID 65532:65532. Core smoke passed non-root/read-only,
+health/readiness, session/Origin/CSRF, HTTP/SSE, private operations authorization, online
+backup/restore with two retained messages and charged ledger, four concurrent fixture streams
+and graceful stop. Peak 84,242,432 bytes under 256 MiB; stop 1.619 s; idle 66.55 MiB; no OOM.
+These shared-WSL fixtures do not establish actual provider load, VPS headroom or proxy behavior.
+The earlier active-stream/blocked-collector measurement remains tied to 68c97bb/5a8526a;
+keep at least 40 s grace and verify the exact selected deployment image under the real proxy.
+
+An exact-image offline Trivy 0.75.0 scan retained 164 OS package rows / 71 unique CVEs, 44 HIGH,
+0 critical/Python findings and 126 SBOM components, using the DB updated 2026-10-12T19:08:28Z.
+No published fixed versions were reported in that database. Findings remain visible, without
+production risk acceptance; separately selected PostgreSQL/monitoring/host services need their
+own security review. The image is local only, not published or deployed.
+
+One initial build used an incorrectly transcribed SERVICE_REVISION and was discarded as
+acceptance evidence before any smoke. The selected image above was rebuilt with the verified
+full Git SHA; its inspected SERVICE_REVISION matches that SHA exactly. No earlier digest is
+relabeled as this build. vps-ops must rebuild and smoke its exact approved release commit.

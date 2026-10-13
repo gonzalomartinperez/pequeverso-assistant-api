@@ -9,14 +9,15 @@ remains disabled. No image is published or deployed by these checks.
 
 The protected integration of [PR50](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/50)
 is `bfb3588d5cf6313eedd675eb1e6db75398108ce5`. It includes optional bounded Hotmart evidence,
-validated streaming prefixes and the merchant guarantee correction. The final fixture/image
-candidate is its reviewed feature commit `6afb5f380303847b26cabfcf424e07ddc344e177`.
+validated streaming prefixes and the merchant guarantee correction. Its first reviewed fixture/image
+candidate was feature commit `6afb5f380303847b26cabfcf424e07ddc344e177`; subsequent candidates
+are identified separately below.
 The original [303-query evidence](real-model-2026-10-12.md) predates this capability and retains
 its original code, catalog, answers and costs; it cannot validate the later tools.
 
 Catalog SHA256 `38b6fab76cb72f41a8284fcf51a11b716ddb82f87d72b0006beae84896234fe7` was
 exported from storefront main `18b68692867ddd379a3e30130a473dcb7e8a355b`, generated at
-2026-10-13T05:09:16+00:00. It contains one core product, nine resources,23 documents and six links.
+2026-10-13T05:09:16+00:00. It contains one core product, nine resources, 23 documents and six links.
 Commercial fields are identical to the preceding kit snapshot; only provenance and verification
 time changed. Git provenance is not checkout verification or live stock.
 
@@ -28,8 +29,9 @@ require a separate authorized increment. See [catalog coverage](../catalog.md#cu
 The frozen post-tool development matrix has 258 queries in 238 cases. Questions and expected
 outcomes did not enter the public catalog or retrieval cache. Its metadata-only catalog refresh
 preserves the original parent manifest. This is development revalidation, not an independent
-holdout or 258 unique independent questions. Real-run outcome and semantic review are recorded
-only after reviewed public evidence is available; no completion or correctness is asserted here.
+holdout or 258 unique independent questions. The initial phase stopped after 203 requests; 55 original requests remained unattempted.
+The original answers, manifest, gate failure and accounting remain immutable. Later phases are
+identified as development revalidation after corrections, not independent holdouts.
 
 ## Defects and deterministic regressions
 
@@ -39,7 +41,7 @@ only after reviewed public evidence is available; no completion or correctness i
 | The new terminal-tail suspension could lose known usage or accept completion after cancellation/deadline | PR49: settle known usage before that yield; check cancellation/deadline on both sides | Close/cancel/timeout regressions preserve accounting and prevent partial assistant persistence. Unknown usage retains its reservation |
 | An unsupported 30-day guarantee passed when web evidence was absent | PR50: apply the same catalog policy guard in every source mode; distinguish positive reminders from denials | 24 HTTP/SSE cases exercise disabled/unavailable/selected evidence, false 30-day windows, genuine denials, published 7-day window and general procedures |
 
-Final source 6afb passed 599 tests in 70.81 s, strict mypy, Ruff, formatting and unchanged contract
+Historical source 6afb passed 599 tests in 70.81 s, strict mypy, Ruff, formatting and unchanged contract
 export. Canonical fixtures: 17 scenarios, 12 guards, zero safety/guard failures and seven synthetic
 quality failures. Fixture quality scores do not measure GPT-6 Luna. The independent agent peer
 review approved the frozen source; this is not human review. Original failure receipts remain
@@ -51,48 +53,107 @@ passed on exact head 6afb: lint/types/tests/contracts/evaluations 84 s, containe
 workflow lint 17 s, full-history secret scan 13 s and aggregate gate 2 s. Durations overlap; they
 are job durations, not a claimed sum or a controlled performance comparison.
 
+## Real-model phases and observed limits
+
+| Phase | Frozen source | Requests and provider use | Outcome |
+| --- | --- | --- | --- |
+| Initial post-tool matrix | `bfb3588d5cf6313eedd675eb1e6db75398108ce5`, prompt 13.1 | 203 attempted: 194 provider answers, eight local answers, one pre-provider HTTP422 | Legitimate third-turn follow-up exceeded the unchanged 24KB input bound; execution stopped at the case gate. No external article actually reached a generation |
+| Post-adjustment development phase | `110535fcdca009df4b63be4cd30eacfde20d8a4c`, prompt 13.2 | 74 requests: 62 provider, 12 local | All HTTP/SSE/history/replay checks passed. Independent agent semantic review: 66 supported, five minor issues, one low-utility safe abstention, one visible citation marker and one unnecessary language-generation dispatch |
+| Final targeted phase | Frozen seven-query manifest; final protected source pending | Not recorded here yet | Results require the separately reviewed public receipt; no completion or correctness claim |
+
+The 74 cases include the 55 unattempted initial requests and 19 affected/new development
+variants. Original comparison counts, maximum-delay wording, explicit French request and
+follow-up HTTP422 were corrected in these cases. The remaining switch-command and citation
+marker findings motivated the finite final patch. None of these runs establishes a perfect
+commercial assistant, a human review or measured conversion improvement.
+
+Twelve post-adjustment turns actually included official external evidence. Effective article
+excerpts were introductory prefixes of 130/170/199 characters, not complete articles or complete
+refund/access procedures. Retrieval availability, citation validity and full claim support are
+separate concerns. One refund/guarantee response abstained safely with limited usefulness.
+
+Initial-phase Standard-price estimate: USD0.094784335; post-adjustment estimate:
+USD0.032125560. These token-based estimates are not invoices. The conservative accumulated
+shared ledger after 74 retains 538 attempts, 785,759 microUSD and zero unknown-cost attempts,
+under the unchanged USD1/650-attempt authorization. It also includes earlier development work;
+phase estimates must not be presented as the whole accumulated ledger.
+
+## Later corrections and exact combined validation
+
+PR51 adds bounded explicit resource page-count checks, exact-budget context packing and the
+French/max-delay corrections. All structured resources/products and mandatory commercial
+policies remain present. Only low-ranked optional passages and old model-context text are
+pruned; persisted history remains intact. Optional external evidence uses complete paragraph
+prefixes with effective text hashes. Only actually selected evidence IDs may become citations.
+The unchanged 24KB input limit and protocol margin still fail safely when mandatory content
+cannot fit; no second generation, fallback or retry was added.
+
+PR53 recognizes anchored "switch to" language requests and removes bounded complete provider
+citation syntax after raw validation, preserving whitespace and structured sources. Malformed
+citation residue stops provisional output and safely replaces the answer. Raw and normalized
+commercial/URL/page checks remain active. Quotes, negation, material-language questions and
+legacy ES/EN compatibility remain covered. These are finite recognizers, not general semantic
+or language-policy proof.
+
+After a normal merge of independently reviewed runtime/dependency PR52, exact combined
+candidate `cf19c3beac8e51bcb4ed805af7d92a99c42f8ce6` passed 667 tests in 113.98 s, Ruff,
+formatting of 148 files, strict mypy of 70 source files and unchanged contract export.
+Canonical fixtures: 19 scenarios and 14 guard cases, zero safety/guard failures and eight
+synthetic quality flags. Fixture quality flags do not measure GPT-6 Luna. Historical negative
+controls, images and paid results remain separate and unchanged.
+
+[PR53 CI run 38385929510](https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/runs/38385929510)
+passed on the combined head: lint/types/tests/contracts/evaluations 82 s, container 39 s,
+workflow lint 21 s, full-history secret scan 11 s and aggregate gate 2 s. Job durations overlap;
+they are not a sum or a controlled performance comparison.
+
 ## Exact local image and security inventory
 
-Image `sha256:76b5bcd440d43628276bb12efd1358a9ede4c7a2276cf38c394c8d402839141b` was built
-from 6afb, not the squash integration bfb or a future release. Docker metadata size 56,831,248 bytes;
-UID 65532:65532, read-only root. Session/CSRF/Origin/HTTP/SSE/private operations, backup restoration
-with retained history and charged ledger, four concurrent fixture streams and graceful stop
-passed. Cgroup peak 83,767,296 bytes under 256 MiB; core stop 1.954 s, no OOM. These are local
-fixture measurements, not VPS capacity or live-provider container load.
+Combined candidate image
+`sha256:0691367b0a86087d2fc0904f7507e16aa77d8599d6bcd8b953343fc5472cde8d`
+was built locally with verified official Buildx 0.38.0 and the existing Docker driver, without
+publishing an image, creating a builder or copying credentials. Docker metadata size:
+57,024,366 bytes. Inspected SERVICE_REVISION equals the combined cf19 source; UID 65532:65532.
+Read-only root, health/readiness, session/CSRF/Origin/HTTP/SSE/private operations, backup/restore
+retaining two messages and the charged ledger, four concurrent fixture streams and graceful
+stop passed. Cgroup peak 89,403,392 bytes under 256 MiB; core stop 2.02 s; no OOM. These local
+fixtures do not prove VPS capacity, real-provider container load or proxy behavior.
 
-The active-SSE/blocked-collector lifecycle probe used an earlier separately identified image;
-its 7.508 s stop is not attributed to this digest. See the [deployment evidence](../deployment-contract.md#verified-commercial-guard-candidate-on-2026-10-13).
-
-Offline Trivy 0.75.0, database updated 2026-10-12T19:08:28Z: 164 OS package rows / 71 unique CVEs,
-44 HIGH, 0 critical and 0 Python findings; 126 CycloneDX components. No published fixed versions
-were reported in that database. No production risk acceptance follows. The host and separately
-selected PostgreSQL/shared services still need deployment-owner security review.
+Earlier images 76/e783/872 correspond to their earlier source commits and are not relabeled
+as this candidate. The active-SSE/blocked-collector probe used its separately identified earlier
+image; its 7.508 s stop is not attributed to this digest. See the deployment evidence.
+The exact combined image offline Trivy scan used the database updated 2026-10-12T19:08:28Z:
+164 OS rows, 71 unique CVEs, 44 HIGH, zero critical and zero Python findings; 126 CycloneDX
+components. No published fixes were reported in that database. Historical candidate scans remain
+separate. No production risk acceptance follows.
+The host and PostgreSQL/shared services still require deployment-owner security review.
 
 ## Tool and budget boundaries
 
 Only three server-selected public Hotmart procedure articles may be fetched. The model receives
-bounded untrusted evidence, not a browsing capability, buyer-account access or transaction tool.
-The reader is disabled by default and never instantiated for fixtures; it sends no visitor text,
-credentials or arbitrary query. General platform procedures cannot change merchant facts.
-The undocumented endpoint, source freshness and unpinned trusted fixed-host DNS residual remain
-explicit [source/egress limits](../official-web-evidence.md).
+bounded untrusted evidence, not browsing, buyer-account access or a transaction tool. The reader
+is disabled by default and never instantiated for fixtures; it sends no visitor text, credentials
+or arbitrary query. General platform procedures cannot change merchant facts. The undocumented
+endpoint, source freshness and unpinned trusted fixed-host DNS residual remain explicit
+[source/egress limits](../official-web-evidence.md).
 
-The real evaluator retains the existing shared USD1 envelope and previous counts/costs.
-Default attempt cap 400 remains; owner-authorized explicit 650 accumulated attempts is persisted
-immutably for this later phase, with no increase to the USD cap or monthly authorization.
-Unknown-cost attempts are never treated as free. One GPT-6 Luna medium generation per accepted
-turn, no substitute model or automatic retry. Tokens include selected external evidence.
+The evaluator preserves the existing shared USD1 envelope and previous counts/costs. Default
+attempt cap 400 remains; explicit owner-authorized 650 is immutable for this later phase, without
+increasing the USD cap or monthly authorization. The repaired case gate is acknowledged only
+through a separate audited manual action; original status, rows and accounting remain intact.
+Unknown-cost, provider, authentication and budget stops remain blocking. No automatic retry.
+One GPT-6 Luna medium generation per accepted turn; selected evidence counts toward input.
 
-API `first_delta_ms` describes the first emitted checked fragment; final-only replacement can
-legitimately report null. The evaluator preserves historical `first_content_seconds` as delta
+API `first_delta_ms` measures the first emitted checked fragment; final-only replacement may
+legitimately report null. The evaluator retains historical `first_content_seconds` as delta
 receipt and separately measures `first_visible_content_seconds` from a nonempty delta or
 `message.completed`. Neither is browser paint, provider-only timing or a production SLA.
 
 ## Remaining activation gates
 
 Keep the storefront disabled until separate owner authorization after deployed-backend acceptance.
-Required: exact selected release image/digest and compatible contract; HTTPS, host-only cookies,
-CORS/CSRF and actual proxy SSE/cancel/disconnect; isolated OAuth/backoffice access; real VPS
-resource/disk/headroom and source egress checks; encrypted backups and effective restore;
-retention/physical erasure; provider failure/accounting and reviewed real-model commercial quality;
-physical keyboard/screen-reader/mobile checks. No measured sales-conversion uplift is claimed.
+Required: exact release image/digest and compatible contract; HTTPS, host-only cookies, CORS/CSRF
+and actual proxy SSE/cancel/disconnect; isolated backoffice access; real VPS resource/disk/headroom
+and source egress checks; encrypted backups and effective restore; retention/physical erasure;
+provider failure/accounting and reviewed real-model commercial quality; physical keyboard,
+screen-reader and mobile checks. Affiliate catalog coverage remains a separately scoped gap.

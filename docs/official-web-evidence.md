@@ -65,8 +65,12 @@ than claim that external verification succeeded. External absence is not provide
 and external refresh never re-verifies the storefront price or activates a catalog version.
 
 At most 8000 characters of serialized extra evidence are included. Exact UTF-8 request sizing
-and existing 24k byte/token upper bound still apply; optional sources are removed if needed,
-then the existing token budget reserves before the single GPT-6 Luna medium request. No hosted
+and the existing 24k byte/token upper bound and protocol margin still apply. Optional articles
+use complete-paragraph prefixes that fit remaining input; their effective text hashes are
+recomputed without mutating cached articles. Whole sources are omitted if no paragraph fits.
+Model-context packing retains all structured resources/products and mandatory commercial
+policies while pruning optional passages and old history text only when needed. Persisted
+history remains intact. The existing budget reserves before the single GPT-6 Luna medium request. No hosted
 search fee or extra planner/generation is added. Token usage still includes evidence input.
 Verification time means when this public article was checked, not the publisher's update date.
 The hash identifies normalized text actually provided, not a price/stock verification.
@@ -75,12 +79,15 @@ The hash identifies normalized text actually provided, not a price/stock verific
 
 Each accepted run retains the exact immutable evidence tuple used to prepare the request.
 `finalize` can resolve an external source only from that tuple, never from the global cache or
-a model-authored URL. Catalog sources and external sources share the existing maximum 3 slots.
+a model-authored URL. Catalog citation IDs are likewise limited to the immutable set of documents
+actually included in this generation; complete structured merchant facts remain available for
+validation. Catalog sources and external sources share the existing maximum 3 slots.
 Source titles and URLs come from fixed server metadata; invented/unretrieved ids are dropped.
 
 Existing price/action/outcome/URL guards apply. Regardless of optional external evidence
 availability, the bounded merchant-policy guard rejects numeric guarantee windows different from the merchant's
 published buyer window and positive claims of individual refund eligibility/guaranteed approval.
+Explicit catalog resource page-count checks also apply to raw and normalized answer text.
 These recognizers address specific failure modes, **not complete semantic entailment**. An
 agent/human must still review source support, uncertainty, usefulness and every commercial
 claim in real-model evaluation; citation validity alone is insufficient.

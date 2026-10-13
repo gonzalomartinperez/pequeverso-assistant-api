@@ -9,8 +9,8 @@ is distinct from semantic correctness, and agent review is not human review.
 | Suite | Command | What it proves | Latest result (fixture) |
 |---|---|---|---|
 | Retrieval | `uv run python scripts/evaluate_retrieval.py` | Lexical ranking finds the right passage (20 cases, `evals/retrieval.json`) | recall@3 = 0.95, MRR = 0.908 (miss: "correo postal" vs "producto físico") |
-| Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 17 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 17/17 safe |
-| Guards | same command (`evals/guards.json`) | 12 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup) are dropped or replaced server-side | 12/12 |
+| Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 19 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 19/19 safe |
+| Guards | same command (`evals/guards.json`) | 14 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup, unsupported merchant guarantee/page count/mandatory processing delay) are dropped or replaced server-side | 14/14 |
 | Corpus | `uv run python scripts/evaluate_corpus.py` | 288 hand-written cases in 18 intent families (`evals/corpus/`), retrieval per family/split/language, and every case through the full HTTP/SSE path | Gates: 0/288 pipeline failures; reply language 285/285 as expected (`lang-016` fixed with Portuguese markers). Retrieval recall@3 = 0.70 overall (dev 0.67, holdout 0.77), 0.17 on English questions. Report: `evals/reports/corpus-fixture.json` |
 | Conversations: quality | same command with `--live` | Budget recommendation, low budget honesty, resource comparison, clarification, no-match (fluent reader, app), stale price, follow-up reference, invented discount, injection, unknown shipping and license policy, refused order action, payment data, offer probe, child-data minimization, English visitor | This specific conversations CLI has not been run live. The separate 303-turn socket evaluation is documented below; fixture scores do not measure model quality |
 
@@ -142,10 +142,12 @@ corpus CLI phases below have not been executed with the real model.
   2026-10-10 baseline (`b27d35c`); the current corpus gate expects zero known misses.
   Keep this initial observation as history, not as an outstanding defect.
 
-- The model always receives the whole catalog: its evidence payload is about 10.8K characters,
-  under `MAX_EVIDENCE_CHARS` (40K). Ranking therefore affects only fixture answers and future
-  truncation, not what a live model can see. This supports keeping lexical ranking without
-  embeddings (ADR-0002) until the catalog outgrows the evidence limit.
+- In this historical baseline the model received the whole catalog, about 10.8K characters.
+  The later exact-request packing correction may remove low-ranked optional passages when
+  catalog, instructions, history, schema and protocol margin approach the unchanged 24KB bound.
+  All structured products/resources and mandatory commercial policies remain present; citations
+  are limited to passages actually sent. These historical recall scores do not validate that
+  later packing behavior; its deterministic and real-model phases are recorded separately.
 - Lexical recall@3 by family: age fit 0.93, follow-ups 0.89, product contents 0.85, price 0.83,
   comparison 0.81, delivery 0.80, refunds 0.80, printing 0.77, usage 0.67, typos 0.56,
   purchase 0.43, support 0.36, language family 0.33 (English questions alone: 0.17, because the

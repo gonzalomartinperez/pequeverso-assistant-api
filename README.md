@@ -59,6 +59,8 @@ the welcome, provisional streaming, complete mobile product card and recoverable
 Those additional states use the **fixture API** and are labeled separately. The two native
 photo probes used independent browser sessions; their original capture failures are retained.
 Neither a real-provider reload/mobile result nor a production deployment is claimed.
+These dated captures retain their original storefront/API revisions in the gallery manifest;
+they do not depict the later 2026-10-13 post-tool evaluation or its corrected backend.
 
 ## System at a glance
 
@@ -105,6 +107,7 @@ sequenceDiagram
   participant AI as GPT-6 Luna
   UI->>API: Session + Origin + CSRF + idempotency key
   API->>App: Validated visitor turn
+  App->>App: Pack merchant context and complete source paragraphs within 24k
   App->>DB: Claim request + reserve worst-case spend
   App->>AI: Authorized evidence + history, medium, no retries
   AI-->>App: Structured deltas + usage
@@ -125,6 +128,13 @@ final answer can stream. A later invalid claim can still replace an earlier chec
 the client must render the authoritative `message.completed`. Catalog guarantee checks apply
 even when optional Hotmart retrieval is disabled or unavailable. These deterministic checks
 do not establish complete semantic correctness or citation entailment.
+
+Explicit resource page counts are checked against structured catalog metadata. Request packing
+preserves products/resources and merchant policies, trims only model-context history and optional
+documents when needed, and leaves saved conversations unchanged. Citations resolve only to
+evidence actually sent in that generation. The [post-tool report](docs/verification/post-tools-2026-10-13.md)
+preserves the original halted run separately from subsequent fixes and revalidation; completion
+and agent review are distinct from semantic correctness and human acceptance.
 
 ## Quick start (clean checkout, no credentials)
 
