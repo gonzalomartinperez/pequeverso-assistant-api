@@ -18,6 +18,22 @@ is distinct from semantic correctness, and agent review is not human review.
 guard failures, zero corpus gate failures, the exact set of known reply-language misses and
 the corpus retrieval floors. `docs/verification/fixture-eval.json` holds the latest full fixture report.
 
+## Post-change evaluation scope
+
+The 2026-10-13 catalog provenance refresh to storefront `main` `18b6869` changes only
+source revision and verification time; all kit facts remain identical to the prior snapshot.
+The frozen 258-query post-change matrix evaluates Grafismo Fonético and general Hotmart
+procedures, not the complete affiliate offering visible on the home. The newly recommended
+third-party video course is a known [catalog coverage gap](catalog.md#current-coverage-2026-10-13).
+Do not interpret successful runs as support for that course, its price, producer policies or
+health outcomes.
+
+Before the authorized real run, record the exact refreshed catalog hash in phase metadata,
+preserve the prior manifest and record its parent hash. Cases and expected outcomes remain
+frozen; this metadata update neither indexes questions nor rewrites initial results. Any future
+affiliate coverage needs a separate authorized implementation and a separately frozen phase.
+This section defines scope, not a completed real-model result.
+
 ## Fixture vs real model
 
 The fixture provider receives the same `store_data` and `visitor_turn` payloads as the model. It
