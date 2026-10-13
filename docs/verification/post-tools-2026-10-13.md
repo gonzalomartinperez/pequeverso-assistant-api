@@ -37,7 +37,7 @@ identified as development revalidation after corrections, not independent holdou
 
 | Confirmed defect | Correction | Evidence and limits |
 | --- | --- | --- |
-| A false $999 price reached raw SSE deltas before final replacement | PR49: normalize and validate cumulative complete sentence/paragraph prefixes before emitting; terminal remainder only from the accepted canonical final | Character-split prices, decimals, markup, unsafe actions/outcomes, actual progressive HTTP/SSE, history and replay regressions. Earlier valid prefixes may still precede a later terminal replacement; these are bounded recognizers, not general semantic proof |
+| A ScriptedProvider fixture response with a false $999 price reached raw SSE deltas before final replacement | PR49: normalize and validate cumulative complete sentence/paragraph prefixes before emitting; terminal remainder only from the accepted canonical final | Character-split prices, decimals, markup, unsafe actions/outcomes, actual progressive HTTP/SSE, history and replay regressions. Earlier valid prefixes may still precede a later terminal replacement; these are bounded recognizers, not general semantic proof |
 | The new terminal-tail suspension could lose known usage or accept completion after cancellation/deadline | PR49: settle known usage before that yield; check cancellation/deadline on both sides | Close/cancel/timeout regressions preserve accounting and prevent partial assistant persistence. Unknown usage retains its reservation |
 | An unsupported 30-day guarantee passed when web evidence was absent | PR50: apply the same catalog policy guard in every source mode; distinguish positive reminders from denials | 24 HTTP/SSE cases exercise disabled/unavailable/selected evidence, false 30-day windows, genuine denials, published 7-day window and general procedures |
 
@@ -61,9 +61,14 @@ are job durations, not a claimed sum or a controlled performance comparison.
 | Post-adjustment development phase | `110535fcdca009df4b63be4cd30eacfde20d8a4c`, prompt 13.2 | 74 requests: 62 provider, 12 local | All HTTP/SSE/history/replay checks passed. Independent agent semantic review: 66 supported, five minor issues, one low-utility safe abstention, one visible citation marker and one unnecessary language-generation dispatch |
 | Final targeted phase | `47bcf309a85f823d389f5b777e9b33e31b34b937`, prompt 13.2 | Seven requests: four provider, three local | Zero HTTP/history/replay/structural/behavior flags. Independent agent review: six supported, one supported with a material-language inference observation; no new proven false commercial fact or serious defect |
 
-The 74 cases include the 55 unattempted initial requests and 19 affected/new development
-variants. Original comparison counts, maximum-delay wording, explicit French request and
-follow-up HTTP422 were corrected in these cases. The remaining switch-command and citation
+The 74 queries span 54 cases: 55 originally unattempted requests, the failed follow-up,
+two context reconstruction turns, four affected revalidations and 12 new development variants.
+They are not 74 independent cases or 19 independent new variants. The original initial-phase
+commercial defects included comparison-02 claiming Juega y Aprende has 40 pages rather than
+its published 50, languages-05 unnecessarily dispatching an explicit French-language request,
+and actions-08 converting a published maximum processing time into a mandatory minimum delay.
+These comparison, language and delay cases, and the follow-up HTTP422, were corrected in the
+post-adjustment phase. The remaining switch-command and citation
 marker findings motivated the finite final patch. The seven targeted regressions then confirmed
 three local foreign-language refusals without provider dispatch and four useful Spanish responses
 without visible citation-control markers. They do not prove all stochastic future responses. None of these runs establishes a perfect
@@ -89,7 +94,7 @@ The final phase manifest SHA256 is
 `fbb6d26cfd045156bf90aeb9de203b2d9a0ac1420b1735d9ac75b99c5aaafc72`;
 its reviewed response-pack SHA256 is
 `2620115eddaab7d98159112695ac035cea9c4c60a1c37178282fb4faed11010d`.
-The preceding 74-case manifest remains
+The preceding 74-query manifest remains
 `4e22a82d82b84b887e8363724498f97aa2c5962092dd7e16776e7a05015f3ee1`.
 Private complete answers, prompts and keys are not published. Local reviewed receipts retain
 per-case terminal, provider/local use, latency, selected evidence, citations, history/replay and
