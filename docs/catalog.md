@@ -26,7 +26,10 @@ The snapshot is exported from storefront `main` revision
 23 documents and six links. Every commercial field is identical to the prior
 `eb68a041b4515d71a734626fdaee0ef06d8693c3` snapshot; this sync updates source provenance
 and verification time only. It does not prove the checkout or the deployed storefront was
-verified, and original evaluation artifacts retain their original catalog hashes.
+verified, and original evaluation artifacts retain their original catalog hashes. Regenerated
+contract examples change only the existing price verification timestamp in two SSE examples
+and their manifest hashes. Public schemas, event envelopes and v1 revision1.4 are unchanged;
+consumers keep their compatible, pinned historical artifact bundles without a forced repin.
 
 **Known coverage gap:** the home now recommends the third-party video course “Guía de
 Alimentación para Bebés” through `config/affiliates.ts`. The exporter reads `coreProducts()`
