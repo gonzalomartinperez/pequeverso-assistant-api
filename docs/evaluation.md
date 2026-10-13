@@ -210,10 +210,10 @@ original expected metadata was annotated `en` from the UI locale. Preserve the f
 manifest; report that error and use an explicit-`es` post-fix variant. Do not retrospectively
 change the baseline or present improved flags as independent quality validation.
 
-The whole current catalog (one product, nine resources, 23 documents) fits the evidence
-bound and is sent in full. Both resources in comparisons were therefore available even
-when the fixture mentioned only one. Low English lexical scores do not establish omitted
-model evidence. Vector and graph search are absent by design. Real-model commercial
+In that historical fixture baseline, the complete catalog fit and both comparison resources
+were available even when the fixture mentioned only one. Later exact-request packing preserves
+all structured resource metadata but may remove optional passages; immutable selected IDs bound
+final citations. Low historical English lexical scores do not establish omitted model evidence. Vector and graph search are absent by design. Real-model commercial
 accuracy, source entailment and tone now have dated agent-reviewed evidence; physical-device,
 VPS and staged acceptance checks still gate activation. Legacy English replies remain supported
 by the API; the native storefront now requests Spanish only.
@@ -315,14 +315,16 @@ without mutating either preceding run. See the dated report for results and actu
 
 ## Optional official platform evidence (2026-10-13)
 
-The optional official-source increment has deterministic mocked-source tests; the earlier
-303-query evidence predates it. Do not claim those results validate the new capability. Freeze
-a new200+ manifest and preserve initial results before real-model reruns. Reconcile the existing
-shared ledger before dispatch. The initial400-attempt/$1 envelope had282 attempts used;
-on2026-10-13 the owner authorized650 accumulated attempts while retaining the$1 cap and
-all prior costs. Root owns that audited migration; no count reset or bypass ledger is allowed. Public article reads are not paid model evaluations, and fixture runs cannot
+The optional official-source increment has deterministic mocked-source tests and a separately
+frozen real-model development matrix. The earlier 303-query evidence predates it. Its initial
+203-request phase halted safely on a follow-up context gate; original results remain unchanged.
+The subsequent 74-request phase and final seven targeted regressions are documented in the
+[post-tool report](verification/post-tools-2026-10-13.md), including semantic findings and the
+limited introductory external excerpts actually sent. These phases are not independent holdouts.
+The initial 400-attempt/USD1 envelope retained 282 prior attempts; the owner explicitly authorized
+650 accumulated attempts on 2026-10-13 without changing the USD1 cap. No count reset or bypass
+ledger is allowed. Public article reads are not paid model evaluations, and fixture runs cannot
 certify model tone, conversion or semantic citation support.
-
 
 ## Validated provisional content (2026-10-13)
 

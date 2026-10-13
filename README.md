@@ -94,7 +94,8 @@ flowchart LR
 | vps-ops | Publishes and deploys selected images; owns reverse proxy, Coolify, shared monitoring and backups |
 
 There are no payment/order tools, embeddings, Neo4j, Redis or a graph orchestration framework.
-The complete authorized catalog fits in the evidence budget; lexical ranking is measured separately.
+Structured catalog facts remain present; exact request packing can prune optional passages and
+old model-context text to retain the unchanged 24KB bound. Lexical ranking is measured separately.
 
 ## One question, one accountable generation
 

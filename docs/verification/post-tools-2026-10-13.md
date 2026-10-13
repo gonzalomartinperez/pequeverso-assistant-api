@@ -59,28 +59,45 @@ are job durations, not a claimed sum or a controlled performance comparison.
 | --- | --- | --- | --- |
 | Initial post-tool matrix | `bfb3588d5cf6313eedd675eb1e6db75398108ce5`, prompt 13.1 | 203 attempted: 194 provider answers, eight local answers, one pre-provider HTTP422 | Legitimate third-turn follow-up exceeded the unchanged 24KB input bound; execution stopped at the case gate. No external article actually reached a generation |
 | Post-adjustment development phase | `110535fcdca009df4b63be4cd30eacfde20d8a4c`, prompt 13.2 | 74 requests: 62 provider, 12 local | All HTTP/SSE/history/replay checks passed. Independent agent semantic review: 66 supported, five minor issues, one low-utility safe abstention, one visible citation marker and one unnecessary language-generation dispatch |
-| Final targeted phase | Frozen seven-query manifest; final protected source pending | Not recorded here yet | Results require the separately reviewed public receipt; no completion or correctness claim |
+| Final targeted phase | `47bcf309a85f823d389f5b777e9b33e31b34b937`, prompt 13.2 | Seven requests: four provider, three local | Zero HTTP/history/replay/structural/behavior flags. Independent agent review: six supported, one supported with a material-language inference observation; no new proven false commercial fact or serious defect |
 
 The 74 cases include the 55 unattempted initial requests and 19 affected/new development
 variants. Original comparison counts, maximum-delay wording, explicit French request and
 follow-up HTTP422 were corrected in these cases. The remaining switch-command and citation
-marker findings motivated the finite final patch. None of these runs establishes a perfect
+marker findings motivated the finite final patch. The seven targeted regressions then confirmed
+three local foreign-language refusals without provider dispatch and four useful Spanish responses
+without visible citation-control markers. They do not prove all stochastic future responses. None of these runs establishes a perfect
 commercial assistant, a human review or measured conversion improvement.
 
 Twelve post-adjustment turns actually included official external evidence. Effective article
 excerpts were introductory prefixes of 130/170/199 characters, not complete articles or complete
 refund/access procedures. Retrieval availability, citation validity and full claim support are
-separate concerns. One refund/guarantee response abstained safely with limited usefulness.
+separate concerns. One refund/guarantee response abstained safely with limited usefulness. The final seven retain
+one observation: Spanish material language is inferred because the catalog lacks an explicit
+PDF-language field. A 130-character external refund introduction supports the window
+prerequisite, not a full procedural article. Independent coding-agent review read answers and
+recorded evidence; it did not perform human review or independent HTTP history requests.
 
 Initial-phase Standard-price estimate: USD0.094784335; post-adjustment estimate:
-USD0.032125560. These token-based estimates are not invoices. The conservative accumulated
-shared ledger after 74 retains 538 attempts, 785,759 microUSD and zero unknown-cost attempts,
-under the unchanged USD1/650-attempt authorization. It also includes earlier development work;
-phase estimates must not be presented as the whole accumulated ledger.
+USD0.032125560. These token-based estimates are not invoices. The final seven cost an estimated USD0.002265685 at Standard token prices. The accumulated
+Standard estimate across the shared evaluation work is USD0.288041380, not an invoice. The
+conservative ledger after the final phase retains 542 attempts, 792,292 microUSD and zero
+unknown-cost attempts, under the unchanged USD1/650-attempt authorization. It includes earlier
+development work; phase estimates must not be presented as the whole accumulated ledger.
+
+The final phase manifest SHA256 is
+`fbb6d26cfd045156bf90aeb9de203b2d9a0ac1420b1735d9ac75b99c5aaafc72`;
+its reviewed response-pack SHA256 is
+`2620115eddaab7d98159112695ac035cea9c4c60a1c37178282fb4faed11010d`.
+The preceding 74-case manifest remains
+`4e22a82d82b84b887e8363724498f97aa2c5962092dd7e16776e7a05015f3ee1`.
+Private complete answers, prompts and keys are not published. Local reviewed receipts retain
+per-case terminal, provider/local use, latency, selected evidence, citations, history/replay and
+usage metadata; the public record publishes only reviewed non-personal summaries.
 
 ## Later corrections and exact combined validation
 
-PR51 adds bounded explicit resource page-count checks, exact-budget context packing and the
+[PR51](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/51) adds bounded explicit resource page-count checks, exact-budget context packing and the
 French/max-delay corrections. All structured resources/products and mandatory commercial
 policies remain present. Only low-ranked optional passages and old model-context text are
 pruned; persisted history remains intact. Optional external evidence uses complete paragraph
@@ -88,7 +105,7 @@ prefixes with effective text hashes. Only actually selected evidence IDs may bec
 The unchanged 24KB input limit and protocol margin still fail safely when mandatory content
 cannot fit; no second generation, fallback or retry was added.
 
-PR53 recognizes anchored "switch to" language requests and removes bounded complete provider
+[PR53](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/53) recognizes anchored "switch to" language requests and removes bounded complete provider
 citation syntax after raw validation, preserving whitespace and structured sources. Malformed
 citation residue stops provisional output and safely replaces the answer. Raw and normalized
 commercial/URL/page checks remain active. Quotes, negation, material-language questions and
@@ -100,7 +117,9 @@ candidate `cf19c3beac8e51bcb4ed805af7d92a99c42f8ce6` passed 667 tests in 113.98 
 formatting of 148 files, strict mypy of 70 source files and unchanged contract export.
 Canonical fixtures: 19 scenarios and 14 guard cases, zero safety/guard failures and eight
 synthetic quality flags. Fixture quality flags do not measure GPT-6 Luna. Historical negative
-controls, images and paid results remain separate and unchanged.
+controls, images and paid results remain separate and unchanged. Its protected squash integration
+is `47bcf309a85f823d389f5b777e9b33e31b34b937`, the source of the final real-model phase;
+FastAPI 0.143.0, OpenAI SDK 3.29.0 and Pydantic 2.14.1 were actually used there.
 
 [PR53 CI run 38385929510](https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/runs/38385929510)
 passed on the combined head: lint/types/tests/contracts/evaluations 82 s, container 39 s,
