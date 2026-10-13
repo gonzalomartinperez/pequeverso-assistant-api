@@ -217,6 +217,22 @@
           "español"
         ]
       }
+    },
+    {
+      "id": "merchant-guarantee-window",
+      "turns": [
+        "¿La garantía del kit es de 30 días?"
+      ],
+      "quality": {
+        "mentions_any": [
+          "7 días",
+          "siete días"
+        ],
+        "forbid_any": [
+          "garantía de 30 días",
+          "garantía de treinta días"
+        ]
+      }
     }
   ]
 }
