@@ -36,7 +36,9 @@ cookie, referrer, identifier or provider key. No model-selected URL or query exi
 responses are refused **before** decompression; this avoids accepting compression bombs.
 Status, content type, exact article id, locale, outdated flag, body and title must validate.
 HTML parsing discards scripts/styles/forms/iframes/objects/SVG and remote-resource attributes.
-Only normalized text (maximum 2000 characters per source) goes into untrusted evidence data.
+Only a normalized complete-paragraph prefix (maximum 2000 characters per source) goes into
+untrusted evidence data. A paragraph is never cut in a way that could remove a qualification;
+an article without a usable complete prefix is unavailable.
 Response `html_url` cannot override the fixed human citation (upstream currently uses legacy
 Zendesk URLs). No copyrighted article bodies or ideal answers are committed as test fixtures.
 

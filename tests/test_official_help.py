@@ -286,7 +286,14 @@ def test_optional_evidence_is_dropped_instead_of_expanding_request_budget(tmp_pa
 
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
-            200, json=payload(1, body='<p>' + 'Información general sin promesas. ' * 100 + '</p>')
+            200,
+            json=payload(
+                1,
+                body=(
+                    '<p>Información general sin promesas. Solo texto sintético de procedimiento público.</p>'
+                    * 100
+                ),
+            ),
         )
 
     provider = ScriptedProvider(
@@ -462,3 +469,15 @@ def test_deadline_after_reservation_keeps_conservative_cost_and_releases_run(
             row = db.execute('SELECT status,actual_micro,reserved_micro FROM spend_ledger').fetchone()
             assert row[0] == 'unreported' and row[1] is None and row[2] > 0
             assert db.execute('SELECT model_call FROM run_metrics').fetchone()[0] == 0
+
+
+def test_excerpt_never_cuts_a_qualifying_paragraph_mid_sentence() -> None:
+    long_paragraph = '<p>' + 'Texto demasiado extenso. ' * 200 + ' Solo si el pago fue aprobado.</p>'
+    with pytest.raises(ValueError, match='bounded complete excerpt'):
+        parse_article(raw(body=long_paragraph), SOURCES[0], NOW)
+    item = parse_article(raw(body=BODY + long_paragraph), SOURCES[0], NOW)
+    assert (
+        item.text
+        == 'Procedimiento público de ejemplo: el comprador consulta sus detalles en su cuenta oficial.'
+    )
+    assert 'Texto demasiado' not in item.text

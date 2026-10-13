@@ -74,7 +74,17 @@ def parse_article(raw: bytes, source: HelpSource, now: datetime) -> WebEvidence:
         raise ValueError('help article has no usable text')
     # Never hand the model broken HTML or URLs from upstream; only the fixed structured citation
     # is navigable. URLs in ordinary source text remain untrusted and final URL rules still apply.
-    text = text[:MAX_ARTICLE_CHARS]
+    # Keep only a complete paragraph prefix. Cutting mid-paragraph can discard a condition
+    # (for example payment approval or eligibility) and make the excerpt misleading.
+    kept: list[str] = []
+    for paragraph in text.splitlines():
+        candidate = '\n'.join([*kept, paragraph])
+        if len(candidate) > MAX_ARTICLE_CHARS:
+            break
+        kept.append(paragraph)
+    text = '\n'.join(kept)
+    if len(text) < 80:
+        raise ValueError('help article has no bounded complete excerpt')
     digest = hashlib.sha256(f'{source.article_id}\n{text}'.encode()).hexdigest()
     return WebEvidence(source, text, digest, now)
 
