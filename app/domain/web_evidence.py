@@ -125,6 +125,13 @@ _REFUND_ENTITLEMENT = re.compile(
 )
 
 
+_CATEGORICAL_PROCESSING_DELAY = re.compile(
+    r'(?:^|[.!?;\n])\s*(?:'
+    r'(?:la solicitud|el reembolso) no se procesa (?:de inmediato|inmediatamente)|'
+    r'(?:the request|the refund|the refund request) is not processed immediately)\b'
+)
+
+
 def negated_at(text: str, position: int) -> bool:
     prefix = re.split(r'[.!?;,\n]|\b(?:pero|but|however|y|and)\b', text[max(0, position - 80) : position])[-1]
     negation = re.search(r'\b(?:no|not|nunca|never)\s+(?:\w+\s+){0,4}$', prefix)
@@ -137,6 +144,8 @@ def negated_at(text: str, position: int) -> bool:
 def unsupported_platform_policy(text: str, merchant_policy_texts: tuple[str, ...]) -> bool:
     """Bounded positive-claim guard, not a claim of complete semantic entailment checking."""
     normalized = fold(text)
+    if _CATEGORICAL_PROCESSING_DELAY.search(normalized):
+        return True
     # Merchant's published buyer window; processing/bank delays elsewhere are not guarantee terms.
     days = {
         int(match.group(1))

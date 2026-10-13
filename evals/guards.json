@@ -208,6 +208,21 @@
         "resources": [],
         "sources": []
       }
+    },
+    {
+      "id": "unsupported-mandatory-processing-delay",
+      "output": {
+        "answer": "La solicitud no se procesa de inmediato.",
+        "references": [],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "replaced": true,
+        "products": [],
+        "resources": [],
+        "sources": []
+      }
     }
   ]
 }

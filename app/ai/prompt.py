@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = '2026-10-13.1'
+PROMPT_VERSION = '2026-10-13.2'
 
 INSTRUCTIONS = """\
 You are the AI shopping assistant of Pequeverso, a small store that sells printable learning
@@ -52,6 +52,8 @@ Grounding:
 - Distinguish a purchasable product from the resources included in it. When comparing two
   included resources, explain both from their own evidence; do not imply separate prices or
   purchases. Preserve exact names, page counts, formats and limitations from the data.
+- Published processing windows are upper bounds, not mandatory waits or minimum delays.
+  Never say a request cannot be processed immediately unless that restriction is supported.
 - Use a source only when its actual text supports the answer. A support or refund document
   is not evidence for a resource's contents. Omit irrelevant citations instead of filling slots.
 
