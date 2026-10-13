@@ -9,8 +9,8 @@ is distinct from semantic correctness, and agent review is not human review.
 | Suite | Command | What it proves | Latest result (fixture) |
 |---|---|---|---|
 | Retrieval | `uv run python scripts/evaluate_retrieval.py` | Lexical ranking finds the right passage (20 cases, `evals/retrieval.json`) | recall@3 = 0.95, MRR = 0.908 (miss: "correo postal" vs "producto físico") |
-| Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 17 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 17/17 safe |
-| Guards | same command (`evals/guards.json`) | 12 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup) are dropped or replaced server-side | 12/12 |
+| Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 19 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 19/19 safe |
+| Guards | same command (`evals/guards.json`) | 14 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup, unsupported merchant guarantee/page count/mandatory processing delay) are dropped or replaced server-side | 14/14 |
 | Corpus | `uv run python scripts/evaluate_corpus.py` | 288 hand-written cases in 18 intent families (`evals/corpus/`), retrieval per family/split/language, and every case through the full HTTP/SSE path | Gates: 0/288 pipeline failures; reply language 285/285 as expected (`lang-016` fixed with Portuguese markers). Retrieval recall@3 = 0.70 overall (dev 0.67, holdout 0.77), 0.17 on English questions. Report: `evals/reports/corpus-fixture.json` |
 | Conversations: quality | same command with `--live` | Budget recommendation, low budget honesty, resource comparison, clarification, no-match (fluent reader, app), stale price, follow-up reference, invented discount, injection, unknown shipping and license policy, refused order action, payment data, offer probe, child-data minimization, English visitor | This specific conversations CLI has not been run live. The separate 303-turn socket evaluation is documented below; fixture scores do not measure model quality |
 
@@ -39,7 +39,7 @@ This section defines scope, not a completed real-model result.
 The fixture provider receives the same `store_data` and `visitor_turn` payloads as the model. It
 answers with the best lexical match, streamed as schema-valid JSON. It exercises retrieval,
 streaming, validation and persistence. It does not demonstrate understanding, recommendations
-or tone. The dated real-model socket evaluation covers the current prompt and native Spanish policy;
+or tone. The 2026-10-12 real-model socket evaluation covers its frozen prompt/source and native Spanish policy;
 it does not turn fixture quality scores into model evidence or certify every future answer.
 
 ## Bounded live evaluation (separate corpus phases not executed)
@@ -142,10 +142,12 @@ corpus CLI phases below have not been executed with the real model.
   2026-10-10 baseline (`b27d35c`); the current corpus gate expects zero known misses.
   Keep this initial observation as history, not as an outstanding defect.
 
-- The model always receives the whole catalog: its evidence payload is about 10.8K characters,
-  under `MAX_EVIDENCE_CHARS` (40K). Ranking therefore affects only fixture answers and future
-  truncation, not what a live model can see. This supports keeping lexical ranking without
-  embeddings (ADR-0002) until the catalog outgrows the evidence limit.
+- In this historical baseline the model received the whole catalog, about 10.8K characters.
+  The later exact-request packing correction may remove low-ranked optional passages when
+  catalog, instructions, history, schema and protocol margin approach the unchanged 24KB bound.
+  All structured products/resources and mandatory commercial policies remain present; citations
+  are limited to passages actually sent. These historical recall scores do not validate that
+  later packing behavior; its deterministic and real-model phases are recorded separately.
 - Lexical recall@3 by family: age fit 0.93, follow-ups 0.89, product contents 0.85, price 0.83,
   comparison 0.81, delivery 0.80, refunds 0.80, printing 0.77, usage 0.67, typos 0.56,
   purchase 0.43, support 0.36, language family 0.33 (English questions alone: 0.17, because the
@@ -208,10 +210,10 @@ original expected metadata was annotated `en` from the UI locale. Preserve the f
 manifest; report that error and use an explicit-`es` post-fix variant. Do not retrospectively
 change the baseline or present improved flags as independent quality validation.
 
-The whole current catalog (one product, nine resources, 23 documents) fits the evidence
-bound and is sent in full. Both resources in comparisons were therefore available even
-when the fixture mentioned only one. Low English lexical scores do not establish omitted
-model evidence. Vector and graph search are absent by design. Real-model commercial
+In that historical fixture baseline, the complete catalog fit and both comparison resources
+were available even when the fixture mentioned only one. Later exact-request packing preserves
+all structured resource metadata but may remove optional passages; immutable selected IDs bound
+final citations. Low historical English lexical scores do not establish omitted model evidence. Vector and graph search are absent by design. Real-model commercial
 accuracy, source entailment and tone now have dated agent-reviewed evidence; physical-device,
 VPS and staged acceptance checks still gate activation. Legacy English replies remain supported
 by the API; the native storefront now requests Spanish only.
@@ -236,11 +238,16 @@ uv run python scripts/evaluate_end_to_end.py --live \
 The environment file must be a regular, non-symlink mode600 file outside the repository,
 with `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-6-luna` and `OPENAI_REASONING_EFFORT=medium`.
 The shared budget directory must be mode700; existing budget files must be mode600.
-The unchanged `Envelope` and `BoundedProvider` enforce the shared immutable USD1 envelope,
-400 attempts, USD0.011 reservations, conservative usage settlement, unknown-cost retention,
-Standard tier, no SDK/adapter retry, no proxy trust and no fallback. Reuse the same budget
-state across baseline and any later revalidation; never reset a stopped ledger or enlarge
-its cap. The USD10 project monthly authorization is separate from this stricter envelope.
+`Envelope` and `BoundedProvider` enforce the shared immutable USD1 envelope, USD0.011
+reservations, conservative usage settlement, unknown-cost retention, Standard tier, no
+SDK/adapter retry, no proxy trust and no fallback. The default remains 400 dispatched attempts.
+The socket CLI accepts an explicit `--max-attempts` integer up to 650; it must match the
+persisted ledger metadata on reopening and does not increase the USD cap. On 2026-10-13 the
+owner separately authorized 650 accumulated attempts for the post-tool evaluation; the audited
+migration retained the original 282 attempts, USD0.376257 conservative accounting and zero
+unknown-cost attempts. Reuse that same ledger across phases, with the explicitly authorized
+cap; never reset counts or costs, create a bypass ledger or expand authorization automatically.
+The USD10 project monthly authorization is separate from this stricter envelope.
 
 All generations still enter through real loopback HTTP/SSE with session, Origin, CSRF,
 idempotency, grounding, persistence and history checks. Provider overrides are isolated
@@ -308,14 +315,16 @@ without mutating either preceding run. See the dated report for results and actu
 
 ## Optional official platform evidence (2026-10-13)
 
-The optional official-source increment has deterministic mocked-source tests; the earlier
-303-query evidence predates it. Do not claim those results validate the new capability. Freeze
-a new200+ manifest and preserve initial results before real-model reruns. Reconcile the existing
-shared ledger before dispatch. The initial400-attempt/$1 envelope had282 attempts used;
-on2026-10-13 the owner authorized650 accumulated attempts while retaining the$1 cap and
-all prior costs. Root owns that audited migration; no count reset or bypass ledger is allowed. Public article reads are not paid model evaluations, and fixture runs cannot
+The optional official-source increment has deterministic mocked-source tests and a separately
+frozen real-model development matrix. The earlier 303-query evidence predates it. Its initial
+203-request phase halted safely on a follow-up context gate; original results remain unchanged.
+The subsequent 74-request phase and final seven targeted regressions are documented in the
+[post-tool report](verification/post-tools-2026-10-13.md), including semantic findings and the
+limited introductory external excerpts actually sent. These phases are not independent holdouts.
+The initial 400-attempt/USD1 envelope retained 282 prior attempts; the owner explicitly authorized
+650 accumulated attempts on 2026-10-13 without changing the USD1 cap. No count reset or bypass
+ledger is allowed. Public article reads are not paid model evaluations, and fixture runs cannot
 certify model tone, conversion or semantic citation support.
-
 
 ## Validated provisional content (2026-10-13)
 
