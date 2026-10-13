@@ -125,7 +125,7 @@ _REFUND_ENTITLEMENT = re.compile(
 )
 
 
-def _negated_at(text: str, position: int) -> bool:
+def negated_at(text: str, position: int) -> bool:
     prefix = re.split(r'[.!?;,\n]|\b(?:pero|but|however|y|and)\b', text[max(0, position - 80) : position])[-1]
     negation = re.search(r'\b(?:no|not|nunca|never)\s+(?:\w+\s+){0,4}$', prefix)
     if negation is None:
@@ -145,7 +145,7 @@ def unsupported_platform_policy(text: str, merchant_policy_texts: tuple[str, ...
     }
     for match in _GUARANTEE_DAYS.finditer(normalized):
         day_group = next(index for index, group in enumerate(match.groups(), 1) if group is not None)
-        if int(match.group(day_group)) not in days and not _negated_at(normalized, match.start(day_group)):
+        if int(match.group(day_group)) not in days and not negated_at(normalized, match.start(day_group)):
             return True
     for match in [*_REFUND_ENTITLEMENT.finditer(normalized), *_PRIVATE_DETAIL_REQUEST.finditer(normalized)]:
         assertion = re.search(
@@ -153,6 +153,6 @@ def unsupported_platform_policy(text: str, merchant_policy_texts: tuple[str, ...
             match.group(),
         )
         position = match.start() + assertion.start() if assertion else match.start()
-        if not _negated_at(normalized, position):
+        if not negated_at(normalized, position):
             return True
     return False

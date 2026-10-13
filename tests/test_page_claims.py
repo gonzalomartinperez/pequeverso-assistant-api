@@ -13,6 +13,8 @@ from tests.support import JSON_HEADERS, ScriptedProvider, answer_json, ask, clie
         'Safari and Juega are included bonuses. Both have 40 pages each.',
         'Juega con Sonidos y Sílabas tiene 40 páginas.',
         'Safari tiene 50 páginas.',
+        'No olvides que Juega tiene 40 páginas.',
+        'Do not forget that Juega has 40 pages.',
         'Safari y Juega suman 80 páginas en total.',
     ],
 )
@@ -29,6 +31,7 @@ def test_false_explicit_page_counts_never_reach_sse_final_or_history(tmp_path, a
         assert 'Juega con Sonidos y Sílabas tiene 40 páginas' not in streamed
         assert 'Safari tiene 50 páginas' not in streamed
         assert '80 páginas' not in streamed
+        assert 'Juega tiene 40 páginas' not in streamed and 'Juega has 40 pages' not in streamed
         assert http.post('/api/v1/session', headers=JSON_HEADERS, json={}).json()['messages'][-1] == final
         _, replay, _ = ask(http, csrf, '¿Qué diferencias hay entre los bonos?', 'pages-bad-001')
         assert replay[-2]['message'] == final
@@ -50,6 +53,8 @@ def test_false_explicit_page_counts_never_reach_sse_final_or_history(tmp_path, a
         'Safari tiene 40 páginas; puedes elegir 5 páginas para la práctica.',
         'Los bonos son PDF imprimibles. No necesitas imprimir todas las páginas.',
         'El kit ofrece 10 minutos de práctica diaria y tiene 414 páginas.',
+        'Juega no tiene 40 páginas; tiene 50 páginas.',
+        'Juega does not have 40 pages; it has 50 pages.',
     ],
 )
 def test_published_individual_shared_total_and_print_subset_counts_remain_allowed(tmp_path, answer):

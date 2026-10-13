@@ -11,6 +11,7 @@ import unicodedata
 from dataclasses import dataclass
 
 from app.domain.catalog import Catalog
+from app.domain.web_evidence import negated_at
 
 
 @dataclass(frozen=True)
@@ -81,6 +82,8 @@ def unsupported_page_claim(text: str, catalog: Catalog) -> bool:
         ]
         mentions.sort(key=lambda m: (m[0], m[1]))
         for claim in _PAGES.finditer(sentence):
+            if negated_at(sentence, claim.start()):
+                continue
             # Explicit print/selection quantities are subsets, not the PDF's size.
             clause_start = (
                 max(sentence.rfind(',', 0, claim.start()), sentence.rfind(':', 0, claim.start())) + 1
