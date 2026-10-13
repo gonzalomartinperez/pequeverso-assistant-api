@@ -129,7 +129,10 @@ def create_app(
             else None
         ),
         composer=GroundedComposer(
-            model, ComposerSettings(settings.max_output_tokens, settings.max_evidence_chars)
+            model,
+            ComposerSettings(
+                settings.max_output_tokens, settings.max_evidence_chars, settings.max_input_tokens
+            ),
         ),
         catalog=catalog,
         messages=messages,
