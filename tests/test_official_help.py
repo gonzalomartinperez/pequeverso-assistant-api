@@ -482,3 +482,23 @@ def test_excerpt_never_cuts_a_qualifying_paragraph_mid_sentence() -> None:
         == 'Procedimiento público de ejemplo: el comprador consulta sus detalles en su cuenta oficial.'
     )
     assert 'Texto demasiado' not in item.text
+
+
+@pytest.mark.parametrize(
+    'answer',
+    [
+        'La garantía publicada es de 7 días, según las condiciones de compra.',
+        'No tenemos una garantía de 30 días.',
+        'La garantía no es de 30 días.',
+        'El reembolso no está garantizado: debes revisar las condiciones.',
+        'Your refund is not guaranteed.',
+        'Comparte tu correo con el soporte oficial, no en este chat.',
+    ],
+)
+def test_merchant_window_and_honest_uncertainty_are_not_positive_platform_claims(answer: str) -> None:
+    from app.domain.web_evidence import unsupported_platform_policy
+
+    assert (
+        unsupported_platform_policy(answer, ('Tienes 7 días desde la compra para pedir el reembolso.',))
+        is False
+    )

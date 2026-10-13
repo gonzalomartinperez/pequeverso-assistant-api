@@ -114,7 +114,7 @@ _GUARANTEE_DAYS = re.compile(
     r'\b(\d+)[- ]day\b[^.!?;\n]{0,35}?\bguarantee\b'
 )
 _PRIVATE_DETAIL_REQUEST = re.compile(
-    r'\b(?:dime|enviame|comparte|pasame|indicame|tell me|send me|share with me|give me)\b'
+    r'\b(?:dime|enviame|comparte conmigo|pasame|indicame|tell me|send me|share with me|give me)\b'
     r'[^.!?;\n]{0,45}?\b(?:correo|email|e-mail|numero de (?:pedido|transaccion|compra)|'
     r'order number|transaction (?:number|id)|purchase (?:number|id))\b'
 )
@@ -123,6 +123,11 @@ _REFUND_ENTITLEMENT = re.compile(
     r'\b(?:reembolso|refund)\b[^.!?;\n]{0,35}?\b(?:garantizado|guaranteed|sera aprobado|will be approved)\b|'
     r'\b(?:garantizado|guaranteed)\b[^.!?;\n]{0,35}?\b(?:reembolso|refund)\b'
 )
+
+
+def _negated_at(text: str, position: int) -> bool:
+    prefix = re.split(r'[.!?;,\n]|\b(?:pero|but|however|y|and)\b', text[max(0, position - 80) : position])[-1]
+    return bool(re.search(r'\b(?:no|not|nunca|never)\s+(?:\w+\s+){0,4}$', prefix))
 
 
 def unsupported_platform_policy(text: str, merchant_policy_texts: tuple[str, ...]) -> bool:
@@ -135,13 +140,15 @@ def unsupported_platform_policy(text: str, merchant_policy_texts: tuple[str, ...
         for match in re.finditer(r'\b(?:tienes|dispones de)\s+(\d+)\s+dias\b', fold(policy))
     }
     for match in _GUARANTEE_DAYS.finditer(normalized):
-        if int(next(group for group in match.groups() if group is not None)) not in days:
+        day_group = next(index for index, group in enumerate(match.groups(), 1) if group is not None)
+        if int(match.group(day_group)) not in days and not _negated_at(normalized, match.start(day_group)):
             return True
     for match in [*_REFUND_ENTITLEMENT.finditer(normalized), *_PRIVATE_DETAIL_REQUEST.finditer(normalized)]:
-        prefix = re.split(
-            r'[.!?;,\n]|\b(?:pero|but|however|y|and)\b',
-            normalized[max(0, match.start() - 80) : match.start()],
-        )[-1]
-        if not re.search(r'\b(?:no|not|nunca|never)\s+(?:\w+\s+){0,4}$', prefix):
+        assertion = re.search(
+            r'\b(?:garantizado|guaranteed|sera aprobado|will be approved|es elegible|is eligible|cumple los requisitos)\b',
+            match.group(),
+        )
+        position = match.start() + assertion.start() if assertion else match.start()
+        if not _negated_at(normalized, position):
             return True
     return False

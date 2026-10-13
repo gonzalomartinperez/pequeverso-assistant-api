@@ -152,6 +152,6 @@ def test_existing_attempt_cap_mismatch_is_checked_before_credential_read(tmp_pat
     key.chmod(0o600)
     reads = []
     monkeypatch.setattr(evaluator, 'dotenv_values', lambda *args, **kwargs: reads.append(True))
-    with pytest.raises(ValueError, match='attempt limit|attempt cap'):
+    with pytest.raises(ValueError, match=r'attempt limit|attempt cap'):
         evaluator.load_live_provider(key, budget, max_attempts=650)
     assert reads == [] and envelope.snapshot() == before
