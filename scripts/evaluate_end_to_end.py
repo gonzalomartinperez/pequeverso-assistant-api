@@ -7,6 +7,7 @@ Structural correctness and heuristic flags are distinct from semantic/model qual
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import logging
@@ -36,6 +37,7 @@ from app.ai.provider import ModelChunk, ModelRequest
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import create_app
 from app.domain.catalog import PriceStatus
+from app.domain.web_evidence import SOURCES
 from scripts.evaluate_conversations import CATALOG, _safety
 from scripts.real_eval_budget import ATTEMPT_MICRO, MAX_ATTEMPTS, BoundedProvider, Envelope
 
@@ -54,7 +56,7 @@ def write_private(path: Path, value: object) -> None:
 
 
 class EvidenceProvider:
-    """Records public catalog evidence only, never instructions or visitor input/history."""
+    """Records actually sent public evidence privately; no instructions or visitor history."""
 
     def __init__(self, bounded: BoundedProvider | None = None) -> None:
         self.bounded = bounded
@@ -70,6 +72,15 @@ class EvidenceProvider:
             i.text.removeprefix('store_data:\n') for i in request.inputs if i.text.startswith('store_data:\n')
         )
         payload = json.loads(raw)
+        official_raw = next(
+            (
+                i.text.removeprefix('official_platform_data:\n')
+                for i in request.inputs
+                if i.text.startswith('official_platform_data:\n')
+            ),
+            None,
+        )
+        official_record = {'official_platform': json.loads(official_raw)} if official_raw is not None else {}
         self.records.append(
             {
                 'sha256': digest(raw.encode()),
@@ -79,10 +90,47 @@ class EvidenceProvider:
                 'resources': [r['id'] for p in payload['products'] for r in p['resources']],
                 'documents': [d['id'] for d in payload['documents']],
                 'links': [link['id'] for link in payload['links']],
+                **official_record,
             }
         )
         async for chunk in (self.bounded or self.fixture).stream(request):
             yield chunk
+
+
+def official_help_requested(manifest: dict[str, Any]) -> bool:
+    value = manifest.get('official_help_enabled', False)
+    if type(value) is not bool:
+        raise ValueError('official_help_enabled must be a boolean')
+    return value
+
+
+def safety_with_official_evidence(
+    events: list[dict[str, Any]], price_status: PriceStatus, evidence: list[dict[str, Any]]
+) -> list[str]:
+    selected = {item['id'] for record in evidence for item in record.get('official_platform', [])}
+    if not selected:
+        return _safety(events, price_status)
+    known = {f'hotmart:{source.article_id}': source for source in SOURCES}
+    copied = copy.deepcopy(events)
+    problems: list[str] = []
+    for event in copied:
+        if event['type'] != 'message.completed':
+            continue
+        retained = []
+        for citation in event['message']['sources']:
+            source = known.get(citation['id'])
+            if (
+                source
+                and citation['id'] in selected
+                and citation['url'] == source.url
+                and citation['title'] == source.title
+            ):
+                continue  # Exact actually sent public source, checked independently of catalog URLs.
+            if citation['id'].startswith('hotmart:'):
+                problems.append('unretrieved or invalid official platform citation')
+            retained.append(citation)
+        event['message']['sources'] = retained
+    return [*_safety(copied, price_status), *problems]
 
 
 def observed_language(content: str, notices: list[str], *, spanish_native: bool = False) -> str:
@@ -194,6 +242,7 @@ def evaluate(
     *,
     bounded: BoundedProvider | None = None,
 ) -> dict[str, Any]:
+    use_official_help = official_help_requested(manifest)
     spanish_native = manifest.get('reply_policy') == 'spanish_native'
     response_language = 'es' if spanish_native else None
     policy_expectations = manifest.get('policy_expected_languages', {})
@@ -225,6 +274,7 @@ def evaluate(
         environment='test',
         ai_provider='openai' if bounded else 'fixture',
         allow_paid_ai=bounded is not None,
+        official_help_enabled=use_official_help and bounded is not None,
         openai_api_key=SecretStr(bounded._key) if bounded else None,
         catalog_url=None,
         catalog_file=DEFAULT_CATALOG,
@@ -371,11 +421,12 @@ def evaluate(
                         ):
                             semantic_flags.append('expected language differs from output metadata')
                         safety = (
-                            _safety(
+                            safety_with_official_evidence(
                                 result['events'],
                                 PriceStatus(public_evidence[-1]['price_status'])
                                 if public_evidence
                                 else PriceStatus.UNVERIFIED,
+                                public_evidence,
                             )
                             if result['events']
                             else ['no SSE events']

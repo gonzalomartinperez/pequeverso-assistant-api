@@ -23,6 +23,7 @@ from openai import AsyncOpenAI
 from app.adapters.catalog_schema import CatalogParser
 from app.adapters.catalog_source import FileCatalogSource, HttpCatalogSource
 from app.adapters.fixture_provider import FixtureProvider
+from app.adapters.official_help import OfficialHelpReader
 from app.adapters.openai_provider import OpenAIResponsesProvider
 from app.adapters.sqlite.catalog_repository import SqliteCatalogRepository
 from app.adapters.sqlite.database import Database
@@ -120,6 +121,13 @@ def create_app(
         daily_limit_micro=to_micro(settings.daily_budget_usd),
     )
     chat = ChatService(
+        official_help=(
+            OfficialHelpReader()
+            if settings.official_help_enabled
+            and settings.ai_provider == 'openai'
+            and settings.assistant_enabled
+            else None
+        ),
         composer=GroundedComposer(
             model, ComposerSettings(settings.max_output_tokens, settings.max_evidence_chars)
         ),

@@ -175,3 +175,14 @@ storefront, publishes an image or authorizes an infrastructure action.
   dependencies. Prometheus3.13 LTS, Grafana13.2 and collector components require final image
   and compatibility selection by vps-ops. Examples are application handoff artifacts, not
   permission to deploy a monitoring stack.
+
+
+## Optional official platform evidence (2026-10-13)
+
+`OFFICIAL_HELP_ENABLED=false` is the default. If later authorized, the API reads only
+`https://api-help-center.bkf.hotmart.com:443/articles/{approved_id}` for209033897,360061973392
+and9312940657933, with no credentials, redirects, proxies, visitor data or arbitrary query.
+Review egress and trusted-DNS residual; the transport does not pin resolved IPs. Human citations
+use three exact `help.hotmart.com` URLs. No other Hotmart/account/checkout endpoint is fetched.
+Failure omits this optional evidence without changing provider or catalog readiness. See
+[the source contract and limits](../official-web-evidence.md). This handoff authorizes no deployment.

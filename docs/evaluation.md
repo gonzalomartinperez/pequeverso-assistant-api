@@ -288,3 +288,14 @@ The final14-query matrix uses the same helper with
 `--previous-run /absolute/private/spanish-native-post-adjustment`, retaining the same original
 baseline manifest and shared budget state. It repairs the six recorded quality observations
 without mutating either preceding run. See the dated report for results and actual code revisions.
+
+
+## Optional official platform evidence (2026-10-13)
+
+The optional official-source increment has deterministic mocked-source tests; the earlier
+303-query evidence predates it. Do not claim those results validate the new capability. Freeze
+a new200+ manifest and preserve initial results before real-model reruns. Reconcile the existing
+shared ledger before dispatch. The initial400-attempt/$1 envelope had282 attempts used;
+on2026-10-13 the owner authorized650 accumulated attempts while retaining the$1 cap and
+all prior costs. Root owns that audited migration; no count reset or bypass ledger is allowed. Public article reads are not paid model evaluations, and fixture runs cannot
+certify model tone, conversion or semantic citation support.

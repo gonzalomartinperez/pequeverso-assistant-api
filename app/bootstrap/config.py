@@ -82,6 +82,9 @@ class Settings(BaseSettings):
     telemetry_trace_sampling_ratio: float = Field(default=0.1, ge=0, le=1)
     telemetry_export_timeout_seconds: float = Field(default=2.0, gt=0, le=5)
 
+    # Optional server-owned official public help retrieval; fixture mode never uses the network.
+    official_help_enabled: bool = False
+
     # Catalog.
     catalog_url: str | None = None
     catalog_file: Path = DEFAULT_CATALOG
@@ -103,6 +106,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode='after')
     def fail_closed(self) -> Settings:
+        if (
+            self.official_help_enabled
+            and self.ai_provider == 'openai'
+            and (self.openai_model != 'gpt-6-luna' or self.openai_reasoning_effort != 'medium')
+        ):
+            raise ValueError('official help requires gpt-6-luna with medium reasoning')
         if self.telemetry_otlp_endpoint:
             if any(name.startswith('OTEL_') and value for name, value in os.environ.items()):
                 raise ValueError(

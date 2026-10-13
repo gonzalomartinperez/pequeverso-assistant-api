@@ -83,3 +83,10 @@ Storefront copy and media are © Pequeverso, all rights reserved (storefront
 `LICENSE-CONTENT.md`). They are used here only to answer questions about Pequeverso's own
 product; the same text is already public in the storefront repository. This repository is public
 and grants no license. The owner has been asked to confirm this use (docs/business-questions.md).
+
+
+## Optional official platform evidence (2026-10-13)
+
+The catalog remains the only authority for products, prices and merchant policies. Optional
+[official platform evidence](official-web-evidence.md) explains general buyer procedures only;
+its fetch time cannot refresh catalog price verification or change a merchant guarantee.

@@ -1,7 +1,7 @@
 # Security, privacy and threat model
 
 The assistant is advisory and read-only. It holds no customer, order or payment data; the model
-has no tools. The controls below are code, not prompt wording.
+has no callable tools; optional server-owned public procedure retrieval is described below. The controls below are code, not prompt wording.
 
 | Threat | Control (code) | Tested in |
 |---|---|---|
@@ -61,3 +61,12 @@ SDK and runtime adapter retries are0; `OPENAI_MAX_RETRIES` accepts only0 and rej
 nonzero configuration. An ambiguous connection timeout retains the reservation and never
 silently dispatches another billed attempt. Custom gateways, regional endpoints or a different
 service tier require a new endpoint/security/pricing review before configuration changes.
+
+
+## Optional official platform evidence (2026-10-13)
+
+Optional [official platform retrieval](official-web-evidence.md) is fixed-ID, default-off,
+fixture-network-off and sends no visitor data. It rejects redirects/compression/oversize/schema
+failures, treats text as untrusted evidence and resolves only ids actually sent in the turn.
+The fixed HTTPS upstream uses trusted DNS, not IP pinning; document egress review rather than
+claiming complete DNS-rebinding prevention. Final source support still needs semantic review.
