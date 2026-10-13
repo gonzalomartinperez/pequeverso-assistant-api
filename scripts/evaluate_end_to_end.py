@@ -7,6 +7,7 @@ Structural correctness and heuristic flags are distinct from semantic/model qual
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import logging
@@ -36,6 +37,7 @@ from app.ai.provider import ModelChunk, ModelRequest
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import create_app
 from app.domain.catalog import PriceStatus
+from app.domain.web_evidence import SOURCES
 from scripts.evaluate_conversations import CATALOG, _safety
 from scripts.real_eval_budget import ATTEMPT_MICRO, MAX_ATTEMPTS, BoundedProvider, Envelope
 
@@ -54,7 +56,7 @@ def write_private(path: Path, value: object) -> None:
 
 
 class EvidenceProvider:
-    """Records public catalog evidence only, never instructions or visitor input/history."""
+    """Records actually sent public evidence privately; no instructions or visitor history."""
 
     def __init__(self, bounded: BoundedProvider | None = None) -> None:
         self.bounded = bounded
@@ -70,6 +72,15 @@ class EvidenceProvider:
             i.text.removeprefix('store_data:\n') for i in request.inputs if i.text.startswith('store_data:\n')
         )
         payload = json.loads(raw)
+        official_raw = next(
+            (
+                i.text.removeprefix('official_platform_data:\n')
+                for i in request.inputs
+                if i.text.startswith('official_platform_data:\n')
+            ),
+            None,
+        )
+        official_record = {'official_platform': json.loads(official_raw)} if official_raw is not None else {}
         self.records.append(
             {
                 'sha256': digest(raw.encode()),
@@ -79,10 +90,47 @@ class EvidenceProvider:
                 'resources': [r['id'] for p in payload['products'] for r in p['resources']],
                 'documents': [d['id'] for d in payload['documents']],
                 'links': [link['id'] for link in payload['links']],
+                **official_record,
             }
         )
         async for chunk in (self.bounded or self.fixture).stream(request):
             yield chunk
+
+
+def official_help_requested(manifest: dict[str, Any]) -> bool:
+    value = manifest.get('official_help_enabled', False)
+    if type(value) is not bool:
+        raise ValueError('official_help_enabled must be a boolean')
+    return value
+
+
+def safety_with_official_evidence(
+    events: list[dict[str, Any]], price_status: PriceStatus, evidence: list[dict[str, Any]]
+) -> list[str]:
+    selected = {item['id'] for record in evidence for item in record.get('official_platform', [])}
+    if not selected:
+        return _safety(events, price_status)
+    known = {f'hotmart:{source.article_id}': source for source in SOURCES}
+    copied = copy.deepcopy(events)
+    problems: list[str] = []
+    for event in copied:
+        if event['type'] != 'message.completed':
+            continue
+        retained = []
+        for citation in event['message']['sources']:
+            source = known.get(citation['id'])
+            if (
+                source
+                and citation['id'] in selected
+                and citation['url'] == source.url
+                and citation['title'] == source.title
+            ):
+                continue  # Exact actually sent public source, checked independently of catalog URLs.
+            if citation['id'].startswith('hotmart:'):
+                problems.append('unretrieved or invalid official platform citation')
+            retained.append(citation)
+        event['message']['sources'] = retained
+    return [*_safety(copied, price_status), *problems]
 
 
 def observed_language(content: str, notices: list[str], *, spanish_native: bool = False) -> str:
@@ -107,6 +155,7 @@ def ask(
 ) -> dict[str, Any]:
     started = time.monotonic()
     first: float | None = None
+    first_visible: float | None = None
     events: list[dict[str, Any]] = []
     with client.stream(
         'POST',
@@ -135,8 +184,20 @@ def ask(
                 if line.startswith('data: '):
                     event = json.loads(line[6:])
                     events.append(event)
-                    if event['type'] == 'message.delta' and first is None:
-                        first = time.monotonic() - started
+                    is_delta = event['type'] == 'message.delta'
+                    message = event.get('message')
+                    visible = (is_delta and bool(event.get('text', '').strip())) or (
+                        event['type'] == 'message.completed'
+                        and isinstance(message, dict)
+                        and isinstance(message.get('content'), str)
+                        and bool(message['content'].strip())
+                    )
+                    if (is_delta and first is None) or (visible and first_visible is None):
+                        elapsed = time.monotonic() - started
+                        if is_delta and first is None:
+                            first = elapsed
+                        if visible and first_visible is None:
+                            first_visible = elapsed
                     if on_event:
                         on_event(events)
         else:
@@ -146,12 +207,19 @@ def ask(
         'error': error,
         'events': events,
         'first_content_seconds': first,
+        'first_visible_content_seconds': first_visible,
         'duration_seconds': time.monotonic() - started,
     }
 
 
-def load_live_provider(key_file: Path, budget_state: Path) -> BoundedProvider:
-    """Only explicit live mode calls this; no shell evaluation or ambient key lookup."""
+def load_live_provider(
+    key_file: Path, budget_state: Path, *, max_attempts: int = MAX_ATTEMPTS
+) -> BoundedProvider:
+    """Only explicit live mode calls this; validate the shared cap before reading the key."""
+    if type(max_attempts) is not int or not 1 <= max_attempts <= 650:
+        raise ValueError('evaluation attempt cap must be an integer from 1 to 650')
+    if max_attempts > MAX_ATTEMPTS and not budget_state.is_file():
+        raise ValueError('extended attempt cap requires the existing shared evaluation budget')
     for path in (key_file, budget_state):
         if path.resolve().is_relative_to(ROOT):
             raise ValueError('live private files must be outside the repository')
@@ -164,6 +232,11 @@ def load_live_provider(key_file: Path, budget_state: Path) -> BoundedProvider:
     budget_state.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     if stat.S_IMODE(budget_state.parent.stat().st_mode) != 0o700:
         raise ValueError('shared budget directory must be private mode700')
+    # Persisted-cap mismatch fails before any credential read. Extending the owner-approved
+    # existing run must not accidentally create a fresh allowance through a mistyped path.
+    envelope = Envelope(budget_state, max_attempts=max_attempts)
+    if max_attempts > MAX_ATTEMPTS and envelope.snapshot()['attempts'] == 0:
+        raise ValueError('extended attempt cap requires an already-used shared evaluation budget')
     values = dotenv_values(key_file, interpolate=False)
     key = values.get('OPENAI_API_KEY')
     if (
@@ -172,7 +245,7 @@ def load_live_provider(key_file: Path, budget_state: Path) -> BoundedProvider:
         or values.get('OPENAI_REASONING_EFFORT') != 'medium'
     ):
         raise ValueError('private configuration does not match the authorized model')
-    return BoundedProvider(key, Envelope(budget_state))
+    return BoundedProvider(key, envelope)
 
 
 def checkpoint(path: Path, value: object) -> None:
@@ -194,6 +267,7 @@ def evaluate(
     *,
     bounded: BoundedProvider | None = None,
 ) -> dict[str, Any]:
+    use_official_help = official_help_requested(manifest)
     spanish_native = manifest.get('reply_policy') == 'spanish_native'
     response_language = 'es' if spanish_native else None
     policy_expectations = manifest.get('policy_expected_languages', {})
@@ -213,7 +287,7 @@ def evaluate(
             if snapshot['stop_reason']:
                 stop_reason = snapshot['stop_reason']
             elif (
-                snapshot['attempts'] >= MAX_ATTEMPTS
+                snapshot['attempts'] >= envelope.max_attempts
                 or snapshot['reserved_micro_usd'] + ATTEMPT_MICRO > envelope.cap_micro
             ):
                 envelope.stop('budget_or_attempt_limit')
@@ -225,6 +299,7 @@ def evaluate(
         environment='test',
         ai_provider='openai' if bounded else 'fixture',
         allow_paid_ai=bounded is not None,
+        official_help_enabled=use_official_help and bounded is not None,
         openai_api_key=SecretStr(bounded._key) if bounded else None,
         catalog_url=None,
         catalog_file=DEFAULT_CATALOG,
@@ -318,6 +393,7 @@ def evaluate(
                                 'error': type(error).__name__,
                                 'events': [],
                                 'first_content_seconds': None,
+                                'first_visible_content_seconds': None,
                                 'duration_seconds': None,
                             }
                         completed = [
@@ -371,11 +447,12 @@ def evaluate(
                         ):
                             semantic_flags.append('expected language differs from output metadata')
                         safety = (
-                            _safety(
+                            safety_with_official_evidence(
                                 result['events'],
                                 PriceStatus(public_evidence[-1]['price_status'])
                                 if public_evidence
                                 else PriceStatus.UNVERIFIED,
+                                public_evidence,
                             )
                             if result['events']
                             else ['no SSE events']
@@ -583,28 +660,32 @@ def main() -> None:
     parser.add_argument('--live', action='store_true')
     parser.add_argument('--key-file', type=Path)
     parser.add_argument('--budget-state', type=Path)
+    parser.add_argument('--max-attempts', type=int, default=MAX_ATTEMPTS)
     parser.add_argument('--manifest', type=Path, default=ROOT / 'evals/end_to_end.json')
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--source-revision', required=True)
     args = parser.parse_args()
     os.umask(0o077)
-    bounded = None
-    if args.live:
-        if args.key_file is None or args.budget_state is None:
-            parser.error('--live requires --key-file and shared --budget-state')
-        bounded = load_live_provider(args.key_file, args.budget_state)
+    manifest = json.loads(args.manifest.read_text())
+    official_help_requested(manifest)
+    if not 1 <= args.max_attempts <= 650:
+        parser.error('--max-attempts must be from 1 to 650')
+    if sum(len(c['turns']) for c in manifest['cases']) < 200:
+        parser.error('at least 200 frozen queries required')
     destination = args.output_dir.resolve()
     if destination == ROOT or ROOT in destination.parents:
         parser.error('full answers must be outside the repository')
     if destination.exists():
         parser.error('destination must be new; initial results must never be overwritten')
+    bounded = None
+    if args.live:
+        if args.key_file is None or args.budget_state is None:
+            parser.error('--live requires --key-file and shared --budget-state')
+        bounded = load_live_provider(args.key_file, args.budget_state, max_attempts=args.max_attempts)
     destination.mkdir(parents=True, mode=0o700)
     os.chmod(destination, 0o700)
     for name in ('httpx', 'httpx2', 'httpcore', 'httpcore2', 'openai'):
         logging.getLogger(name).setLevel(logging.CRITICAL)
-    manifest = json.loads(args.manifest.read_text())
-    if sum(len(c['turns']) for c in manifest['cases']) < 200:
-        parser.error('at least 200 frozen queries required')
     write_private(destination / 'manifest.json', manifest)
     (destination / 'catalog.json').write_bytes(DEFAULT_CATALOG.read_bytes())
     os.chmod(destination / 'catalog.json', 0o600)

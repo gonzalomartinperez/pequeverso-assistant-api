@@ -9,14 +9,30 @@ is distinct from semantic correctness, and agent review is not human review.
 | Suite | Command | What it proves | Latest result (fixture) |
 |---|---|---|---|
 | Retrieval | `uv run python scripts/evaluate_retrieval.py` | Lexical ranking finds the right passage (20 cases, `evals/retrieval.json`) | recall@3 = 0.95, MRR = 0.908 (miss: "correo postal" vs "producto físico") |
-| Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 16 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 16/16 safe |
-| Guards | same command (`evals/guards.json`) | 11 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup) are dropped or replaced server-side | 11/11 |
+| Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 17 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 17/17 safe |
+| Guards | same command (`evals/guards.json`) | 12 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup) are dropped or replaced server-side | 12/12 |
 | Corpus | `uv run python scripts/evaluate_corpus.py` | 288 hand-written cases in 18 intent families (`evals/corpus/`), retrieval per family/split/language, and every case through the full HTTP/SSE path | Gates: 0/288 pipeline failures; reply language 285/285 as expected (`lang-016` fixed with Portuguese markers). Retrieval recall@3 = 0.70 overall (dev 0.67, holdout 0.77), 0.17 on English questions. Report: `evals/reports/corpus-fixture.json` |
 | Conversations: quality | same command with `--live` | Budget recommendation, low budget honesty, resource comparison, clarification, no-match (fluent reader, app), stale price, follow-up reference, invented discount, injection, unknown shipping and license policy, refused order action, payment data, offer probe, child-data minimization, English visitor | This specific conversations CLI has not been run live. The separate 303-turn socket evaluation is documented below; fixture scores do not measure model quality |
 
 `tests/test_evaluations.py` gates CI on retrieval ≥ 0.9 recall@3, zero safety failures, zero
 guard failures, zero corpus gate failures, the exact set of known reply-language misses and
 the corpus retrieval floors. `docs/verification/fixture-eval.json` holds the latest full fixture report.
+
+## Post-change evaluation scope
+
+The 2026-10-13 catalog provenance refresh to storefront `main` `18b6869` changes only
+source revision and verification time; all kit facts remain identical to the prior snapshot.
+The frozen 258-query post-change matrix evaluates Grafismo Fonético and general Hotmart
+procedures, not the complete affiliate offering visible on the home. The newly recommended
+third-party video course is a known [catalog coverage gap](catalog.md#current-coverage-2026-10-13).
+Do not interpret successful runs as support for that course, its price, producer policies or
+health outcomes.
+
+Before the authorized real run, record the exact refreshed catalog hash in phase metadata,
+preserve the prior manifest and record its parent hash. Cases and expected outcomes remain
+frozen; this metadata update neither indexes questions nor rewrites initial results. Any future
+affiliate coverage needs a separate authorized implementation and a separately frozen phase.
+This section defines scope, not a completed real-model result.
 
 ## Fixture vs real model
 
@@ -288,3 +304,41 @@ The final14-query matrix uses the same helper with
 `--previous-run /absolute/private/spanish-native-post-adjustment`, retaining the same original
 baseline manifest and shared budget state. It repairs the six recorded quality observations
 without mutating either preceding run. See the dated report for results and actual code revisions.
+
+
+## Optional official platform evidence (2026-10-13)
+
+The optional official-source increment has deterministic mocked-source tests; the earlier
+303-query evidence predates it. Do not claim those results validate the new capability. Freeze
+a new200+ manifest and preserve initial results before real-model reruns. Reconcile the existing
+shared ledger before dispatch. The initial400-attempt/$1 envelope had282 attempts used;
+on2026-10-13 the owner authorized650 accumulated attempts while retaining the$1 cap and
+all prior costs. Root owns that audited migration; no count reset or bypass ledger is allowed. Public article reads are not paid model evaluations, and fixture runs cannot
+certify model tone, conversion or semantic citation support.
+
+
+## Validated provisional content (2026-10-13)
+
+A confirmed fixture HTTP/SSE reproduction exposed a false $999 price before final replacement;
+the original receipt remains intact. Regressions now cover character-split prices, normalized
+markup, source-scoped refund claims, action/outcome claims, early valid streaming, terminal
+remainder, history/replay/isolation and cancellation/deadlines. Lifecycle gaps introduced by the
+new terminal-tail yield were caught during independent review and covered before integration:
+known usage must settle before that yield, while cancellation/deadlines must be checked on both
+sides. These are deterministic fixture checks, not a real-model quality result.
+
+API `first_delta_ms` measures the first actually emitted checked fragment; a final-only
+replacement with no preceding valid prefix reports null. The socket evaluator preserves the
+historical `first_content_seconds` meaning (first delta received) and adds
+`first_visible_content_seconds`: first nonempty delta or authoritative `message.completed`
+content received. It measures client receipt, not provider token timing, browser paint or the
+later `run.completed` marker. Historical reports are not rewritten. The frozen real matrix
+remains evaluation input only; no questions are indexed and no new paid attempts are implied.
+
+
+The follow-up catalog-only fixture audit found a false 30-day guarantee could reach both
+checked deltas and the final answer when optional web evidence was absent. The same existing
+policy recognizer now runs regardless of that evidence. Its narrow negation handling also
+rejects positive reminders ("No olvides…" / "Do not forget…") about unsupported guarantees,
+while preserving honest denials and the published seven-day window. Canonical fixture guards
+include the false window; frozen real matrices and historical checkpoints are unchanged.

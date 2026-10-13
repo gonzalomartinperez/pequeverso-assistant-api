@@ -6,6 +6,9 @@ from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from starlette.responses import JSONResponse
 
@@ -512,3 +515,49 @@ def test_actual_export_header_stall_has_overall_deadline_and_runtime_can_stop():
         server.shutdown()
         thread.join(timeout=3)
         server.server_close()
+
+
+@pytest.mark.parametrize('enabled', [False, True])
+def test_framework_does_not_use_ambient_telemetry_or_public_parent(tmp_path, monkeypatch, enabled):
+    # An ambient provider represents instrumentation installed by another library.
+    # It must not capture public requests, even when our own telemetry is enabled.
+    ambient_exporter = InMemorySpanExporter()
+    ambient = TracerProvider(shutdown_on_exit=False)
+    ambient.add_span_processor(SimpleSpanProcessor(ambient_exporter))
+    monkeypatch.setattr(trace, 'get_tracer_provider', lambda: ambient)
+    own_exporter = InMemorySpanExporter()
+    instances = []
+
+    class CapturedTelemetry(RuntimeTelemetry):
+        def __init__(self, **kwargs):
+            kwargs['exporter'] = own_exporter
+            kwargs['sampling_ratio'] = 1
+            super().__init__(**kwargs)
+            instances.append(self)
+
+    monkeypatch.setattr('app.adapters.observability.RuntimeTelemetry', CapturedTelemetry)
+    try:
+        with TestClient(create_app(settings(tmp_path, observability_enabled=enabled))) as client:
+            response = client.get(
+                '/api/v1/availability?private_query=visitor-query-sentinel',
+                headers={
+                    'traceparent': '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
+                    'x-private': 'visitor-header-sentinel',
+                },
+            )
+            assert response.status_code == 200
+            assert len(instances) == int(enabled)
+            if enabled:
+                assert instances[0].trace_provider.force_flush(1000)
+                spans = own_exporter.get_finished_spans()
+                assert spans and all(span.parent is None for span in spans)
+                assert all(span.context.trace_id != int('a' * 32, 16) for span in spans)
+                exported = str([(span.name, dict(span.attributes)) for span in spans])
+                assert 'visitor-query-sentinel' not in exported
+                assert 'visitor-header-sentinel' not in exported
+            else:
+                assert not own_exporter.get_finished_spans()
+        assert ambient.force_flush(1000)
+        assert not ambient_exporter.get_finished_spans()
+    finally:
+        ambient.shutdown()

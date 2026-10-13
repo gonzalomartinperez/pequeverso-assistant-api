@@ -104,6 +104,7 @@ latency percentiles, token usage and spend (confirmed / estimated / pending) to 
 | `DATABASE_PATH` | `/data/assistant.sqlite3` (image default) | config |
 | `CATALOG_URL` | unset (bundled snapshot). Set only if the storefront publishes the catalog document | config |
 | `CATALOG_PRICE_MAX_AGE_HOURS` | `168` | config |
+| `OFFICIAL_HELP_ENABLED` | `false` (default). Optional three fixed public Hotmart procedure reads; fixture mode never uses their network adapter. Review [source/egress limits](official-web-evidence.md) before a separately authorized enablement | config |
 
 Validation refuses to start with unsafe combinations: a paid provider without opt-in and key,
 fixture answers in production, non-https or localhost origins, insecure cookies, a missing or
@@ -425,3 +426,9 @@ findings and no published fixed versions in that database. The CycloneDX SBOM co
 components. Scanner results remain visible and do not constitute production risk acceptance.
 Before deployment, rebuild and smoke the exact approved release commit, review its current
 security inventory and complete the vps-ops activation gates.
+
+## Shared runtime baseline
+
+See [runtime-baseline.md](runtime-baseline.md) for the2026-10-13 shared cohort and image
+acceptance. Actual committed locks and Dockerfiles supersede historical version/size samples;
+no production publication, deployment or live OAuth/provider check is implied.

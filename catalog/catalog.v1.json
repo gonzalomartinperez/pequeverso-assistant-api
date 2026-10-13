@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-12T17:18:06+00:00",
+  "generated_at": "2026-10-13T05:09:16+00:00",
   "source": {
     "repository": "gonzalomartinperez/pequeverso",
-    "revision": "eb68a041b4515d71a734626fdaee0ef06d8693c3"
+    "revision": "18b68692867ddd379a3e30130a473dcb7e8a355b"
   },
   "site": {
     "name": "Pequeverso",

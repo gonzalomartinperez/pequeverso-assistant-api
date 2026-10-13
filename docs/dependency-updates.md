@@ -1,6 +1,15 @@
 # Dependency updates and conservative auto-merge
 
-## Current state (2026-09-27, after the repository became public)
+## Current state (2026-10-13)
+
+The configuration and policy workflow now exist on `main`; version updates target
+`develop` and the policy evaluates their current heads. PRs #43 (development tools),
+#44 (FastAPI) and #45 (OpenAI SDK) are under review, not yet merged at this checkpoint.
+Strict required checks still gate integration. Framework and provider SDK changes
+require explicit review; native Dependabot rebase refreshes their protected base.
+The historical table below records the original activation delay, not today's status.
+
+## Historical state (2026-09-27, after the repository became public)
 
 | Control | State |
 |---|---|
