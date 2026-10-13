@@ -492,3 +492,8 @@ One initial build used an incorrectly transcribed SERVICE_REVISION and was disca
 acceptance evidence before any smoke. The selected image above was rebuilt with the verified
 full Git SHA; its inspected SERVICE_REVISION matches that SHA exactly. No earlier digest is
 relabeled as this build. vps-ops must rebuild and smoke its exact approved release commit.
+## Shared runtime baseline
+
+See [runtime-baseline.md](runtime-baseline.md) for the 2026-10-13 shared cohort and image
+acceptance. Actual committed locks and Dockerfiles supersede historical version/size samples;
+no production publication, deployment or live OAuth/provider check is implied.
