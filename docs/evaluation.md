@@ -315,3 +315,22 @@ shared ledger before dispatch. The initial400-attempt/$1 envelope had282 attempt
 on2026-10-13 the owner authorized650 accumulated attempts while retaining the$1 cap and
 all prior costs. Root owns that audited migration; no count reset or bypass ledger is allowed. Public article reads are not paid model evaluations, and fixture runs cannot
 certify model tone, conversion or semantic citation support.
+
+
+## Validated provisional content (2026-10-13)
+
+A confirmed fixture HTTP/SSE reproduction exposed a false $999 price before final replacement;
+the original receipt remains intact. Regressions now cover character-split prices, normalized
+markup, source-scoped refund claims, action/outcome claims, early valid streaming, terminal
+remainder, history/replay/isolation and cancellation/deadlines. Lifecycle gaps introduced by the
+new terminal-tail yield were caught during independent review and covered before integration:
+known usage must settle before that yield, while cancellation/deadlines must be checked on both
+sides. These are deterministic fixture checks, not a real-model quality result.
+
+API `first_delta_ms` measures the first actually emitted checked fragment; a final-only
+replacement with no preceding valid prefix reports null. The socket evaluator preserves the
+historical `first_content_seconds` meaning (first delta received) and adds
+`first_visible_content_seconds`: first nonempty delta or authoritative `message.completed`
+content received. It measures client receipt, not provider token timing, browser paint or the
+later `run.completed` marker. Historical reports are not rewritten. The frozen real matrix
+remains evaluation input only; no questions are indexed and no new paid attempts are implied.

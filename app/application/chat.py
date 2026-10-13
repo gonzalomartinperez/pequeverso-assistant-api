@@ -23,6 +23,7 @@ from app.application.answers import (
     UNSUPPORTED_LANGUAGE_ANSWER,
     UNSUPPORTED_LANGUAGE_ANSWER_ES,
     FinalizedAnswer,
+    ValidatedStreamPrefix,
     answer_rules,
     finalize,
     payment_refusal_text,
@@ -171,6 +172,7 @@ class _ModelRun(Run):
         self._first_delta_ms: int | None = None
         self._settled = False
         self._replaced = False
+        self._prefix = ValidatedStreamPrefix()
 
     async def events(self) -> AsyncIterator[RunEvent]:
         yield RunStarted(self.id, self._user_message)
@@ -185,12 +187,38 @@ class _ModelRun(Run):
                 if event is None:
                     break
                 if isinstance(event, DeltaEvent):
-                    if event.text:
+                    rules = answer_rules(
+                        self._active.catalog,
+                        self._active.price_status(service.clock.now()),
+                        service.limits.extra_forbidden_terms,
+                    )
+                    delta = self._prefix.feed(event.text, self._active.catalog, rules, self._web_evidence)
+                    if delta:
                         if self._first_delta_ms is None:
                             self._first_delta_ms = self._elapsed_ms()
-                        yield AnswerDelta(event.text)
+                        yield AnswerDelta(delta)
                     continue
-                message = await self._complete(event)
+                # Usage is already known: a disconnect at the validated tail must not lose it.
+                await self._settle(event.usage)
+                if self._cancel.is_set():
+                    await self._finish(RunState.CANCELLED)
+                    yield RunCancelled()
+                    return
+                if time.monotonic() >= deadline:
+                    raise TimeoutError
+                final = self._finalize(event)
+                delta = self._prefix.finish(final)
+                if delta:
+                    if self._first_delta_ms is None:
+                        self._first_delta_ms = self._elapsed_ms()
+                    yield AnswerDelta(delta)
+                if self._cancel.is_set():
+                    await self._finish(RunState.CANCELLED)
+                    yield RunCancelled()
+                    return
+                if time.monotonic() >= deadline:
+                    raise TimeoutError
+                message = await self._complete(event, final)
                 yield AnswerCompleted(message)
                 return
             if self._cancel.is_set():
@@ -246,14 +274,17 @@ class _ModelRun(Run):
         except StopAsyncIteration:
             return None
 
-    async def _complete(self, event: DraftEvent) -> Message:
+    def _finalize(self, event: DraftEvent) -> FinalizedAnswer:
         service = self._service
-        now = service.clock.now()
-        price_status = self._active.price_status(now)
+        price_status = self._active.price_status(service.clock.now())
         rules = answer_rules(self._active.catalog, price_status, service.limits.extra_forbidden_terms)
-        final: FinalizedAnswer = finalize(
+        return finalize(
             event.draft, self._active, price_status, rules, self._prepared_language, self._web_evidence
         )
+
+    async def _complete(self, event: DraftEvent, final: FinalizedAnswer) -> Message:
+        service = self._service
+        now = service.clock.now()
         self._replaced = Notice.ANSWER_REPLACED in final.details.notices
         message = Message(_message_id(), Role.ASSISTANT, final.content, now, final.details)
         await self._settle(event.usage)
