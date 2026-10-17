@@ -529,3 +529,15 @@ messages with defaults; the reverse requires an explicit, validated data migrati
 compatible reader. Do not promise image-only rollback, erase conversations/ledger, or restore
 an old full database over newer accounting. Validate rollback on an isolated copy and obtain
 a deliberate data-preservation plan before production activation.
+
+
+## Python 3.15 cohort verification — 2026-10-17
+
+The [current runtime candidate report](verification/runtime-cohort-2026-10-17.md) separates
+754-test compatibility evidence, exact local image identity, hardened smoke/restore and
+active-stream shutdown from historical Python 3.14 measurements above. The initial Python
+3.15 candidate measured 70.01 MiB idle / 87,961,600-byte cgroup peak under 256 MiB and
+1.222-second idle / 5.298-second active-stream stops; those are local fixture observations,
+not VPS reservations or capacity. Container CPU remains a ceiling, not measured demand.
+Current scan findings, database freshness, SBOM uncertainty and re-scan requirements remain
+visible in that report. No image was published and no production deployment is authorized.

@@ -59,6 +59,54 @@ contract 1.5 and private ops 1.2/telemetry 1.0 must remain byte-identical to the
 all 19 manifest/artifact blobs, including the four private schema/example blobs, are checked.
 No regenerated contract drift is accepted silently.
 
+## Local candidate image and measured limits
+
+Source `3a2e4da6779da4960d754f61440e25abc7a65b39` built in 39.831 s as local image
+`sha256:15dbee1899cbd89984a4ee255b8ccb83c27944674c82dd2116c7c789859c4fb5`
+(58,020,026 reported image bytes). It reports Python 3.15.0, UID/GID 65532, GIL enabled,
+JIT disabled and normal imports. This is a local identity, not a published registry digest.
+Later documentation-only commits have different `SERVICE_REVISION`; their exact-head image
+verification must be recorded separately rather than relabelling this image.
+
+The standard smoke passed in 21.963 s: read-only root, health/readiness, session/CSRF/SSE,
+private ops authorization, migration version 2, backup/restore of two messages and a charged
+ledger. Stop took 1.222 s. Four concurrent fixture turns took 402.54–518.70 ms with a 0.5 CPU
+cgroup ceiling; idle memory was 70.01 MiB, cgroup peak 87,961,600 bytes under 256 MiB, no OOM.
+These measurements include their fixture workload/shared local host effects. They establish
+neither real-model latency, CPU demand nor VPS capacity, and are not directly comparable with
+older runs taken under different conditions.
+
+A separate delayed-fixture probe stopped the container while SSE remained open after a delta.
+It exited 0 in 5.298 s without OOM, delivered `run.completed` and retained two messages plus a
+settled ledger. Its first inspection harness failed because a SQLite WAL reader mounted the
+data volume read-only. A same-volume control reproduced that failure; inspection succeeded
+with the contractual writable `/data`, read-only root and SQL `mode=ro`. The original harness
+and failure were preserved separately; no application code or security gate changed.
+
+Gitleaks 8.30.1 scanned 48 full-history commits / approximately 2.05 MB in 1.89 s with zero
+leaks (redacted output). Trivy 0.76.0 downloaded its database on 2026-10-17 at 18:50 UTC;
+the database itself is dated **2026-10-16 01:13 UTC**, not an assertion of up-to-the-minute
+advisory coverage. The image scan reports zero CRITICAL and zero Python findings, with **164
+OS package/advisory rows: 44 HIGH, 58 MEDIUM, 61 LOW and 1 UNKNOWN**. The HIGH rows represent
+8 distinct CVE ids, not 44 different CVEs. All findings lack a fixed version in that database.
+The CycloneDX SBOM contains 127 components (88 OS + 38 Python packages + image root).
+Trivy also warns that third-party SBOM data can be inaccurate; no scan is a complete security
+proof. No unfixed findings were filtered and no required library was stripped to lower counts.
+
+The HIGH ids remain explicit deployment-risk review items: CVE-2026-76642,
+CVE-2026-78408, CVE-2026-78409, CVE-2026-78410, CVE-2026-54369, CVE-2025-69720,
+CVE-2026-16742 and CVE-2026-9538. Recheck the selected release image against current
+[Debian security status](https://security-tracker.debian.org/tracker/) and preserve the full
+report before publication/activation. This compatibility PR does not silently accept their risk
+or claim production readiness.
+
+The fixture conversation evaluation ran 19 scenarios with zero safety failures and 16 guards
+with zero failures; its 11 quality flags remain visible and are not live-model quality results.
+Retrieval measured recall@3 0.9565 / MRR 0.899 for 23 baseline cases; the 190-case corpus
+measured recall@3 **0.689** / MRR **0.603**. These imperfect results are not hidden by passing
+process exits. Retrieval code, catalog and evaluation questions are unchanged in this cohort;
+this increment does not claim to fix their semantic coverage or run a new paid evaluation.
+
 ## Reproduce and operational limits
 
 Use a clean checkout with `.python-version`, uv 0.13.1 and no real `.env.local`:
