@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import os
 from dataclasses import asdict
@@ -10,9 +11,11 @@ from pathlib import Path
 
 from app.adapters.postgres.database import PostgresDatabase
 from app.adapters.postgres.import_sqlite import import_snapshot
+from app.bootstrap.logging import configure_logging
 
 
 async def main() -> int:
+    configure_logging()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--snapshot', type=Path, required=True)
     parser.add_argument('--receipt', type=Path, required=True)
@@ -41,3 +44,7 @@ async def main() -> int:
         return 1
     finally:
         await db.close()
+
+
+if __name__ == '__main__':
+    raise SystemExit(asyncio.run(main()))
