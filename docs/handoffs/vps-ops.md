@@ -20,7 +20,7 @@ superseded; there is no VPS chat frontend or `/embed` service:
 |---|---|---|---|
 | Storefront with the **native** assistant (disabled by default; no iframe) | `gonzalomartinperez/pequeverso` | Hostinger hosting, Git integration connected to `main` as confirmed by the owner. Consumes **no** VPS resources or Hostinger Node slots | Yes |
 | Assistant API | `gonzalomartinperez/pequeverso-assistant-api` | VPS, Coolify | `/api/*` only |
-| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-assistant-backoffice` (historically renamed from `pequeverso-assistant-web` on 2026-10-05) | VPS, Coolify | Only behind its own sign-in |
+| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-backoffice` (previously `pequeverso-assistant-backoffice`; originally `pequeverso-assistant-web`, whose backoffice rename was on 2026-10-05) | VPS, Coolify | Only behind its own sign-in |
 | Backoffice PostgreSQL (identity and access only) | — | VPS, private network, project volume | Never |
 
 Hostinger builds and publishes `main`, as confirmed by the owner. A storefront merge can

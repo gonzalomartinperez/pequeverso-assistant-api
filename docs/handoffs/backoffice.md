@@ -1,4 +1,7 @@
-# Handoff to the backoffice (`pequeverso-assistant-backoffice`, formerly `pequeverso-assistant-web`)
+# Handoff to the backoffice (`pequeverso-backoffice`)
+
+The repository was previously named `pequeverso-assistant-backoffice`; its original chat-shell
+name was `pequeverso-assistant-web`. Historical evidence keeps the name used at the time.
 
 The public conversation moved into the storefront (native, no iframe). This repository's web
 app becomes the private operations backoffice. It consumes **only** the private ops API.
