@@ -427,6 +427,7 @@ def main() -> int:
     parser.add_argument('--postgres-image')
     parser.add_argument('--neo4j-image')
     parser.add_argument('--with-index-jobs', action='store_true')
+    parser.add_argument('--with-evaluation-tests', action='store_true')
     parser.add_argument('--receipt-dir', type=Path, required=True)
     parser.add_argument('--source-dir', type=Path, default=ROOT)
     parser.add_argument('--test-file', type=Path, default=ROOT / 'tests/test_graph_http_live_services.py')
@@ -473,19 +474,25 @@ def main() -> int:
             json.dump(configuration, target)
         environment['PV_GRAPH_HTTP_FIXTURE_CONFIG'] = str(private)
         environment['PV_GRAPH_HTTP_ARTIFACT_DIR'] = str(output)
+        test_files = [str(args.test_file.resolve())]
+        if args.with_evaluation_tests:
+            test_files.append(str(args.source_dir.resolve() / 'tests/test_graph_evaluation_live_services.py'))
+        expected_tests = 4 if args.with_evaluation_tests else 2
         with (output / 'http-tests.log').open('x') as log:
             tested = subprocess.run(
                 [
                     sys.executable,
                     '-m',
                     'pytest',
-                    str(args.test_file.resolve()),
+                    *test_files,
                     '-c',
                     str(args.source_dir.resolve() / 'pyproject.toml'),
                     '--import-mode=importlib',
                     '-o',
                     f'cache_dir={output / "pytest-cache"}',
                     '-q',
+                    '--basetemp',
+                    str(output / 'pytest-temp'),
                     f'--junitxml={output / "http-tests.xml"}',
                 ],
                 cwd=output,
@@ -510,15 +517,17 @@ def main() -> int:
             for key in ('tests', 'failures', 'errors', 'skipped')
         }
         if result == 0 and (
-            counts['tests'] != 2 or any(counts[key] for key in ('failures', 'errors', 'skipped'))
+            counts['tests'] != expected_tests or any(counts[key] for key in ('failures', 'errors', 'skipped'))
         ):
-            raise RuntimeError('required real-service tests did not both execute successfully')
+            raise RuntimeError('required real-service tests did not all execute successfully')
         if result == 0 and args.with_index_jobs:
             index_jobs(args.source_dir.resolve(), output, environment, configuration)
         receipt = {
             'fixture_only': True,
             'real_services': ['PostgreSQL18.6/pgvector0.8.7', 'Neo4j5.26'],
-            'provider': 'scripted; no SDK',
+            'provider': 'scripted + SDK MockTransport; no provider network'
+            if args.with_evaluation_tests
+            else 'scripted; no SDK',
             'paid_calls': 0,
             'deployment': False,
             'pytest_exit': result,

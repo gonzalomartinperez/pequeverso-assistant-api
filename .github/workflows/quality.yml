@@ -153,7 +153,7 @@ jobs:
           uv run python -m scripts.smoke_graph_runtime \
             --postgres-image "$PG_IMAGE" --neo4j-image "$NEO_IMAGE" \
             --receipt-dir "$RUNNER_TEMP/knowledge-http" --source-dir "$GITHUB_WORKSPACE" \
-            --with-index-jobs
+            --with-index-jobs --with-evaluation-tests
 
   checks:
     name: checks

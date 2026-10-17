@@ -6,9 +6,14 @@ settled at conservative rates including Fast and regional premiums. This is an e
 
 from __future__ import annotations
 
+import asyncio
+import fcntl
+import os
 import sqlite3
+import stat
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from decimal import ROUND_CEILING, Decimal
 from pathlib import Path
 from typing import Any
@@ -19,12 +24,46 @@ from openai import AsyncOpenAI
 
 from app.adapters.openai_provider import OpenAIResponsesProvider
 from app.ai.provider import ModelChunk, ModelRequest, UsageChunk
+from app.application.knowledge_ports import EmbeddingAccounting
 from app.domain.errors import FailureCode, RejectedError
+from app.domain.knowledge import EmbeddingPurpose
 
 MODEL = 'gpt-6-luna'
 ATTEMPT_MICRO = 11000
 MAX_ATTEMPTS = 400
 CAP_MICRO = 1000000
+
+
+@contextmanager
+def evaluation_run_ownership(path: Path) -> Iterator[None]:
+    """One stop-first local evaluation owner; never unlink its stable lock inode."""
+    root = Path(__file__).resolve().parents[1]
+    if path.is_symlink() or path.resolve().is_relative_to(root):
+        raise ValueError('evaluation ownership requires an external private budget path')
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    directory = path.parent.stat()
+    if stat.S_IMODE(directory.st_mode) != 0o700 or directory.st_uid != os.getuid():
+        raise ValueError('evaluation ownership directory must be private and owned')
+    lock = path.with_name(path.name + '.owner.lock')
+    descriptor = os.open(lock, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        metadata = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or stat.S_IMODE(metadata.st_mode) != 0o600
+            or metadata.st_uid != os.getuid()
+        ):
+            raise ValueError('evaluation ownership file must be private and owned')
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ValueError('evaluation budget is already owned by another runner') from None
+        try:
+            yield
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+    finally:
+        os.close(descriptor)
 
 
 class Envelope:
@@ -107,6 +146,26 @@ class Envelope:
     def stop(self, reason: str) -> None:
         with self.connect() as db:
             db.execute('INSERT INTO status (reason) VALUES (?)', (reason,))
+
+    def admit_new_run(self) -> None:
+        """Reject a restarted run with unknown historical spend before any new SDK I/O.
+
+        This is entry admission, not per-request admission: an in-flight request in
+        this exclusively owned run legitimately has an unsettled reservation.
+        """
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            pending = db.execute('SELECT 1 FROM attempts WHERE settled=0 LIMIT 1').fetchone()
+            stopped = db.execute(
+                'SELECT 1 FROM status s WHERE NOT EXISTS '
+                '(SELECT 1 FROM gate_resolutions r WHERE r.status_rowid=s.rowid '
+                'AND r.reason=s.reason) LIMIT 1'
+            ).fetchone()
+            if pending and not stopped:
+                db.execute('INSERT INTO status(reason) VALUES (?)', ('historical_unreported_usage',))
+            rejected = bool(pending or stopped)
+        if rejected:
+            raise RejectedError(FailureCode.BUDGET_EXHAUSTED)
 
     def acknowledge_fixed_case_gate(
         self,
@@ -215,6 +274,122 @@ class Envelope:
         if attempt is None:
             raise RejectedError(FailureCode.BUDGET_EXHAUSTED)
         return attempt
+
+    def settle_embedding(self, attempt: int, inputs: int, *, input_byte_bound: int) -> bool:
+        """Settle one previously reserved SDK attempt; never change the shared allowance.
+
+        Every embedding request first reserves the same USD0.011 as generation. Known
+        input usage settles at USD0.044/M (2.2x Standard); unknown usage keeps USD0.011.
+        The caller must retain the exact UTF-8 bound from before dispatch.
+        """
+        if (
+            type(inputs) is not int
+            or type(input_byte_bound) is not int
+            or not 0 <= inputs <= input_byte_bound <= 240000
+            or input_byte_bound == 0
+        ):
+            with self.connect() as db:
+                db.execute(
+                    'UPDATE attempts SET reserved=max(reserved,?) WHERE id=?', (ATTEMPT_MICRO, attempt)
+                )
+            self.stop('embedding_usage_exceeds_bound')
+            return False
+        amount = int((Decimal(inputs) * Decimal('0.044')).to_integral_value(rounding=ROUND_CEILING))
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row = db.execute('SELECT reserved,settled FROM attempts WHERE id=?', (attempt,)).fetchone()
+            if row is None:
+                raise ValueError('unknown evaluation attempt')
+            if row[1]:
+                db.execute('UPDATE attempts SET reserved=max(reserved,?) WHERE id=?', (amount, attempt))
+                db.execute('INSERT INTO status(reason) VALUES (?)', ('duplicate_usage',))
+                return False
+            db.execute('UPDATE attempts SET reserved=?,settled=1 WHERE id=?', (amount, attempt))
+        return True
+
+
+@dataclass(slots=True)
+class _EmbeddingReservation:
+    attempt: int
+    byte_bound: int
+    known: bool = False
+    unreported: bool = False
+
+
+class EvaluationEmbeddingAccounting:
+    """Both application accounting and the existing private envelope precede SDK I/O.
+
+    Correlation is local to this sequential evaluation owner; durable costs and stops
+    remain in the original ledgers. This helper neither reads a key nor dispatches work.
+    """
+
+    def __init__(self, application: EmbeddingAccounting, envelope: Envelope) -> None:
+        self.application = application
+        self.envelope = envelope
+        self._operations: dict[str, _EmbeddingReservation] = {}
+        self.receipts: list[dict[str, Any]] = []
+
+    async def reserve(self, max_input_tokens: int, purpose: EmbeddingPurpose) -> str:
+        if type(max_input_tokens) is not int or not 0 < max_input_tokens <= 240000:
+            raise ValueError('embedding byte bound must be between one and 240000')
+        if not isinstance(purpose, EmbeddingPurpose):
+            raise TypeError('unknown embedding purpose')
+        operation = await self.application.reserve(max_input_tokens, purpose)
+        try:
+            attempt = self.envelope.reserve()
+        except Exception:
+            await asyncio.shield(self.application.settle(operation, 0))
+            raise
+        if operation in self._operations:
+            self.envelope.stop('duplicate_embedding_operation')
+            raise ValueError('application embedding operation must be unique')
+        self._operations[operation] = _EmbeddingReservation(attempt, max_input_tokens)
+        self.receipts.append(
+            {
+                'attempt': attempt,
+                'kind': 'embedding',
+                'purpose': purpose.value,
+                'input_byte_bound': max_input_tokens,
+                'usage': None,
+            }
+        )
+        return operation
+
+    def _operation(self, operation: str) -> _EmbeddingReservation:
+        try:
+            return self._operations[operation]
+        except KeyError:
+            self.envelope.stop('unknown_embedding_operation')
+            raise ValueError('unknown embedding evaluation operation') from None
+
+    async def settle(self, operation_id: str, input_tokens: int) -> None:
+        reservation = self._operation(operation_id)
+        if not self.envelope.settle_embedding(
+            reservation.attempt, input_tokens, input_byte_bound=reservation.byte_bound
+        ):
+            raise ValueError('embedding usage is invalid or already settled')
+        reservation.known = True
+        next(receipt for receipt in self.receipts if receipt['attempt'] == reservation.attempt)['usage'] = {
+            'input': input_tokens
+        }
+        try:
+            await self.application.settle(operation_id, input_tokens)
+        except BaseException:
+            self.envelope.stop('embedding_application_accounting_failure')
+            await asyncio.shield(self.application.mark_unreported(operation_id))
+            raise
+
+    async def mark_unreported(self, operation_id: str) -> None:
+        reservation = self._operation(operation_id)
+        # OpenAIEmbeddings calls this after a malformed vector even when usage was
+        # already settled. That must neither refund nor settle the same request twice.
+        if reservation.known or reservation.unreported:
+            return
+        reservation.unreported = True
+        try:
+            await asyncio.shield(self.application.mark_unreported(operation_id))
+        finally:
+            self.envelope.stop('missing_embedding_usage')
 
 
 def bound_bytes(request: ModelRequest) -> int:

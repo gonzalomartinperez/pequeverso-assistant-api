@@ -62,12 +62,17 @@ class SystemClock:
 
 
 @dataclass(frozen=True, slots=True)
-class _ProviderResource:
+class ProviderResource:
     """Only composition owns the client cleanup; use cases receive the provider port."""
 
     provider: ModelProvider
     close: Callable[[], Awaitable[None]] | None = None
     embeddings: Embeddings | None = None
+    wrap_composer: Callable[[AnswerComposer], AnswerComposer] | None = None
+
+
+_ProviderResource = ProviderResource  # Retain existing fixture callers and lifecycle contracts.
+ProviderFactory = Callable[[Settings, EmbeddingAccounting], ProviderResource]
 
 
 def build_provider(
@@ -111,11 +116,14 @@ def create_app(
     settings: Settings | None = None,
     *,
     provider: ModelProvider | None = None,
+    provider_factory: ProviderFactory | None = None,
     catalog_source: CatalogSource | None = None,
     clock: Clock | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
-    if provider is not None and settings.environment == 'production':
+    if provider is not None and provider_factory is not None:
+        raise ValueError('provider and provider_factory overrides are mutually exclusive')
+    if (provider is not None or provider_factory is not None) and settings.environment == 'production':
         raise ValueError('provider overrides are for tests and fixtures only')
     clock = clock or SystemClock()
     parser = CatalogParser(frozenset(settings.catalog_allowed_hosts))
@@ -152,9 +160,12 @@ def create_app(
         daily_limit_micro=to_micro(settings.daily_budget_usd),
     )
     accounting = SharedEmbeddingAccounting(ledger, clock, budget, settings.embedding_input_price_per_million)
-    owned_provider = (
-        _ProviderResource(provider) if provider is not None else build_provider(settings, accounting)
-    )
+    if provider_factory is not None:
+        owned_provider = provider_factory(settings, accounting)
+    elif provider is not None:
+        owned_provider = _ProviderResource(provider)
+    else:
+        owned_provider = build_provider(settings, accounting)
     model = owned_provider.provider
     grounded = GroundedComposer(
         model,
@@ -173,6 +184,8 @@ def create_app(
             persistence.catalog, persistence.graph, embeddings, PARSER_VERSION, clock
         )
         composer = GraphAnswerComposer(grounded, knowledge, settings.max_input_tokens)
+    if owned_provider.wrap_composer is not None:
+        composer = owned_provider.wrap_composer(composer)
     chat = ChatService(
         official_help=(
             OfficialHelpReader()
