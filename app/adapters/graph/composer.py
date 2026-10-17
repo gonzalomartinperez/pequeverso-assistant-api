@@ -39,6 +39,7 @@ class GraphPrepared:
     resolved: PreparedTurn | None = None
     retrieval: RetrievedKnowledge | None = None
     sent_chunk_ids: tuple[str, ...] = ()
+    catalog_only: bool = False
 
     @property
     def input_size_bytes(self) -> int:
@@ -84,7 +85,10 @@ class GraphAnswerComposer:
     def prepare(self, turn: Turn) -> PreparedTurn:
         # No query embedding, DB lookup or provider I/O before the generation reservation.
         baseline = self._grounded.prepare(turn)
-        limit = min(self._max_input_bytes, turn.input_size_limit or self._max_input_bytes)
+        limit = min(
+            self._max_input_bytes,
+            turn.input_size_limit if turn.input_size_limit is not None else self._max_input_bytes,
+        )
         return GraphPrepared(turn, baseline, max(limit, baseline.input_size_bytes))
 
     async def _retrieve(self, state: _State) -> dict[str, GraphPrepared]:
@@ -103,6 +107,12 @@ class GraphAnswerComposer:
         knowledge = await self._retrieval.retrieve(turn.active, turn.question, products, turn.language)
         if knowledge.revision.catalog_sha256 != turn.active.sha256 or not knowledge.chunks:
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
+        prepared.retrieval = knowledge
+        input_limit = min(
+            prepared.reservation_bytes,
+            self._max_input_bytes,
+            turn.input_size_limit if turn.input_size_limit is not None else self._max_input_bytes,
+        )
         # LangChain is a document adapter only. Canonical content and source identities remain
         # explicit: graph relationships never become instructions, transactions or new facts.
         documents = tuple(
@@ -141,12 +151,18 @@ class GraphAnswerComposer:
             trial = self._grounded.prepare_selected(
                 replace(turn, web_evidence=prepared.baseline.web_evidence), document_ids, payload
             )
-            if trial.input_size_bytes <= prepared.reservation_bytes:
+            if trial.input_size_bytes <= input_limit:
                 selected = proposed
                 resolved = trial
         if resolved is None:
-            raise RejectedError(FailureCode.INVALID_REQUEST)
-        prepared.retrieval = knowledge
+            # The complete canonical product facts and mandatory policies are already in
+            # the baseline. Duplicating a retrieved product overview must not make a
+            # comparison impossible. No passage is sliced or falsely reported as sent.
+            # This requires successful verified retrieval; dependency failures still fail.
+            if prepared.baseline.input_size_bytes > input_limit:
+                raise RejectedError(FailureCode.INVALID_REQUEST)
+            resolved = prepared.baseline
+            prepared.catalog_only = True
         prepared.resolved = resolved
         prepared.sent_chunk_ids = tuple(document.id for document in selected if document.id is not None)
         return {'prepared': prepared}
