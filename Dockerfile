@@ -8,7 +8,7 @@ COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_PROJECT_ENVIRONMENT=/opt/venv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,id=vps-ops-uv-python315,target=/root/.cache/uv,sharing=locked uv sync --frozen --no-dev --no-install-project
+RUN --mount=type=cache,id=vps-ops-uv-python315,target=/root/.cache/uv,sharing=locked uv sync --frozen --no-build --no-dev --no-install-project
 
 FROM python:3.15.0-slim-trixie@sha256:2da676046630d7bf14c6764ae1143dc7fa0377a53f94bf5a642f0b214aca5bce AS runtime
 ENV PATH=/opt/venv/bin:$PATH \

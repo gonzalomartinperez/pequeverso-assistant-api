@@ -50,7 +50,11 @@ conservatively unreported ledger entries. Session restoration does not dispatch 
 These checks validate transport/application behavior; they do not measure model quality,
 conversion, real-provider availability or live token costs.
 
-Exact candidate results and image measurements are recorded below after execution. Public
+Clean checkout `0cb9ddcaf24f31b71505cf0cddbc65d7d83aa8f5` passed **754 tests in 86.40 s**
+(88.549 s command wall time), including 13 new regressions. Frozen `--no-build` installation
+used wheels only; Ruff/format passed all 153 files, strict mypy passed 70 source files, and
+lock/export checks passed. Docker also forbids implicit sdist builds with `--no-build`.
+Image measurements are recorded separately below after execution. Public
 contract 1.5 and private ops 1.2/telemetry 1.0 must remain byte-identical to the source revision;
 all 19 manifest/artifact blobs, including the four private schema/example blobs, are checked.
 No regenerated contract drift is accepted silently.
@@ -86,6 +90,7 @@ writes. This PR does not deploy, authorize paid calls or enable the storefront a
 - [uv 0.13.1](https://github.com/astral-sh/uv/releases/tag/0.13.1) and [Ruff 0.17.1](https://github.com/astral-sh/ruff/releases/tag/0.17.1).
 - [FastAPI 0.143.1](https://github.com/fastapi/fastapi/releases/tag/0.143.1), [0.143.2](https://github.com/fastapi/fastapi/releases/tag/0.143.2), [0.143.3](https://github.com/fastapi/fastapi/releases/tag/0.143.3).
 - [OpenAI cumulative SDK diff](https://github.com/openai/openai-python/compare/v3.29.0...v3.33.0) and [bounded cleanup source](https://github.com/openai/openai-python/blob/v3.33.0/src/openai/_streaming_cleanup.py).
+- [OpenAI Responses request reference](https://developers.openai.com/api/reference/resources/responses/methods/create) and [reasoning guide](https://developers.openai.com/api/docs/guides/reasoning). The request explicitly preserves `store=false`; omitting it would use the provider default rather than our policy.
 - [pydantic-settings 2.16.0](https://github.com/pydantic/pydantic-settings/releases/tag/v2.16.0).
 - [Official Python image recipe](https://github.com/docker-library/python/tree/ce73ea7cebf01824125c30c20cd1acbde9b364ec/3.15/slim-trixie).
 
