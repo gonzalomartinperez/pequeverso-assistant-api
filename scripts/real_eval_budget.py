@@ -7,7 +7,10 @@ settled at conservative rates including Fast and regional premiums. This is an e
 from __future__ import annotations
 
 import asyncio
+import fcntl
+import os
 import sqlite3
+import stat
 from collections.abc import AsyncGenerator, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -29,6 +32,38 @@ MODEL = 'gpt-6-luna'
 ATTEMPT_MICRO = 11000
 MAX_ATTEMPTS = 400
 CAP_MICRO = 1000000
+
+
+@contextmanager
+def evaluation_run_ownership(path: Path) -> Iterator[None]:
+    """One stop-first local evaluation owner; never unlink its stable lock inode."""
+    root = Path(__file__).resolve().parents[1]
+    if path.is_symlink() or path.resolve().is_relative_to(root):
+        raise ValueError('evaluation ownership requires an external private budget path')
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    directory = path.parent.stat()
+    if stat.S_IMODE(directory.st_mode) != 0o700 or directory.st_uid != os.getuid():
+        raise ValueError('evaluation ownership directory must be private and owned')
+    lock = path.with_name(path.name + '.owner.lock')
+    descriptor = os.open(lock, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    try:
+        metadata = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(metadata.st_mode)
+            or stat.S_IMODE(metadata.st_mode) != 0o600
+            or metadata.st_uid != os.getuid()
+        ):
+            raise ValueError('evaluation ownership file must be private and owned')
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ValueError('evaluation budget is already owned by another runner') from None
+        try:
+            yield
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+    finally:
+        os.close(descriptor)
 
 
 class Envelope:
@@ -111,6 +146,26 @@ class Envelope:
     def stop(self, reason: str) -> None:
         with self.connect() as db:
             db.execute('INSERT INTO status (reason) VALUES (?)', (reason,))
+
+    def admit_new_run(self) -> None:
+        """Reject a restarted run with unknown historical spend before any new SDK I/O.
+
+        This is entry admission, not per-request admission: an in-flight request in
+        this exclusively owned run legitimately has an unsettled reservation.
+        """
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            pending = db.execute('SELECT 1 FROM attempts WHERE settled=0 LIMIT 1').fetchone()
+            stopped = db.execute(
+                'SELECT 1 FROM status s WHERE NOT EXISTS '
+                '(SELECT 1 FROM gate_resolutions r WHERE r.status_rowid=s.rowid '
+                'AND r.reason=s.reason) LIMIT 1'
+            ).fetchone()
+            if pending and not stopped:
+                db.execute('INSERT INTO status(reason) VALUES (?)', ('historical_unreported_usage',))
+            rejected = bool(pending or stopped)
+        if rejected:
+            raise RejectedError(FailureCode.BUDGET_EXHAUSTED)
 
     def acknowledge_fixed_case_gate(
         self,
@@ -272,6 +327,7 @@ class EvaluationEmbeddingAccounting:
         self.application = application
         self.envelope = envelope
         self._operations: dict[str, _EmbeddingReservation] = {}
+        self.receipts: list[dict[str, Any]] = []
 
     async def reserve(self, max_input_tokens: int, purpose: EmbeddingPurpose) -> str:
         if type(max_input_tokens) is not int or not 0 < max_input_tokens <= 240000:
@@ -288,6 +344,15 @@ class EvaluationEmbeddingAccounting:
             self.envelope.stop('duplicate_embedding_operation')
             raise ValueError('application embedding operation must be unique')
         self._operations[operation] = _EmbeddingReservation(attempt, max_input_tokens)
+        self.receipts.append(
+            {
+                'attempt': attempt,
+                'kind': 'embedding',
+                'purpose': purpose.value,
+                'input_byte_bound': max_input_tokens,
+                'usage': None,
+            }
+        )
         return operation
 
     def _operation(self, operation: str) -> _EmbeddingReservation:
@@ -304,6 +369,9 @@ class EvaluationEmbeddingAccounting:
         ):
             raise ValueError('embedding usage is invalid or already settled')
         reservation.known = True
+        next(receipt for receipt in self.receipts if receipt['attempt'] == reservation.attempt)['usage'] = {
+            'input': input_tokens
+        }
         try:
             await self.application.settle(operation_id, input_tokens)
         except BaseException:

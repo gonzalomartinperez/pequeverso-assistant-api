@@ -7,6 +7,7 @@ Structural correctness and heuristic flags are distinct from semantic/model qual
 from __future__ import annotations
 
 import argparse
+import asyncio
 import copy
 import hashlib
 import json
@@ -19,7 +20,7 @@ import sys
 import threading
 import time
 from collections.abc import AsyncGenerator, Callable
-from contextlib import closing
+from contextlib import closing, nullcontext
 from pathlib import Path
 from typing import Any
 
@@ -34,12 +35,19 @@ from pydantic import SecretStr
 from app.adapters.fixture_provider import FixtureProvider
 from app.ai.evidence import passages, rank
 from app.ai.provider import ModelChunk, ModelRequest
+from app.application.knowledge_ports import EmbeddingAccounting
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
-from app.bootstrap.container import create_app
+from app.bootstrap.container import ProviderResource, create_app
 from app.domain.catalog import PriceStatus
 from app.domain.web_evidence import SOURCES
 from scripts.evaluate_conversations import CATALOG, _safety
-from scripts.real_eval_budget import ATTEMPT_MICRO, MAX_ATTEMPTS, BoundedProvider, Envelope
+from scripts.real_eval_budget import (
+    ATTEMPT_MICRO,
+    MAX_ATTEMPTS,
+    BoundedProvider,
+    Envelope,
+    evaluation_run_ownership,
+)
 
 ORIGIN = 'http://localhost:3000'
 
@@ -81,6 +89,14 @@ class EvidenceProvider:
             None,
         )
         official_record = {'official_platform': json.loads(official_raw)} if official_raw is not None else {}
+        retrieval_raw = next(
+            (
+                i.text.removeprefix('retrieved_public_data:\n')
+                for i in request.inputs
+                if i.text.startswith('retrieved_public_data:\n')
+            ),
+            None,
+        )
         self.records.append(
             {
                 'sha256': digest(raw.encode()),
@@ -91,6 +107,14 @@ class EvidenceProvider:
                 'documents': [d['id'] for d in payload['documents']],
                 'links': [link['id'] for link in payload['links']],
                 **official_record,
+                **(
+                    {
+                        'retrieved_public': json.loads(retrieval_raw),
+                        'retrieved_public_sha256': digest(retrieval_raw.encode()),
+                    }
+                    if retrieval_raw is not None
+                    else {}
+                ),
             }
         )
         async for chunk in (self.bounded or self.fixture).stream(request):
@@ -235,6 +259,7 @@ def load_live_provider(
     # Persisted-cap mismatch fails before any credential read. Extending the owner-approved
     # existing run must not accidentally create a fresh allowance through a mistyped path.
     envelope = Envelope(budget_state, max_attempts=max_attempts)
+    envelope.admit_new_run()
     if max_attempts > MAX_ATTEMPTS and envelope.snapshot()['attempts'] == 0:
         raise ValueError('extended attempt cap requires an already-used shared evaluation budget')
     values = dotenv_values(key_file, interpolate=False)
@@ -266,6 +291,12 @@ def evaluate(
     source_revision: str,
     *,
     bounded: BoundedProvider | None = None,
+    graph_settings: Settings | None = None,
+    graph_factory: Callable[[EvidenceProvider, Settings, EmbeddingAccounting], ProviderResource]
+    | None = None,
+    graph_spend: Callable[[], Any] | None = None,
+    embedding_receipts: list[dict[str, Any]] | None = None,
+    retrieval_receipts: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     use_official_help = official_help_requested(manifest)
     spanish_native = manifest.get('reply_policy') == 'spanish_native'
@@ -294,7 +325,7 @@ def evaluate(
                 stop_reason = 'budget_or_attempt_limit'
         return stop_reason is None
 
-    settings = Settings(
+    settings = graph_settings or Settings(
         _env_file=None,
         environment='test',
         ai_provider='openai' if bounded else 'fixture',
@@ -317,9 +348,23 @@ def evaluate(
         service_revision=source_revision,
     )
     # Create only this isolated database with restrictive permissions before SQLite opens it.
-    descriptor = os.open(settings.database_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    os.close(descriptor)
-    app = create_app(settings, provider=provider)
+    if graph_settings is None:
+        descriptor = os.open(settings.database_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        os.close(descriptor)
+        app = create_app(settings, provider=provider)
+    else:
+        if (
+            graph_factory is None
+            or graph_spend is None
+            or settings.application_storage != 'postgres'
+            or settings.knowledge_backend != 'graphrag'
+        ):
+            raise ValueError(
+                'graph evaluation requires explicit bounded composition and aggregate accounting'
+            )
+        app = create_app(
+            settings, provider_factory=lambda conf, accounting: graph_factory(provider, conf, accounting)
+        )
     with socket.socket() as reservation:
         reservation.bind(('127.0.0.1', 0))
         port = reservation.getsockname()[1]
@@ -361,6 +406,8 @@ def evaluate(
                         key = f'matrix-{case["id"]}-{number}'
                         before = len(provider.records)
                         receipt_start = len(bounded.receipts) if bounded else 0
+                        embedding_start = len(embedding_receipts or [])
+                        retrieval_start = len(retrieval_receipts or [])
 
                         def capture_event(
                             events: list[dict[str, Any]],
@@ -496,10 +543,19 @@ def evaluate(
                             'citations': [s['id'] for s in message['sources']] if message else [],
                             'actual_provider_usd': None if bounded else '0',
                             'dispatched_attempts': len(bounded.receipts[receipt_start:]) if bounded else 0,
+                            'all_sdk_attempts': (
+                                len(bounded.receipts[receipt_start:])
+                                + len((embedding_receipts or [])[embedding_start:])
+                            )
+                            if bounded
+                            else 0,
                             'usage_receipts': bounded.receipts[receipt_start:] if bounded else [],
+                            'embedding_receipts': (embedding_receipts or [])[embedding_start:],
+                            'retrieval': (retrieval_receipts or [])[retrieval_start:],
                             'uncertain_paid_calls': sum(
                                 r['usage'] is None for r in bounded.receipts[receipt_start:]
                             )
+                            + sum(r['usage'] is None for r in (embedding_receipts or [])[embedding_start:])
                             if bounded
                             else 0,
                         }
@@ -516,6 +572,10 @@ def evaluate(
                                 envelope.stop('case_gate_failure')
                             if bounded and any(r['usage'] is None for r in bounded.receipts[receipt_start:]):
                                 envelope.stop('missing_usage')
+                            if embedding_receipts and any(
+                                r['usage'] is None for r in embedding_receipts[embedding_start:]
+                            ):
+                                envelope.stop('missing_embedding_usage')
                             if not preflight():
                                 print(
                                     json.dumps({'completed_queries': len(rows), 'stop_reason': stop_reason}),
@@ -538,10 +598,18 @@ def evaluate(
                         previous_history = history
                         # Verify every completed turn, including intermediate conversation turns.
                         before_replay = len(provider.records)
+                        embeddings_before_replay = len(embedding_receipts or [])
+                        retrieval_before_replay = len(retrieval_receipts or [])
                         replay = ask(
                             client, csrf, turn['question'], locale, key, response_language=response_language
                         )
                         rows[-1]['replay_new_provider_calls'] = len(provider.records) - before_replay
+                        rows[-1]['replay_new_embedding_calls'] = (
+                            len(embedding_receipts or []) - embeddings_before_replay
+                        )
+                        rows[-1]['replay_new_retrievals'] = (
+                            len(retrieval_receipts or []) - retrieval_before_replay
+                        )
                         replay_messages = [
                             event['message']
                             for event in replay['events']
@@ -561,6 +629,8 @@ def evaluate(
                         checkpoint(destination / 'answers.json', rows)
                         if envelope and (
                             rows[-1]['replay_new_provider_calls']
+                            or rows[-1]['replay_new_embedding_calls']
+                            or rows[-1]['replay_new_retrievals']
                             or not rows[-1]['replay_answer_matches']
                             or not rows[-1]['replay_history_unchanged']
                             or rows[-1]['replay_terminal'] != ['run.completed']
@@ -604,13 +674,17 @@ def evaluate(
                 stop_reason = 'evaluation_server_failed_to_stop'
                 if envelope:
                     envelope.stop(stop_reason)
-    with closing(sqlite3.connect(destination / 'evaluation.sqlite3')) as db:
-        ledger = [
-            dict(zip(('status', 'calls', 'reserved_micro', 'actual_micro'), r, strict=True))
-            for r in db.execute(
-                'SELECT status, count(*), sum(reserved_micro), sum(actual_micro) FROM spend_ledger GROUP BY status'
-            )
-        ]
+    if graph_settings is None:
+        with closing(sqlite3.connect(destination / 'evaluation.sqlite3')) as db:
+            ledger = [
+                dict(zip(('status', 'calls', 'reserved_micro', 'actual_micro'), r, strict=True))
+                for r in db.execute(
+                    'SELECT status, count(*), sum(reserved_micro), sum(actual_micro) FROM spend_ledger GROUP BY status'
+                )
+            ]
+    else:
+        assert graph_spend is not None
+        ledger = asyncio.run(graph_spend())
     for suffix in ('', '-wal', '-shm'):
         state_file = destination / f'evaluation.sqlite3{suffix}'
         if state_file.exists():
@@ -640,7 +714,16 @@ def evaluate(
         'conservative_budget_not_invoice': envelope.snapshot() if envelope else None,
         'dispatched_attempts': len(bounded.receipts) if bounded else 0,
         'usage_receipts': bounded.receipts if bounded else [],
-        'uncertain_paid_calls': sum(r['usage'] is None for r in bounded.receipts) if bounded else 0,
+        'embedding_receipts': embedding_receipts or [],
+        'all_sdk_attempts': (len(bounded.receipts) + len(embedding_receipts or [])) if bounded else 0,
+        'embedding_sdk_attempts': len(embedding_receipts or []),
+        'knowledge_backend': settings.knowledge_backend,
+        'uncertain_paid_calls': (
+            sum(r['usage'] is None for r in bounded.receipts)
+            + sum(r['usage'] is None for r in embedding_receipts or [])
+        )
+        if bounded
+        else 0,
         'isolated_visitor_empty_history': isolated,
         'invalid_csrf_http_status': bad_csrf,
         'invalid_origin_http_status': bad_origin,
@@ -677,22 +760,26 @@ def main() -> None:
         parser.error('full answers must be outside the repository')
     if destination.exists():
         parser.error('destination must be new; initial results must never be overwritten')
-    bounded = None
-    if args.live:
-        if args.key_file is None or args.budget_state is None:
-            parser.error('--live requires --key-file and shared --budget-state')
-        bounded = load_live_provider(args.key_file, args.budget_state, max_attempts=args.max_attempts)
-    destination.mkdir(parents=True, mode=0o700)
-    os.chmod(destination, 0o700)
-    for name in ('httpx', 'httpx2', 'httpcore', 'httpcore2', 'openai'):
-        logging.getLogger(name).setLevel(logging.CRITICAL)
-    write_private(destination / 'manifest.json', manifest)
-    (destination / 'catalog.json').write_bytes(DEFAULT_CATALOG.read_bytes())
-    os.chmod(destination / 'catalog.json', 0o600)
-    summary = evaluate(manifest, destination, args.source_revision, bounded=bounded)
-    print(json.dumps({k: v for k, v in summary.items() if k not in ('cases', 'usage_receipts')}, indent=2))
-    if summary['stop_reason']:
-        raise SystemExit(1)
+    if args.live and (args.key_file is None or args.budget_state is None):
+        parser.error('--live requires --key-file and shared --budget-state')
+    ownership = evaluation_run_ownership(args.budget_state) if args.live else nullcontext()
+    with ownership:
+        bounded = None
+        if args.live:
+            bounded = load_live_provider(args.key_file, args.budget_state, max_attempts=args.max_attempts)
+        destination.mkdir(parents=True, mode=0o700)
+        os.chmod(destination, 0o700)
+        for name in ('httpx', 'httpx2', 'httpcore', 'httpcore2', 'openai'):
+            logging.getLogger(name).setLevel(logging.CRITICAL)
+        write_private(destination / 'manifest.json', manifest)
+        (destination / 'catalog.json').write_bytes(DEFAULT_CATALOG.read_bytes())
+        os.chmod(destination / 'catalog.json', 0o600)
+        summary = evaluate(manifest, destination, args.source_revision, bounded=bounded)
+        print(
+            json.dumps({k: v for k, v in summary.items() if k not in ('cases', 'usage_receipts')}, indent=2)
+        )
+        if summary['stop_reason']:
+            raise SystemExit(1)
 
 
 if __name__ == '__main__':
