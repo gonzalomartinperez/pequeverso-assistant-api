@@ -47,6 +47,13 @@ class ProductOut(_Out):
     )
     image: ImageOut | None
     price: PriceOut | None = Field(description='null when the price cannot be confirmed as current.')
+    kind: Literal['core', 'affiliate'] = Field(
+        default='core', description='Product ownership (since1.5); legacy cards default to core.'
+    )
+    format: str | None = Field(default=None, description='Published format, if known (since1.5).')
+    disclosure: str | None = Field(
+        default=None, description='Published affiliate disclosure, if applicable (since1.5).'
+    )
 
 
 class ResourceOut(_Out):
@@ -72,7 +79,7 @@ class SourceOut(_Out):
 
 Notice = Literal['answer_replaced', 'payment_data_refused', 'contact_data_redacted', 'language_unsupported']
 Locale = Literal['es', 'en']
-CONTRACT_REVISION = '1.4'
+CONTRACT_REVISION = '1.5'
 
 
 class MessageOut(_Out):
@@ -120,6 +127,9 @@ class MessageOut(_Out):
                     )
                     if p.price
                     else None,
+                    kind=p.kind,
+                    format=p.format,
+                    disclosure=p.disclosure,
                 )
                 for p in d.products
             ],

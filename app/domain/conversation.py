@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 
 
 class Role(StrEnum):
@@ -58,6 +59,9 @@ class ProductRef:
     image: ImageRef | None
     price: PriceRef | None
     """None when the price could not be confirmed as current (see docs/api-contract.md)."""
+    kind: Literal['core', 'affiliate'] = 'core'
+    format: str | None = None
+    disclosure: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

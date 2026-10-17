@@ -19,33 +19,34 @@ reachability alone does not prove that customers currently see that revision.
   Also excluded are seller tax id and address, legal-only mailboxes, and anything not
   customer-facing.
 
-## Current coverage (2026-10-13)
+## Current coverage (2026-10-17)
 
-The snapshot is exported from storefront `main` revision
-`18b68692867ddd379a3e30130a473dcb7e8a355b`: one core product, nine resources,
-23 documents and six links. Every commercial field is identical to the prior
-`eb68a041b4515d71a734626fdaee0ef06d8693c3` snapshot; this sync updates source provenance
-and verification time only. It does not prove the checkout or the deployed storefront was
-verified, and original evaluation artifacts retain their original catalog hashes. Regenerated
-contract examples change only the existing price verification timestamp in two SSE examples
-and their manifest hashes. Public schemas, event envelopes and v1 revision1.4 are unchanged;
-consumers keep their compatible, pinned historical artifact bundles without a forced repin.
+The snapshot comes from storefront main `bddd36f45b319571f52029dfe4d6b3283cd71287`:
+**two products, nine resources, 26 documents and six links**. Grafismo Fonético remains the
+priced core PDF kit. Guía de Alimentación para Bebés is a separately purchased, third-party
+video course for complementary feeding from 6 to 12 months. Affiliate facts come exclusively
+from `config/affiliates.ts` and `content/es/hub.ts`; no environment destination or external
+producer page is scraped during export. The only purchase destination exported is the public
+same-origin `/alimentacion-bebe/` redirect. Its operational destination is configured separately
+by the storefront owner; catalog export does not prove that redirect works.
 
-**Known coverage gap:** the home now recommends the third-party video course “Guía de
-Alimentación para Bebés” through `config/affiliates.ts`. The exporter reads `coreProducts()`
-and `offerProducts()` from the separate product registry, not the affiliate registry. This is
-missing support for the new registry, not an explicit decision to exclude affiliates. The
-course is absent from catalog products, documents and links; its name, content and producer
-policies cannot be supplied by generic Hotmart procedure evidence. The current assistant
-coverage remains Grafismo Fonético and authorized general platform procedures.
+The affiliate registry publishes no price, PDFs, page counts, duration, certificates or personal
+health advice. Price/count fields stay null and resources stay empty, validated strictly. Core
+products retain required positive prices, counts and resources. Affiliate relationship text is
+preserved in summary for older clients and in new optional card disclosure for revision1.5.
 
-Affiliate support requires a separate reviewed exporter/grounding increment. The PDF product
-schema requires page/PDF/resource counts and a positive USD price; do not fabricate those
-fields for a video course whose price is not supplied by the public affiliate configuration.
-Keep the third-party producer and sponsorship distinct from Pequeverso's own kit, preserve
-source-scoped guarantees, and do not claim health outcomes. No affiliate deployment hotlink,
-price or additional product has been introduced by this sync. Post-purchase offers remain
-excluded by the existing explicit policy.
+Documents and links carry product_ids. Legacy unscoped documents apply to core products only.
+The course's published seven-day guarantee does not inherit the kit's guarantee or Pequeverso
+support promises. Retrieval keeps both product records for comparisons, scopes support/policies
+to explicit product mentions, and uses the latest assistant's structured product references for
+follow-ups. A genuinely ambiguous question is clarified. Conversations are never indexed as
+knowledge. Prices remain subject to freshness and null prices cannot borrow the kit price.
+Bounded positive-claim recognizers reject explicit patterns such as curing anemia or preventing allergies/choking; this is not complete semantic verification. The prompt adds medical boundaries, and real-model review remains pending;
+the assistant may describe course topics, not prescribe personal diets or medical treatment.
+
+This increment closes the previously documented affiliate coverage gap; original October13
+reports remain historical and are not relabeled as a new real-model evaluation. No new paid
+calls, vector store, graph database or model-callable transaction tools are introduced.
 
 ## Updating
 
@@ -108,8 +109,9 @@ docs/handoffs/storefront-transition.md.
 ## Content rights
 
 Storefront copy and media are © Pequeverso, all rights reserved (storefront
-`LICENSE-CONTENT.md`). They are used here only to answer questions about Pequeverso's own
-product; the same text is already public in the storefront repository. This repository is public
+`LICENSE-CONTENT.md`). Core copy is used to answer product questions; affiliate metadata and disclosure use only
+the approved public storefront registry, never course videos, private course material or
+producer account information; the same text is already public in the storefront repository. This repository is public
 and grants no license. The owner has been asked to confirm this use (docs/business-questions.md).
 
 

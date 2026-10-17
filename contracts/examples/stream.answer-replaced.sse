@@ -4,19 +4,19 @@ data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":0,"timestam
 
 id: 1
 event: message.delta
-data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":1,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"No puedo confirmar esa información con los datos qu"}
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":1,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"No puedo confirmar esa información con los datos que t"}
 
 id: 2
 event: message.delta
-data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":2,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"e tengo del catálogo. Puedes revisar la página del "}
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":2,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"engo del catálogo. Puedes revisar la información públi"}
 
 id: 3
 event: message.delta
-data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":3,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"kit o escribirnos desde soporte y te respondemos."}
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":3,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"ca del producto y las opciones de ayuda de Hotmart."}
 
 id: 4
 event: message.completed
-data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":4,"timestamp":"2026-09-28T15:00:00Z","type":"message.completed","message":{"id":"msg_EXAMPLEassistant1","role":"assistant","content":"No puedo confirmar esa información con los datos que tengo del catálogo. Puedes revisar la página del kit o escribirnos desde soporte y te respondemos.","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[{"id":"support","label":"Soporte y contacto","url":"https://pequeverso.com/soporte/"}],"sources":[],"follow_ups":[],"notices":["answer_replaced"],"language":"es"}}
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":4,"timestamp":"2026-09-28T15:00:00Z","type":"message.completed","message":{"id":"msg_EXAMPLEassistant1","role":"assistant","content":"No puedo confirmar esa información con los datos que tengo del catálogo. Puedes revisar la información pública del producto y las opciones de ayuda de Hotmart.","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[{"id":"support","label":"Soporte y contacto","url":"https://pequeverso.com/soporte/"}],"sources":[],"follow_ups":[],"notices":["answer_replaced"],"language":"es"}}
 
 id: 5
 event: run.completed

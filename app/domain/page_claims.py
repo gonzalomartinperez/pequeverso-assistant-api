@@ -17,7 +17,7 @@ from app.domain.web_evidence import negated_at
 @dataclass(frozen=True)
 class _Entity:
     key: str
-    pages: int
+    pages: int | None
     product: bool
     aliases: tuple[str, ...]
 
@@ -46,7 +46,7 @@ def _entities(catalog: Catalog) -> tuple[_Entity, ...]:
                     )
                 )
         aliases: tuple[str, ...] = (_normalize(product.name), _normalize(product.id))
-        if len(catalog.products) == 1:
+        if product.kind == 'core' and len([p for p in catalog.products if p.kind == 'core']) == 1:
             aliases += ('kit',)
         items.append(_Entity(product.id, product.page_count, True, aliases))
     return tuple(items)
@@ -106,7 +106,7 @@ def unsupported_page_claim(text: str, catalog: Catalog) -> bool:
                 if subjects and any(subject.pages != value for subject in subjects):
                     return True
             elif total and local_resources and not any(m[2].product for m in before):
-                if sum(resource.pages for resource in local_resources) != value:
+                if sum(resource.pages or 0 for resource in local_resources) != value:
                     return True
             elif before:
                 subject = before[-1][2]

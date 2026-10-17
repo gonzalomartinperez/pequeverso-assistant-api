@@ -2,30 +2,70 @@
   "schema_version": 1,
   "source": {
     "repository": "gonzalomartinperez/pequeverso",
-    "revision": "18b68692867ddd379a3e30130a473dcb7e8a355b",
+    "revision": "bddd36f45b319571f52029dfe4d6b3283cd71287",
     "published_ref": "origin/main"
   },
-  "previous_revision": "eb68a041b4515d71a734626fdaee0ef06d8693c3",
-  "generated_at": "2026-10-13T05:09:16+00:00",
-  "snapshot_sha256": "38b6fab76cb72f41a8284fcf51a11b716ddb82f87d72b0006beae84896234fe7",
-  "exporter_sha256": "37395e563eab6eac077239c7ee154cbd308de78067895ed1d7bfef2917b3900a",
+  "previous_revision": "18b68692867ddd379a3e30130a473dcb7e8a355b",
+  "generated_at": "2026-10-17T15:13:29+00:00",
+  "snapshot_sha256": "62afa1ede56513ff78042801ea31e680706dbd9e0b777bac79eec55dfb5ca2ab",
+  "exporter_sha256": "044ef67a167e2b5cb4535305061551e303d0d8f6bd2483c1d594d040c0a6ee29",
   "counts": {
-    "products": 1,
+    "products": 2,
     "resources": 9,
-    "documents": 23,
+    "documents": 26,
     "links": 6
   },
   "changes": {
-    "products_added": [],
+    "products_added": [
+      "alimentacion-bebe"
+    ],
     "products_retired": [],
+    "products_changed": [
+      "grafismo-fonetico"
+    ],
     "price_changes": {},
     "resources_added": [],
     "resources_removed": [],
     "resources_changed": [],
-    "documents_added": [],
+    "documents_added": [
+      "affiliate.alimentacion-bebe.guarantee",
+      "affiliate.alimentacion-bebe.overview",
+      "affiliate.alimentacion-bebe.support"
+    ],
     "documents_removed": [],
-    "documents_changed": [],
-    "links_changed": [],
+    "documents_changed": [
+      "faq.grafismo-fonetico.01",
+      "faq.grafismo-fonetico.02",
+      "faq.grafismo-fonetico.03",
+      "faq.grafismo-fonetico.04",
+      "faq.grafismo-fonetico.05",
+      "faq.grafismo-fonetico.06",
+      "faq.grafismo-fonetico.07",
+      "faq.grafismo-fonetico.08",
+      "faq.grafismo-fonetico.09",
+      "faq.grafismo-fonetico.10",
+      "faq.grafismo-fonetico.11",
+      "policy.delivery",
+      "policy.guarantee",
+      "policy.payment",
+      "policy.withdrawal-ar",
+      "support.access.1",
+      "support.access.2",
+      "support.access.3",
+      "support.contact",
+      "support.limits",
+      "support.route.1",
+      "support.route.2",
+      "support.route.3"
+    ],
+    "links_changed": [
+      "hotmart-purchases",
+      "hotmart-refund",
+      "product-page.grafismo-fonetico",
+      "purchases-refunds",
+      "support",
+      "withdrawal"
+    ],
     "forbidden_terms_changed": false
   }
 }

@@ -2,7 +2,7 @@
 
 Audience: the **native assistant of the storefront** `pequeverso` (the only public conversation
 UI). The former `pequeverso-assistant-web` chat shells were removed; that repository is now the
-private backoffice `pequeverso-assistant-backoffice`. Current revision: **1.4**, additive within v1
+private backoffice `pequeverso-assistant-backoffice`. Current revision: **1.5**, additive within v1
 (`contract_revision` in `SessionOut` and `contracts/manifest.json`). Revision **1.1** added: `starters`, `locale`, `language`, notice `language_unsupported`,
 and the private operations API. Revision **1.2** adds `pricing` (the rate source used for
 estimates) and `recent` (up to 50 latest runs with opaque ids) to the private ops summary only;
@@ -12,6 +12,12 @@ and the private ops schema is unchanged from1.2.
 Revision **1.4** adds optional `MessageIn.response_language: "es" | null` for the Spanish-native
 storefront. Omitted/null preserves the legacy ES/EN selection and exact request fingerprint;
 neither the response language enum nor existing English history is removed.
+Revision **1.5** adds optional `ProductOut.kind: "core" | "affiliate"` (default `core`),
+`format: string | null` and `disclosure: string | null` (both default null). Existing messages
+and clients remain valid. Product price was already nullable; an affiliate price stays null
+because the source does not publish it. Summary also carries the disclosure so older clients
+can preserve the relationship. No request fields, routes or private ops schemas change.
+
 Pinned artifacts: `contracts/openapi.json`, `contracts/sse.schema.json`, `contracts/examples/*`,
 hashed in `contracts/manifest.json` (`contract_version: "1"`). They are generated from the code
 (`uv run python -m contracts.export`) and CI fails if they drift. Consume them from an exact

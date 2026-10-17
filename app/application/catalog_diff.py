@@ -9,13 +9,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from app.domain.catalog import Catalog
+from app.domain.catalog import Catalog, Price
+
+
+def _price(price: Price | None) -> str:
+    return f'{price.amount} {price.currency}' if price is not None else 'unknown'
 
 
 @dataclass(frozen=True, slots=True)
 class CatalogDiff:
     products_added: list[str] = field(default_factory=list)
     products_retired: list[str] = field(default_factory=list)
+    products_changed: list[str] = field(default_factory=list)
     price_changes: dict[str, tuple[str, str]] = field(default_factory=dict)
     resources_added: list[str] = field(default_factory=list)
     resources_removed: list[str] = field(default_factory=list)
@@ -32,6 +37,7 @@ class CatalogDiff:
             (
                 self.products_added,
                 self.products_retired,
+                self.products_changed,
                 self.price_changes,
                 self.resources_added,
                 self.resources_removed,
@@ -48,6 +54,7 @@ class CatalogDiff:
         return {
             'products_added': self.products_added,
             'products_retired': self.products_retired,
+            'products_changed': self.products_changed,
             'price_changes': {k: {'before': a, 'after': b} for k, (a, b) in self.price_changes.items()},
             'resources_added': self.resources_added,
             'resources_removed': self.resources_removed,
@@ -65,13 +72,11 @@ def diff(before: Catalog | None, after: Catalog) -> CatalogDiff:
     new_products = {p.id: p for p in after.products}
     prices = {
         pid: (
-            f'{old_products[pid].price.amount} {old_products[pid].price.currency}',
-            f'{p.price.amount} {p.price.currency}',
+            _price(old_products[pid].price),
+            _price(p.price),
         )
         for pid, p in new_products.items()
-        if pid in old_products
-        and (old_products[pid].price.amount, old_products[pid].price.currency)
-        != (p.price.amount, p.price.currency)
+        if pid in old_products and old_products[pid].price != p.price
     }
     old_resources = {
         f'{p.id}/{r.id}': (r.title, r.pages, r.description)
@@ -83,13 +88,16 @@ def diff(before: Catalog | None, after: Catalog) -> CatalogDiff:
         for p in new_products.values()
         for r in p.resources
     }
-    old_docs = {d.id: (d.title, d.text, d.url) for d in before.documents} if before else {}
-    new_docs = {d.id: (d.title, d.text, d.url) for d in after.documents}
-    old_links = {link.id: (link.label, link.url) for link in before.links} if before else {}
-    new_links = {link.id: (link.label, link.url) for link in after.links}
+    old_docs = {d.id: (d.title, d.text, d.url, d.product_ids) for d in before.documents} if before else {}
+    new_docs = {d.id: (d.title, d.text, d.url, d.product_ids) for d in after.documents}
+    old_links = {link.id: (link.label, link.url, link.product_ids) for link in before.links} if before else {}
+    new_links = {link.id: (link.label, link.url, link.product_ids) for link in after.links}
     return CatalogDiff(
         products_added=sorted(new_products.keys() - old_products.keys()),
         products_retired=sorted(old_products.keys() - new_products.keys()),
+        products_changed=sorted(
+            pid for pid in new_products.keys() & old_products.keys() if new_products[pid] != old_products[pid]
+        ),
         price_changes=prices,
         resources_added=sorted(new_resources.keys() - old_resources.keys()),
         resources_removed=sorted(old_resources.keys() - new_resources.keys()),

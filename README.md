@@ -5,7 +5,7 @@
 ![SQLite](https://img.shields.io/badge/SQLite-WAL_%2B_FULL-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--6_Luna-06305B?style=flat-square&logo=openai&logoColor=white)
 ![Effort](https://img.shields.io/badge/reasoning-medium-007E80?style=flat-square)
-![Contract](https://img.shields.io/badge/contract-v1_%C2%B7_1.4-06305B?style=flat-square)
+![Contract](https://img.shields.io/badge/contract-v1_%C2%B7_1.5-06305B?style=flat-square)
 ![Language](https://img.shields.io/badge/native_assistant-Espa%C3%B1ol-007E80?style=flat-square)
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-opt--in-06305B?style=flat-square&logo=opentelemetry&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-private_metrics-E6522C?style=flat-square&logo=prometheus&logoColor=white)
@@ -18,7 +18,7 @@ included and reach the storefront's purchase flow. Public repository; no license
 
 - Python 3.14.8, FastAPI, uv; SQLite (single process); OpenAI Responses (`gpt-6-luna`) behind a
   provider port; a deterministic **fixture provider is the default**.
-- Versioned HTTP/SSE contract (v1, revision 1.4) for the storefront's native assistant, which
+- Versioned HTTP/SSE contract (v1, revision 1.5) for the storefront's native assistant, which
   calls the API cross-origin; private, token-protected operations summary for the backoffice
   (`pequeverso-assistant-backoffice`, formerly `pequeverso-assistant-web`).
 - The native assistant presents only neutral Latin American Spanish ("tú"), without a language
@@ -209,3 +209,14 @@ separate owner authorization and a protected merge commit. Public repository, al
 no license is granted. Never commit secrets, private evaluations or customer conversations.
 
 Shared runtime/version acceptance: [runtime baseline](docs/runtime-baseline.md).
+
+### Affiliate product coverage (2026-10-17)
+
+The catalog now includes Grafismo Fonético and the separate third-party **Guía de Alimentación
+para Bebés**, exported from storefront main `bddd36f45b319571f52029dfe4d6b3283cd71287`. The
+course has no authorized published price, PDFs or page counts: those remain null. Its published
+seven-day guarantee and affiliate disclosure stay product-scoped; the kit policy cannot transfer
+to the course. Revision1.5 adds optional card kind/format/disclosure fields, with core defaults
+for historical messages. See [catalog](docs/catalog.md) and [contract](docs/api-contract.md).
+Fixture tests prove transport, grounded metadata, history and replay; they do not establish
+real-model quality, a functioning affiliate redirect or readiness of an undeployed VPS.

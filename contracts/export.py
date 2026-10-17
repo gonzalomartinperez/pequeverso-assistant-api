@@ -29,6 +29,7 @@ from app.application.answers import (
 )
 from app.application.operations import RecentRun, ServiceInfo, Summary
 from app.application.ports import Draft, DraftReference
+from app.application.starters import starters
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import create_app
 from app.domain.catalog import ActiveCatalog, PriceStatus
@@ -182,12 +183,7 @@ def build() -> dict[str, bytes]:
         messages=[],
         availability=AvailabilityOut(status='available'),
         limits=LimitsOut(max_message_chars=600, messages_per_day=30),
-        starters=[
-            '¿Qué incluye exactamente la compra?',
-            '¿Para qué edades se recomienda?',
-            '¿Tengo que imprimir todo el material?',
-            '¿Cómo funciona la garantía de 7 días?',
-        ],
+        starters=list(starters(active.catalog, Language.ES)),
     )
 
     app = create_app(Settings(_env_file=None, database_path=':memory:'))
@@ -199,6 +195,20 @@ def build() -> dict[str, bytes]:
             _transcript(
                 _user('Mi hija tiene 4 años y recién empieza con las letras, ¿qué me recomiendas?'),
                 recommendation,
+            )
+        ),
+        'examples/stream.affiliate.sse': _sse(
+            _transcript(
+                _user('¿Qué enseña la Guía de Alimentación para Bebés?'),
+                _answer(
+                    active,
+                    Draft(
+                        'La Guía de Alimentación para Bebés es un curso en video sobre alimentación complementaria de 6 a 12 meses. No tengo un precio publicado.',
+                        (DraftReference('product', 'alimentacion-bebe'),),
+                        ('affiliate.alimentacion-bebe.overview',),
+                        (),
+                    ),
+                ),
             )
         ),
         'examples/stream.unknown-policy.sse': _sse(

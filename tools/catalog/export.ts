@@ -18,6 +18,8 @@ import { soporteCopy } from "./content/es/soporte.ts";
 import { graciasCopy } from "./content/es/gracias.ts";
 import { getImage } from "./src/lib/media.ts";
 import { coreProducts, offerProducts } from "./src/products/index.ts";
+import { affiliates } from "./config/affiliates.ts";
+import { hubCopy } from "./content/es/hub.ts";
 
 const [origin, revision, generatedAt] = process.argv.slice(2);
 if (!origin || !revision || !generatedAt) throw new Error("usage: export.ts <origin> <revision> <generated-at>");
@@ -60,8 +62,31 @@ const products = coreProducts().map((product) => {
     audience_for: copy.audience?.yes.items ?? [],
     audience_not_for: copy.audience?.no.items ?? [],
     age_guidance: (copy.hero.ages?.items ?? []).map((age) => ({ label: `${age.label} años`, hint: age.hint })),
+    kind: "core",
+    guarantee_days: guaranteeDays,
   };
 });
+const coreIds = products.map((product) => product.id);
+// The public affiliate registry supplies no price, PDFs or resources. Never read its
+// deployment destinationEnv value; the only purchase URL is the public same-origin redirect.
+const affiliateProducts = affiliates.map((product) => ({
+  id: product.slug,
+  name: product.name,
+  kind: "affiliate",
+  path: `/#${hubCopy.feeding.anchor}`,
+  purchase_path: product.path,
+  summary: `${product.audience}. ${hubCopy.feeding.disclosure}`,
+  age_range: product.stage,
+  format: hubCopy.feeding.format,
+  usage: hubCopy.feeding.need,
+  disclosure: hubCopy.feeding.disclosure,
+  guarantee_days: product.guaranteeDays,
+  topics: [...product.topics],
+  pdf_count: null,
+  page_count: null,
+  price: null,
+  resources: [],
+}));
 
 const faqDocuments = coreProducts().flatMap((product) =>
   product.copy.faq.items.map((item, index) => ({
@@ -75,7 +100,7 @@ const faqDocuments = coreProducts().flatMap((product) =>
 
 const support = abs("/soporte/");
 const purchases = abs("/compras-y-reembolsos/");
-const documents = [
+const coreDocuments = [
   ...faqDocuments,
   {
     id: "policy.guarantee",
@@ -136,8 +161,31 @@ const documents = [
       url: support,
     })),
 ];
+const documents = [
+  ...coreDocuments.map((document) => ({ ...document, product_ids: coreIds })),
+  ...affiliateProducts.flatMap((product) => [
+    {
+      id: `affiliate.${product.id}.overview`, kind: "faq",
+      title: `¿Qué enseña ${product.name.startsWith("Guía ") ? "la " : ""}${product.name}?`,
+      text: `${product.format}. ${product.summary}. ${product.topics.join(" ")} ${product.disclosure}`,
+      url: abs(product.path), product_ids: [product.id],
+    },
+    {
+      id: `affiliate.${product.id}.guarantee`, kind: "policy",
+      title: `Garantía publicada de ${product.name}`,
+      text: `Tienes ${product.guarantee_days} días de garantía para ${product.name}.`,
+      url: abs(product.path), product_ids: [product.id],
+    },
+    {
+      id: `affiliate.${product.id}.support`, kind: "support",
+      title: `Relación de afiliación de ${product.name}`,
+      text: product.disclosure,
+      url: abs(product.path), product_ids: [product.id],
+    },
+  ]),
+];
 
-const links = [
+const coreLinks = [
   { id: "support", label: "Soporte y contacto", url: support },
   { id: "purchases-refunds", label: "Compras y reembolsos", url: purchases },
   { id: "withdrawal", label: "Botón de arrepentimiento", url: abs("/arrepentimiento/") },
@@ -149,6 +197,11 @@ const links = [
     url: abs(product.path),
   })),
 ];
+const allIds = [...coreIds, ...affiliateProducts.map((product) => product.id)];
+const links = coreLinks.map((link) => ({
+  ...link,
+  product_ids: link.id.startsWith("hotmart-") ? allIds : coreIds,
+}));
 
 const catalog = {
   schema_version: 1,
@@ -161,7 +214,7 @@ const catalog = {
     support_email: seller.supportEmail,
     support_link_id: "support",
   },
-  products,
+  products: [...products, ...affiliateProducts],
   documents,
   links,
   forbidden_terms: [
