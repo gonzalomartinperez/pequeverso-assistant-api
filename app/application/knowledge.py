@@ -98,7 +98,12 @@ class HybridKnowledgeRetrieval:
         if not allowed.issubset({p.id for p in active.catalog.products}):
             raise RejectedError(FailureCode.INVALID_REQUEST)
         revision = await self._revision(active)
+        if not await self._graph_current(revision):
+            raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
         lexical = await self._store.lexical_candidates(revision.version, question, _CANDIDATES)
+        if any(hit.strategy is not RetrievalStrategy.LEXICAL for hit in lexical):
+            raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
+        await self._verified(revision, lexical, allowed)
         vectors = await self._embeddings.encode((question,), EmbeddingPurpose.QUERY)
         if len(vectors) != 1:
             raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)

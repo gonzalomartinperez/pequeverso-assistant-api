@@ -82,6 +82,7 @@ class Graph:
         self.stamp = stamp
         self.hits = ()
         self.error = None
+        self.candidate_error = None
         self.seeds = ()
 
     async def projection_stamp(self, version):
@@ -91,6 +92,8 @@ class Graph:
 
     async def candidates(self, version, supporting_chunk_ids, limit):
         self.seeds = supporting_chunk_ids
+        if self.candidate_error:
+            raise self.candidate_error
         return self.hits
 
 
@@ -191,14 +194,30 @@ def test_stale_or_incoherent_snapshot_is_rejected_before_embedding(failure) -> N
     assert not asyncio.run(retrieval.ready(active))
 
 
-def test_graph_outage_degrades_to_verified_pg_and_readiness_is_false() -> None:
-    retrieval, store, graph, _, active = setup()
+@pytest.mark.parametrize('state', ['outage', 'missing', 'mismatch'])
+def test_known_graph_outage_or_mismatch_rejects_before_query_embedding(state) -> None:
+    retrieval, store, graph, embeddings, active = setup()
     store.lexical = (store.hit('product:grafismo-fonetico'),)
-    graph.error = RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
+    if state == 'outage':
+        graph.error = RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
+    elif state == 'missing':
+        graph.stamp = None
+    else:
+        graph.stamp = replace(graph.stamp, chunk_count=0)
+    with pytest.raises(RejectedError, match='dependency_unavailable'):
+        execute(retrieval, active)
+    assert not embeddings.calls
+    assert not asyncio.run(retrieval.ready(active))
+
+
+def test_midturn_graph_outage_after_valid_preflight_degrades_to_verified_pg() -> None:
+    retrieval, store, graph, embeddings, active = setup()
+    store.lexical = (store.hit('product:grafismo-fonetico'),)
+    graph.candidate_error = RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
     result = execute(retrieval, active)
     assert result.graph_degraded
     assert result.chunks
-    assert not asyncio.run(retrieval.ready(active))
+    assert len(embeddings.calls) == 1
 
 
 def test_affiliate_selection_cannot_receive_core_policy_or_resource() -> None:
