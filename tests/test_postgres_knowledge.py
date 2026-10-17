@@ -173,6 +173,42 @@ def test_immutable_revision_rejects_different_vectors_and_detects_tampered_metad
     asyncio.run(run())
 
 
+@pytest.mark.parametrize('tamper', ['text', 'vector'])
+def test_preparation_rechecks_real_rows_without_replacing_the_previous_active(tamper: str) -> None:
+    async def run() -> None:
+        async with isolated_store() as (store, db):
+            previous, candidate = public_corpus('a'), public_corpus('b')
+            await stage(store, previous)
+            await prepare(store, previous)
+            await store.activate_prepared(previous.revision.version)
+            vectors = await stage(store, candidate)
+            observed = await store.projection_stamp(candidate.revision.version)
+            assert observed is not None
+            async with db.pool.connection() as conn:
+                if tamper == 'text':
+                    await conn.execute(
+                        "UPDATE knowledge.chunks SET text='Changed same-count evidence' WHERE version=%s AND id=%s",
+                        (candidate.revision.version, candidate.chunks[0].id),
+                    )
+                else:
+                    await conn.execute(
+                        'UPDATE knowledge.chunks SET embedding=%s::public.vector WHERE version=%s AND id=%s',
+                        (
+                            json.dumps([-x for x in vectors[0]]),
+                            candidate.revision.version,
+                            candidate.chunks[0].id,
+                        ),
+                    )
+            assert await store.projection_stamp(candidate.revision.version) == observed
+            with pytest.raises(ValueError, match=r'hash|canonical|integrity'):
+                await store.mark_prepared(candidate.revision.version, observed)
+            with pytest.raises(ValueError, match='prepared'):
+                await store.activate_prepared(candidate.revision.version)
+            assert await store.active_revision() == previous.revision
+
+    asyncio.run(run())
+
+
 def test_cross_identity_bounds_unknown_chunks_and_nonfinite_vectors_fail_closed() -> None:
     async def run() -> None:
         async with isolated_store() as (store, db):

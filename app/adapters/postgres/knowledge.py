@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import struct
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
@@ -78,6 +79,58 @@ def _limit(limit: int) -> None:
         raise ValueError('retrieval limit must be between one and 64')
 
 
+def _storage_vectors(
+    vectors: tuple[tuple[float, ...], ...],
+    spec: EmbeddingSpec,
+) -> tuple[tuple[float, ...], ...]:
+    """pgvector stores IEEE754 float32; hash those actual bits, not SDK float64 JSON."""
+    result: list[tuple[float, ...]] = []
+    for vector in vectors:
+        validate_vector(vector, spec)
+        try:
+            stored = tuple(struct.unpack('!f', struct.pack('!f', value))[0] for value in vector)
+        except (OverflowError, struct.error) as error:
+            raise ValueError('embedding is not representable as float32') from error
+        validate_vector(stored, spec)
+        result.append(stored)
+    return tuple(result)
+
+
+def _vector_digest(vectors: tuple[tuple[float, ...], ...]) -> str:
+    digest = hashlib.sha256()
+    for vector in vectors:
+        for value in vector:
+            digest.update(struct.pack('!f', value))
+    return digest.hexdigest()
+
+
+def _verify_projection_rows(revision: Row, rows: list[Row]) -> ProjectionStamp:
+    manifest = revision['manifest']
+    if hashlib.sha256(_json(manifest).encode()).hexdigest() != revision['manifest_sha256']:
+        raise ValueError('canonical manifest hash mismatch')
+    canonical = manifest['chunks']
+    by_id = {row['id']: row for row in rows}
+    if len(by_id) != len(canonical):
+        raise ValueError('projection integrity count mismatch')
+    vectors: list[tuple[float, ...]] = []
+    spec = _revision(revision).embedding
+    for expected in canonical:
+        actual = by_id.get(expected['id'])
+        if actual is None or _json(asdict(_chunk(actual))) != _json(expected):
+            raise ValueError('canonical chunk metadata or provenance mismatch')
+        vector = tuple(float(value) for value in json.loads(actual['stored_vector']))
+        vectors.append(_storage_vectors((vector,), spec)[0])
+    if _vector_digest(tuple(vectors)) != revision['vector_sha256']:
+        raise ValueError('stored vector integrity hash mismatch')
+    return ProjectionStamp(
+        revision['version'],
+        revision['catalog_sha256'],
+        len(rows),
+        len(manifest['entities']),
+        len(manifest['relations']),
+    )
+
+
 class PostgresKnowledgeStore:
     def __init__(
         self,
@@ -111,15 +164,14 @@ class PostgresKnowledgeStore:
     async def stage(self, corpus: KnowledgeCorpus, vectors: tuple[tuple[float, ...], ...]) -> None:
         if not self._matches(corpus.revision) or len(vectors) != len(corpus.chunks):
             raise ValueError('projection identity or vector cardinality mismatch')
-        for vector in vectors:
-            validate_vector(vector, corpus.revision.embedding)
+        vectors = _storage_vectors(vectors, corpus.revision.embedding)
         # Re-parse authorized catalog bytes before persistence, never a free-form knowledge source.
         catalog = self._parse(corpus.catalog_body)
         if catalog.source_revision != corpus.revision.source_revision:
             raise ValueError('corpus source revision does not match the validated catalog')
         manifest = _manifest(corpus)
         manifest_hash = hashlib.sha256(_json(manifest).encode()).hexdigest()
-        vector_hash = hashlib.sha256(_json(vectors).encode()).hexdigest()
+        vector_hash = _vector_digest(vectors)
         revision = corpus.revision
         async with self._db.pool.connection() as connection:
             inserted = await connection.execute(
@@ -209,10 +261,26 @@ class PostgresKnowledgeStore:
         )
 
     async def mark_prepared(self, version: str, graph_stamp: ProjectionStamp) -> None:
-        observed = await self.projection_stamp(version)
-        if observed is None or observed != graph_stamp:
-            raise ValueError('graph and PostgreSQL projection proofs do not match')
         async with self._db.pool.connection() as connection:
+            revision = await (
+                await connection.execute(
+                    'SELECT * FROM knowledge.revisions WHERE version=%s FOR UPDATE',
+                    (version,),
+                )
+            ).fetchone()
+            if revision is None or not self._matches(_revision(revision)):
+                raise ValueError('graph and PostgreSQL projection proofs do not match configured identity')
+            rows = await (
+                await connection.execute(
+                    'SELECT *,embedding::text AS stored_vector FROM knowledge.chunks'
+                    ' WHERE version=%s ORDER BY id FOR SHARE',
+                    (version,),
+                )
+            ).fetchall()
+            # One bounded indexing-time verification; ordinary queries hydrate selected chunks only.
+            observed = _verify_projection_rows(revision, rows)
+            if observed != graph_stamp:
+                raise ValueError('graph and PostgreSQL projection proofs do not match')
             await connection.execute(
                 'UPDATE knowledge.revisions SET prepared=true WHERE version=%s', (version,)
             )
