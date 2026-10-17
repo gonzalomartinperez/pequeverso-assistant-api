@@ -1,7 +1,8 @@
-"""Decisions and safety properties of the Dependabot unattended-merge policy."""
+"""Decisions and safety properties of the manual Dependabot review assessment."""
 
 from __future__ import annotations
 
+import re
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -120,10 +121,10 @@ def test_classify(old: str | None, new: str | None, kind: str) -> None:
     assert classify(old, new) == kind
 
 
-def test_eligible_patch_enables_auto_merge() -> None:
+def test_eligible_patch_remains_manual() -> None:
     decision = evaluate(facts(), POLICY)
     assert decision.eligible
-    assert decision.automerge
+    assert not decision.automerge
     assert decision.updates == [{'package': 'fastapi', 'from': '0.141.1', 'to': '0.141.2', 'type': 'patch'}]
 
 
@@ -219,8 +220,12 @@ def test_new_head_after_evaluation_is_rejected() -> None:
     ('runs', 'state', 'eligible'),
     [
         ((CheckRun('checks', 'completed', 'success'),), 'success', True),
-        ((CheckRun('checks', 'in_progress', None),), 'pending', True),  # native auto-merge waits
-        ((), 'missing', True),  # not reported yet; required-check enforcement is GitHub's
+        (
+            (CheckRun('checks', 'in_progress', None),),
+            'pending',
+            True,
+        ),  # classification only; a maintainer waits for CI
+        ((), 'missing', True),  # missing CI never authorizes a merge
         ((CheckRun('checks', 'completed', 'failure'),), 'failure', False),
         ((CheckRun('checks', 'completed', 'cancelled'),), 'cancelled', False),
         ((CheckRun('checks', 'completed', 'timed_out'),), 'failure', False),
@@ -229,7 +234,9 @@ def test_new_head_after_evaluation_is_rejected() -> None:
 )
 def test_check_states(runs: tuple[CheckRun, ...], state: str, eligible: bool) -> None:
     assert ci_state(runs, POLICY.required_checks) == state
-    assert evaluate(facts(check_runs=runs), POLICY).eligible is eligible
+    decision = evaluate(facts(check_runs=runs), POLICY)
+    assert decision.eligible is eligible
+    assert not decision.automerge
 
 
 def test_conflicts_need_review_and_behind_is_left_to_rebase() -> None:
@@ -298,3 +305,12 @@ def test_protection_requires_pull_requests_and_strict_required_checks() -> None:
         },
     ]
     assert not protection_from_rules(other, POLICY.required_checks)
+
+
+def test_manual_profile_has_no_privileged_workflow_or_merge_command() -> None:
+    workflow = (Path(__file__).parents[1] / '.github/workflows/dependabot-policy.yml').read_text()
+    assert not re.search(
+        r"""(?:^|[\s{,])["']?[\w-]+["']?\s*:\s*["']?write(?:-all)?["']?(?=$|[\s,}])""", workflow, re.MULTILINE
+    )
+    assert 'gh pr merge' not in workflow
+    assert 'enablePullRequestAutoMerge' not in workflow
