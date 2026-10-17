@@ -37,9 +37,14 @@ class PostgresDatabase:
     async def close(self) -> None:
         await self.pool.close(timeout=5.0)
 
+    async def ping(self) -> bool:
+        async with self.pool.connection() as connection:
+            row = await (await connection.execute('SELECT 1 AS ready')).fetchone()
+        return row is not None and row['ready'] == 1
+
     async def migrate(self) -> None:
         """Only the explicit migration identity calls this; normal runtime never executes DDL."""
         async with self.pool.connection() as connection:
             await connection.execute('SELECT pg_advisory_xact_lock(684721023)')
-            for name in ('001_knowledge.sql', '002_roles.sql'):
+            for name in ('001_knowledge.sql', '002_roles.sql', '003_private.sql'):
                 await connection.execute(Path(__file__).with_name(name).read_text())

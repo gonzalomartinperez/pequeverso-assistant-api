@@ -296,9 +296,10 @@ class PostgresKnowledgeStore:
             if row is None or not self._matches(_revision(row)):
                 raise ValueError('only matching prepared knowledge may become active')
             await connection.execute(
-                'UPDATE knowledge.state SET active_version=%s,verified_at=%s,last_attempt_at=%s,'
+                'UPDATE knowledge.state SET activated_at=CASE WHEN active_version IS DISTINCT FROM %s'
+                ' THEN CURRENT_TIMESTAMP ELSE activated_at END,active_version=%s,verified_at=%s,last_attempt_at=%s,'
                 'last_failure=NULL WHERE id=1',
-                (version, row['verified_at'], row['verified_at']),
+                (version, version, row['verified_at'], row['verified_at']),
             )
 
     async def active_revision(self) -> KnowledgeRevision | None:
@@ -362,9 +363,10 @@ class PostgresKnowledgeStore:
             if len(rows) != 1:
                 raise ValueError('catalog binding needs one unique matching prepared revision')
             await connection.execute(
-                'UPDATE knowledge.state SET active_version=%s,verified_at=%s,last_attempt_at=%s,'
+                'UPDATE knowledge.state SET activated_at=CASE WHEN active_version IS DISTINCT FROM %s'
+                ' THEN CURRENT_TIMESTAMP ELSE activated_at END,active_version=%s,verified_at=%s,last_attempt_at=%s,'
                 'last_failure=NULL WHERE id=1',
-                (rows[0]['version'], verified_at, attempted_at),
+                (rows[0]['version'], rows[0]['version'], verified_at, attempted_at),
             )
 
     async def mark_verified(self, sha256: str, verified_at: datetime, attempted_at: datetime) -> None:

@@ -43,14 +43,15 @@ done
 if [ "$ready" != true ]; then echo 'Isolated PostgreSQL did not become ready' >&2; exit 1; fi
 export TEST_KNOWLEDGE_DSN="postgresql://knowledge_test:${password}@127.0.0.1:55439/pv_knowledge_test"
 export KNOWLEDGE_PLAN_OUTPUT="$receipt/exact-vector-explain.json"
-uv run pytest tests/test_postgres_knowledge.py -q > "$receipt/integration.log" 2>&1
+uv run pytest tests/test_postgres_knowledge.py tests/test_postgres_private.py tests/test_postgres_import.py -q > "$receipt/integration.log" 2>&1
+uv run python -m tests.postgres_restore_fixture
 unset TEST_KNOWLEDGE_DSN
 docker exec "$name" psql -U knowledge_test -d pv_knowledge_test -Atc \
   "SELECT current_setting('server_version'); SELECT extversion FROM pg_extension WHERE extname='vector';" > "$receipt/versions.txt"
 docker exec "$name" pg_dump -U knowledge_test -d pv_knowledge_test -Fc > "$private/public-knowledge.dump"
 docker exec "$name" createdb -U knowledge_test pv_knowledge_restore
 docker exec -i "$name" pg_restore -U knowledge_test -d pv_knowledge_restore --exit-on-error < "$private/public-knowledge.dump"
-query="SELECT version,manifest_sha256,vector_sha256 FROM knowledge.revisions ORDER BY version; SELECT count(*) FROM knowledge.chunks;"
+query="SELECT version,manifest_sha256,vector_sha256 FROM knowledge.revisions ORDER BY version; SELECT count(*) FROM knowledge.chunks; SELECT count(*),md5(coalesce(string_agg(md5(id || csrf_token || encode(secret_digest,'hex')),'' ORDER BY id),'')) FROM assistant_private.sessions; SELECT count(*),md5(coalesce(string_agg(md5(content || details),'' ORDER BY seq),'')) FROM assistant_private.messages; SELECT count(*),md5(coalesce(string_agg(run_id || ':' || reserved_micro::text || ':' || coalesce(actual_micro::text,'unknown') || ':' || status,'' ORDER BY run_id),'')) FROM assistant_private.spend_ledger;"
 docker exec "$name" psql -U knowledge_test -d pv_knowledge_test -Atc "$query" > "$receipt/before-restore.txt"
 docker exec "$name" psql -U knowledge_test -d pv_knowledge_restore -Atc "$query" > "$receipt/after-restore.txt"
 cmp "$receipt/before-restore.txt" "$receipt/after-restore.txt"
