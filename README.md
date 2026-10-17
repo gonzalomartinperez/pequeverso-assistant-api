@@ -57,7 +57,7 @@ API**. They show layout and interaction, not real-model quality or the deployed 
 remains disabled: no launcher, runtime load or assistant API traffic in the publishable build.
 
 | Welcome and suggested questions | Answer and disclosed sources |
-| --- | --- |
+| :---: | :---: |
 | [![Compact welcome with question chips](docs/verification/native-assistant-2026-10-17/desktop-welcome.png)](docs/verification/native-assistant-2026-10-17/desktop-welcome.png) | [![Complete compact answer and authorized sources](docs/verification/native-assistant-2026-10-17/desktop-answer-sources.png)](docs/verification/native-assistant-2026-10-17/desktop-answer-sources.png) |
 | Mobile conversation and input | Expanded conversation |
 | [![Mobile conversation, product reference and comfortable input](docs/verification/native-assistant-2026-10-17/mobile-conversation.png)](docs/verification/native-assistant-2026-10-17/mobile-conversation.png) | [![Expanded assistant conversation with checked sources](docs/verification/native-assistant-2026-10-17/desktop-expanded.png)](docs/verification/native-assistant-2026-10-17/desktop-expanded.png) |
@@ -71,10 +71,12 @@ Neither gallery establishes the quality of the new semantic retrieval profile or
 
 ## System at a glance
 
+<p align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/architecture/system-dark.svg">
   <img src="docs/architecture/system-light.svg" alt="Assistant API boundaries: public session and CSRF, validated evidence, separate public/private PostgreSQL, public Neo4j projection, bounded OpenAI generation, separate backoffice PostgreSQL identity and future private vps-ops observability.">
 </picture>
+</p>
 
 [Open full-size diagram](docs/architecture/system-light.svg) ·
 [Dark version](docs/architecture/system-dark.svg) ·
@@ -105,29 +107,9 @@ conversion are different measurements. See [GraphRAG evidence](docs/graph-retrie
 
 ## One question, one accountable generation
 
-```mermaid
-sequenceDiagram
-  participant UI as Native assistant
-  participant API as HTTP boundary
-  participant App as Chat service
-  participant DB as Private PostgreSQL
-  participant AI as GPT-6 Luna
-  UI->>API: Session + Origin + CSRF + idempotency key
-  API->>App: Validated visitor turn
-  App->>App: Check ownership, catalog and dependency availability
-  App->>DB: Claim request + reserve generation worst-case spend
-  App->>App: Retrieve and verify public PG/Neo evidence
-  Note over App,DB: Query embeddings have separate reserve/settle accounting.
-  App->>App: Pack merchant facts, verified passages and history within 24k
-  App->>AI: Authorized evidence + history, medium, no generation retries
-  AI-->>App: Structured deltas + usage
-  App->>App: Normalize and check complete cumulative prefixes
-  App-->>UI: Checked provisional message.delta
-  App->>App: Resolve references + validate commercial claims
-  App->>DB: Persist authoritative answer + settle known usage
-  App-->>UI: message.completed + run.completed
-  Note over App,DB: Known usage is settled.<br/>Missing usage retains its reservation.<br/>Partial answers are not stored.
-```
+The [editable request sequence](docs/architecture/request-flow.mmd) details session/CSRF,
+one accountable generation, retrieval, canonical validation and terminal persistence. The
+centered system diagram above shows the same application and data boundaries.
 
 Provider credentials exist only in the backend. Fixture is the default; real evaluations require
 current owner authorization, private configuration and one shared conservative budget. Model

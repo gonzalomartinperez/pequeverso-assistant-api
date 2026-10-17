@@ -6,6 +6,9 @@ LangChain Core **1.6.12**, LangSmith **0.14.9**, psycopg **3.3.6** / pool **3.3.
 driver **6.4.1**. Exact dependency resolution is in `uv.lock`; container bases are digest-pinned.
 Frozen `--no-build` installs avoid ad hoc native builds. Python 3.15 is a stable branch but the
 selected GraphRAG dependency wheel set is incomplete; the owner permits 3.14 compatibility.
+The failed CP315 frozen install identified PyYAML 6.0.3, uuid-utils 0.17.1 and zstandard 0.25.0
+without compatible wheels. The CP314 frozen 74-package installation passed. Pequeverso has no
+Lingua dependency; this intentional return does not claim Python 3.15 or its Docker tags are unavailable.
 
 LangGraph and LangChain 1.x have their own published support policy; Python and PostgreSQL
 use support schedules without the LTS label. LangSmith is a separately versioned dependency;
@@ -35,7 +38,8 @@ baseline/routing/release policy; Coolify remains the sole deployment executor.
 The lockfile is authoritative for the complete dependency graph. This dated view does not
 assert that these versions remain the newest forever or that an image has been published.
 Python 3.15.0 is maintained stable, not named LTS; uv 0.13.1 is stable tooling.
-Pequeverso has no Lingua dependency and uses SQLite rather than the portfolio retrieval stack.
+This historical pre-GraphRAG candidate had no Lingua dependency and used SQLite rather than
+the portfolio retrieval stack; it is superseded by the current production profile above.
 The portfolio remains an immutable implementation reference, not evidence that Pequeverso
 has passed its own checks. This candidate deliberately uses regular GIL CPython; no global lazy
 imports, experimental JIT or free-threaded runtime is enabled.

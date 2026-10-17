@@ -1,0 +1,21 @@
+sequenceDiagram
+  participant UI as Native assistant
+  participant API as HTTP boundary
+  participant App as Chat service
+  participant DB as Private PostgreSQL
+  participant AI as GPT-6 Luna
+  UI->>API: Session + Origin + CSRF + idempotency key
+  API->>App: Validated visitor turn
+  App->>App: Check ownership, catalog and dependency availability
+  App->>DB: Claim request + reserve generation worst-case spend
+  App->>App: Retrieve and verify public PG/Neo evidence
+  Note over App,DB: Query embeddings have separate reserve/settle accounting.
+  App->>App: Pack merchant facts, verified passages and history within 24k
+  App->>AI: Authorized evidence + history, medium, no generation retries
+  AI-->>App: Structured deltas + usage
+  App->>App: Normalize and check complete cumulative prefixes
+  App-->>UI: Checked provisional message.delta
+  App->>App: Resolve references + validate commercial claims
+  App->>DB: Persist authoritative answer + settle known usage
+  App-->>UI: message.completed + run.completed
+  Note over App,DB: Known usage is settled.<br/>Missing usage retains its reservation.<br/>Partial answers are not stored.
