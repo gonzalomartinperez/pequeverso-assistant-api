@@ -1,22 +1,26 @@
 # Handoff to vps-ops: Pequeverso assistant API and backoffice
 
-Answers the "Concrete request to the application agent" in vps-ops
-`docs/handoffs/pequeverso-assistant.md` (inspected at vps-ops `develop` `04be619`). This is a
+Reconciles with vps-ops `main` `2b310f2ee86e600f13c87a29806569adb3e8e10e`, inspected through
+`git show` at `docs/handoffs/pequeverso-assistant.md`, `docs/handoffs/integration-matrix.md`,
+`inventory/runtime.json` and `infra/edge/coolify-traefik.yaml`. This supersedes the earlier
+`develop` `04be619` planning attribution; the matrix's pinned application revisions still need
+refreshing to the separately approved release SHAs before deployment. This is a
 handoff, not an authorization: no image is published, and this document does not approve any
 DNS record, route, database, secret or Coolify resource. Owner-authorized paid evaluations ran
 only in isolated local services; see docs/verification/real-model-2026-10-12.md. vps-ops
 remains the only infrastructure authority; nothing here modifies vps-ops.
 
-## Topology change since the vps-ops planning record
+## Current reconciled topology
 
-The inventory still describes one web service serving `/` and `/embed` plus `/api/` on
-`assistant.pequeverso.com`. That frontend no longer serves a public chat:
+The current vps-ops inventory already distinguishes the native storefront, API, backoffice,
+private IAM PostgreSQL and API-owned SQLite. The earlier public web/iframe service is
+superseded; there is no VPS chat frontend or `/embed` service:
 
 | Component | Repository | Hosting | Public? |
 |---|---|---|---|
 | Storefront with the **native** assistant (disabled by default; no iframe) | `gonzalomartinperez/pequeverso` | Hostinger hosting, Git integration connected to `main` as confirmed by the owner. Consumes **no** VPS resources or Hostinger Node slots | Yes |
 | Assistant API | `gonzalomartinperez/pequeverso-assistant-api` | VPS, Coolify | `/api/*` only |
-| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-assistant-backoffice` (renamed from `pequeverso-assistant-web` on 2026-10-05; GitHub redirects the old name, which the vps-ops inventory still uses) | VPS, Coolify | Only behind its own sign-in |
+| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-assistant-backoffice` (historically renamed from `pequeverso-assistant-web` on 2026-10-05) | VPS, Coolify | Only behind its own sign-in |
 | Backoffice PostgreSQL (identity and access only) | — | VPS, private network, project volume | Never |
 
 Hostinger builds and publishes `main`, as confirmed by the owner. A storefront merge can
@@ -24,9 +28,9 @@ therefore publish the site, but must keep the assistant disabled. Verify the pub
 post-deploy checks after a storefront release. API/backoffice merges do not deploy to the VPS;
 that separate rollout remains owned by vps-ops.
 
-So the planned `web` service becomes the **backoffice** on a **separate host** and the iframe,
-`frame-ancestors` and `/embed` requirements disappear. The storefront talks to the API
-cross-origin from the browser.
+The backoffice needs a **separate host**; iframe, `frame-ancestors` and `/embed` are not current
+requirements. The storefront talks to the API cross-origin from the browser. Hostnames and
+runtime resources remain planned until vps-ops accepts the actual deployment inputs.
 
 ## Answers to the six requests
 
@@ -70,8 +74,12 @@ cross-origin from the browser.
      or in an isolated drill. vps-ops owns the coordinated rollback and reconciliation.
 3. **Paths and streaming.** API routes include `/api` (`/api/v1/...`), `root_path` empty: route
    `/api/*` **unchanged** (no stripping). SSE on `POST /api/v1/messages`: no buffering, no
-   compression, read timeout ≥ 90 s (runs end at 60 s; keep-alive comment every 15 s),
-   propagate client disconnects. `/health/*` and `/internal/*` must **never** be routed publicly.
+   compression; allow at least90s for the streaming **response/write**, separately from
+   request-body reading (runs end at60s; heartbeat every15s). The inspected vps-ops Traefik
+   input uses request `readTimeout: 15s`, response `writeTimeout: 135s` and upstream
+   `responseHeaderTimeout: 135s`; do not raise the request-body read timeout because SSE is
+   long-lived. Propagate client disconnects. `/health/*` and `/internal/*` must **never** be
+   routed publicly. See [the timeout semantics](../deployment-contract.md#routing-and-proxy-sse).
 4. **Origins (proposals, pending owner approval and DNS).** Storefront origin
    `https://pequeverso.com` (apex; `www` redirects there). API: `https://assistant.pequeverso.com`
    (inventory's proposed domain), `/api/*` only. Backoffice: a separate host, e.g.
