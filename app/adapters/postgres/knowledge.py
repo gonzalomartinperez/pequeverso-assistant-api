@@ -267,7 +267,7 @@ class PostgresKnowledgeStore:
         async with self._db.pool.connection() as connection:
             revision = await (
                 await connection.execute(
-                    'SELECT * FROM knowledge.revisions WHERE version=%s FOR SHARE', (version,)
+                    'SELECT * FROM knowledge.revisions WHERE version=%s FOR UPDATE', (version,)
                 )
             ).fetchone()
             if revision is None or not self._matches(_revision(revision)):
@@ -275,7 +275,7 @@ class PostgresKnowledgeStore:
             rows = await (
                 await connection.execute(
                     'SELECT *,embedding::text AS stored_vector FROM knowledge.chunks'
-                    ' WHERE version=%s ORDER BY id LIMIT 2049 FOR SHARE',
+                    ' WHERE version=%s ORDER BY id LIMIT 2049',
                     (version,),
                 )
             ).fetchall()
@@ -303,10 +303,13 @@ class PostgresKnowledgeStore:
             rows = await (
                 await connection.execute(
                     'SELECT *,embedding::text AS stored_vector FROM knowledge.chunks'
-                    ' WHERE version=%s ORDER BY id FOR SHARE',
+                    ' WHERE version=%s ORDER BY id',
                     (version,),
                 )
             ).fetchall()
+            # The revision FOR UPDATE also blocks new FK children. Existing chunks are
+            # immutable to the indexer (INSERT/SELECT only); FOR SHARE would require an
+            # unnecessary UPDATE grant. Trusted owner maintenance must stop the indexer.
             # One bounded indexing-time verification; ordinary queries hydrate selected chunks only.
             observed = _verify_projection_rows(revision, rows)
             if observed != graph_stamp:
