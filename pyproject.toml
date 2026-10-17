@@ -2,6 +2,8 @@
 name = "pequeverso-assistant-api"
 version = "0.1.0"
 description = "Advisory, read-only shopping assistant backend for Pequeverso."
+license = "MIT"
+license-files = ["LICENSE", "NOTICE.md"]
 requires-python = ">=3.15,<3.16"
 dependencies = [
     "fastapi>=0.143.3",
