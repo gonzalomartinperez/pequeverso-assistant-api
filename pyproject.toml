@@ -2,10 +2,16 @@
 name = "pequeverso-assistant-api"
 version = "0.1.0"
 description = "Advisory, read-only shopping assistant backend for Pequeverso."
-requires-python = ">=3.15,<3.16"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "fastapi>=0.143.3",
     "httpx>=0.28.1",
+    "langchain-core==1.6.12",
+    "langgraph==1.2.16",
+    "langsmith==0.14.9",
+    "neo4j==6.4.1",
+    "psycopg[binary,pool]==3.3.6",
+    "psycopg-pool==3.3.3",
     "openai>=3.33.0",
     "opentelemetry-exporter-otlp-proto-http>=1.45.1",
     "opentelemetry-sdk>=1.45.1",
@@ -46,7 +52,7 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Cookie"]
 quote-style = "single"
 
 [tool.mypy]
-python_version = "3.15"
+python_version = "3.14"
 strict = true
 files = ["app", "contracts", "scripts"]
 plugins = ["pydantic.mypy"]
