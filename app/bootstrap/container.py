@@ -45,6 +45,7 @@ from app.application.sessions import SessionLimits, SessionService
 from app.bootstrap.config import Settings, get_settings
 from app.bootstrap.logging import configure_logging
 from app.bootstrap.persistence import build_persistence
+from app.bootstrap.provider_transport import close_owned_provider, provider_http_client
 from app.domain.budget import BudgetPolicy, Pricing, to_micro
 from app.presentation.http import CookiePolicy, HttpSettings, Services, health, install_error_handlers, router
 from app.presentation.middleware import BodyLimitMiddleware, OriginMiddleware, RequestContextMiddleware
@@ -74,7 +75,9 @@ def build_provider(
 ) -> _ProviderResource:
     if settings.ai_provider == 'openai':
         assert settings.openai_api_key is not None
+        http = provider_http_client()
         client = AsyncOpenAI(
+            http_client=http,
             api_key=settings.openai_api_key.get_secret_value(),
             base_url='https://api.openai.com/v1',
             timeout=settings.openai_timeout_seconds,
@@ -88,7 +91,7 @@ def build_provider(
             OpenAIResponsesProvider(
                 client, settings.openai_model, settings.openai_reasoning_effort, settings.openai_max_retries
             ),
-            client.close,
+            lambda: close_owned_provider(client, http),
             embeddings,
         )
     return _ProviderResource(

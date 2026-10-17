@@ -30,6 +30,7 @@ from app.application.indexing import KnowledgeIndexer
 from app.application.knowledge_ports import Embeddings
 from app.bootstrap.container import SystemClock
 from app.bootstrap.logging import configure_logging
+from app.bootstrap.provider_transport import close_provider_transport, provider_http_client
 from app.domain.budget import BudgetPolicy, to_micro
 from app.domain.knowledge import MAX_PUBLIC_BODY_BYTES
 
@@ -110,7 +111,10 @@ async def index_main() -> int:
                 embeddings: Embeddings = FixtureHashEmbeddings()
                 if settings.ai_provider == 'openai':
                     assert settings.openai_api_key is not None
+                    http = provider_http_client()
+                    resources.push_async_callback(close_provider_transport, http)
                     client = AsyncOpenAI(
+                        http_client=http,
                         api_key=settings.openai_api_key.get_secret_value(),
                         base_url='https://api.openai.com/v1',
                         max_retries=0,
