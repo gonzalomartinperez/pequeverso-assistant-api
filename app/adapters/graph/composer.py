@@ -74,7 +74,7 @@ class GraphAnswerComposer:
         builder.add_edge(START, 'retrieve')
         builder.add_edge('retrieve', 'answer')
         builder.add_edge('answer', END)
-        # Private history/idempotency remains in SQLite. No replay of a paid node.
+        # Private history/idempotency remains in application storage. No replay of a paid node.
         self._graph = builder.compile(checkpointer=False, store=None, cache=None, debug=False)
 
     @property

@@ -76,8 +76,9 @@ The indexing command defaults to `AI_PROVIDER=fixture`. OpenAI indexing addition
 `AI_PROVIDER=openai`, `ALLOW_PAID_AI=true`, a private `OPENAI_API_KEY` and explicit
 `--allow-paid-indexing`. These are technical gates, not spending authorization. Verify the
 owner's current authorization, official embedding prices, shared project budget and any
-separate evaluation ledger before executing paid work. The CLI is not an evaluation-budget
-bypass. Do not reset an old ledger or automatically retry a failed job.
+separate evaluation ledger before executing paid work. The standalone CLI enforces the application ledger, not the independent evaluation
+envelope. It must not be used as an evaluation-budget bypass: the evaluation composition
+must additionally reserve every SDK request against its aggregate guard before any paid batch. Do not reset an old ledger or automatically retry a failed job.
 
 The operator job requires a matching SHA-256 before opening services. It creates its receipt
 with exclusive creation and mode 0600 before network I/O; an existing receipt is never
