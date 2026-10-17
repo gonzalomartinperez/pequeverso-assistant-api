@@ -20,7 +20,7 @@ superseded; there is no VPS chat frontend or `/embed` service:
 |---|---|---|---|
 | Storefront with the **native** assistant (disabled by default; no iframe) | `gonzalomartinperez/pequeverso` | Hostinger hosting, Git integration connected to `main` as confirmed by the owner. Consumes **no** VPS resources or Hostinger Node slots | Yes |
 | Assistant API | `gonzalomartinperez/pequeverso-assistant-api` | VPS, Coolify | `/api/*` only |
-| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-assistant-backoffice` (historically renamed from `pequeverso-assistant-web` on 2026-10-05) | VPS, Coolify | Only behind its own sign-in |
+| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-backoffice` (previously `pequeverso-assistant-backoffice`; originally `pequeverso-assistant-web`, whose backoffice rename was on 2026-10-05) | VPS, Coolify | Only behind its own sign-in |
 | Backoffice PostgreSQL (identity and access only) | — | VPS, private network, project volume | Never |
 
 Hostinger builds and publishes `main`, as confirmed by the owner. A storefront merge can
@@ -194,7 +194,7 @@ storefront, publishes an image or authorizes an infrastructure action.
 - Keep API SQLite on its own `/data` volume, backoffice identity on its own PostgreSQL 18.6
   database/volume, and shared infrastructure in vps-ops. No Neo4j/vector/Redis is needed for
   this catalog. Verify backup/restore, WAL/disk limits and physical erasure before activation.
-- LTS applies only where an official policy exists. Python3.14.8 and PostgreSQL 18.6 are
+- LTS applies only where an official policy exists. Python3.15.0 and PostgreSQL 18.6 are
   supported stable releases; Node24 is LTS. Python OTEL1.45.1 contains three explicit0.66b1
   dependencies. Prometheus3.13 LTS, Grafana13.2 and collector components require final image
   and compatibility selection by vps-ops. Examples are application handoff artifacts, not

@@ -52,7 +52,8 @@ titles, labels and branch names are never inputs):
 **Always manual:**
 - major, prerelease, downgrade and unknown version schemes;
 - 0.x minor bumps (FastAPI, uvicorn, httpx, ruff are 0.x);
-- `openai` (provider SDK, only fake-client tested);
+- `openai` (provider SDK; fake-client tests plus installed-SDK synthetic transport regressions,
+  never a substitute for an authorized live-model evaluation);
 - `starlette` (sessions, cookies, SSE);
 - `pydantic` / `pydantic-core` (validation boundary);
 - the TLS stack (`httpcore*`, `truststore`, `certifi`) and `python-dotenv` (config loading);
