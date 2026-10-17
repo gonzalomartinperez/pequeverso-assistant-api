@@ -2,7 +2,7 @@
 
 ## Current profile — 2026-10-17
 
-Dependabot continues to open version-update PRs into `develop`, with its existing schedules,
+Dependabot continues to open version-update PRs into `develop`, weekly for every configured ecosystem, with its existing
 groups and native `rebase-strategy: auto`. Every update requires manual review and a protected
 merge. The read-only policy classifies authenticated metadata and manifest changes; an
 `eligible` result means only a low-risk review candidate. Its `automerge` output is always

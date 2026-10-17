@@ -50,7 +50,7 @@ updates:
     directory: /
     target-branch: develop
     schedule:
-      interval: monthly
+      interval: weekly
     cooldown:
       default-days: 7
     labels: [dependencies, docker]
