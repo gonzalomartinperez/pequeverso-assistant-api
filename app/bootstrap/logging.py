@@ -179,10 +179,14 @@ class SafeJsonFormatter(logging.Formatter):
             'level': logging.getLevelName(record.levelno).lower(),
             'logger': record.name if record.name in _EVENTS or record.name == 'uvicorn.error' else 'external',
         }
-        try:
-            payload = json.loads(record.getMessage())
-        except (TypeError, ValueError):
-            payload = None
+        payload = None
+        # External records are not evaluated at all: even getMessage may execute a custom
+        # __str__, and parser failures must never reach logging's raw-message fallback.
+        if record.name in _EVENTS:
+            try:
+                payload = json.loads(record.getMessage())
+            except (TypeError, ValueError, RecursionError):
+                payload = None
         entry['operation'] = 'unstructured_event'
         if isinstance(payload, dict) and isinstance(operation := payload.get('operation'), str):
             fields = _EVENTS.get(record.name, {}).get(operation)

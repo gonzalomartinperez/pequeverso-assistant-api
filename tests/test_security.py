@@ -8,6 +8,8 @@ import logging
 from pathlib import Path
 
 import pytest
+from fastapi import FastAPI
+from fastapi.routing import iter_route_contexts
 from starlette.requests import Request
 
 from app.bootstrap.logging import SafeJsonFormatter, configure_logging
@@ -135,6 +137,80 @@ def test_logger_and_exception_names_cannot_be_used_as_private_payloads() -> None
     output = SafeJsonFormatter().format(record)
     assert marker not in output and 'another synthetic private value' not in output
     assert json.loads(output)['exception'] == 'Exception'
+
+
+def test_external_log_messages_are_not_evaluated(monkeypatch: pytest.MonkeyPatch) -> None:
+    def forbidden() -> str:
+        raise AssertionError('external getMessage must not run')
+
+    record = logging.LogRecord('third.party', logging.WARNING, 'synthetic', 1, 'unused', (), None)
+    monkeypatch.setattr(record, 'getMessage', forbidden)
+    assert json.loads(SafeJsonFormatter().format(record))['operation'] == 'unstructured_event'
+
+
+@pytest.mark.parametrize('logger_name', ['third.party', 'app.request'])
+def test_deep_json_does_not_escape_the_formatter_or_dump_private_content(
+    logger_name: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    marker = 'SYNTHETIC_PRIVATE_MARKER_NOT_A_KEY'
+    payload = '[' * 10000 + '"' + marker + '"' + ']' * 10000
+    record = logging.LogRecord(logger_name, logging.WARNING, 'synthetic', 1, payload, (), None)
+    output = io.StringIO()
+    handler = logging.StreamHandler(output)
+    handler.setFormatter(SafeJsonFormatter())
+    handler.emit(record)
+    captured = capsys.readouterr()
+    assert captured.err == '' and marker not in captured.out + output.getvalue()
+    assert json.loads(output.getvalue())['operation'] == 'unstructured_event'
+
+
+def test_json_parser_recursion_failure_has_no_raw_logging_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    def parser_failure(_: str) -> object:
+        raise RecursionError('synthetic parser depth limit')
+
+    marker = 'SYNTHETIC_PRIVATE_MARKER_NOT_A_KEY'
+    record = logging.LogRecord('app.request', logging.WARNING, 'synthetic', 1, marker, (), None)
+    output = io.StringIO()
+    handler = logging.StreamHandler(output)
+    handler.setFormatter(SafeJsonFormatter())
+    with monkeypatch.context() as patch:
+        patch.setattr(json, 'loads', parser_failure)
+        handler.emit(record)
+    captured = capsys.readouterr()
+    assert captured.err == '' and marker not in captured.out + output.getvalue()
+    assert json.loads(output.getvalue())['operation'] == 'unstructured_event'
+
+
+def test_every_registered_route_template_retains_structured_request_metrics(tmp_path: Path) -> None:
+    with client(tmp_path, observability_enabled=True, ops_read_token='l' * 40) as c:
+        assert isinstance(c.app, FastAPI)
+        templates = {context.path for context in iter_route_contexts(c.app.routes) if context.path}
+        assert '/internal/v1/ops/telemetry' in templates
+        assert '/api/v1/runs/{run_id}/cancel' in templates
+        for route in templates:
+            record = logging.LogRecord(
+                'app.request',
+                logging.INFO,
+                'synthetic',
+                1,
+                json.dumps(
+                    {
+                        'operation': 'request',
+                        'route': route,
+                        'method': 'POST',
+                        'status': 200,
+                        'duration_ms': 1,
+                    }
+                ),
+                (),
+                None,
+            )
+            payload = json.loads(SafeJsonFormatter().format(record))
+            assert payload['route'] == route and payload['status'] == 200
 
 
 def test_logs_never_contain_conversation_content_or_ips(tmp_path: Path) -> None:
