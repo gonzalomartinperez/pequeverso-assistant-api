@@ -19,10 +19,15 @@ historical baseline until then.
 
 ## Data and activation
 
-- PostgreSQL owns approved public catalog snapshots, immutable corpus revisions, chunk content
-  hashes, embedding identity and the sole active knowledge pointer. Neo4j is a rebuildable public
-  projection. SQLite keeps private sessions, messages, runs, spend and existing legacy catalog
-  tables; no destructive migration or conversation-to-knowledge indexing is authorized.
+- PostgreSQL is the production relational authority: separate public knowledge and private
+  application schemas/roles hold catalog revisions and sessions/messages/runs/spend respectively.
+  Neo4j is a rebuildable public projection. Conversations are never knowledge. SQLite remains
+  the historical baseline and isolated fixture option, not an additional required production
+  engine. An explicit, non-destructive, verified import must preserve legacy messages, counters
+  and unknown spend before any production cutover; startup never migrates data automatically.
+- The public schema owns approved catalog snapshots, immutable corpus revisions, chunk content
+  hashes, embedding identity and the sole active knowledge pointer. The runtime public role
+  cannot read private tables; private transactions never alter vectors or graph projections.
 - A revision identifies the exact catalog hash, published storefront commit, parser and embedding
   provider/model/dimensions. Index and query identities must match before query embeddings or
   generation. A turn retains its immutable catalog version; prices, references and answer rules
@@ -69,8 +74,8 @@ dimensions and finite nonzero vectors, and never mix modes. Production OpenAI co
 requires semantic embeddings and fresh knowledge; a fixture index is not a production substitute.
 
 Reserve embedding cost before each provider request, with purpose `index` or `query`, and settle
-reported usage. All operations share the existing integer-microUSD budget and atomic SQLite
-check-and-reserve. Missing usage retains its reservation. Existing `spend_ledger.run_id` has no
+reported usage. All operations share the existing integer-microUSD budget and atomic private
+ledger check-and-reserve. Missing usage retains its reservation. Existing `spend_ledger.run_id` has no
 foreign key to conversation runs; distinct `embedding:<purpose>:<random-id>` identifiers contain
 no visitor identity. Startup/index recovery must not refund or lose another worker's reservation;
 late known settlement must remain possible. Automatic generation/provider retries remain off.
@@ -92,7 +97,11 @@ LangSmith runtime tracing remains explicitly disabled, including environment-dri
 Do not wrap the OpenAI client with a tracer. First use is synthetic local evaluation with uploads
 disabled and evaluator tracing disabled; no account, paid plan, remote dataset or production
 conversation export is authorized. No graph checkpoints, shared memory store or persistent
-workflow cache is introduced; private SQLite conversation persistence remains in place.
+workflow cache is introduced. Private application persistence owns history and idempotency;
+existing SQLite data remains intact until an explicit verified import is accepted.
+The selected LangSmith SDK explicitly labels `upload_results=False` as beta. That manual local
+evaluation option is not described as LTS/stable production telemetry; its exact warning is
+asserted in the regression while the global warnings-as-errors policy remains unchanged.
 
 Neo4j Community does not provide enterprise role-based isolation. A read access mode is a
 driver hint, not a database-enforced permission boundary. Require a dedicated project instance,

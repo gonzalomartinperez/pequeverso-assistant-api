@@ -355,7 +355,9 @@ def test_touch_failure_after_admission_closes_run_without_provider_call(
         assert provider.calls == []
         with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as database:
             assert database.execute('SELECT state FROM runs').fetchone()[0] == 'cancelled'
+            # Dispatch-aware composition proves this failure preceded generation. Unlike a
+            # disconnect after dispatch (covered above), its generation cost is known zero.
             assert database.execute('SELECT status,actual_micro FROM spend_ledger').fetchone() == (
-                'unreported',
-                None,
+                'settled',
+                0,
             )

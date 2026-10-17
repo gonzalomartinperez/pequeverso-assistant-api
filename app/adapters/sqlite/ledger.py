@@ -75,9 +75,25 @@ class SqliteLedger:
             return c.execute(
                 "UPDATE spend_ledger SET status = CASE WHEN actual_micro IS NOT NULL THEN 'settled'"
                 " ELSE 'unreported' END WHERE status = 'pending'"
+                " AND run_id NOT LIKE 'embedding:index:%'"
             ).rowcount
 
         return await self._db.write(work)
+
+    async def abandon_index_pending(self) -> int:
+        """Recover indexing only after acquiring the exclusive public indexing lock.
+
+        API startup must not close reservations owned by a concurrently running indexer.
+        The reservation remains counted, and a late usage report can still settle it.
+        """
+        return await self._db.write(
+            lambda c: (
+                c.execute(
+                    "UPDATE spend_ledger SET status = CASE WHEN actual_micro IS NOT NULL THEN 'settled'"
+                    " ELSE 'unreported' END WHERE status = 'pending' AND run_id LIKE 'embedding:index:%'"
+                ).rowcount
+            )
+        )
 
     async def spent(self, month: str, day: str) -> tuple[int, int]:
         return await self._db.read(lambda c: _spent(c, month, day))

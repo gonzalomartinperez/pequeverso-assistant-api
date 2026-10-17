@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 from collections.abc import AsyncGenerator
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
 from app.ai.evidence import catalog_payload, passages, rank
 from app.ai.output import AnswerStreamParser
@@ -51,15 +51,25 @@ class ComposerSettings:
     max_input_bytes: int = 24000
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, repr=False)
 class PreparedRequest:
     request: ModelRequest
     web_evidence: tuple[WebEvidence, ...] = ()
     catalog_source_ids: frozenset[str] = frozenset()
+    dispatch: _Dispatch = field(default_factory=lambda: _Dispatch(), compare=False, repr=False)
 
     @property
     def input_size_bytes(self) -> int:
         return self.request.size_bytes()
+
+    @property
+    def generation_started(self) -> bool:
+        return self.dispatch.started
+
+
+@dataclass(slots=True)
+class _Dispatch:
+    started: bool = False
 
 
 def _conversation(turn: Turn) -> list[dict[str, object]]:
@@ -82,6 +92,48 @@ class GroundedComposer:
     @property
     def model(self) -> str:
         return self._provider.model
+
+    def prepare_selected(
+        self, turn: Turn, document_ids: frozenset[str], retrieved_payload: str | None = None
+    ) -> PreparedRequest:
+        """Retrieved documents join mandatory commercial/support evidence.
+
+        Product facts remain canonical and complete for safe comparisons. This path never
+        substitutes graph text for catalog facts or bypasses ordinary packing and validation.
+        """
+        if not document_ids.issubset({document.id for document in turn.active.catalog.documents}):
+            raise ValueError('retrieval named an unknown catalog document')
+        selected = tuple(
+            document
+            for document in turn.active.catalog.documents
+            if document.id in document_ids
+            or _mandatory_document(document.kind, document.title, document.text)
+        )
+        active = replace(turn.active, catalog=replace(turn.active.catalog, documents=selected))
+        selected_turn = replace(turn, active=active)
+        prepared = self.prepare(selected_turn)
+        assert isinstance(prepared, PreparedRequest)
+        if retrieved_payload is None:
+            return prepared
+
+        def with_retrieval(base: PreparedRequest) -> PreparedRequest:
+            request = replace(
+                base.request,
+                inputs=(
+                    *base.request.inputs[:-1],
+                    ModelInput('user', f'retrieved_public_data:\n{retrieved_payload}'),
+                    base.request.inputs[-1],
+                ),
+            )
+            return replace(base, request=request)
+
+        # Reserve exact serialized payload overhead before the ordinary packer decides which
+        # optional documents/history fit. Mandatory facts and the original input bound remain.
+        extra_bytes = with_retrieval(prepared).input_size_bytes - prepared.input_size_bytes
+        limit = min(self._settings.max_input_bytes, turn.input_size_limit or self._settings.max_input_bytes)
+        packed = self.prepare(replace(selected_turn, input_size_limit=max(1, limit - extra_bytes)))
+        assert isinstance(packed, PreparedRequest)
+        return with_retrieval(packed)
 
     def prepare(self, turn: Turn) -> PreparedTurn:
         last_user = next((m.content for m in reversed(turn.history) if m.role is Role.USER), '')
@@ -226,6 +278,7 @@ class GroundedComposer:
         assert isinstance(prepared, PreparedRequest)
         parser = AnswerStreamParser()
         usage: Usage | None = None
+        prepared.dispatch.started = True
         stream = self._provider.stream(prepared.request)
         try:
             async for chunk in stream:

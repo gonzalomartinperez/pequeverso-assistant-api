@@ -8,7 +8,7 @@ from collections.abc import AsyncGenerator, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Protocol
+from typing import Protocol, runtime_checkable
 
 from app.domain.budget import Usage
 from app.domain.catalog import ActiveCatalog, Catalog, PriceStatus
@@ -231,6 +231,14 @@ class PreparedTurn(Protocol):
 
     @property
     def input_size_bytes(self) -> int: ...
+
+
+@runtime_checkable
+class DispatchAwarePreparedTurn(PreparedTurn, Protocol):
+    """An explicit signal distinguishes retrieval work from a generation attempt."""
+
+    @property
+    def generation_started(self) -> bool: ...
 
 
 class AnswerComposer(Protocol):

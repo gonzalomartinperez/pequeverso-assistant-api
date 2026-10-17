@@ -34,6 +34,7 @@ from app.application.ports import (
     CatalogView,
     Clock,
     DeltaEvent,
+    DispatchAwarePreparedTurn,
     DraftEvent,
     GenerationError,
     Ledger,
@@ -186,6 +187,8 @@ class _ModelRun(Run):
                 event = await self._next_or_cancel(stream, deadline)
                 if event is None:
                     break
+                # Async retrieval can repack the final evidence before the first model delta.
+                self._web_evidence = self._prepared.web_evidence
                 if isinstance(event, DeltaEvent):
                     rules = answer_rules(
                         self._active.catalog,
@@ -357,6 +360,14 @@ class _ModelRun(Run):
     ) -> None:
         service = self._service
         await service.runs.finish(self.id, state, assistant_message_id)
+        if (
+            not self._settled
+            and isinstance(self._prepared, DispatchAwarePreparedTurn)
+            and not self._prepared.generation_started
+        ):
+            # A known local failure/cancellation before dispatch consumed no generation.
+            # Embedding operations retain their independent reservation/settlement.
+            await self._settle(Usage(0, 0))
         if not self._settled:
             await service.ledger.mark_unreported(self.id)
         if code is not None:
@@ -368,7 +379,11 @@ class _ModelRun(Run):
                 ended_at=service.clock.now(),
                 outcome=outcome or RunOutcome(state.value),
                 code=code,
-                model_call=self._dispatched,
+                model_call=(
+                    self._prepared.generation_started
+                    if isinstance(self._prepared, DispatchAwarePreparedTurn)
+                    else self._dispatched
+                ),
                 replaced=self._replaced,
                 language=self._language,
                 first_delta_ms=self._first_delta_ms,
