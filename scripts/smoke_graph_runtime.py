@@ -21,7 +21,7 @@ import tempfile
 import time
 import uuid
 import xml.etree.ElementTree as ET
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from urllib.parse import quote, urlsplit
@@ -197,48 +197,73 @@ def owned_services(pg_image: str, neo_image: str, output: Path, source: Path) ->
             yield config
             resource_receipt['completed_http_handoff'] = True
         finally:
-            neo.logs()  # Private0700 parent; never publish raw service output as public proof.
-            logs = output / 'service-private'
-            logs.mkdir(mode=0o700)
-            shutil.copy2(neo.private / 'server-last.log', logs / 'neo4j.log')
-            pg_log = subprocess.run(
-                ['docker', 'logs', pg_name], capture_output=True, text=True, timeout=15, check=False
+
+            def capture_logs() -> None:
+                logs = output / 'service-private'
+                logs.mkdir(mode=0o700)
+                if ('container', neo.container) in created:
+                    neo.logs()
+                    shutil.copy2(neo.private / 'server-last.log', logs / 'neo4j.log')
+                if ('container', pg_name) in created:
+                    pg_log = subprocess.run(
+                        ['docker', 'logs', pg_name], capture_output=True, text=True, timeout=15, check=False
+                    )
+                    pg_path = logs / 'postgres.log'
+                    pg_path.write_text(pg_log.stdout + pg_log.stderr)
+                    pg_path.chmod(0o600)
+
+            teardown_services(created, output, resource_receipt, capture_logs)
+
+
+def teardown_services(
+    created: list[tuple[str, str]],
+    output: Path,
+    receipt: dict[str, object],
+    capture_logs: Callable[[], None],
+) -> None:
+    """Diagnostics cannot prevent any independently attempted owned-resource cleanup."""
+    failures: list[str] = []
+    try:
+        capture_logs()
+    except Exception as error:  # noqa: BLE001 - diagnostic failure must not leak resources
+        failures.append(f'logs:{type(error).__name__}')
+
+    def execute(arguments: list[str], operation: str, timeout: int) -> str | None:
+        try:
+            result = subprocess.run(arguments, capture_output=True, text=True, timeout=timeout, check=False)
+            if result.returncode:
+                failures.append(f'{operation}:exit-{result.returncode}')
+            return result.stdout.strip() if result.returncode == 0 else None
+        except Exception as error:  # noqa: BLE001 - continue every other independent cleanup
+            failures.append(f'{operation}:{type(error).__name__}')
+            return None
+
+    for kind, name in reversed(created):
+        if kind == 'container':
+            execute(['docker', 'stop', '--time', '30', name], f'stop:{name}', 40)
+            state = execute(
+                ['docker', 'inspect', '--format', '{{.State.ExitCode}} {{.State.OOMKilled}}', name],
+                f'inspect:{name}',
+                15,
             )
-            pg_path = logs / 'postgres.log'
-            pg_path.write_text(pg_log.stdout + pg_log.stderr)
-            pg_path.chmod(0o600)
-            bad_stop = False
-            for name in (pg_name, neo.container):
-                if ('container', name) in created and resource_exists('container', name):
-                    subprocess.run(
-                        ['docker', 'stop', '--time', '30', name],
-                        capture_output=True,
-                        text=True,
-                        timeout=40,
-                        check=False,
-                    )
-                    state = subprocess.run(
-                        ['docker', 'inspect', '--format', '{{.State.ExitCode}} {{.State.OOMKilled}}', name],
-                        capture_output=True,
-                        text=True,
-                        timeout=15,
-                        check=False,
-                    )
-                    resource_receipt[f'{name}-stop'] = state.stdout.strip()
-                    bad_stop = bad_stop or state.returncode != 0 or state.stdout.strip() != '0 false'
-            cleanup_codes = []
-            for kind in ('container', 'volume', 'network'):
-                for created_kind, name in reversed(created):
-                    if kind == created_kind and resource_exists(kind, name):
-                        command = ['docker', kind, 'rm', *(['-f'] if kind == 'container' else []), name]
-                        result = subprocess.run(
-                            command, capture_output=True, text=True, timeout=40, check=False
-                        )
-                        cleanup_codes.append(result.returncode)
-            resource_receipt['cleanup_return_codes'] = cleanup_codes
-            (output / 'owned-services.json').write_text(json.dumps(resource_receipt, indent=2) + '\n')
-            if bad_stop or any(cleanup_codes):
-                raise RuntimeError('owned fixture shutdown or cleanup did not complete safely')
+            receipt[f'{name}-stop'] = state
+            if state != '0 false':
+                failures.append(f'shutdown:{name}:unsafe-or-unknown')
+    for kind in ('container', 'volume', 'network'):
+        for created_kind, name in reversed(created):
+            if kind == created_kind:
+                execute(
+                    ['docker', kind, 'rm', *(['-f'] if kind == 'container' else []), name],
+                    f'remove:{kind}:{name}',
+                    40,
+                )
+    receipt['cleanup_failures'] = failures
+    try:
+        (output / 'owned-services.json').write_text(json.dumps(receipt, indent=2) + '\n')
+    except Exception as error:  # noqa: BLE001 - all cleanup already attempted, preserve failure status
+        failures.append(f'receipt:{type(error).__name__}')
+    if failures:
+        raise RuntimeError('owned fixture diagnostics, shutdown or cleanup did not complete safely')
 
 
 def private_input(path: Path) -> dict[str, str]:
@@ -385,9 +410,15 @@ async def provision(values: dict[str, str], roles: list[str]) -> dict[str, objec
 
 async def cleanup(values: dict[str, str], roles: list[str]) -> None:
     async with await psycopg.AsyncConnection.connect(values['postgres_dsn'], autocommit=True) as connection:
+        failures = 0
         for name in reversed(roles):
             # Only names actually created by this process are eligible for removal.
-            await connection.execute(sql.SQL('DROP ROLE {}').format(sql.Identifier(name)))
+            try:
+                await connection.execute(sql.SQL('DROP ROLE {}').format(sql.Identifier(name)))
+            except Exception:  # noqa: BLE001 - attempt the remaining owned roles independently
+                failures += 1
+        if failures:
+            raise RuntimeError('one or more owned fixture roles could not be removed')
 
 
 def main() -> int:
@@ -511,8 +542,12 @@ def main() -> int:
             except Exception as error:  # noqa: BLE001 - preserve private errors without raw values
                 print(f'Owned fixture role cleanup failed ({type(error).__name__}); manual cleanup required.')
                 result = 1
-        if private_created and private.exists():
-            private.unlink()
+        try:
+            if private_created and private.exists():
+                private.unlink()
+        except Exception as error:  # noqa: BLE001 - file cleanup must not skip owned-service cleanup
+            print(f'Private fixture cleanup failed ({type(error).__name__}); inspect private artifacts.')
+            result = 1
         try:
             services.close()
         except Exception as error:  # noqa: BLE001 - report cleanup failure without private details
