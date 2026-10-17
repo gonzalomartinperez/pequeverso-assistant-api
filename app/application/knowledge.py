@@ -114,13 +114,15 @@ class HybridKnowledgeRetrieval:
         ):
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
         initial = await self.verify_hits(revision, lexical + semantic, allowed)
+        ranked_seeds, _ = self._ranked_hits(initial, lexical, semantic)
+        seeds = tuple(ranked_seeds[:_CANDIDATES])
         graph_current = await self._graph_current(revision)
         graph_hits: tuple[KnowledgeHit, ...] = ()
         if graph_current and initial:
             try:
                 graph_hits = await self._graph.candidates(
                     revision.version,
-                    tuple(initial)[:_CANDIDATES],
+                    seeds,
                     _CANDIDATES,
                 )
             except RejectedError as error:
@@ -130,24 +132,9 @@ class HybridKnowledgeRetrieval:
         if any(hit.strategy is not RetrievalStrategy.GRAPH for hit in graph_hits):
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
         verified = await self.verify_hits(
-            revision, lexical + semantic + graph_hits, allowed, frozenset(tuple(initial)[:_CANDIDATES])
+            revision, lexical + semantic + graph_hits, allowed, frozenset(seeds)
         )
-        scores: dict[str, float] = {}
-        strategies: list[RetrievalStrategy] = []
-        # Reciprocal rank avoids comparing unrelated SQL/vector/graph score scales.
-        for strategy, weight, hits in (
-            (RetrievalStrategy.LEXICAL, 1.0, lexical),
-            (RetrievalStrategy.VECTOR, 0.8, semantic),
-            (RetrievalStrategy.GRAPH, 0.6, graph_hits),
-        ):
-            seen: set[str] = set()
-            for rank, hit in enumerate(hits[:_CANDIDATES]):
-                if hit.chunk_id in verified and hit.chunk_id not in seen:
-                    seen.add(hit.chunk_id)
-                    scores[hit.chunk_id] = scores.get(hit.chunk_id, 0.0) + weight / (rank + 1)
-                    if strategy not in strategies:
-                        strategies.append(strategy)
-        ordered = sorted(scores, key=lambda cid: (-scores[cid], cid))
+        ordered, strategies = self._ranked_hits(verified, lexical, semantic, graph_hits)
         # Comparison anchors must include each named product even when one search ranks
         # below the other. These are still exact PG chunks, never invented index content.
         anchors = await self._store.read_chunks(
@@ -174,6 +161,31 @@ class HybridKnowledgeRetrieval:
         return RetrievedKnowledge(
             revision, tuple(verified[cid] for cid in selected), tuple(strategies), not graph_current
         )
+
+    @staticmethod
+    def _ranked_hits(
+        verified: dict[str, KnowledgeChunk],
+        lexical: tuple[KnowledgeHit, ...],
+        semantic: tuple[KnowledgeHit, ...],
+        graph: tuple[KnowledgeHit, ...] = (),
+    ) -> tuple[list[str], list[RetrievalStrategy]]:
+        scores: dict[str, float] = {}
+        strategies: list[RetrievalStrategy] = []
+        # Canonical hydration order is not relevance order. Use the same bounded fusion
+        # for graph seeds and final results, only after every candidate is PG-verified.
+        for strategy, weight, hits in (
+            (RetrievalStrategy.LEXICAL, 1.0, lexical),
+            (RetrievalStrategy.VECTOR, 0.8, semantic),
+            (RetrievalStrategy.GRAPH, 0.6, graph),
+        ):
+            seen: set[str] = set()
+            for rank, hit in enumerate(hits[:_CANDIDATES]):
+                if hit.chunk_id in verified and hit.chunk_id not in seen:
+                    seen.add(hit.chunk_id)
+                    scores[hit.chunk_id] = scores.get(hit.chunk_id, 0.0) + weight / (rank + 1)
+                    if strategy not in strategies:
+                        strategies.append(strategy)
+        return sorted(scores, key=lambda cid: (-scores[cid], cid)), strategies
 
     async def verify_hits(
         self,
