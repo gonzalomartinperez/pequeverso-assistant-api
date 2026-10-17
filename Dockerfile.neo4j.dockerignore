@@ -4,3 +4,5 @@
 !docker/
 !docker/neo4j/
 !docker/neo4j/neo4j.conf
+!LICENSE
+!NOTICE.md

@@ -32,3 +32,14 @@ def test_license_scope_and_distribution_notices_are_preserved() -> None:
     context = (ROOT / '.dockerignore').read_text().splitlines()
     assert '!LICENSE' in context
     assert '!NOTICE.md' in context
+
+
+def test_project_database_recipes_carry_software_notices_without_overriding_vendor_licenses() -> None:
+    for name, uid in (('postgres', 999), ('neo4j', 7474)):
+        recipe = (ROOT / f'Dockerfile.{name}').read_text()
+        assert (
+            f'COPY --chown={uid}:{uid} LICENSE NOTICE.md /usr/share/licenses/pequeverso-assistant-api/'
+            in recipe
+        )
+    graph_context = (ROOT / 'Dockerfile.neo4j.dockerignore').read_text().splitlines()
+    assert '!LICENSE' in graph_context and '!NOTICE.md' in graph_context

@@ -145,6 +145,7 @@ class GraphFixture:
         target = 'tests/test_neo4j_public_graph_live_service.py'
         if restored:
             target += '::test_real_bolt_existing_projection_is_verified_without_reindexing'
+        targets = [target] if restored else [target, 'tests/test_neo4j_candidate_diversity.py']
         # The password is synthetic and passed only in the child environment, never CLI/logs.
 
         environment = dict(
@@ -155,7 +156,7 @@ class GraphFixture:
         )
         started = monotonic()
         result = subprocess.run(
-            [sys.executable, '-m', 'pytest', target, '-q', '--tb=short'],
+            [sys.executable, '-m', 'pytest', *targets, '-q', '--tb=short'],
             check=False,
             cwd=ROOT,
             env=environment,
@@ -172,8 +173,8 @@ class GraphFixture:
             'passed': int(passed[1]) if passed else 0,
             'duration_seconds': monotonic() - started,
         }
-        if result.returncode:
-            raise RuntimeError('fixture assertions failed; original private log retained')
+        if result.returncode or passed is None or re.search(r'\d+ skipped', result.stdout):
+            raise RuntimeError('fixture assertions failed or skipped; original private log retained')
 
     def admin(self, volume: str, operation: str) -> None:
         args = [

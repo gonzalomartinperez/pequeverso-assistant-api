@@ -22,6 +22,7 @@ RUN set -eu; \
 RUN test -z "${JAVA_TOOL_OPTIONS:-}"
 ENV JAVA_TOOL_OPTIONS="-Djna.boot.library.path=/opt/pv-native -Djna.nounpack=true"
 COPY --chown=7474:7474 docker/neo4j/neo4j.conf /conf/neo4j.conf
+COPY --chown=7474:7474 LICENSE NOTICE.md /usr/share/licenses/pequeverso-assistant-api/
 USER 7474:7474
 # TCP liveness only. Application readiness also verifies the active canonical PG/graph version.
 HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=3 \
