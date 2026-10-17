@@ -42,6 +42,10 @@ class _Client:
         self.outcomes = outcomes
         self.calls: list[dict[str, Any]] = []
         self.responses = self
+        self.close_count = 0
+
+    async def close(self) -> None:
+        self.close_count += 1
 
     async def create(self, **kwargs: Any) -> Any:
         self.calls.append(kwargs)
@@ -193,6 +197,7 @@ def test_runtime_timeout_dispatches_once_and_retains_unknown_reservation(
     assert options[0]['max_retries'] == 0
     assert options[0]['base_url'] == 'https://api.openai.com/v1'
     assert len(sdk.calls) == 1
+    assert sdk.close_count == 1
     with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as db:
         reserved, actual, state = db.execute(
             'SELECT reserved_micro, actual_micro, status FROM spend_ledger'
