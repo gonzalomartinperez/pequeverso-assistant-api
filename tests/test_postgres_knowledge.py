@@ -309,6 +309,55 @@ def test_database_roles_forbid_runtime_projection_mutation_and_unprepared_pointe
     asyncio.run(run())
 
 
+def test_runtime_role_binds_prepared_catalog_and_updates_activation_metadata_without_owner_rights() -> None:
+    async def run() -> None:
+        async with isolated_store() as (store, db):
+            value = public_corpus()
+            vectors = await stage(store, value)
+            await prepare(store, value)
+            assert DSN is not None
+            runtime_db = PostgresDatabase(DSN)
+            # Keep this role-scoped disposable test pool on one physical connection.
+            await runtime_db.open()
+            await runtime_db.pool.resize(1, 1)
+            try:
+                async with runtime_db.pool.connection() as conn:
+                    await conn.execute('SET ROLE pequeverso_knowledge_runtime')
+                runtime = PostgresKnowledgeStore(runtime_db, PARSE, SPEC, 'knowledge-v1')
+                now = datetime.now(UTC)
+                await runtime.activate(
+                    value.revision.catalog_sha256, value.catalog_body, PARSE(value.catalog_body), now, now
+                )
+                await runtime.mark_verified(value.revision.catalog_sha256, now, now)
+                assert await runtime.active_revision() == value.revision
+                restored = await runtime.active()
+                assert restored is not None and restored.body == value.catalog_body
+                assert (
+                    await runtime.read_chunks(value.revision.version, (value.chunks[0].id,))
+                    == value.chunks[:1]
+                )
+                assert await runtime.vector_candidates(value.revision.version, vectors[0], 1)
+                assert await runtime.lexical_candidates(value.revision.version, value.chunks[0].title, 1)
+                async with runtime_db.pool.connection() as conn:
+                    row = await (
+                        await conn.execute(
+                            'SELECT current_user AS role,activated_at,has_column_privilege(current_user,'
+                            "'knowledge.state','activated_at','UPDATE') AS can_stamp FROM knowledge.state"
+                        )
+                    ).fetchone()
+                    assert row is not None and row['role'] == 'pequeverso_knowledge_runtime'
+                    assert row['can_stamp'] is True and row['activated_at'] is not None
+                async with db.pool.connection() as conn:
+                    row = await (
+                        await conn.execute('SELECT count(*) AS n FROM knowledge.revisions')
+                    ).fetchone()
+                    assert row is not None and row['n'] == 1
+            finally:
+                await runtime_db.close()
+
+    asyncio.run(run())
+
+
 def test_failed_graph_stage_preserves_active_and_prepared_version_can_roll_back() -> None:
     async def failed_graph_stage(store: PostgresKnowledgeStore, corpus: KnowledgeCorpus) -> None:
         async with store.indexing_lock():
