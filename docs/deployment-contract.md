@@ -9,7 +9,7 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 | Item | Value |
 |---|---|
 | Build | `docker build --build-arg SERVICE_REVISION=<sha> -t pequeverso-assistant-api:<sha> .` from a clean checkout of an exact commit (context allowlisted by `.dockerignore`). An empty `SERVICE_REVISION` is allowed; the ops summary then reports `revision: null` |
-| Base | `python:3.14.8-slim-trixie` and `ghcr.io/astral-sh/uv:0.13.0`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-dev`) |
+| Base | `python:3.15.0-slim-trixie` and `ghcr.io/astral-sh/uv:0.13.1`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-dev`) |
 | User | `65532:65532`; runs with a read-only root filesystem, `--cap-drop ALL`, `no-new-privileges` (verified by `scripts/smoke_container.sh`) |
 | Writable paths | `/data` (volume), `/tmp` (tmpfs) |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
@@ -335,7 +335,7 @@ files, not the physical bytes of shared image layers. Preserve shared layers and
 image; do not pursue size reduction by stripping required libraries.
 
 
-## Optional application telemetry and current Python candidate
+## Optional application telemetry and historical Python candidate
 
 [Application observability](observability/README.md) owns the optional private JSON/Prometheus
 endpoints, manual traces and provisioning transfer artifacts. Infrastructure owns the collector,
@@ -343,7 +343,7 @@ Grafana, Prometheus, private scrape credentials and deployment. Observability is
 never route `/internal/*` publicly. A telemetry-off API remains fully functional. Provider
 availability is unknown unless separately verified: no paid probes or manufactured uptime.
 
-The new candidate uses stable Python 3.14.8, from official linux/amd64
+The historical 2026-10-12 candidate used stable Python 3.14.8, from official linux/amd64
 `python:3.14.8-slim-trixie@sha256:cfe2e24a75302a15934d37c2d86412893c0aa934dc3a97cbb439d04c01890ca9`
 verified2026-10-12, with uv0.13.0 pinned in builder and CI. Host setup pins3.14.8;
 strict mypy targets3.14. Ruff retains the existing3.13-compatible syntax policy, which runs
@@ -356,8 +356,9 @@ but official Docker tags3.15.0,3.15.0-slim and3.15.0-slim-trixie returned no man
 These are date-scoped local registry observations, not a universal Python3.15 limitation.
 Pequeverso has no Lingua dependency; the portfolio Lingua-wheel blocker is not applicable.
 Local uv0.12.10 likewise had no3.15.0 managed download. The owner explicitly allowed stable3.14
-instead. No RC, ad hoc source build or untested3.15 image is substituted. Reconsider3.15 only
-once a stable official digest and compatible wheels are available, then independently run
+instead. No RC, ad hoc source build or untested3.15 image was substituted. That availability
+restriction was superseded on 2026-10-17: see the [current runtime baseline](runtime-baseline.md)
+and its exact candidate verification. Adoption still requires independently running
 all checks, socket/model revalidation and exact-image hardening/restore/shutdown tests.
 Python uses its release support lifecycle; no separate "LTS" distribution is claimed.
 

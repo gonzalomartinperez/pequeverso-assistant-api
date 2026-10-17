@@ -1,6 +1,6 @@
 # Pequeverso · Assistant API
 
-![Python](https://img.shields.io/badge/Python-3.14.8-3776AB?style=flat-square&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.15.0-3776AB?style=flat-square&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-typed_HTTP-009688?style=flat-square&logo=fastapi&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-WAL_%2B_FULL-003B57?style=flat-square&logo=sqlite&logoColor=white)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--6_Luna-06305B?style=flat-square&logo=openai&logoColor=white)
@@ -16,7 +16,7 @@ adult buyers understand the Grafismo Fonético kit and the separately recommende
 course, compare their published scope and reach the appropriate storefront flow. Public repository; no license is granted
 (all rights reserved). `main` is the default and release branch; development happens on `develop`.
 
-- Python 3.14.8, FastAPI, uv; SQLite (single process); OpenAI Responses (`gpt-6-luna`) behind a
+- Python 3.15.0, FastAPI, uv; SQLite (single process); OpenAI Responses (`gpt-6-luna`) behind a
   provider port; a deterministic **fixture provider is the default**.
 - Versioned HTTP/SSE contract (v1, revision 1.5) for the storefront's native assistant, which
   calls the API cross-origin; private, token-protected operations summary for the backoffice
@@ -197,7 +197,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
   including active-stream shutdown; preserve the grace specified in the deployment contract.
 - Prefer LTS branches where offered and supported stable releases elsewhere. Most libraries
   do not publish an LTS guarantee; pins, security review and reproducibility remain necessary.
-- Python 3.14 is a supported stable branch, not an official LTS line. The selected Python
+- Python 3.15 is a supported stable branch, not an official LTS line. The selected Python
   OpenTelemetry SDK/exporter is 1.45.1; its locked tree includes three 0.66b1 beta packages.
   Prometheus 3.13 is the monitoring LTS target; Grafana and the collector have their own support
   and component-stability policies. vps-ops selects and deploys their final images.

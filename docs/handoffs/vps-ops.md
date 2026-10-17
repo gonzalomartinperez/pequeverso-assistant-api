@@ -194,7 +194,7 @@ storefront, publishes an image or authorizes an infrastructure action.
 - Keep API SQLite on its own `/data` volume, backoffice identity on its own PostgreSQL 18.6
   database/volume, and shared infrastructure in vps-ops. No Neo4j/vector/Redis is needed for
   this catalog. Verify backup/restore, WAL/disk limits and physical erasure before activation.
-- LTS applies only where an official policy exists. Python3.14.8 and PostgreSQL 18.6 are
+- LTS applies only where an official policy exists. Python3.15.0 and PostgreSQL 18.6 are
   supported stable releases; Node24 is LTS. Python OTEL1.45.1 contains three explicit0.66b1
   dependencies. Prometheus3.13 LTS, Grafana13.2 and collector components require final image
   and compatibility selection by vps-ops. Examples are application handoff artifacts, not
