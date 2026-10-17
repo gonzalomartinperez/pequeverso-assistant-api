@@ -1,6 +1,6 @@
 [project]
 name = "pequeverso-assistant-api"
-version = "0.1.0"
+version = "1.0.0"
 description = "Advisory, read-only shopping assistant backend for Pequeverso."
 license = "MIT"
 license-files = ["LICENSE", "NOTICE.md"]
