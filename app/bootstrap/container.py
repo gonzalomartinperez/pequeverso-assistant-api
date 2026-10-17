@@ -7,8 +7,9 @@ import contextlib
 import hashlib
 import ipaddress
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -55,7 +56,15 @@ class SystemClock:
         return datetime.now(UTC)
 
 
-def build_provider(settings: Settings) -> ModelProvider:
+@dataclass(frozen=True, slots=True)
+class _ProviderResource:
+    """Only composition owns the client cleanup; use cases receive the provider port."""
+
+    provider: ModelProvider
+    close: Callable[[], Awaitable[None]] | None = None
+
+
+def build_provider(settings: Settings) -> _ProviderResource:
     if settings.ai_provider == 'openai':
         assert settings.openai_api_key is not None
         client = AsyncOpenAI(
@@ -64,10 +73,13 @@ def build_provider(settings: Settings) -> ModelProvider:
             timeout=settings.openai_timeout_seconds,
             max_retries=0,
         )
-        return OpenAIResponsesProvider(
-            client, settings.openai_model, settings.openai_reasoning_effort, settings.openai_max_retries
+        return _ProviderResource(
+            OpenAIResponsesProvider(
+                client, settings.openai_model, settings.openai_reasoning_effort, settings.openai_max_retries
+            ),
+            client.close,
         )
-    return FixtureProvider(chunk_delay_seconds=settings.fixture_chunk_delay_ms / 1000)
+    return _ProviderResource(FixtureProvider(chunk_delay_seconds=settings.fixture_chunk_delay_ms / 1000))
 
 
 def build_catalog_source(settings: Settings) -> CatalogSource:
@@ -111,7 +123,8 @@ def create_app(
             history_restore=40,
         ),
     )
-    model = provider or build_provider(settings)
+    owned_provider = _ProviderResource(provider) if provider is not None else build_provider(settings)
+    model = owned_provider.provider
     ledger = SqliteLedger(db)
     run_metrics = SqliteRunMetrics(db)
     cleanups = ResponseCleanups()
@@ -233,38 +246,43 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         configure_logging()
-        await db.open()
-        tasks: list[asyncio.Task[None]] = []
-        try:
-            abandoned = await runs.abandon_active()
-            await ledger.abandon_pending()
-            if abandoned:
-                log.info('{"operation":"startup","abandoned_runs":%d}', abandoned)
-            await catalog.load()
-            await catalog.refresh()
-            await session_service.purge_expired()
-            tasks = [asyncio.create_task(maintenance()), asyncio.create_task(refresh_catalog())]
-            yield
-        finally:
-            chat.registry.close()
-            try:
-                async with asyncio.timeout(10):
-                    await cleanups.drain()
-                    await chat.registry.drain()
-            except Exception:
-                # Bound shutdown, preserve unknown spend and recover an interrupted run
-                # conservatively if an exceptional finalizer cannot finish.
-                log.exception('{"operation":"shutdown","outcome":"drain_failed"}')
-                await runs.abandon_active()
-                await ledger.abandon_pending()
-            for task in tasks:
-                task.cancel()
-            for task in tasks:
-                with contextlib.suppress(asyncio.CancelledError):
-                    await task
-            await db.close()
+        # Register owned cleanup before acquisition: a migration can fail after opening SQLite.
+        # ExitStack closes every resource even if another close raises, in reverse order.
+        async with contextlib.AsyncExitStack() as resources:
             if telemetry is not None:
-                await asyncio.to_thread(telemetry.shutdown)
+                resources.push_async_callback(asyncio.to_thread, telemetry.shutdown)
+            resources.push_async_callback(db.close)
+            if owned_provider.close is not None:
+                resources.push_async_callback(owned_provider.close)
+            tasks: list[asyncio.Task[None]] = []
+            try:
+                await db.open()
+                abandoned = await runs.abandon_active()
+                await ledger.abandon_pending()
+                if abandoned:
+                    log.info('{"operation":"startup","abandoned_runs":%d}', abandoned)
+                await catalog.load()
+                await catalog.refresh()
+                await session_service.purge_expired()
+                tasks = [asyncio.create_task(maintenance()), asyncio.create_task(refresh_catalog())]
+                yield
+            finally:
+                chat.registry.close()
+                try:
+                    async with asyncio.timeout(10):
+                        await cleanups.drain()
+                        await chat.registry.drain()
+                except Exception:
+                    # Bound shutdown, preserve unknown spend and recover an interrupted run
+                    # conservatively if an exceptional finalizer cannot finish.
+                    log.exception('{"operation":"shutdown","outcome":"drain_failed"}')
+                    await runs.abandon_active()
+                    await ledger.abandon_pending()
+                for task in tasks:
+                    task.cancel()
+                for task in tasks:
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await task
 
     app = FastAPI(
         title='Pequeverso assistant API',

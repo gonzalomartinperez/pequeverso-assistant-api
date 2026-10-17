@@ -41,7 +41,59 @@ backoffice server (bearer token, private network) ──/internal/v1/ops──�
 | presentation | `app/presentation` | domain, application + FastAPI: wire models are the contract |
 | bootstrap | `app/bootstrap` | everything: the only place that wires concrete classes |
 
-`tests/test_architecture.py` enforces the table (AST-based) and keeps SQL inside `adapters/sqlite`.
+`tests/test_architecture.py` checks declared imports with Python AST, including relative imports
+and package aliases, and keeps SQL/its SQLite driver inside `adapters/sqlite`. Negative cases
+exercise the actual layer gate. This is a static boundary check, not proof of arbitrary runtime
+reflection or complete semantic correctness. The dependency direction follows
+[Robert C. Martin's dependency rule](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
+and [Microsoft's application-core guidance](https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/common-web-application-architectures):
+framework and storage details remain outside the application core; our ports carry ordinary
+Python values, not FastAPI requests, SDK responses or SQLite rows.
+
+## Resource ownership
+
+Bootstrap owns the SDK client it constructs. It passes only `ModelProvider` to the composer;
+the client close callback stays in composition. An injected provider remains borrowed, so the
+application never guesses or closes a caller-owned resource. Fixture mode acquires no OpenAI
+client. No network or provider credential is needed to verify this ownership with fakes.
+
+Lifespan registers cleanup before SQLite acquisition. A migration failure after opening the
+connection therefore still releases the connection/executor and the owned client. Shutdown first
+refuses new work and drains response/run finalizers under the existing bound, preserving unknown
+spend; it then closes the owned provider, SQLite and telemetry, in that order. `AsyncExitStack`
+ensures later cleanup still runs if an earlier close fails. The response adapter continues to
+close each individual stream; that is distinct from closing the shared SDK connection pool.
+
+```mermaid
+sequenceDiagram
+  participant Life as Bootstrap lifespan
+  participant Runs as Active runs and response cleanup
+  participant SDK as Owned provider client
+  participant DB as SQLite
+  participant OTel as Owned telemetry
+  Life->>Runs: Refuse new work; cancel and drain
+  Runs-->>Life: Persist terminal state and conservative spend
+  Life->>SDK: Close once, after streams
+  Life->>DB: Close connection and executor
+  Life->>OTel: Flush and shut down
+```
+
+The lifecycle uses application-owned cleanup rather than depending on when a request-scoped
+`yield` dependency happens to finish. FastAPI documents the interaction between
+[streaming responses and dependency lifetime](https://fastapi.tiangolo.com/advanced/advanced-dependencies/).
+The [official OpenAI application example](https://developers.openai.com/cookbook/examples/agents_api/apps/slack_bot/readme)
+also separates completing active work from closing its client; the exact `close()` operation was
+checked against our locked SDK. Tests cover owned/borrowed providers, migration acquisition
+failure, cleanup exceptions, active fake SDK streams and the existing real HTTP/SSE SIGTERM test.
+No change to the public HTTP/SSE contract or catalog is required.
+
+Catalog validation remains a deliberate adapter boundary: the shared Pydantic parser rejects
+malformed or unauthorized registry fields and maps them to domain values. Both file and HTTP
+sources pass through it. Current evidence does not justify moving those models wholesale into
+domain; another ingestion path would need equivalent validation and parity tests.
+
+See [engineering standards](engineering-standards.md) for review, collaboration ownership and
+reproducibility requirements.
 
 ## One turn
 
@@ -95,8 +147,11 @@ backoffice server (bearer token, private network) ──/internal/v1/ops──�
 - **SQLite, single process** (ADR-0001). The volume is tiny, and one file on one volume is
   simpler to operate and back up than Postgres. `BEGIN IMMEDIATE` keeps budget accounting
   atomic, even across processes.
-- **Whole-catalog grounding, lexical ranking as fallback** (ADR-0002). No embeddings, GraphRAG,
-  Neo4j or agents: the catalog is about 17 KB, and the retrieval eval reaches recall@3 = 0.95.
+- **Whole-catalog grounding, lexical ranking as fallback** (ADR-0002). The current catalog
+  contains the core kit and a separate affiliate course. Both structured product records remain
+  available; merchant policies and sources stay scoped to their product. No embeddings, GraphRAG
+  or model-callable agent loop is needed. ADR-0002's recall figures describe its historical
+  single-kit baseline, not a new real-model quality score for the affiliate course.
 - **Structured streaming + final validation** (ADR-0003). The stream is provisional; the final
   message is authoritative and validated.
 - **Medium reasoning effort** for `gpt-6-luna` (owner decision; ADR-0004). Reasoning tokens are

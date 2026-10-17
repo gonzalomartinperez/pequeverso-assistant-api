@@ -12,8 +12,8 @@
 ![CI](https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/workflows/quality.yml/badge.svg?branch=develop)
 
 Backend of the Pequeverso shopping assistant: an **advisory, read-only** AI assistant that helps
-adult buyers understand the Grafismo Fonético kit, choose where to start, compare what is
-included and reach the storefront's purchase flow. Public repository; no license is granted
+adult buyers understand the Grafismo Fonético kit and the separately recommended affiliate
+course, compare their published scope and reach the appropriate storefront flow. Public repository; no license is granted
 (all rights reserved). `main` is the default and release branch; development happens on `develop`.
 
 - Python 3.14.8, FastAPI, uv; SQLite (single process); OpenAI Responses (`gpt-6-luna`) behind a
@@ -31,6 +31,9 @@ included and reach the storefront's purchase flow. Public repository; no license
   bounded to three public articles and disabled by default; no autonomous searches or buyer-account tools.
 - Grounded in a catalog exported from the storefront at a pinned commit; every product,
   link and price shown is server-validated.
+- [Architecture and resource ownership](docs/architecture.md) keep SDK/HTTP/SQLite details outside
+  the use cases. [Engineering standards](docs/engineering-standards.md) define review evidence,
+  four-session ownership, reproducible locks/digests and supported-version policies.
 
 The commercial goal is an informed purchase: answer the adult's question, explain the fit and
 offer the authorized next step when relevant. Evidence and budget constraints remain binding;
