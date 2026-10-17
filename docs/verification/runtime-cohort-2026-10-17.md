@@ -100,6 +100,26 @@ CVE-2026-16742 and CVE-2026-9538. Recheck the selected release image against cur
 report before publication/activation. This compatibility PR does not silently accept their risk
 or claim production readiness.
 
+A later **separate exact-source verification** used commit
+`fa99046ad8256e6be13ce9c8de07b521bbd72d07`, local image
+`sha256:a0633939339b5a4d8eddf052843a5ac186701e641d76bc45ec32930feff952ba`.
+Its cached build took 1.944 s; the hardened smoke/restore passed in 43.416 s, idle stop
+1.456 s, active-SSE stop 6.039 s, exit 0/no OOM. Idle memory was 75.64 MiB and cgroup peak
+89,296,896 bytes / 256 MiB. Fixture turn durations 586.88–762.31 ms were recorded while local
+scan/probes also ran; these are functional smoke observations, not a controlled benchmark.
+The full-history redacted scan covered 49 commits / 2.05 MB in 3.85 s, no leaks.
+
+An origin-manifest comparison found the default GCR vulnerability-DB mirror lagging behind
+GHCR. The follow-up fetched the **official GHCR origin by immutable digest**
+`sha256:10584ede500597f516f0d5f4ab750c125999dc0359995a4494ab6cb12e700730`
+into a new isolated cache. That DB is dated **2026-10-17 18:34:28 UTC**, downloaded at 18:54 UTC.
+The 9.433-second image scan and 127-component SBOM preserve the same findings: zero CRITICAL,
+zero Python, 164 OS package/advisory rows including the same 8 unique HIGH ids, no fixed
+versions listed. The earlier mirror report and its timestamp remain preserved, not overwritten.
+No scan identifies every possible risk or accepts these findings for production. Exact images
+built from subsequent documentation/ancestry commits have their own identities and require
+current-head CI; neither local image above is relabelled as a future release artifact.
+
 The fixture conversation evaluation ran 19 scenarios with zero safety failures and 16 guards
 with zero failures; its 11 quality flags remain visible and are not live-model quality results.
 Retrieval measured recall@3 0.9565 / MRR 0.899 for 23 baseline cases; the 190-case corpus
