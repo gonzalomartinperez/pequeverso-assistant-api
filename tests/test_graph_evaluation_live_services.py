@@ -206,6 +206,12 @@ def test_cold_index_outer_cap_refusal_occurs_before_any_sdk_dispatch(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     values, clock, index = configuration()
+    # Earlier socket tests intentionally retain uncertain cancellation costs.
+    before = asyncio.run(
+        evaluation_spend_snapshot(
+            SecretStr(values['postgres_private_dsn']), SecretStr(values['postgres_knowledge_dsn']), clock
+        )
+    )
     envelope = Envelope(tmp_path / 'synthetic-exhausted-budget.sqlite3', cap_micro=11000, max_attempts=650)
     historical = envelope.reserve()
     # Exhaust the cap with KNOWN usage; an unknown historical reservation is a different admission gate.
@@ -242,4 +248,4 @@ def test_cold_index_outer_cap_refusal_occurs_before_any_sdk_dispatch(
             SecretStr(values['postgres_private_dsn']), SecretStr(values['postgres_knowledge_dsn']), clock
         )
     )
-    assert all(row['pending'] == row['estimated'] == 0 for row in totals)
+    assert totals == before  # Refused SDK dispatch must not add or erase any application spend.
