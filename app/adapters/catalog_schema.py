@@ -66,19 +66,35 @@ class ProductIn(_Model):
     age_range: Short
     format: Text
     usage: Text
-    pdf_count: int = Field(ge=1, le=100)
-    page_count: int = Field(ge=1, le=10000)
-    price: PriceIn
+    pdf_count: int | None = Field(ge=1, le=100)
+    page_count: int | None = Field(ge=1, le=10000)
+    price: PriceIn | None
     image: ImageIn | None = None
-    resources: list[ResourceIn] = Field(min_length=1, max_length=40)
+    resources: list[ResourceIn] = Field(max_length=40)
     method: list[Short] = Field(default_factory=list, max_length=12)
     audience_for: list[Short] = Field(default_factory=list, max_length=12)
     audience_not_for: list[Short] = Field(default_factory=list, max_length=12)
     age_guidance: list[AgeGuidanceIn] = Field(default_factory=list, max_length=12)
+    kind: Literal['core', 'affiliate'] = 'core'
+    disclosure: Text | None = None
+    guarantee_days: int | None = Field(default=None, ge=1, le=365)
+    topics: list[Short] = Field(default_factory=list, max_length=12)
 
     @model_validator(mode='after')
     def unique_resources(self) -> ProductIn:
         _unique(r.id for r in self.resources)
+        if self.kind == 'core' and (
+            self.pdf_count is None or self.page_count is None or self.price is None or not self.resources
+        ):
+            raise ValueError('core products require their published price, counts and resources')
+        if self.kind == 'affiliate' and (
+            self.price is not None
+            or self.pdf_count is not None
+            or self.page_count is not None
+            or self.resources
+            or not self.disclosure
+        ):
+            raise ValueError('affiliate registry has no authorized price, PDF counts or resources')
         return self
 
 
@@ -88,12 +104,14 @@ class DocumentIn(_Model):
     title: Short
     text: Text
     url: str
+    product_ids: list[Id] = Field(default_factory=list, max_length=20)
 
 
 class LinkIn(_Model):
     id: Id
     label: Short
     url: str
+    product_ids: list[Id] = Field(default_factory=list, max_length=20)
 
 
 class SiteIn(_Model):
@@ -131,6 +149,12 @@ class CatalogIn(_Model):
         _unique(p.id for p in self.products)
         _unique(d.id for d in self.documents)
         _unique(link.id for link in self.links)
+        known = {p.id for p in self.products}
+        scopes: list[DocumentIn | LinkIn] = [*self.documents, *self.links]
+        for scoped in scopes:
+            _unique(scoped.product_ids)
+            if not set(scoped.product_ids).issubset(known):
+                raise ValueError('scope must name a catalog product')
         if self.site.support_link_id not in {link.id for link in self.links}:
             raise ValueError('site.support_link_id must name a link')
         return self
@@ -169,10 +193,20 @@ class CatalogParser:
             ),
             products=tuple(self._product(p) for p in parsed.products),
             documents=tuple(
-                domain.Document(d.id, domain.DocumentKind(d.kind), d.title, d.text, self._check_url(d.url))
+                domain.Document(
+                    d.id,
+                    domain.DocumentKind(d.kind),
+                    d.title,
+                    d.text,
+                    self._check_url(d.url),
+                    tuple(d.product_ids),
+                )
                 for d in parsed.documents
             ),
-            links=tuple(domain.Link(link.id, link.label, self._check_url(link.url)) for link in parsed.links),
+            links=tuple(
+                domain.Link(link.id, link.label, self._check_url(link.url), tuple(link.product_ids))
+                for link in parsed.links
+            ),
             forbidden_terms=tuple(parsed.forbidden_terms),
         )
 
@@ -205,7 +239,9 @@ class CatalogParser:
             page_count=p.page_count,
             price=domain.Price(
                 p.price.amount, p.price.currency, p.price.display, p.price.note, p.price.tax_note
-            ),
+            )
+            if p.price is not None
+            else None,
             resources=tuple(
                 domain.Resource(r.id, r.title, r.pages, r.description, self._image(r.image))
                 for r in p.resources
@@ -215,4 +251,8 @@ class CatalogParser:
             audience_for=tuple(p.audience_for),
             audience_not_for=tuple(p.audience_not_for),
             age_guidance=tuple(domain.AgeGuidance(g.label, g.hint) for g in p.age_guidance),
+            kind=p.kind,
+            disclosure=p.disclosure,
+            guarantee_days=p.guarantee_days,
+            topics=tuple(p.topics),
         )

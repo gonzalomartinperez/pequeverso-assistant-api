@@ -41,4 +41,4 @@ def test_price_document_and_retirement_changes_are_reported() -> None:
 
 def test_first_sync_reports_everything_as_added() -> None:
     result = diff(None, PARSE(CATALOG_BYTES))
-    assert result.products_added == ['grafismo-fonetico'] and not result.products_retired
+    assert result.products_added == ['alimentacion-bebe', 'grafismo-fonetico'] and not result.products_retired

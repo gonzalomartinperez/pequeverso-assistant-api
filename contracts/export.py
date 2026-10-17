@@ -201,6 +201,20 @@ def build() -> dict[str, bytes]:
                 recommendation,
             )
         ),
+        'examples/stream.affiliate.sse': _sse(
+            _transcript(
+                _user('¿Qué enseña la Guía de Alimentación para Bebés?'),
+                _answer(
+                    active,
+                    Draft(
+                        'La Guía de Alimentación para Bebés es un curso en video sobre alimentación complementaria de 6 a 12 meses. No tengo un precio publicado.',
+                        (DraftReference('product', 'alimentacion-bebe'),),
+                        ('affiliate.alimentacion-bebe.overview',),
+                        (),
+                    ),
+                ),
+            )
+        ),
         'examples/stream.unknown-policy.sse': _sse(
             _transcript(_user('¿Cuánto tarda el envío a Chile?'), unknown)
         ),

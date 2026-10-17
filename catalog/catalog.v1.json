@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-13T05:09:16+00:00",
+  "generated_at": "2026-10-17T15:13:29+00:00",
   "source": {
     "repository": "gonzalomartinperez/pequeverso",
-    "revision": "18b68692867ddd379a3e30130a473dcb7e8a355b"
+    "revision": "bddd36f45b319571f52029dfe4d6b3283cd71287"
   },
   "site": {
     "name": "Pequeverso",
@@ -176,7 +176,32 @@
           "label": "6–7 años",
           "hint": "Palabras completas, tarjetas y juegos para repasar."
         }
-      ]
+      ],
+      "kind": "core",
+      "guarantee_days": 7
+    },
+    {
+      "id": "alimentacion-bebe",
+      "name": "Guía de Alimentación para Bebés",
+      "kind": "affiliate",
+      "path": "/#bebe",
+      "purchase_path": "/alimentacion-bebe/",
+      "summary": "Alimentación complementaria de 6 a 12 meses. Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.",
+      "age_range": "6 a 12 meses",
+      "format": "Curso en video",
+      "usage": "Empezar a comer",
+      "disclosure": "Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.",
+      "guarantee_days": 7,
+      "topics": [
+        "Cuándo y cómo empezar la alimentación complementaria.",
+        "Cantidades y frecuencias de las comidas.",
+        "Un menú para las primeras 4 semanas.",
+        "Recetas fáciles para el bebé y toda la familia."
+      ],
+      "pdf_count": null,
+      "page_count": null,
+      "price": null,
+      "resources": []
     }
   ],
   "documents": [
@@ -185,193 +210,312 @@
       "kind": "faq",
       "title": "¿Mi hijo ya tiene que saber leer?",
       "text": "No. Está pensado para acompañar una etapa inicial: reconocer letras y sonidos, combinar sílabas y practicar primeros trazos. Puedes elegir las páginas que mejor se adapten a su momento.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "faq.grafismo-fonetico.02",
       "kind": "faq",
       "title": "¿Para qué edades se recomienda?",
       "text": "La recomendación orientativa es de 3 a 7 años. La edad no reemplaza observar el ritmo, el interés y las habilidades actuales de cada niño.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "faq.grafismo-fonetico.03",
       "kind": "faq",
       "title": "¿Cómo funciona la garantía de 7 días?",
       "text": "Tienes 7 días desde la compra para solicitar un reembolso a través de Hotmart, de acuerdo con las condiciones informadas en la página de pago.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "faq.grafismo-fonetico.04",
       "kind": "faq",
       "title": "¿Cuánto tiempo conviene practicar?",
       "text": "Puedes comenzar con aproximadamente 10 minutos y una sola hoja. No es una regla: acorta, repite o pausa la actividad según la respuesta del niño.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "faq.grafismo-fonetico.05",
       "kind": "faq",
       "title": "¿Qué incluye exactamente la compra?",
       "text": "Recibes el material principal, Grafismo Fonético Paso a Paso, y ocho bonos incluidos en el mismo pago: guía, tarjetas, reto, animales, juegos, sonidos del hogar, pósteres y actividades sobre el nombre y la familia. En total, 9 PDF y 414 páginas. Los bonos no se pagan aparte.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "faq.grafismo-fonetico.06",
       "kind": "faq",
       "title": "¿Recibo un producto físico?",
       "text": "No. Es un producto 100% digital. Recibes el acceso por correo electrónico y puedes imprimir el material en casa, en una papelería o en un centro de impresión.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "faq.grafismo-fonetico.07",
       "kind": "faq",
       "title": "¿Tengo que imprimir todo el material?",
       "text": "No. Puedes imprimir una sola página, elegir una actividad para ese día o crear una carpeta con tu selección. Los archivos quedan disponibles para volver a utilizarlos.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "faq.grafismo-fonetico.08",
       "kind": "faq",
       "title": "¿Necesito experiencia docente?",
       "text": "No. La guía explica una forma sencilla de comenzar. El material acompaña la práctica familiar y también puede servir como recurso complementario para docentes.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "faq.grafismo-fonetico.09",
       "kind": "faq",
       "title": "¿El kit garantiza que aprenderá a leer?",
       "text": "No se prometen resultados específicos ni plazos de aprendizaje. El kit aporta material organizado para practicar; cada niño avanza de manera diferente.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "faq.grafismo-fonetico.10",
       "kind": "faq",
       "title": "¿Cómo accedo después de comprar?",
       "text": "Hotmart envía el acceso al correo utilizado en la compra. También puedes ingresar en consumer.hotmart.com con ese mismo correo y revisar “Mis compras”.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "faq.grafismo-fonetico.11",
       "kind": "faq",
       "title": "¿Puedo pagar en mi moneda?",
       "text": "Sí. El precio se muestra en dólares (USD) como referencia; Hotmart lo convierte automáticamente a la moneda de tu país y te muestra el total final, con la conversión y los impuestos incluidos, antes de confirmar. Los medios de pago dependen del país (tarjeta, PayPal, Pix, OXXO y otros locales). El cargo aparecerá a nombre de Hotmart y tu banco puede aplicar su propio tipo de cambio o comisión si lo trata como compra internacional.",
-      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas"
+      "url": "https://pequeverso.com/grafismo-fonetico/#preguntas",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "policy.guarantee",
       "kind": "policy",
       "title": "Garantía y reembolsos",
       "text": "Tienes 7 días desde la compra para pedir el reembolso a través de Hotmart, en refund.hotmart.com, con tu número de transacción (empieza con HP). El productor tiene hasta 5 días para responder y la aprobación puede tardar hasta 7 días. El dinero vuelve por el mismo medio de pago: hasta 30 días en transferencias bancarias y hasta 90 días en tarjetas de crédito; en tarjetas, PayPal, Google Pay y Apple Pay suele verse en el resumen actual o el siguiente.",
-      "url": "https://pequeverso.com/compras-y-reembolsos/"
+      "url": "https://pequeverso.com/compras-y-reembolsos/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "policy.payment",
       "kind": "policy",
       "title": "Pago y moneda",
       "text": "Precio de referencia en dólares (USD). Hotmart lo convierte a tu moneda local y muestra el total final, con impuestos, antes de pagar. El pago se hace en la página segura de Hotmart, que es quien procesa el cobro; el cargo aparece a nombre de Hotmart. Pequeverso no ve ni guarda datos de pago.",
-      "url": "https://pequeverso.com/compras-y-reembolsos/"
+      "url": "https://pequeverso.com/compras-y-reembolsos/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "policy.delivery",
       "kind": "policy",
       "title": "Entrega digital",
       "text": "Es un producto digital, no se envía nada físico. Hotmart envía el acceso al correo usado en la compra cuando aprueba el pago; también se entra en consumer.hotmart.com con ese correo, en “Mis compras”. Con pagos no inmediatos (boleto, transferencia o efectivo) el acceso se libera cuando Hotmart confirma el pago.",
-      "url": "https://pequeverso.com/soporte/"
+      "url": "https://pequeverso.com/soporte/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "policy.withdrawal-ar",
       "kind": "policy",
       "title": "Botón de arrepentimiento (Argentina)",
       "text": "Si compras desde Argentina, la ley de defensa del consumidor te permite revocar la compra dentro de 10 días corridos; la página de arrepentimiento explica cómo pedirlo y en otros países rigen tus propias normas.",
-      "url": "https://pequeverso.com/arrepentimiento/"
+      "url": "https://pequeverso.com/arrepentimiento/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "support.route.1",
       "kind": "support",
       "title": "No encuentro mi compra",
       "text": "Revisa Spam y Promociones y entra en consumer.hotmart.com con el correo que usaste al pagar. Ahí están tus archivos.",
-      "url": "https://pequeverso.com/soporte/"
+      "url": "https://pequeverso.com/soporte/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "support.route.2",
       "kind": "support",
       "title": "Quiero un reembolso",
       "text": "Tienes 7 días desde la compra. Pídelo en refund.hotmart.com con tu número de transacción (empieza con HP).",
-      "url": "https://pequeverso.com/soporte/"
+      "url": "https://pequeverso.com/soporte/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "support.route.3",
       "kind": "support",
       "title": "Otra duda",
       "text": "Escríbenos y te respondemos con calma, normalmente en 48 horas hábiles. Incluye el correo de la compra si ya compraste.",
-      "url": "https://pequeverso.com/soporte/"
+      "url": "https://pequeverso.com/soporte/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "support.limits",
       "kind": "support",
       "title": "Lo que no podemos hacer",
       "text": "Ver o modificar datos de pago. Cambiar el correo de una compra. Esas gestiones las hace Hotmart desde su centro de ayuda.",
-      "url": "https://pequeverso.com/soporte/"
+      "url": "https://pequeverso.com/soporte/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "support.contact",
       "kind": "support",
       "title": "Contacto",
       "text": "Soporte por correo en somospequeverso@gmail.com; respondemos normalmente en 48 horas hábiles. Incluye el correo de la compra y el código de transacción HP si ya compraste.",
-      "url": "https://pequeverso.com/soporte/"
+      "url": "https://pequeverso.com/soporte/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "support.access.1",
       "kind": "support",
       "title": "No llegó el correo",
       "text": "Revisa Spam y Promociones. Luego entra directamente a consumer.hotmart.com con el correo de la compra.",
-      "url": "https://pequeverso.com/soporte/"
+      "url": "https://pequeverso.com/soporte/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "support.access.2",
       "kind": "support",
       "title": "Pagué con boleto, transferencia o efectivo",
       "text": "El acceso se libera cuando Hotmart confirma el pago; puede demorar hasta que el método lo procese.",
-      "url": "https://pequeverso.com/soporte/"
+      "url": "https://pequeverso.com/soporte/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "support.access.3",
       "kind": "support",
       "title": "Compré con otro correo",
       "text": "Hotmart puede ayudarte a cambiar el correo de acceso desde su centro de ayuda.",
-      "url": "https://pequeverso.com/soporte/"
+      "url": "https://pequeverso.com/soporte/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
+    },
+    {
+      "id": "affiliate.alimentacion-bebe.overview",
+      "kind": "faq",
+      "title": "¿Qué enseña Guía de Alimentación para Bebés?",
+      "text": "Curso en video. Alimentación complementaria de 6 a 12 meses. Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.. Cuándo y cómo empezar la alimentación complementaria. Cantidades y frecuencias de las comidas. Un menú para las primeras 4 semanas. Recetas fáciles para el bebé y toda la familia. Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.",
+      "url": "https://pequeverso.com/#bebe",
+      "product_ids": [
+        "alimentacion-bebe"
+      ]
+    },
+    {
+      "id": "affiliate.alimentacion-bebe.guarantee",
+      "kind": "policy",
+      "title": "Garantía publicada de Guía de Alimentación para Bebés",
+      "text": "Tienes 7 días de garantía para Guía de Alimentación para Bebés.",
+      "url": "https://pequeverso.com/#bebe",
+      "product_ids": [
+        "alimentacion-bebe"
+      ]
+    },
+    {
+      "id": "affiliate.alimentacion-bebe.support",
+      "kind": "support",
+      "title": "Relación de afiliación de Guía de Alimentación para Bebés",
+      "text": "Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.",
+      "url": "https://pequeverso.com/#bebe",
+      "product_ids": [
+        "alimentacion-bebe"
+      ]
     }
   ],
   "links": [
     {
       "id": "support",
       "label": "Soporte y contacto",
-      "url": "https://pequeverso.com/soporte/"
+      "url": "https://pequeverso.com/soporte/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "purchases-refunds",
       "label": "Compras y reembolsos",
-      "url": "https://pequeverso.com/compras-y-reembolsos/"
+      "url": "https://pequeverso.com/compras-y-reembolsos/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "withdrawal",
       "label": "Botón de arrepentimiento",
-      "url": "https://pequeverso.com/arrepentimiento/"
+      "url": "https://pequeverso.com/arrepentimiento/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     },
     {
       "id": "hotmart-purchases",
       "label": "Mis compras en Hotmart",
-      "url": "https://consumer.hotmart.com/"
+      "url": "https://consumer.hotmart.com/",
+      "product_ids": [
+        "grafismo-fonetico",
+        "alimentacion-bebe"
+      ]
     },
     {
       "id": "hotmart-refund",
       "label": "Pedir reembolso en Hotmart",
-      "url": "https://refund.hotmart.com/refund?lang=es"
+      "url": "https://refund.hotmart.com/refund?lang=es",
+      "product_ids": [
+        "grafismo-fonetico",
+        "alimentacion-bebe"
+      ]
     },
     {
       "id": "product-page.grafismo-fonetico",
       "label": "Ver Grafismo Fonético",
-      "url": "https://pequeverso.com/grafismo-fonetico/"
+      "url": "https://pequeverso.com/grafismo-fonetico/",
+      "product_ids": [
+        "grafismo-fonetico"
+      ]
     }
   ],
   "forbidden_terms": [

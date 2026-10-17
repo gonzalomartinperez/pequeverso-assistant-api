@@ -5,12 +5,20 @@ unknown ids are dropped, and an answer that breaks an answer rule is replaced as
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from urllib.parse import urlsplit
 
 from app.application.ports import Draft
 from app.domain.answer_policy import AnswerRules, Violation, check_answer
-from app.domain.catalog import ActiveCatalog, Catalog, Image, PriceStatus, Product, Resource
+from app.domain.catalog import (
+    ActiveCatalog,
+    Catalog,
+    Image,
+    PriceStatus,
+    Product,
+    Resource,
+    mentioned_products,
+)
 from app.domain.conversation import (
     AnswerDetails,
     ImageRef,
@@ -40,19 +48,19 @@ MAX_FOLLOW_UP_CHARS = 90
 
 REPLACEMENT_ANSWER = (
     'No puedo confirmar esa información con los datos que tengo del catálogo. '
-    'Puedes revisar la página del kit o escribirnos desde soporte y te respondemos.'
+    'Puedes revisar la información pública del producto y las opciones de ayuda de Hotmart.'
 )
 REPLACEMENT_ANSWER_EN = (
     "I can't confirm that with the store information I have. "
-    'You can check the kit page or write to support and the team will reply.'
+    'You can check the public product information and Hotmart help options.'
 )
 PAYMENT_REFUSAL_ANSWER = (
     'Por seguridad eliminé tu mensaje: no escribas datos de tarjetas en este chat. '
-    'El pago se hace solo en la página segura de Hotmart. ¿Te ayudo con alguna duda sobre el kit?'
+    'El pago se hace solo en la página segura de Hotmart. ¿Te ayudo con alguna duda sobre el producto?'
 )
 PAYMENT_REFUSAL_ANSWER_EN = (
     'For your security I removed your message: please do not type card details in this chat. '
-    "Payment happens only on Hotmart's secure page. Can I help with a question about the kit?"
+    "Payment happens only on Hotmart's secure page. Can I help with a question about the product?"
 )
 UNSUPPORTED_LANGUAGE_ANSWER = (
     'Por ahora solo puedo responder en español o en inglés. ¿Me escribes tu pregunta en uno de '
@@ -106,7 +114,9 @@ def answer_rules(
         prices_verified=price_status is PriceStatus.VERIFIED,
         forbidden_terms=(*catalog.forbidden_terms, *extra_forbidden),
         allowed_urls=frozenset(urls),
-        known_price_pairs=frozenset((p.price.amount, p.price.currency) for p in catalog.products),
+        known_price_pairs=frozenset(
+            (p.price.amount, p.price.currency) for p in catalog.products if p.price is not None
+        ),
     )
 
 
@@ -126,7 +136,7 @@ def _image(image: Image | None) -> ImageRef | None:
 def product_ref(active: ActiveCatalog, product: Product, price_status: PriceStatus) -> ProductRef:
     catalog = active.catalog
     price = None
-    if price_status is PriceStatus.VERIFIED:
+    if price_status is PriceStatus.VERIFIED and product.price is not None:
         p = product.price
         price = PriceRef(f'{p.amount:.2f}', p.currency, p.display, p.note, p.tax_note, active.verified_at)
     return ProductRef(
@@ -138,6 +148,9 @@ def product_ref(active: ActiveCatalog, product: Product, price_status: PriceStat
         purchase_url=catalog.url(product.purchase_path),
         image=_image(product.image),
         price=price,
+        kind=product.kind,
+        format=product.format,
+        disclosure=product.disclosure,
     )
 
 
@@ -191,6 +204,22 @@ def check_content(
     violations = check_answer(content, rules) if content else []
     content = _readable_text(content)
     violations = list(dict.fromkeys([*violations, *check_answer(content, rules)]))
+    # Product scopes are checked before AND after readable cleanup, including raw citation text.
+    for candidate in (raw_content, content):
+        for sentence in re.split(r'[!?;\n]+|[.](?!\d)|,(?!\d)', candidate):
+            selected = mentioned_products(sentence, catalog)
+            owners = tuple(p for p in catalog.products if p.id in selected)
+            if not owners:
+                continue
+            if any(p.price is None for p in owners) and re.search(
+                r'(?:US\$|USD|\$|€|d[oó]lares?|euros?)\s*\d|\d[\d.,]*\s*(?:USD|d[oó]lares?|euros?)',
+                sentence,
+                re.IGNORECASE,
+            ):
+                violations.append(Violation.UNKNOWN_PRICE)
+            policies = tuple(d.text for d in catalog.documents if catalog.applies_to(d.product_ids, selected))
+            if unsupported_platform_policy(sentence, policies):
+                violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
     # Merchant policy authority never depends on optional external evidence availability.
     for candidate in (raw_content, content):
         if unsupported_platform_policy(candidate, tuple(d.text for d in catalog.documents)):
@@ -266,7 +295,20 @@ def finalize(
     catalog_source_ids: frozenset[str] | None = None,
 ) -> FinalizedAnswer:
     catalog = active.catalog
-    checked = check_content(draft.answer, catalog, rules, web_evidence)
+    selected = frozenset(
+        ref.id for ref in draft.references if ref.kind == ReferenceKind.PRODUCT and catalog.product(ref.id)
+    )
+    scoped = (
+        replace(
+            catalog,
+            documents=tuple(d for d in catalog.documents if catalog.applies_to(d.product_ids, selected)),
+        )
+        if selected
+        else catalog
+    )
+    if selected and all((p := catalog.product(pid)) is not None and p.price is None for pid in selected):
+        rules = replace(rules, known_prices=frozenset(), known_price_pairs=frozenset())
+    checked = check_content(draft.answer, scoped, rules, web_evidence)
     content = checked.content
     if not checked.accepted:
         return FinalizedAnswer(
@@ -321,6 +363,24 @@ def finalize(
         ):
             follow_ups.append(text)
 
+    disclosures = tuple(
+        p.disclosure
+        for p in catalog.products
+        if p.kind == 'affiliate'
+        and p.disclosure
+        and (p.id in products or p.name.casefold() in content.casefold())
+    )
+    for disclosure in disclosures:
+        if disclosure not in content:
+            enriched = f'{content}\n\n{disclosure}'
+            if len(enriched) > MAX_ANSWER_CHARS:
+                return FinalizedAnswer(
+                    replacement_text(language),
+                    replacement(catalog, Notice.ANSWER_REPLACED, language),
+                    (),
+                    dropped,
+                )
+            content = enriched
     details = AnswerDetails(
         products=tuple(products.values()),
         resources=tuple(resources.values()),

@@ -48,7 +48,59 @@ def _answer(store: dict[str, Any], turn: dict[str, Any]) -> dict[str, Any]:
 
 
 def _spanish_answer(store: dict[str, Any], turn: dict[str, Any]) -> dict[str, Any]:
-    product = store['products'][0]
+    question = turn['question'].lower()
+    from app.domain.answer_policy import fold
+
+    normalized = fold(question)
+    selected = [
+        p
+        for p in store['products']
+        if fold(p['name']) in normalized or p['id'].replace('-', ' ') in normalized
+    ]
+    if not selected:
+        affiliate = any(w in normalized for w in ('alimentacion', 'bebe', 'recetas', 'feeding', 'baby'))
+        core = any(w in normalized for w in ('grafismo', 'fonetico', 'kit', 'leer', 'lectura'))
+        selected = [
+            p
+            for p in store['products']
+            if (p.get('kind', 'core') == 'affiliate' and affiliate)
+            or (p.get('kind', 'core') == 'core' and core)
+        ]
+    if len(selected) > 1:
+        return {
+            'answer': '\n'.join(f'{p["name"]}: {p["summary"]} Formato: {p["format"]}.' for p in selected),
+            'references': [{'kind': 'product', 'id': p['id']} for p in selected],
+            'sources': [],
+            'follow_ups': [],
+        }
+    if not selected and len(store['products']) > 1:
+        previous = next(
+            (entry for entry in reversed(turn.get('conversation', [])) if entry.get('referenced_ids')), None
+        )
+        if previous:
+            selected = [p for p in store['products'] if p['id'] in previous['referenced_ids']]
+    if not selected and len(store['products']) > 1:
+        return {
+            'answer': '¿Te interesa Grafismo Fonético o la Guía de Alimentación para Bebés?',
+            'references': [],
+            'sources': [],
+            'follow_ups': [],
+        }
+    product = selected[0] if selected else store['products'][0]
+    if product.get('kind') == 'affiliate':
+        price_question = any(w in normalized for w in ('precio', 'cuesta', 'price', 'cost'))
+        text = (
+            'No tengo un precio publicado para este producto; puedes consultar el importe vigente en Hotmart.'
+            if price_question
+            else f'{product["name"]}: {product["summary"]} {product["format"]}. '
+            + ' '.join(product.get('topics', []))
+        )
+        return {
+            'answer': text,
+            'references': [{'kind': 'product', 'id': product['id']}],
+            'sources': [d['id'] for d in store['documents'] if product['id'] in d.get('product_ids', [])][:2],
+            'follow_ups': [],
+        }
     support = next((link['id'] for link in store['links'] if 'soporte' in link['label'].lower()), None)
     items = [
         Passage(f'product:{product["id"]}', f'{product["name"]} {product["summary"]} {product["usage"]}')

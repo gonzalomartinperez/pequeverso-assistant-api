@@ -37,6 +37,7 @@ def test_committed_snapshot_is_valid_and_grounded() -> None:
     assert product is not None
     assert product.pdf_count == len(product.resources) == 9
     assert sum(r.pages or 0 for r in product.resources) == product.page_count == 414
+    assert product.price is not None
     assert str(product.price.amount) == '14.99'
     assert len(catalog.source_revision) == 40
     assert catalog.link(catalog.site.support_link_id) is not None

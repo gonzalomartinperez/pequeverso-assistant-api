@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
+from typing import Literal
 
 
 class PriceStatus(StrEnum):
@@ -60,15 +61,19 @@ class Product:
     age_range: str
     format: str
     usage: str
-    pdf_count: int
-    page_count: int
-    price: Price
+    pdf_count: int | None
+    page_count: int | None
+    price: Price | None
     resources: tuple[Resource, ...]
     image: Image | None = None
     method: tuple[str, ...] = ()
     audience_for: tuple[str, ...] = ()
     audience_not_for: tuple[str, ...] = ()
     age_guidance: tuple[AgeGuidance, ...] = ()
+    kind: Literal['core', 'affiliate'] = 'core'
+    disclosure: str | None = None
+    guarantee_days: int | None = None
+    topics: tuple[str, ...] = ()
 
 
 class DocumentKind(StrEnum):
@@ -84,6 +89,7 @@ class Document:
     title: str
     text: str
     url: str
+    product_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +97,7 @@ class Link:
     id: str
     label: str
     url: str
+    product_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,7 +141,13 @@ class Catalog:
         return f'{self.site.origin}{path}'
 
     def prices(self) -> frozenset[Decimal]:
-        return frozenset(p.price.amount for p in self.products)
+        return frozenset(p.price.amount for p in self.products if p.price is not None)
+
+    def applies_to(self, product_ids: tuple[str, ...], selected: frozenset[str]) -> bool:
+        # Legacy unscoped merchant facts belong to the original core products, never to
+        # a newly added third-party product. New exports name scopes explicitly.
+        owners = product_ids or tuple(p.id for p in self.products if p.kind == 'core')
+        return bool(selected.intersection(owners))
 
 
 def resource_key(product_id: str, resource_id: str) -> str:
@@ -156,3 +169,37 @@ class ActiveCatalog:
         if now - self.verified_at <= self.max_price_age:
             return PriceStatus.VERIFIED
         return PriceStatus.UNVERIFIED
+
+
+def mentioned_products(text: str, catalog: Catalog) -> frozenset[str]:
+    """Bounded catalog aliases; topic words select evidence, never create product facts."""
+    import re
+    import unicodedata
+
+    normalized = ''.join(
+        c for c in unicodedata.normalize('NFD', text.lower()) if unicodedata.category(c) != 'Mn'
+    )
+    selected: set[str] = set()
+    for product in catalog.products:
+        name = ''.join(
+            c for c in unicodedata.normalize('NFD', product.name.lower()) if unicodedata.category(c) != 'Mn'
+        )
+        aliases = (name, product.id.replace('-', ' '), *(r.id.replace('-', ' ') for r in product.resources))
+        if (
+            any(alias in normalized for alias in aliases)
+            or (
+                product.kind == 'affiliate'
+                and re.search(
+                    r'\b(?:alimentacion|complementaria|bebe|bebes|comidas|recetas|feeding|baby|babies)\b',
+                    normalized,
+                )
+            )
+            or (
+                product.kind == 'core'
+                and re.search(
+                    r'\b(?:grafismo|fonetico|kit|lectura|leer|silabas|reading|phonics)\b', normalized
+                )
+            )
+        ):
+            selected.add(product.id)
+    return frozenset(selected)

@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.domain.answer_policy import fold
-from app.domain.catalog import Catalog, Document, PriceStatus, Product, resource_key
+from app.domain.catalog import Catalog, Document, PriceStatus, Product, mentioned_products, resource_key
 
 _WORD = re.compile(r'[a-z0-9ñ]+')
 _STOPWORDS = frozenset(
@@ -120,6 +120,7 @@ def passages(catalog: Catalog) -> list[Passage]:
                 *product.audience_for,
                 *product.audience_not_for,
                 *(f'{g.label} {g.hint}' for g in product.age_guidance),
+                *product.topics,
             ]
         )
         items.append(Passage(f'product:{product.id}', overview))
@@ -156,11 +157,15 @@ def rank(query: str, items: Sequence[Passage]) -> list[tuple[Passage, float]]:
 def _product_payload(product: Product, price_status: PriceStatus) -> dict[str, Any]:
     payload: dict[str, Any] = {
         'id': product.id,
+        'kind': product.kind,
         'name': product.name,
         'summary': product.summary,
         'age_range': product.age_range,
         'format': product.format,
         'usage': product.usage,
+        'disclosure': product.disclosure,
+        'guarantee_days': product.guarantee_days,
+        'topics': list(product.topics),
         'pdf_count': product.pdf_count,
         'page_count': product.page_count,
         'method': list(product.method),
@@ -177,18 +182,29 @@ def _product_payload(product: Product, price_status: PriceStatus) -> dict[str, A
             for r in product.resources
         ],
     }
-    if price_status is PriceStatus.VERIFIED:
+    if price_status is PriceStatus.VERIFIED and product.price is not None:
         payload['price'] = {
             'display': product.price.display,
             'currency': product.price.currency,
             'currency_note': product.price.note,
             'tax_note': product.price.tax_note,
         }
+    elif product.price is None:
+        payload['price'] = None
     return payload
 
 
-def _documents_payload(documents: Iterable[Document]) -> list[dict[str, str]]:
-    return [{'id': d.id, 'kind': d.kind.value, 'title': d.title, 'text': d.text} for d in documents]
+def _documents_payload(documents: Iterable[Document]) -> list[dict[str, Any]]:
+    return [
+        {
+            'id': d.id,
+            'kind': d.kind.value,
+            'title': d.title,
+            'text': d.text,
+            'product_ids': list(d.product_ids),
+        }
+        for d in documents
+    ]
 
 
 def catalog_payload(
@@ -199,16 +215,26 @@ def catalog_payload(
     mandatory_document_ids: frozenset[str] = frozenset(),
 ) -> str:
     """Compact JSON evidence; drops the lowest-ranked documents only when over `max_chars`."""
+    selected = mentioned_products(query, catalog)
+    documents = tuple(
+        d for d in catalog.documents if not selected or catalog.applies_to(d.product_ids, selected)
+    )
     base: dict[str, Any] = {
         'store': {
             'name': catalog.site.name,
             'language': catalog.site.language,
-            'support_email': catalog.site.support_email,
+            'support_email': catalog.site.support_email
+            if not selected or any(p.kind == 'core' and p.id in selected for p in catalog.products)
+            else None,
         },
         'price_status': price_status.value,
         'products': [_product_payload(p, price_status) for p in catalog.products],
-        'links': [{'id': link.id, 'label': link.label} for link in catalog.links],
-        'documents': _documents_payload(catalog.documents),
+        'links': [
+            {'id': link.id, 'label': link.label, 'product_ids': list(link.product_ids)}
+            for link in catalog.links
+            if not selected or catalog.applies_to(link.product_ids, selected)
+        ],
+        'documents': _documents_payload(documents),
     }
     text = json.dumps(base, ensure_ascii=False, separators=(',', ':'))
     if len(text) <= max_chars:
@@ -218,12 +244,12 @@ def catalog_payload(
         for p, _ in rank(query, passages(catalog))
         if p.id.startswith('document:')
     ]
-    kept: list[Document] = [d for d in catalog.documents if d.id in mandatory_document_ids]
+    kept: list[Document] = [d for d in documents if d.id in mandatory_document_ids]
     for document_id in ranked:
         if document_id in mandatory_document_ids:
             continue
         document = catalog.document(document_id)
-        if document is None:
+        if document is None or document not in documents:
             continue
         candidate = {**base, 'documents': _documents_payload([*kept, document])}
         if len(json.dumps(candidate, ensure_ascii=False, separators=(',', ':'))) > max_chars:

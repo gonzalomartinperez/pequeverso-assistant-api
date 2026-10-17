@@ -75,7 +75,12 @@ def test_old_context_compacts_but_latest_exchange_and_structured_catalog_survive
     assert len(store['products'][0]['resources']) == 9
     assert store['products'][0]['page_count'] == 414
     assert {r['id']: r['pages'] for r in store['products'][0]['resources']}['grafismo-fonetico/juega'] == 50
-    mandatory = {d.id for d in CATALOG.documents if d.kind.value in ('policy', 'support')}
+    mandatory = {
+        d.id
+        for d in CATALOG.documents
+        if d.kind.value in ('policy', 'support')
+        and CATALOG.applies_to(d.product_ids, frozenset({'grafismo-fonetico'}))
+    }
     mandatory |= {
         'faq.grafismo-fonetico.03',
         'faq.grafismo-fonetico.06',

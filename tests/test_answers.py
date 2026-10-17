@@ -109,7 +109,16 @@ def test_published_catalog_copy_remains_valid_after_positive_claim_guards() -> N
         texts.extend([product.summary, product.usage, *product.method, *product.audience_not_for])
         texts.extend(resource.description for resource in product.resources)
     for text in texts:
-        assert _finalize(Draft(text, (), (), ())).content == text.strip()
+        final = _finalize(Draft(text, (), (), ()))
+        assert final.details.notices == ()
+        assert final.content.startswith(text.strip())
+        if final.content != text.strip():
+            assert any(
+                p.kind == 'affiliate'
+                and p.disclosure
+                and final.content == f'{text.strip()}\n\n{p.disclosure}'
+                for p in CATALOG.products
+            )
 
 
 def test_bare_refund_domain_in_public_policy_does_not_allow_arbitrary_refund_paths() -> None:
