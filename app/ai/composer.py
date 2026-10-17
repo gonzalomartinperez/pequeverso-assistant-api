@@ -22,7 +22,7 @@ from app.application.ports import (
 )
 from app.domain.answer_policy import fold
 from app.domain.budget import Usage
-from app.domain.catalog import DocumentKind
+from app.domain.catalog import DocumentKind, mentioned_products
 from app.domain.conversation import Role
 from app.domain.errors import RejectedError
 from app.domain.web_evidence import WebEvidence, evidence_payload
@@ -85,7 +85,19 @@ class GroundedComposer:
 
     def prepare(self, turn: Turn) -> PreparedTurn:
         last_user = next((m.content for m in reversed(turn.history) if m.role is Role.USER), '')
-        query = f'{turn.question} {last_user}'
+        current_ids = mentioned_products(turn.question, turn.active.catalog)
+        previous_ids = next(
+            (
+                tuple(p.id for p in m.details.products)
+                for m in reversed(turn.history)
+                if m.role is Role.ASSISTANT and m.details.products
+            ),
+            (),
+        )
+        # An explicit topic change wins. Otherwise preserve structured referents across multiple
+        # short follow-ups without indexing visitor conversations into catalog knowledge.
+        hints = ' '.join(current_ids or previous_ids)
+        query = f'{turn.question} {hints}' if hints else f'{turn.question} {last_user}'
         limit = (
             min(self._settings.max_input_bytes, turn.input_size_limit)
             if turn.input_size_limit is not None
@@ -149,6 +161,19 @@ class GroundedComposer:
                     candidate = replace(item, text=text, sha256=hashlib.sha256(text.encode()).hexdigest())
                     proposed = (*selected, candidate)
                     trial = self._request(turn, evidence, conversation, proposed)
+                    # Make room for effective procedure evidence by removing only whole,
+                    # low-ranked noncommercial FAQ documents. Mandatory policies/support and
+                    # product facts remain intact; the input bound never increases.
+                    for document_id in removable:
+                        if trial.size_bytes() <= limit:
+                            break
+                        if catalog.document(document_id) is None:
+                            continue
+                        catalog = replace(
+                            catalog, documents=tuple(d for d in catalog.documents if d.id != document_id)
+                        )
+                        evidence = evidence_text()
+                        trial = self._request(turn, evidence, conversation, proposed)
                     if trial.size_bytes() > limit:
                         break
                     kept.append(paragraph)

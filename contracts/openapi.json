@@ -906,6 +906,40 @@
               }
             ],
             "description": "null when the price cannot be confirmed as current."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "core",
+              "affiliate"
+            ],
+            "title": "Kind",
+            "description": "Product ownership (since1.5); legacy cards default to core.",
+            "default": "core"
+          },
+          "format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Format",
+            "description": "Published format, if known (since1.5)."
+          },
+          "disclosure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disclosure",
+            "description": "Published affiliate disclosure, if applicable (since1.5)."
           }
         },
         "additionalProperties": false,
@@ -1048,7 +1082,7 @@
             "type": "string",
             "title": "Contract Revision",
             "description": "Additive revision within v1.",
-            "default": "1.4"
+            "default": "1.5"
           }
         },
         "additionalProperties": false,

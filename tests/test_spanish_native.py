@@ -181,7 +181,7 @@ def test_native_policy_flows_over_real_sse_socket(tmp_path: Path):
     provider = ScriptedProvider(output=answer_json('Puedes imprimir las páginas que necesites.'))
     with live_server(tmp_path, provider) as url, httpx.Client(base_url=url, trust_env=False) as http:
         session = http.post('/api/v1/session', headers=JSON_HEADERS, json={'locale': 'en'}).json()
-        assert session['contract_revision'] == '1.4'
+        assert session['contract_revision'] == '1.5'
         with http.stream(
             'POST',
             '/api/v1/messages',

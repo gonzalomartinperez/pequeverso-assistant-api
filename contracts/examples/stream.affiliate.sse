@@ -1,0 +1,24 @@
+id: 0
+event: run.started
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":0,"timestamp":"2026-09-28T15:00:00Z","type":"run.started","user_message":{"id":"msg_EXAMPLEuser00001","role":"user","content":"¿Qué enseña la Guía de Alimentación para Bebés?","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[],"sources":[],"follow_ups":[],"notices":[],"language":"es"}}
+
+id: 1
+event: message.delta
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":1,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"La Guía de Alimentación para Bebés es un curso en video sobre alimentación "}
+
+id: 2
+event: message.delta
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":2,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"complementaria de 6 a 12 meses. No tengo un precio publicado.\n\nEnlace de af"}
+
+id: 3
+event: message.delta
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":3,"timestamp":"2026-09-28T15:00:00Z","type":"message.delta","text":"iliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más."}
+
+id: 4
+event: message.completed
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":4,"timestamp":"2026-09-28T15:00:00Z","type":"message.completed","message":{"id":"msg_EXAMPLEassistant1","role":"assistant","content":"La Guía de Alimentación para Bebés es un curso en video sobre alimentación complementaria de 6 a 12 meses. No tengo un precio publicado.\n\nEnlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.","created_at":"2026-09-28T15:00:00Z","products":[{"id":"alimentacion-bebe","name":"Guía de Alimentación para Bebés","summary":"Alimentación complementaria de 6 a 12 meses. Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.","age_range":"6 a 12 meses","url":"https://pequeverso.com/#bebe","purchase_url":"https://pequeverso.com/alimentacion-bebe/","image":null,"price":null,"kind":"affiliate","format":"Curso en video","disclosure":"Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más."}],"resources":[],"links":[],"sources":[{"id":"affiliate.alimentacion-bebe.overview","title":"¿Qué enseña la Guía de Alimentación para Bebés?","url":"https://pequeverso.com/#bebe"}],"follow_ups":[],"notices":[],"language":"es"}}
+
+id: 5
+event: run.completed
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":5,"timestamp":"2026-09-28T15:00:00Z","type":"run.completed"}
+

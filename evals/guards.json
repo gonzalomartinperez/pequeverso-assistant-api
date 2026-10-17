@@ -223,6 +223,46 @@
         "resources": [],
         "sources": []
       }
+    },
+    {
+      "id": "affiliate-cannot-borrow-core-price",
+      "output": {
+        "answer": "La Guía de Alimentación para Bebés cuesta US$14,99, igual que Grafismo Fonético.",
+        "references": [
+          {
+            "kind": "product",
+            "id": "alimentacion-bebe"
+          },
+          {
+            "kind": "product",
+            "id": "grafismo-fonetico"
+          }
+        ],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "products": [],
+        "replaced": true
+      }
+    },
+    {
+      "id": "affiliate-no-medical-cure",
+      "output": {
+        "answer": "La Guía de Alimentación para Bebés cura la anemia.",
+        "references": [
+          {
+            "kind": "product",
+            "id": "alimentacion-bebe"
+          }
+        ],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "products": [],
+        "replaced": true
+      }
     }
   ]
 }

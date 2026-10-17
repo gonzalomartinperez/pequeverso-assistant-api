@@ -499,3 +499,24 @@ relabeled as this build. vps-ops must rebuild and smoke its exact approved relea
 See [runtime-baseline.md](runtime-baseline.md) for the 2026-10-13 shared cohort and image
 acceptance. Actual committed locks and Dockerfiles supersede historical version/size samples;
 no production publication, deployment or live OAuth/provider check is implied.
+
+## Affiliate catalog rollout and rollback (2026-10-17)
+
+HTTP revision1.5 is additive; the internal catalog is not forward compatible with older strict
+readers. Deploy the new reader before activating the two-product catalog. The new reader can
+load the previous single-product snapshot. Before deployment retain the previous image, exact
+catalog JSON/hash and a coherent SQLite backup (including conversations and accounting); do
+not delete or blindly restore a shared volume. An old reader rejects the new affiliate fields.
+SQLite startup loads the active snapshot; it does not automatically search all five historical
+snapshots for one compatible with an old reader. Its packaged old snapshot can recover only
+when refresh succeeds; otherwise readiness remains unavailable. Plan an explicit catalog
+rollback preserving newer conversations/accounting, rather than assuming an image rollback
+alone restores compatibility. vps-ops owns execution and production verification.
+
+The persisted message JSON is also not forward compatible: revision1.5 stores optional
+kind/format/disclosure on product references, including core cards. Historical1.4 readers
+construct ProductRef directly and reject unknown keys. A1.5 reader accepts historical1.4
+messages with defaults; the reverse requires an explicit, validated data migration or a
+compatible reader. Do not promise image-only rollback, erase conversations/ledger, or restore
+an old full database over newer accounting. Validate rollback on an isolated copy and obtain
+a deliberate data-preservation plan before production activation.

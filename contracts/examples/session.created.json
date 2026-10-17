@@ -13,10 +13,10 @@
     "messages_per_day": 30
   },
   "starters": [
-    "¿Qué incluye exactamente la compra?",
-    "¿Para qué edades se recomienda?",
-    "¿Tengo que imprimir todo el material?",
-    "¿Cómo funciona la garantía de 7 días?"
+    "¿Qué incluye Grafismo Fonético?",
+    "¿Para qué edades es Grafismo Fonético?",
+    "¿Qué enseña la Guía de Alimentación para Bebés?",
+    "¿Qué diferencias hay entre Grafismo Fonético y Guía de Alimentación para Bebés?"
   ],
-  "contract_revision": "1.4"
+  "contract_revision": "1.5"
 }

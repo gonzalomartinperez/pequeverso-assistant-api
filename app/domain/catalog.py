@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import Decimal
 from enum import StrEnum
+from typing import Literal
 
 
 class PriceStatus(StrEnum):
@@ -60,15 +61,19 @@ class Product:
     age_range: str
     format: str
     usage: str
-    pdf_count: int
-    page_count: int
-    price: Price
+    pdf_count: int | None
+    page_count: int | None
+    price: Price | None
     resources: tuple[Resource, ...]
     image: Image | None = None
     method: tuple[str, ...] = ()
     audience_for: tuple[str, ...] = ()
     audience_not_for: tuple[str, ...] = ()
     age_guidance: tuple[AgeGuidance, ...] = ()
+    kind: Literal['core', 'affiliate'] = 'core'
+    disclosure: str | None = None
+    guarantee_days: int | None = None
+    topics: tuple[str, ...] = ()
 
 
 class DocumentKind(StrEnum):
@@ -84,6 +89,7 @@ class Document:
     title: str
     text: str
     url: str
+    product_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +97,7 @@ class Link:
     id: str
     label: str
     url: str
+    product_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,7 +141,13 @@ class Catalog:
         return f'{self.site.origin}{path}'
 
     def prices(self) -> frozenset[Decimal]:
-        return frozenset(p.price.amount for p in self.products)
+        return frozenset(p.price.amount for p in self.products if p.price is not None)
+
+    def applies_to(self, product_ids: tuple[str, ...], selected: frozenset[str]) -> bool:
+        # Legacy unscoped merchant facts belong to the original core products, never to
+        # a newly added third-party product. New exports name scopes explicitly.
+        owners = product_ids or tuple(p.id for p in self.products if p.kind == 'core')
+        return bool(selected.intersection(owners))
 
 
 def resource_key(product_id: str, resource_id: str) -> str:
@@ -156,3 +169,45 @@ class ActiveCatalog:
         if now - self.verified_at <= self.max_price_age:
             return PriceStatus.VERIFIED
         return PriceStatus.UNVERIFIED
+
+
+def product_mentioned(
+    text: str, name: str, product_id: str, kind: str, resource_ids: tuple[str, ...] = ()
+) -> bool:
+    """Shared bounded alias matching for retrieval and the deterministic fixture."""
+    import re
+    import unicodedata
+
+    def normalize(value: str) -> str:
+        return ''.join(
+            c for c in unicodedata.normalize('NFD', value.lower()) if unicodedata.category(c) != 'Mn'
+        )
+
+    normalized = normalize(text)
+    aliases = (
+        normalize(name),
+        product_id.replace('-', ' '),
+        *(rid.replace('-', ' ') for rid in resource_ids),
+    )
+    return any(alias in normalized for alias in aliases) or bool(
+        (
+            kind == 'affiliate'
+            and re.search(
+                r'\b(?:alimentacion|complementaria|bebe|bebes|comidas|recetas|feeding|baby|babies)\b',
+                normalized,
+            )
+        )
+        or (
+            kind == 'core'
+            and re.search(r'\b(?:grafismo|fonetico|kit|lectura|leer|silabas|reading|phonics)\b', normalized)
+        )
+    )
+
+
+def mentioned_products(text: str, catalog: Catalog) -> frozenset[str]:
+    """Topic words select evidence, never create product facts."""
+    return frozenset(
+        p.id
+        for p in catalog.products
+        if product_mentioned(text, p.name, p.id, p.kind, tuple(r.id for r in p.resources))
+    )

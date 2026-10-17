@@ -116,6 +116,8 @@ _OUTCOME_CLAIM = re.compile(
     r'\b(?:en|in|within|after)\s+(?:\w+\s+){0,3}(?:dias?|days?|semanas?|weeks?|meses?|months?)\b'
     r'|\b(?:cura|cures?|trata|treats?)\b[^.!?;\n]{0,50}?'
     r'\b(?:dislexia|dyslexia|tdah|adhd|autismo|autism|trastorno|disorder)\b'
+    r'|\b(?:cura|cures?|previene|prevents?|evita|treats?|trata|elimina)\b[^.!?;\n]{0,55}?'
+    r'\b(?:anemia|alergias?|allergies|allergy|atragantamiento|choking|enfermedad|disease|desnutricion|malnutrition)\b'
 )
 _NEGATED_CLAIM_PREFIX = re.compile(
     r"(?:\bno|\bnunca|\bnot|\bnever|\bcannot|\bcan't|\bdidn't|\bhaven't|\bunable to)"
