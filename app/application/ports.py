@@ -130,6 +130,9 @@ class CatalogView(Protocol):
     @property
     def active(self) -> ActiveCatalog | None: ...
 
+    @property
+    def synchronized(self) -> bool: ...
+
 
 class OfficialHelp(Protocol):
     async def read(self, topics: tuple[HelpTopic, ...]) -> tuple[WebEvidence, ...]: ...

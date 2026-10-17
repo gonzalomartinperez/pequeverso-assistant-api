@@ -77,7 +77,9 @@ def owned_app(
         instances.append(db)
         return db
 
-    monkeypatch.setattr(container, 'Database', make_database)
+    from app.bootstrap import persistence
+
+    monkeypatch.setattr(persistence, 'Database', make_database)
     if telemetry:
 
         class FakeTelemetry:

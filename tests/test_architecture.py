@@ -206,6 +206,9 @@ def test_external_runtime_sdks_stay_in_exact_adapters() -> None:
         for name in _imports(path):
             root = name.split('.')[0]
             if root in boundaries:
+                if root == 'sqlite3' and path == APP / 'adapters' / 'postgres' / 'import_sqlite.py':
+                    # Explicit offline, read-only legacy import; not a runtime PG driver.
+                    continue
                 assert path.is_relative_to(APP / 'adapters' / boundaries[root]), (path, root)
 
 
@@ -314,3 +317,16 @@ def test_transitive_same_layer_cycles_are_rejected(tmp_path: Path, monkeypatch: 
     monkeypatch.setitem(globals(), 'APP', root)
     with pytest.raises(AssertionError, match='import cycle'):
         test_application_import_graph_is_acyclic()
+
+
+@pytest.mark.parametrize('placement', ['application', 'adapters/graph', 'adapters/postgres/nested'])
+def test_legacy_import_filename_cannot_open_other_sqlite_driver_boundaries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, placement: str
+) -> None:
+    root = tmp_path / 'app'
+    path = root / placement / 'import_sqlite.py'
+    path.parent.mkdir(parents=True)
+    path.write_text('import sqlite3\n')
+    monkeypatch.setitem(globals(), 'APP', root)
+    with pytest.raises(AssertionError):
+        test_external_runtime_sdks_stay_in_exact_adapters()

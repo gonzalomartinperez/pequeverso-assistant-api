@@ -308,3 +308,65 @@ def test_real_http_cancel_after_delta_retains_unknown_spend_and_no_partial_histo
             if thread.is_alive() and run_ids:
                 http.post(f'/api/v1/runs/{run_ids[0]}/cancel', headers=mutation_headers(csrf), json={})
                 thread.join(5)
+
+
+@pytest.mark.parametrize('failure', ['projection', 'source', 'ownership', 'ownership_error'])
+def test_direct_post_refuses_known_unavailable_dependencies_without_spend(
+    tmp_path: Path, failure: str
+) -> None:
+    """A caller cannot bypass availability by posting a generation directly."""
+    provider = ScriptedProvider()
+    retrieval = Retrieval()
+
+    async def unavailable(active: ActiveCatalog) -> bool:
+        return False
+
+    async def lost_owner() -> bool:
+        if failure == 'ownership_error':
+            raise ConnectionError('synthetic-private-connection-detail')
+        return False
+
+    with client(tmp_path, provider=provider) as http:
+        chat = http.app.state.services.chat
+        chat.composer = _composer(provider, retrieval)
+        chat.knowledge = retrieval
+        session = open_session(http)
+        if failure == 'projection':
+            retrieval.ready = unavailable
+        elif failure == 'source':
+            chat.catalog._synchronized = False
+        else:
+            chat.runtime_ownership = lost_owner
+        status, events, error = ask(http, session, '¿Qué incluye el kit?', key='known-unavailable')
+        assert status == 503 and events == []
+        assert error['error']['code'] == 'dependency_unavailable'
+        assert 'synthetic-private-connection-detail' not in json.dumps(error)
+        assert retrieval.calls == len(provider.calls) == 0
+        history = http.post('/api/v1/session', headers=JSON_HEADERS, json={})
+        assert history.status_code == 200 and history.json()['messages'] == []
+        with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as db:
+            assert db.execute('SELECT COUNT(*) FROM spend_ledger').fetchone()[0] == 0
+            assert db.execute("SELECT COUNT(*) FROM runs WHERE state = 'active'").fetchone()[0] == 0
+            if failure.startswith('ownership'):
+                assert db.execute('SELECT COUNT(*) FROM runs').fetchone()[0] == 0
+
+
+def test_completed_replay_survives_projection_outage_without_new_generation(tmp_path: Path) -> None:
+    provider = ScriptedProvider()
+    retrieval = Retrieval()
+
+    async def unavailable(active: ActiveCatalog) -> bool:
+        return False
+
+    with client(tmp_path, provider=provider) as http:
+        chat = http.app.state.services.chat
+        chat.composer = _composer(provider, retrieval)
+        chat.knowledge = retrieval
+        session = open_session(http)
+        first, events, _ = ask(http, session, '¿Qué incluye el kit?', key='saved-before-outage')
+        assert first == 200
+        saved = events[-2]['message']
+        retrieval.ready = unavailable
+        repeated, replay, _ = ask(http, session, '¿Qué incluye el kit?', key='saved-before-outage')
+        assert repeated == 200 and replay[-2]['message'] == saved
+        assert len(provider.calls) == retrieval.calls == 1

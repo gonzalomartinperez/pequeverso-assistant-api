@@ -21,26 +21,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import iter_route_contexts
 from openai import AsyncOpenAI
 
+from app.adapters.catalog.knowledge import PARSER_VERSION
 from app.adapters.catalog_schema import CatalogParser
 from app.adapters.catalog_source import FileCatalogSource, HttpCatalogSource
 from app.adapters.fixture_provider import FixtureProvider
+from app.adapters.graph.composer import GraphAnswerComposer
 from app.adapters.official_help import OfficialHelpReader
+from app.adapters.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
 from app.adapters.openai_provider import OpenAIResponsesProvider
-from app.adapters.sqlite.catalog_repository import SqliteCatalogRepository
-from app.adapters.sqlite.database import Database
-from app.adapters.sqlite.ledger import SqliteLedger, SqliteRateLimiter
-from app.adapters.sqlite.operations import SqliteOperationsQueries, SqliteRunMetrics
-from app.adapters.sqlite.stores import SqliteMessageStore, SqliteRunStore, SqliteSessionStore
+from app.adapters.postgres.database import PostgresDatabase
+from app.adapters.postgres.knowledge import PostgresKnowledgeStore
 from app.ai.composer import ComposerSettings, GroundedComposer
 from app.ai.provider import ModelProvider
 from app.application.catalog import CatalogService
 from app.application.chat import ChatLimits, ChatService
+from app.application.embedding_budget import SharedEmbeddingAccounting
+from app.application.knowledge import HybridKnowledgeRetrieval
+from app.application.knowledge_ports import EmbeddingAccounting, Embeddings
 from app.application.operations import OperationsService, ServiceInfo
-from app.application.ports import CatalogSource, Clock
+from app.application.ports import AnswerComposer, CatalogSource, Clock
 from app.application.runs import RunRegistry
 from app.application.sessions import SessionLimits, SessionService
 from app.bootstrap.config import Settings, get_settings
 from app.bootstrap.logging import configure_logging
+from app.bootstrap.persistence import build_persistence
 from app.domain.budget import BudgetPolicy, Pricing, to_micro
 from app.presentation.http import CookiePolicy, HttpSettings, Services, health, install_error_handlers, router
 from app.presentation.middleware import BodyLimitMiddleware, OriginMiddleware, RequestContextMiddleware
@@ -62,9 +66,12 @@ class _ProviderResource:
 
     provider: ModelProvider
     close: Callable[[], Awaitable[None]] | None = None
+    embeddings: Embeddings | None = None
 
 
-def build_provider(settings: Settings) -> _ProviderResource:
+def build_provider(
+    settings: Settings, embedding_accounting: EmbeddingAccounting | None = None
+) -> _ProviderResource:
     if settings.ai_provider == 'openai':
         assert settings.openai_api_key is not None
         client = AsyncOpenAI(
@@ -73,13 +80,21 @@ def build_provider(settings: Settings) -> _ProviderResource:
             timeout=settings.openai_timeout_seconds,
             max_retries=0,
         )
+        embeddings: Embeddings | None = None
+        if settings.knowledge_backend == 'graphrag':
+            assert embedding_accounting is not None
+            embeddings = OpenAIEmbeddings(client, embedding_accounting)
         return _ProviderResource(
             OpenAIResponsesProvider(
                 client, settings.openai_model, settings.openai_reasoning_effort, settings.openai_max_retries
             ),
             client.close,
+            embeddings,
         )
-    return _ProviderResource(FixtureProvider(chunk_delay_seconds=settings.fixture_chunk_delay_ms / 1000))
+    return _ProviderResource(
+        FixtureProvider(chunk_delay_seconds=settings.fixture_chunk_delay_ms / 1000),
+        embeddings=FixtureHashEmbeddings() if settings.knowledge_backend == 'graphrag' else None,
+    )
 
 
 def build_catalog_source(settings: Settings) -> CatalogSource:
@@ -100,15 +115,17 @@ def create_app(
     if provider is not None and settings.environment == 'production':
         raise ValueError('provider overrides are for tests and fixtures only')
     clock = clock or SystemClock()
-    db = Database(settings.database_path)
-    stores_rate = SqliteRateLimiter(db)
-    sessions_store = SqliteSessionStore(db)
-    messages = SqliteMessageStore(db)
-    runs = SqliteRunStore(db)
+    parser = CatalogParser(frozenset(settings.catalog_allowed_hosts))
+    persistence = build_persistence(settings, parser)
+    db = persistence.database
+    stores_rate = persistence.rates
+    sessions_store = persistence.sessions
+    messages = persistence.messages
+    runs = persistence.runs
     catalog = CatalogService(
         catalog_source or build_catalog_source(settings),
-        CatalogParser(frozenset(settings.catalog_allowed_hosts)),
-        SqliteCatalogRepository(db),
+        parser,
+        persistence.catalog,
         clock,
         timedelta(hours=settings.catalog_price_max_age_hours),
     )
@@ -123,16 +140,36 @@ def create_app(
             history_restore=40,
         ),
     )
-    owned_provider = _ProviderResource(provider) if provider is not None else build_provider(settings)
-    model = owned_provider.provider
-    ledger = SqliteLedger(db)
-    run_metrics = SqliteRunMetrics(db)
+    ledger = persistence.ledger
+    run_metrics = persistence.metrics
     cleanups = ResponseCleanups()
     budget = BudgetPolicy(
         monthly_limit_micro=to_micro(settings.monthly_budget_usd),
         safety_margin=settings.budget_safety_margin,
         daily_limit_micro=to_micro(settings.daily_budget_usd),
     )
+    accounting = SharedEmbeddingAccounting(ledger, clock, budget, settings.embedding_input_price_per_million)
+    owned_provider = (
+        _ProviderResource(provider) if provider is not None else build_provider(settings, accounting)
+    )
+    model = owned_provider.provider
+    grounded = GroundedComposer(
+        model,
+        ComposerSettings(settings.max_output_tokens, settings.max_evidence_chars, settings.max_input_tokens),
+    )
+    composer: AnswerComposer = grounded
+    knowledge: HybridKnowledgeRetrieval | None = None
+    if settings.knowledge_backend == 'graphrag':
+        assert persistence.graph is not None
+        assert isinstance(persistence.catalog, PostgresKnowledgeStore)
+        embeddings = owned_provider.embeddings
+        if embeddings is None and settings.ai_provider == 'fixture':
+            embeddings = FixtureHashEmbeddings()
+        assert embeddings is not None
+        knowledge = HybridKnowledgeRetrieval(
+            persistence.catalog, persistence.graph, embeddings, PARSER_VERSION, clock
+        )
+        composer = GraphAnswerComposer(grounded, knowledge, settings.max_input_tokens)
     chat = ChatService(
         official_help=(
             OfficialHelpReader()
@@ -141,12 +178,9 @@ def create_app(
             and settings.assistant_enabled
             else None
         ),
-        composer=GroundedComposer(
-            model,
-            ComposerSettings(
-                settings.max_output_tokens, settings.max_evidence_chars, settings.max_input_tokens
-            ),
-        ),
+        composer=composer,
+        knowledge=knowledge,
+        runtime_ownership=db.runtime_ownership_alive if isinstance(db, PostgresDatabase) else None,
         catalog=catalog,
         messages=messages,
         runs=runs,
@@ -175,7 +209,7 @@ def create_app(
         ),
     )
 
-    operations_queries = SqliteOperationsQueries(db)
+    operations_queries = persistence.operations
     operations = OperationsService(
         operations_queries,
         catalog,
@@ -205,7 +239,11 @@ def create_app(
 
     async def ready() -> bool:
         try:
-            return not chat.registry.closing and await db.ping() and catalog.active is not None
+            if chat.registry.closing or not await db.ping() or catalog.active is None:
+                return False
+            if isinstance(db, PostgresDatabase) and not await db.runtime_ownership_alive():
+                return False
+            return knowledge is None or (catalog.synchronized and await knowledge.ready(catalog.active))
         except Exception:  # noqa: BLE001
             return False
 
@@ -241,7 +279,10 @@ def create_app(
     async def refresh_catalog() -> None:
         while True:
             await asyncio.sleep(settings.catalog_refresh_seconds)
-            await catalog.refresh()
+            try:
+                await catalog.refresh()
+            except Exception:
+                log.exception('{"operation":"catalog_refresh","outcome":"dependency_failed"}')
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -251,12 +292,18 @@ def create_app(
         async with contextlib.AsyncExitStack() as resources:
             if telemetry is not None:
                 resources.push_async_callback(asyncio.to_thread, telemetry.shutdown)
-            resources.push_async_callback(db.close)
+            for database in persistence.resources:
+                resources.push_async_callback(database.close)
             if owned_provider.close is not None:
                 resources.push_async_callback(owned_provider.close)
             tasks: list[asyncio.Task[None]] = []
             try:
-                await db.open()
+                for database in persistence.resources:
+                    await database.open()
+                if isinstance(db, PostgresDatabase):
+                    # Hold the dedicated connection until all streams and tasks have drained.
+                    # An overlapping instance must fail before touching another owner's runs.
+                    await resources.enter_async_context(db.runtime_ownership())
                 abandoned = await runs.abandon_active()
                 await ledger.abandon_pending()
                 if abandoned:
@@ -276,8 +323,9 @@ def create_app(
                     # Bound shutdown, preserve unknown spend and recover an interrupted run
                     # conservatively if an exceptional finalizer cannot finish.
                     log.exception('{"operation":"shutdown","outcome":"drain_failed"}')
-                    await runs.abandon_active()
-                    await ledger.abandon_pending()
+                    if not isinstance(db, PostgresDatabase) or await db.runtime_ownership_alive():
+                        await runs.abandon_active()
+                        await ledger.abandon_pending()
                 for task in tasks:
                     task.cancel()
                 for task in tasks:
