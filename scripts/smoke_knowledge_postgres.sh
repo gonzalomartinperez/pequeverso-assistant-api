@@ -80,10 +80,10 @@ async def verify():
 asyncio.run(verify())
 PY
 docker logs "$name" > "$private/postgres.log" 2>&1
-if rg -q 'PV_PRIVATE_LOG_MARKER_20261017' "$private/postgres.log"; then
+if grep -Fq 'PV_PRIVATE_LOG_MARKER_20261017' "$private/postgres.log"; then
   echo 'Private constraint marker leaked into PostgreSQL logs' >&2; exit 1
 fi
-if ! rg -q 'violates foreign key constraint|violates check constraint' "$private/postgres.log"; then
+if ! grep -Eq 'violates foreign key constraint|violates check constraint' "$private/postgres.log"; then
   echo 'Expected PostgreSQL operational errors were not captured' >&2; exit 1
 fi
 printf 'real_fk_error=observed\nreal_check_error=observed\nprivate_marker=absent\nsettings=verified\n' > "$receipt/log-privacy.txt"
