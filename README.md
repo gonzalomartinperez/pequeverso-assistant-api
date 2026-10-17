@@ -180,7 +180,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 | Evaluation and live procedure | [Procedures](docs/evaluation.md), [historical real-model evidence](docs/verification/real-model-2026-10-12.md), [post-tool verification and limits](docs/verification/post-tools-2026-10-13.md) |
 | Optional private telemetry, metrics and traces | `docs/observability/README.md` |
 | Deployment handoff (vps-ops/Coolify) | `docs/deployment-contract.md` |
-| Dependency updates and auto-merge policy | `docs/dependency-updates.md` |
+| Dependency updates and manual review | `docs/dependency-updates.md` |
 | Reference adoption (portfolio-assistant-api) | `docs/reference-adoption.md` |
 | Storefront transition, vps-ops handoff, open business questions | `docs/handoffs/storefront-transition.md`, `docs/handoffs/vps-ops.md`, `docs/business-questions.md` |
 | Agent instructions and skills | `AGENTS.md`, `.agents/skills/` |

@@ -10,7 +10,7 @@
 | Tests (unit, contract, real-socket streaming, persistence, budget races, security, architecture) and evaluations | Merged, PR #1 |
 | Contract v1 artifacts + frontend handoff; deployment contract; security; skills; CI | Merged, PR #1; web handoff pinned in `docs/handoffs/backoffice.md` |
 | Ownership update: frontend moved to `pequeverso-assistant-web`; storefront integration deferred | Applied (no storefront changes existed) |
-| Conservative Dependabot automation | Merged, PR #2 (`c0f842e`); verified live on Dependabot PR #3 (manual review, auto-merge off) |
+| Dependabot assessment | Read-only manual profile (2026-10-17); native updates/rebase and alerts remain enabled. Historical PR #2/#3 did not prove eligible auto-arming |
 | Real-model evaluation | Owner-authorized 2026-10-12:236 baseline +53 post-adjustment queries; dated evidence in docs/verification/real-model-2026-10-12.md |
 | Production deployment, DNS and storefront activation | Deferred to vps-ops and separate owner activation; no deployment performed |
 | Contract 1.1: es/en languages, starters, ledger states (confirmed/estimated/pending), run metrics, private ops API, medium effort, published-only catalog sync with semantic report | Implemented on `feat/assistant-evolution` (2026-10-05) |

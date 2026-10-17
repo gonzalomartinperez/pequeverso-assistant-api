@@ -1,12 +1,12 @@
 ---
 name: review-dependency-update
-description: Review a Dependabot PR that the auto-merge policy sent to manual review. Not for merging into main or bypassing the policy.
+description: Review a Dependabot update using the read-only assessment and protected manual merge workflow. Not for merging into main or bypassing checks.
 ---
 
 # Review a dependency update
 
 1. Read the `Dependabot policy` job summary: it lists every changed package with its semantic
-   update type and the reasons for manual review.
+   update type and review reasons. Every update stays manual; classification and labels are not authorization.
 2. For each package, read its changelog between the two versions. Focus on sessions and cookies
    (starlette), validation (pydantic), streaming and the Responses API (openai), TLS and
    configuration loading.
