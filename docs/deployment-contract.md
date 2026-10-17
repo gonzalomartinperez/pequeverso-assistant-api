@@ -4,19 +4,27 @@ vps-ops and Coolify own production orchestration: proxy, DNS, TLS, secrets, volu
 schedules and rollouts. This repository owns the image, its runtime behavior and this contract.
 Nothing here is deployed; no Compose file in this repository is a production authority.
 
+## Current production-profile contract
+
+[ADR-0009](decisions/ADR-0009-versioned-commercial-graphrag.md) replaces the earlier production
+SQLite design with PostgreSQL/pgvector public/private schemas and a public-only Neo4j projection.
+Read [the operator jobs, capability roles, migration and finite gates](knowledge-operations.md)
+before using this candidate. Main merging is not deployment or activation. All dated measurements
+below retain their historical source/image identities and are not acceptance of the new profile.
+
 ## Image
 
 | Item | Value |
 |---|---|
 | Build | `docker build --build-arg SERVICE_REVISION=<sha> -t pequeverso-assistant-api:<sha> .` from a clean checkout of an exact commit (context allowlisted by `.dockerignore`). An empty `SERVICE_REVISION` is allowed; the ops summary then reports `revision: null` |
-| Base | `python:3.15.0-slim-trixie` and `ghcr.io/astral-sh/uv:0.13.1`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-dev`) |
+| Base | `python:3.14.8-slim-trixie` and `ghcr.io/astral-sh/uv:0.13.1`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-build --no-dev`) |
 | User | `65532:65532`; runs with a read-only root filesystem, `--cap-drop ALL`, `no-new-privileges` (verified by `scripts/smoke_container.sh`) |
-| Writable paths | `/data` (volume), `/tmp` (tmpfs) |
+| Writable paths | `/tmp` tmpfs; `/data` only when explicitly mounted for a SQLite fixture/import. No anonymous image volume |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
 | Port | `8000/tcp` (HTTP, plain; TLS terminates at the proxy) |
 | Size / resources (measured locally 2026-10-13, fixture mode) | Exact combined candidate: 57,024,366 bytes; idle memory 69.27 MiB, cgroup peak 89,403,392 bytes. Core smoke stop 2.02 s. Tested limits: 256 MiB memory, no additional swap, 0.5 CPU, 64 PIDs. Current container stop grace: at least **40 s**; see separately identified active-stream evidence below. No VPS capacity claim |
 
-Current local acceptance belongs to combined application commit
+Historical local acceptance below belongs to combined application commit
 `cf19c3beac8e51bcb4ed805af7d92a99c42f8ce6`, image
 `sha256:0691367b0a86087d2fc0904f7507e16aa77d8599d6bcd8b953343fc5472cde8d`.
 See [the phased exact-image evidence](verification/post-tools-2026-10-13.md).
@@ -46,16 +54,17 @@ SSE frame: these checks establish persisted state, not guaranteed terminal deliv
 the then-minimum 30-second container grace into Coolify/Compose. The current observability-capable
 candidate requires at least 40 seconds instead; verify it under VPS load.
 
-**Single instance only.** Active-run cancellation and the concurrency limit are in-process, and
-SQLite has one writer. Do not run replicas or more workers. Horizontal scaling would need a
-shared store (a new ADR).
+**Single instance, stop-first, no overlap.** Active-run cancellation and concurrency remain
+in-process. The PostgreSQL runtime takes a dedicated advisory lock before recovery and fails
+startup if another owner exists. Loss of that connection blocks new admission/readiness without
+silent takeover. A shared database alone does not make this runtime HA or multi-worker safe.
 
 ## Health
 
 | Endpoint | Meaning | Use |
 |---|---|---|
 | `GET /health/live` | Process is up | Liveness |
-| `GET /health/ready` | DB reachable and a valid catalog active. Body adds `catalog.revision` and `catalog.price_status` | Readiness, Docker `HEALTHCHECK` (built in), Coolify health check |
+| `GET /health/ready` | Private database reachable, runtime ownership alive and matching synchronized public knowledge/graph ready (SQLite fixture: valid active catalog). Body adds `catalog.revision` and `catalog.price_status` | Readiness, Docker `HEALTHCHECK` (built in), Coolify health check |
 
 Health paths are internal; the public proxy routes only `/api/*`.
 
@@ -113,7 +122,10 @@ latency percentiles, token usage and spend (confirmed / estimated / pending) to 
 | `SESSION_COOKIE_SECURE` | `true` (required by production validation) | config |
 | `CLIENT_HASH_KEY` | ≥ 32 random chars (HMAC key for pseudonymous rate limiting) | **secret** |
 | `TRUSTED_PROXY_CIDRS` | Exact approved proxy peer CIDRs, e.g. `["10.0.0.4/32"]` (example only) | config |
-| `DATABASE_PATH` | `/data/assistant.sqlite3` (image default) | config |
+| `APPLICATION_STORAGE` / `KNOWLEDGE_BACKEND` | `postgres` / `graphrag` for enabled OpenAI production; SQLite defaults are fixtures only | config |
+| `POSTGRES_PRIVATE_DSN` / `POSTGRES_KNOWLEDGE_DSN` | Separate runtime capabilities, never owner/indexer identities | **secret** |
+| `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` | Private authenticated Bolt; no inline URI credentials | config / **secret** |
+| `DATABASE_PATH` | `/data/assistant.sqlite3` only for explicit SQLite fixtures/import | config |
 | `CATALOG_URL` | unset (bundled snapshot). Set only if the storefront publishes the catalog document | config |
 | `CATALOG_PRICE_MAX_AGE_HOURS` | `168` | config |
 | `OFFICIAL_HELP_ENABLED` | `false` (default). Optional three fixed public Hotmart procedure reads; fixture mode never uses their network adapter. Review [source/egress limits](official-web-evidence.md) before a separately authorized enablement | config |
@@ -124,11 +136,20 @@ short `CLIENT_HASH_KEY`, or a daily budget above the monthly one.
 
 ## Persistence and migrations
 
-- **Volume `/data`** holds one SQLite database (WAL mode: `assistant.sqlite3`, `-wal`, `-shm`).
+**Production GraphRAG:** PostgreSQL owns application state and public knowledge in separate
+schemas/roles. Neo4j owns only a rebuildable public projection. Migrations and indexing are
+explicit operator jobs using the same selected image; HTTP startup does no PostgreSQL DDL or
+paid indexing. Follow [knowledge operations](knowledge-operations.md), including separate
+migration/indexer/accounting identities, verified import and restore, active-pointer rollback
+and the singleton ownership lock. A rolling overlap or restoring over new writes is unsupported.
+
+The following SQLite recipes apply only to the historical/fixture profile:
+
+- **Historical SQLite fixture volume `/data`** holds one SQLite database (WAL mode: `assistant.sqlite3`, `-wal`, `-shm`).
   It contains sessions (24 h retention), messages, runs, the spend ledger, rate counters and
   catalog snapshots, plus content-free run metrics (90-day retention) for operations.
 - **Migrations** are versioned SQL (`migrations/NNN_*.sql`, tracked with `PRAGMA user_version`),
-  applied automatically at startup inside a transaction. There is no separate migration job.
+  applied automatically at SQLite fixture startup inside a transaction. Production PostgreSQL uses the explicit job above.
   A new image never edits an old migration.
 - **Backup:** the ledger is the only data worth keeping long term (it enforces the monthly budget).
   Use Python sqlite3 from the same image (online backup recipe below),
@@ -154,7 +175,7 @@ short `CLIENT_HASH_KEY`, or a daily budget above the monthly one.
   backup before every deploy that adds a migration.
 - **Graceful stop:** Uvicorn first allows15 s for connections, then cancels unfinished
   response tasks. Application shutdown subsequently cancels admission, drains retained
-  response/run cleanup for up to10 s and closes SQLite afterwards. Interrupted runs persist
+  response/run cleanup for up to10 s and closes owned persistence resources afterwards. Interrupted runs persist
   cancelled and retain unknown-cost reservations; exceptional drain failure falls back to
   conservative abandoned-run recovery. Allow at least 40s container stop grace for the current observability-capable image and verify
   it under real VPS load. Do not promise completion within15 s or delivery of a terminal
@@ -199,7 +220,11 @@ capability, and the VPS proxy belongs to vps-ops.
    `run.completed` (no buffering).
 4. Only with paid use authorized: the ledger shows a settled row (`actual_micro` set).
 
-## Bounded runtime and disk operations (2026-10-10)
+## Historical SQLite runtime and disk operations (2026-10-10)
+
+These dated SQLite-specific commands are fixture/import references. PostgreSQL/Neo4j production
+uses the capability, persistence and explicit-job contract in [knowledge operations](knowledge-operations.md).
+No example here provisions shared infrastructure or authorizes running production maintenance.
 
 The application image does not set host quotas. vps-ops must carry the tested runtime policy
 into its own reviewed configuration; these commands are a local isolation recipe, not a deploy.
@@ -511,6 +536,11 @@ no production publication, deployment or live OAuth/provider check is implied.
 
 ## Affiliate catalog rollout and rollback (2026-10-17)
 
+The historical SQLite procedure below predates ADR-0009. The new production profile stages
+both public projections and activates only the verified PostgreSQL pointer; its private database
+must never be restored over intervening writes. SQLite remains a non-destructive import source.
+
+
 HTTP revision1.5 is additive; the internal catalog is not forward compatible with older strict
 readers. Deploy the new reader before activating the two-product catalog. The new reader can
 load the previous single-product snapshot. Before deployment retain the previous image, exact
@@ -531,7 +561,7 @@ an old full database over newer accounting. Validate rollback on an isolated cop
 a deliberate data-preservation plan before production activation.
 
 
-## Python 3.15 cohort verification — 2026-10-17
+## Historical pre-GraphRAG Python 3.15 cohort verification — 2026-10-17
 
 The [current runtime candidate report](verification/runtime-cohort-2026-10-17.md) separates
 754-test compatibility evidence, exact local image identity, hardened smoke/restore and

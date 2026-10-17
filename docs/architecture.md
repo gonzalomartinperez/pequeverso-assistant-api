@@ -7,7 +7,7 @@ flowchart TB
   HTTP[Presentation\nHTTP · SSE · wire contracts] --> App[Application\nSessions · chat lifecycle · budget · private ops]
   App --> Domain[Domain\nCatalog facts · language · answer rules]
   AI[AI\nEvidence · prompt · structured composer] --> App
-  Adapters[Adapters\nSQLite · catalog sources · OpenAI Responses] --> App
+  Adapters[Adapters\nPostgreSQL · Neo4j · graph SDKs · fixture SQLite · OpenAI Responses] --> App
   Bootstrap[Bootstrap\nConfiguration · dependency composition · lifespan] --> HTTP
   Bootstrap --> AI
   Bootstrap --> Adapters
@@ -27,7 +27,7 @@ backoffice server (bearer token, private network) ──/internal/v1/ops──�
                                                      │                                  ▲
                                    ai (evidence, prompt, output parser, composer)       │
                                                      │                                  │
-                               adapters: OpenAI Responses · fixture · SQLite · catalog file/http
+                               adapters: OpenAI Responses · PostgreSQL · Neo4j · bounded graph · fixture SQLite · catalog file/http
                                                      ▲
                                  bootstrap (settings, composition root, lifespan, logging)
 ```
@@ -37,12 +37,15 @@ backoffice server (bearer token, private network) ──/internal/v1/ops──�
 | domain | `app/domain` | stdlib only: catalog facts, budget math, redaction, answer rules, errors |
 | application | `app/application` | domain: use cases and `Protocol` ports |
 | ai | `app/ai` | domain, application: grounding and the provider port |
-| adapters | `app/adapters` | the above + pydantic, httpx, openai |
+| adapters | `app/adapters` | the above + validated SQL/driver, graph and provider SDKs |
 | presentation | `app/presentation` | domain, application + FastAPI: wire models are the contract |
 | bootstrap | `app/bootstrap` | everything: the only place that wires concrete classes |
 
 `tests/test_architecture.py` checks declared imports with Python AST, including relative imports
-and package aliases, and keeps SQL/its SQLite driver inside `adapters/sqlite`. Negative cases
+and package aliases. SQL stays inside `adapters/sqlite` or `adapters/postgres`; Cypher/Neo4j
+stay in `adapters/neo4j`, graph SDKs in `adapters/graph`. Only the explicit offline import
+adapter may read SQLite from the PostgreSQL adapter directory. Same-layer dependency cycles
+and misplaced drivers have negative regression cases. These
 exercise the actual layer gate. This is a static boundary check, not proof of arbitrary runtime
 reflection or complete semantic correctness. The dependency direction follows
 [Robert C. Martin's dependency rule](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
@@ -57,10 +60,12 @@ the client close callback stays in composition. An injected provider remains bor
 application never guesses or closes a caller-owned resource. Fixture mode acquires no OpenAI
 client. No network or provider credential is needed to verify this ownership with fakes.
 
-Lifespan registers cleanup before SQLite acquisition. A migration failure after opening the
-connection therefore still releases the connection/executor and the owned client. Shutdown first
-refuses new work and drains response/run finalizers under the existing bound, preserving unknown
-spend; it then closes the owned provider, SQLite and telemetry, in that order. `AsyncExitStack`
+Lifespan registers cleanup before acquiring its private/public PostgreSQL pools and Neo4j driver
+(or the SQLite fixture connection). It holds a dedicated PostgreSQL ownership connection before
+recovering abandoned runs or reservations; a second instance cannot recover live work. Loss of
+ownership blocks readiness and new admission without silent reacquisition. Shutdown first refuses
+new work and drains response/run finalizers under the existing bound, preserving unknown spend;
+then ownership and concrete resources close in reverse registered order. `AsyncExitStack`
 ensures later cleanup still runs if an earlier close fails. The response adapter continues to
 close each individual stream; that is distinct from closing the shared SDK connection pool.
 
@@ -69,7 +74,7 @@ sequenceDiagram
   participant Life as Bootstrap lifespan
   participant Runs as Active runs and response cleanup
   participant SDK as Owned provider client
-  participant DB as SQLite
+  participant DB as Owned persistence
   participant OTel as Owned telemetry
   Life->>Runs: Refuse new work; cancel and drain
   Runs-->>Life: Persist terminal state and conservative spend
@@ -100,18 +105,26 @@ reproducibility requirements.
 1. `POST /api/v1/messages` passes middleware in order: request context → CORS → origin policy →
    16 KiB body limit. It then checks the session cookie and CSRF token.
 2. `ChatService.start` runs every check that can refuse the request, each as an HTTP error:
-   - enabled and catalog present
+   - enabled, catalog present and runtime ownership alive
    - input size and page enum
    - idempotency claim (a replay returns the stored answer)
+   - synchronized matching public PG/Neo knowledge before any query embedding
    - rate limits
    - card-number refusal (no model call)
    - contact-data redaction
    - history window (12 messages)
    - evidence and prompt preparation, with a byte-size bound
    - concurrency slot
-   - worst-case budget reservation (`BEGIN IMMEDIATE`)
+   - worst-case budget reservation (atomic PostgreSQL transaction/advisory lock; SQLite fixture uses `BEGIN IMMEDIATE`)
    - storing the user message
-3. The stream: `GroundedComposer` makes **one** provider call. The strict JSON output is parsed
+3. The stream: the finite LangGraph adapter retrieves and verifies public chunks, repacks complete
+   passages under the existing byte bound, then delegates to `GroundedComposer` for **one**
+   generation. Embedding requests share the ledger but have separate purpose-tagged reservations.
+   A known pre-generation failure settles generation usage to zero; possibly dispatched work
+   without reported usage stays conservatively counted. LangChain Documents stay adapter-local;
+   LangSmith runtime tracing is off even under ambient tracing environment variables.
+
+    The strict JSON output is parsed
    incrementally. A bounded buffer validates cumulative complete sentence/paragraph prefixes
    with the same normalization and business checks as the final answer before `message.delta`.
    Ambiguous formatting, overflow and rejected prefixes are withheld, not forwarded raw.
@@ -144,22 +157,24 @@ reproducibility requirements.
 
 ## Deliberate choices
 
-- **SQLite, single process** (ADR-0001). The volume is tiny, and one file on one volume is
-  simpler to operate and back up than Postgres. `BEGIN IMMEDIATE` keeps budget accounting
-  atomic, even across processes.
-- **Whole-catalog grounding, lexical ranking as fallback** (ADR-0002). The current catalog
-  contains the core kit and a separate affiliate course. Both structured product records remain
-  available; merchant policies and sources stay scoped to their product. No embeddings, GraphRAG
-  or model-callable agent loop is needed. ADR-0002's recall figures describe its historical
-  single-kit baseline, not a new real-model quality score for the affiliate course.
+- **PostgreSQL as production relational authority** (ADR-0009), with separate public/private
+  schemas and capability roles. A dedicated session advisory lock enforces the supported single
+  runtime before recovery. SQLite remains the fixture/historical import profile; no automatic
+  destructive migration or permanent dual production engine is introduced.
+- **Commercial GraphRAG with mandatory catalog facts** (ADR-0009). PostgreSQL lexical and exact
+  vector search combine with bounded Neo4j public paths. Hash64 fixtures test mechanics;
+  real semantic mode uses OpenAI `text-embedding-3-small` at 1536 dimensions. Catalog facts,
+  source scope and freshness remain authoritative. No graph edge establishes a health benefit,
+  price, availability or suitability. The historical no-embedding ADR-0002 describes the earlier
+  baseline; it is not the current production-profile design.
 - **Structured streaming + final validation** (ADR-0003). The stream is provisional; the final
   message is authoritative and validated.
 - **Medium reasoning effort** for `gpt-6-luna` (owner decision; ADR-0004). Reasoning tokens are
   billed as output and count toward `max_output_tokens`, so the allowance is 4000 and the run
   deadline 60 s, both to be tuned from live usage reports.
-- **No LangGraph, Redis, PostgreSQL, vector store or graph database** (ADR-0002, ADR-0005): one
-  bounded model call per turn is a plain function; a single process with SQLite has no
-  coordination need; the catalog fits in one prompt.
+- **Bounded graph orchestration, no autonomous tool loop**. LangGraph retrieve → answer has no
+  retries, store, cache or checkpointer. No Redis, APOC, GDS, routing LLM, generated SQL/Cypher
+  or unmeasured approximate index is introduced.
 - **Catalog from the storefront at a pinned commit.** The backend owns ingestion. The storefront
   stays the source of truth, read via `git archive` (docs/catalog.md).
 
@@ -170,3 +185,12 @@ Optional server-owned official platform retrieval supplies a bounded immutable e
 the same single model call. It is separate from merchant facts and private history. See
 [ADR-0008](decisions/ADR-0008-bounded-official-platform-evidence.md) and
 [its boundary](official-web-evidence.md). No model-callable tool loop or extra infrastructure is added.
+
+
+## Operator and verification boundaries
+
+See [GraphRAG strategy evidence](graph-retrieval.md) and
+[explicit migration/index jobs, roles and singleton lifecycle](knowledge-operations.md).
+The unchanged public contract is `/api/v1` revision1.5; private ops remains revision1.2.
+New internal retrieval does not authorize activating the storefront or deploying the API.
+Historical dated screenshots and image measurements retain their original source identities.

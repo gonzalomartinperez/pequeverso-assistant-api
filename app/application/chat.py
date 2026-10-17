@@ -15,7 +15,7 @@ import logging
 import secrets
 import time
 from abc import ABC, abstractmethod
-from collections.abc import AsyncGenerator, AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -29,11 +29,13 @@ from app.application.answers import (
     payment_refusal_text,
     replacement,
 )
+from app.application.knowledge_ports import KnowledgeRetrieval
 from app.application.ports import (
     AnswerComposer,
     CatalogView,
     Clock,
     DeltaEvent,
+    DispatchAwarePreparedTurn,
     DraftEvent,
     GenerationError,
     Ledger,
@@ -186,6 +188,8 @@ class _ModelRun(Run):
                 event = await self._next_or_cancel(stream, deadline)
                 if event is None:
                     break
+                # Async retrieval can repack the final evidence before the first model delta.
+                self._web_evidence = self._prepared.web_evidence
                 if isinstance(event, DeltaEvent):
                     rules = answer_rules(
                         self._active.catalog,
@@ -357,6 +361,14 @@ class _ModelRun(Run):
     ) -> None:
         service = self._service
         await service.runs.finish(self.id, state, assistant_message_id)
+        if (
+            not self._settled
+            and isinstance(self._prepared, DispatchAwarePreparedTurn)
+            and not self._prepared.generation_started
+        ):
+            # A known local failure/cancellation before dispatch consumed no generation.
+            # Embedding operations retain their independent reservation/settlement.
+            await self._settle(Usage(0, 0))
         if not self._settled:
             await service.ledger.mark_unreported(self.id)
         if code is not None:
@@ -368,7 +380,11 @@ class _ModelRun(Run):
                 ended_at=service.clock.now(),
                 outcome=outcome or RunOutcome(state.value),
                 code=code,
-                model_call=self._dispatched,
+                model_call=(
+                    self._prepared.generation_started
+                    if isinstance(self._prepared, DispatchAwarePreparedTurn)
+                    else self._dispatched
+                ),
                 replaced=self._replaced,
                 language=self._language,
                 first_delta_ms=self._first_delta_ms,
@@ -440,9 +456,13 @@ class ChatService:
         limits: ChatLimits,
         metrics: RunMetrics,
         official_help: OfficialHelp | None = None,
+        knowledge: KnowledgeRetrieval | None = None,
+        runtime_ownership: Callable[[], Awaitable[bool]] | None = None,
     ) -> None:
         self.metrics = metrics
         self.official_help = official_help
+        self.knowledge = knowledge
+        self.runtime_ownership = runtime_ownership
         self.composer = composer
         self.catalog = catalog
         self.messages = messages
@@ -492,6 +512,9 @@ class ChatService:
             return FailureCode.ASSISTANT_DISABLED
         if self.catalog.active is None:
             return FailureCode.CATALOG_UNAVAILABLE
+        dependency_failure = await self._dependency_failure(self.catalog.active)
+        if dependency_failure is not None:
+            return dependency_failure
         now = self.clock.now()
         month, day = _periods(now)
         month_spent, day_spent = await self.ledger.spent(month, day)
@@ -499,6 +522,24 @@ class ChatService:
             month_spent=month_spent, day_spent=day_spent, reservation=self._worst_case()
         ):
             return FailureCode.BUDGET_EXHAUSTED
+        return None
+
+    async def _owns_runtime(self) -> bool:
+        try:
+            return self.runtime_ownership is None or await self.runtime_ownership()
+        except Exception:  # noqa: BLE001 - never expose connection details
+            return False
+
+    async def _dependency_failure(self, active: ActiveCatalog) -> FailureCode | None:
+        try:
+            if not await self._owns_runtime():
+                return FailureCode.DEPENDENCY_UNAVAILABLE
+            if self.knowledge is not None and (
+                not self.catalog.synchronized or not await self.knowledge.ready(active)
+            ):
+                return FailureCode.DEPENDENCY_UNAVAILABLE
+        except Exception:  # noqa: BLE001 - safe refusal without dependency error details
+            return FailureCode.DEPENDENCY_UNAVAILABLE
         return None
 
     def _worst_case(self) -> int:
@@ -533,6 +574,8 @@ class ChatService:
         if response_language is not None and response_language != Language.ES.value:
             raise RejectedError(FailureCode.INVALID_REQUEST)
 
+        if not await self._owns_runtime():
+            raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
         now = self.clock.now()
         run_id = f'run_{secrets.token_urlsafe(12)}'
         record = await self.runs.claim(
@@ -547,6 +590,9 @@ class ChatService:
 
         language: Language | None = None
         try:
+            dependency_failure = await self._dependency_failure(active)
+            if dependency_failure is not None:
+                raise RejectedError(dependency_failure)
             await self._rate_limit(session, client_key, now)
             history = await self.messages.history(session.id, self.limits.history_messages)
             previous = [

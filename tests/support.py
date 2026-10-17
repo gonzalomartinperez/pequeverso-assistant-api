@@ -90,7 +90,7 @@ class ScriptedProvider:
 def settings(tmp_path: Path, **overrides: Any) -> Settings:
     values: dict[str, Any] = {'database_path': str(tmp_path / 'test.sqlite3'), 'environment': 'test'}
     values.update(overrides)
-    return Settings(_env_file=None, **values)  # type: ignore[call-arg]
+    return Settings(_env_file=None, **values)
 
 
 @contextmanager

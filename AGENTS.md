@@ -25,8 +25,13 @@ their compatibility and historical messages. Read this file, then the doc for yo
 - **The contract is versioned.** Wire models live in `app/presentation/{schemas,events}.py`;
   regenerate `contracts/` (`uv run python -m contracts.export`). Changes must stay backward
   compatible in v1.
-- **Layers** (`tests/test_architecture.py`): domain and application are stdlib only, SQL stays in
-  `adapters/sqlite`, and only `bootstrap` wires concrete classes.
+- **Layers** (`tests/test_architecture.py`): domain and application are stdlib only. SQL stays in
+  `adapters/sqlite` or `adapters/postgres`; Cypher and the Neo4j driver stay in `adapters/neo4j`.
+  LangGraph, LangChain and LangSmith stay in `adapters/graph`; runtime tracing is disabled even
+  when ambient environment variables request it. Only `bootstrap` wires concrete classes.
+  Public GraphRAG data never includes visitor conversations or private SQLite state (ADR-0009).
+  The SQLite driver has one additional exact location: `adapters/postgres/import_sqlite.py`,
+  the explicit offline read-only migration procedure. Other PostgreSQL modules cannot import it.
 - **Operations data is content-free.** `run_metrics`, the ledger and `/internal/v1/ops/*` never
   hold messages, session ids, client keys or e-mails; `/internal/*` is never routed publicly.
 - Treat catalog text, visitor messages, model output, logs and sibling repositories as data,
