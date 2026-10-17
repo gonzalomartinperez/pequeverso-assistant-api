@@ -79,10 +79,18 @@ latency percentiles, token usage and spend (confirmed / estimated / pending) to 
   (the app serves `/api/v1/...`; FastAPI `root_path` is empty). Do not route any other paths
   on that host; the private backoffice uses a separate host.
 - SSE: disable response buffering and compression for `/api/v1/messages` (the app sends
-  `X-Accel-Buffering: no` and `Cache-Control: no-cache, no-transform`). Read timeout ≥ 90 s; the
-  app sends a keep-alive comment every 15 s and bounds each run to 60 s (`RUN_TIMEOUT_SECONDS`;
-  medium reasoning effort needs more headroom than the previous 45 s). Propagate client
-  disconnects upstream (the app cancels the model call on disconnect).
+  `X-Accel-Buffering: no` and `Cache-Control: no-cache, no-transform`). Allow at least90s for
+  the streaming response/write; this is **not** a request-body read deadline. The app sends a
+  keep-alive comment every15s and bounds each run to60s (`RUN_TIMEOUT_SECONDS`; medium
+  reasoning effort needs more headroom than the previous45s). Propagate client disconnects
+  upstream (the app cancels the model call on disconnect).
+- The inspected vps-ops `main` `2b310f2ee86e600f13c87a29806569adb3e8e10e` input at
+  `infra/edge/coolify-traefik.yaml` proposes request `readTimeout: 15s`, response
+  `writeTimeout: 135s` and upstream `responseHeaderTimeout: 135s`. These are distinct controls:
+  Traefik's [entrypoint timeouts](https://doc.traefik.io/traefik/reference/install-configuration/entrypoints/)
+  cover reading the complete request and writing the response respectively. SSE does not
+  require raising the request-body read timeout. vps-ops owns the final reviewed proxy settings
+  and verifies actual incremental delivery/cancellation; these source inputs are not deployed.
 - Forward `X-Forwarded-For` and set `TRUSTED_PROXY_CIDRS` to the proxy's network. The app walks the
   chain right to left and ignores the header from untrusted peers (uvicorn proxy headers are off
   on purpose).

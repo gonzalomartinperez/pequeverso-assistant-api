@@ -1,31 +1,36 @@
 # Handoff to vps-ops: Pequeverso assistant API and backoffice
 
-Answers the "Concrete request to the application agent" in vps-ops
-`docs/handoffs/pequeverso-assistant.md` (inspected at vps-ops `develop` `04be619`). This is a
+Reconciles with vps-ops `main` `2b310f2ee86e600f13c87a29806569adb3e8e10e`, inspected through
+`git show` at `docs/handoffs/pequeverso-assistant.md`, `docs/handoffs/integration-matrix.md`,
+`inventory/runtime.json` and `infra/edge/coolify-traefik.yaml`. This supersedes the earlier
+`develop` `04be619` planning attribution; the matrix's pinned application revisions still need
+refreshing to the separately approved release SHAs before deployment. This is a
 handoff, not an authorization: no image is published, and this document does not approve any
 DNS record, route, database, secret or Coolify resource. Owner-authorized paid evaluations ran
 only in isolated local services; see docs/verification/real-model-2026-10-12.md. vps-ops
 remains the only infrastructure authority; nothing here modifies vps-ops.
 
-## Topology change since the vps-ops planning record
+## Current reconciled topology
 
-The inventory still describes one web service serving `/` and `/embed` plus `/api/` on
-`assistant.pequeverso.com`. That frontend no longer serves a public chat:
+The current vps-ops inventory already distinguishes the native storefront, API, backoffice,
+private IAM PostgreSQL and API-owned SQLite. The earlier public web/iframe service is
+superseded; there is no VPS chat frontend or `/embed` service:
 
 | Component | Repository | Hosting | Public? |
 |---|---|---|---|
-| Storefront with the **native** assistant (disabled by default; no iframe) | `gonzalomartinperez/pequeverso` | Hostinger hosting. Owner confirmed Git integration is not connected; future target branch is main. Consumes **no** VPS resources or Hostinger Node slots | Yes |
+| Storefront with the **native** assistant (disabled by default; no iframe) | `gonzalomartinperez/pequeverso` | Hostinger hosting, Git integration connected to `main` as confirmed by the owner. Consumes **no** VPS resources or Hostinger Node slots | Yes |
 | Assistant API | `gonzalomartinperez/pequeverso-assistant-api` | VPS, Coolify | `/api/*` only |
-| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-assistant-backoffice` (renamed from `pequeverso-assistant-web` on 2026-10-05; GitHub redirects the old name, which the vps-ops inventory still uses) | VPS, Coolify | Only behind its own sign-in |
+| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-assistant-backoffice` (historically renamed from `pequeverso-assistant-web` on 2026-10-05) | VPS, Coolify | Only behind its own sign-in |
 | Backoffice PostgreSQL (identity and access only) | — | VPS, private network, project volume | Never |
 
-Hostinger has not been connected to Git for this release. A future connection is intended to
-build `main`, which must keep the assistant disabled; no automatic Hostinger deployment is
-claimed from a GitHub merge. Verify the actual connection and public build before activating it.
+Hostinger builds and publishes `main`, as confirmed by the owner. A storefront merge can
+therefore publish the site, but must keep the assistant disabled. Verify the public build and
+post-deploy checks after a storefront release. API/backoffice merges do not deploy to the VPS;
+that separate rollout remains owned by vps-ops.
 
-So the planned `web` service becomes the **backoffice** on a **separate host** and the iframe,
-`frame-ancestors` and `/embed` requirements disappear. The storefront talks to the API
-cross-origin from the browser.
+The backoffice needs a **separate host**; iframe, `frame-ancestors` and `/embed` are not current
+requirements. The storefront talks to the API cross-origin from the browser. Hostnames and
+runtime resources remain planned until vps-ops accepts the actual deployment inputs.
 
 ## Answers to the six requests
 
@@ -59,13 +64,22 @@ cross-origin from the browser.
      before starting a new digest. Backups: daily encrypted `pg_dump -Fc`, off-server, restore
      drill before activation. Historical tests used PostgreSQL17.6 and18.4; the current backoffice target is18.6,
      with its exact-image migration/restore evidence owned by that repository.
-   - Rollback: previous digest on the same data. Across API migration 002 see
-     `docs/deployment-contract.md` (needs the backup or clearing conversations). Image rollback
-     never restores data.
+   - Rollback: image rollback alone does not establish data compatibility. Public HTTP
+     revision1.5 is additive, but its internal catalog and persisted product-reference JSON
+     cannot be read by older strict readers. Before activation, require a compatible rollback
+     reader or an explicitly tested compatibility migration preserving newer conversations
+     and the spend ledger; see [the catalog/history compatibility gate](../deployment-contract.md#affiliate-catalog-rollout-and-rollback-2026-10-17).
+     Never restore an old whole database over intervening writes or clear conversations as a
+     generic rollback procedure. Backup restore is appropriate only with no intervening writes
+     or in an isolated drill. vps-ops owns the coordinated rollback and reconciliation.
 3. **Paths and streaming.** API routes include `/api` (`/api/v1/...`), `root_path` empty: route
    `/api/*` **unchanged** (no stripping). SSE on `POST /api/v1/messages`: no buffering, no
-   compression, read timeout ≥ 90 s (runs end at 60 s; keep-alive comment every 15 s),
-   propagate client disconnects. `/health/*` and `/internal/*` must **never** be routed publicly.
+   compression; allow at least90s for the streaming **response/write**, separately from
+   request-body reading (runs end at60s; heartbeat every15s). The inspected vps-ops Traefik
+   input uses request `readTimeout: 15s`, response `writeTimeout: 135s` and upstream
+   `responseHeaderTimeout: 135s`; do not raise the request-body read timeout because SSE is
+   long-lived. Propagate client disconnects. `/health/*` and `/internal/*` must **never** be
+   routed publicly. See [the timeout semantics](../deployment-contract.md#routing-and-proxy-sse).
 4. **Origins (proposals, pending owner approval and DNS).** Storefront origin
    `https://pequeverso.com` (apex; `www` redirects there). API: `https://assistant.pequeverso.com`
    (inventory's proposed domain), `/api/*` only. Backoffice: a separate host, e.g.
@@ -158,17 +172,25 @@ storefront, publishes an image or authorizes an infrastructure action.
 
 - Keep public routing as `/api/v1/*`, with no prefix rewrite. `/v1` is the version within
   the application-owned `/api` namespace; changing it requires coordinated contracts. The
-  native Spanish-only storefront requires public revision>=1.4 and sends `response_language:
-  "es"`; absence/null keeps legacy ES/EN compatibility. Existing saved English history is not
-  rewritten. Consume the exact merged contract artifacts, not a mutable branch or another
-  application's contract.
+  current native Spanish-only storefront with affiliate cards consumes public revision1.5
+  (`contracts/openapi.json`, `contracts/sse.schema.json`, `contracts/manifest.json`) and sends
+  `response_language: "es"`. Revision1.4 introduced that optional language field; absence/null
+  keeps legacy ES/EN compatibility. Existing saved English history is not rewritten. Consume
+  the exact merged contract artifacts, not a mutable branch or another application's contract.
 - Preserve the private summary revision1.2 and independent telemetry1.0. Backoffice custom UI
   consumes them server-side after `read_operations`; Prometheus scraping and OTLP export
   complement that UI rather than replace its budget/run ledger. No metric equals a billing
   invoice or proves the provider is available.
+  Their exact artifacts are `contracts/ops.schema.json` with
+  `contracts/examples/ops.summary.json`, and `contracts/ops.telemetry.schema.json` with
+  `contracts/examples/ops.telemetry.json`. See [private observability](../observability/README.md).
 - Current API container grace is at least 40s:15s Uvicorn stream grace, separate10s registry
   cleanup and bounded exporter shutdown/headroom. Dropped best-effort traces must not delay
   application cleanup. Historical30s tracing-off evidence is not the current target.
+  The composition root now explicitly closes its owned OpenAI SDK client after draining
+  responses and before SQLite, then shuts down telemetry; partially failed SQLite startup
+  also releases acquired resources. Borrowed test providers remain caller-owned. See
+  [resource ownership](../architecture.md#resource-ownership) for the tested lifecycle.
 - Keep API SQLite on its own `/data` volume, backoffice identity on its own PostgreSQL 18.6
   database/volume, and shared infrastructure in vps-ops. No Neo4j/vector/Redis is needed for
   this catalog. Verify backup/restore, WAL/disk limits and physical erasure before activation.
