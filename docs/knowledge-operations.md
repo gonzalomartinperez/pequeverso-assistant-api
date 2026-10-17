@@ -43,6 +43,42 @@ Neo4j Community does not provide the same fine-grained role separation: do not d
 read transaction hint as database-enforced read-only authorization. Keep Bolt private and
 use the fixed application queries and bounded adapter interfaces.
 
+## One project engine, two database bootstrap
+
+The API-owned PostgreSQL/pgvector artifact is the common Pequeverso engine. vps-ops owns its
+single lifecycle, network/HBA policy, secrets and capacity. Keep `pv_assistant` and `pv_iam`
+as distinct databases (example names), with independent owners and backups; never reuse the
+Portfolio engine. The backoffice owns its IAM migrations and runtime table grants.
+
+Bootstrap is an explicit operator job, never HTTP startup:
+
+1. Provision two databases with separate ownership and distinct non-administrative LOGINs.
+   Provision credentials privately; no password literal belongs in an SQL recipe or CLI argument.
+2. Revoke default PUBLIC CONNECT on both application databases and unused `postgres`/`template1`
+   databases of this dedicated project engine. Grant CONNECT only to each database's own job
+   and runtime identities. Keep operator access explicit. Revoke PUBLIC CREATE on `public`.
+3. Run API migrations with the separate migration credential: it must create the vector
+   extension, schemas and NOLOGIN capability groups. This is privileged setup authority, never
+   a runtime role. Run BO migrations with its distinct IAM owner, not an API credential.
+4. Grant each API LOGIN exactly one capability from the table above, with no ADMIN OPTION.
+   Never grant runtime membership of an owner or another capability. BO runtime must not own
+   relations, create tables, read migration history or update/delete access-audit rows.
+5. Verify denied cross-database connections with actual LOGINs, not just ACL inspection; verify
+   allowed reads and denied private/public cross-schema reads. Recheck grants after migration.
+6. Restore each database independently into an isolated target and compare complete row hashes.
+   Database dumps do not contain cluster roles, credentials or HBA rules: provision those
+   separately from the private operator secret inventory before restoration.
+
+Local same-engine evidence on PostgreSQL18.6/pgvector0.8.7 passed API31 and BO18 database tests,
+BO51 browser tests (three optional skips), six denied cross-database LOGINs, eight denied SQL
+operations and five permitted least-privilege reads. A separate reviewer checked six real
+LOGINs and denied cross/system CONNECT plus absence of administrative flags. Both database
+restores matched full row hashes, and only the two application databases remained afterward.
+The full database/browser suites used fixture administrative connections; the separate role
+probes establish the reported capability checks. This does not establish a full browser run
+under production runtime credentials, deployment capacity, production HBA rules or VPS restore.
+See [dated evidence](verification/graphrag-2026-10-17.md) and the backoffice deployment contract.
+
 ## Commands from a clean checkout
 
 Use the repository-pinned uv and Python 3.14.8. Python 3.15 is not selected because the frozen

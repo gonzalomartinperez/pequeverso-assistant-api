@@ -27,10 +27,12 @@ engine; the backoffice still owns its IAM migrations. vps-ops owns the single se
 resource allocation and deployment. No application starts a competing database controller.
 
 Cross-database admission and table access must be explicitly denied to the other runtime
-identity; do not rely on default PUBLIC CONNECT. A same-engine two-database integration and
-independent restore drill are required alongside each application's existing tests. The new
-shared-engine acceptance is pending, not inferred from separately tested instances. This
-choice is not provisioning or VPS-capacity approval. **Never share a PostgreSQL or Neo4j
+identity; do not rely on default PUBLIC CONNECT. A local same-engine drill now covers API31,
+BO18 and BO51 browser tests, independent database restores with matching row hashes, and
+separate least-privilege role probes. The full suites used fixture administrative connections;
+this is not a production-runtime-role browser test or VPS-capacity approval. Follow the
+[bootstrap custody and acceptance steps](../knowledge-operations.md#one-project-engine-two-database-bootstrap). This
+choice is not provisioning approval. **Never share a PostgreSQL or Neo4j
 instance with Portfolio or another project.**
 SQLite remains an isolated fixture profile and a quiescent, non-destructive historical import
 source. The production API has no anonymous `/data` volume and never auto-migrates PostgreSQL
