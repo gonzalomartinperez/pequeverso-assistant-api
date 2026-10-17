@@ -44,4 +44,21 @@ def starters(catalog: Catalog, language: Language) -> tuple[str, ...]:
         chosen.append(topic.english.format(product=product) if language is Language.EN else match.title)
         if len(chosen) == MAX_STARTERS:
             break
+    affiliates = [p for p in catalog.products if p.kind == 'affiliate']
+    core = next((p for p in catalog.products if p.kind == 'core'), None)
+    if affiliates and core is not None:
+        affiliate = affiliates[0]
+        if language is Language.ES:
+            return (
+                f'¿Qué incluye {core.name}?',
+                f'¿Para qué edades es {core.name}?',
+                f'¿Qué enseña {"la " if affiliate.name.startswith("Guía ") else ""}{affiliate.name}?',
+                f'¿Qué diferencias hay entre {core.name} y {affiliate.name}?',
+            )
+        return (
+            f'What does {core.name} include?',
+            f'Which ages is {core.name} for?',
+            f'What does {affiliate.name} cover?',
+            f'How do {core.name} and {affiliate.name} differ?',
+        )
     return tuple(chosen)

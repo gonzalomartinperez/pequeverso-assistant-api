@@ -166,7 +166,7 @@ const documents = [
   ...affiliateProducts.flatMap((product) => [
     {
       id: `affiliate.${product.id}.overview`, kind: "faq",
-      title: `¿Qué enseña ${product.name}?`,
+      title: `¿Qué enseña ${product.name.startsWith("Guía ") ? "la " : ""}${product.name}?`,
       text: `${product.format}. ${product.summary}. ${product.topics.join(" ")} ${product.disclosure}`,
       url: abs(product.path), product_ids: [product.id],
     },

@@ -5,10 +5,10 @@
     "revision": "bddd36f45b319571f52029dfe4d6b3283cd71287",
     "published_ref": "origin/main"
   },
-  "previous_revision": "bddd36f45b319571f52029dfe4d6b3283cd71287",
+  "previous_revision": "18b68692867ddd379a3e30130a473dcb7e8a355b",
   "generated_at": "2026-10-17T15:13:29+00:00",
-  "snapshot_sha256": "685164cb433d9905ced81c6e78046e47f086e7f8a661286a9d3450d1ae08fbcf",
-  "exporter_sha256": "e23b8029f512023e1972aa2e4d318f72e9b68bc635bd0f758aa536a53c146375",
+  "snapshot_sha256": "62afa1ede56513ff78042801ea31e680706dbd9e0b777bac79eec55dfb5ca2ab",
+  "exporter_sha256": "044ef67a167e2b5cb4535305061551e303d0d8f6bd2483c1d594d040c0a6ee29",
   "counts": {
     "products": 2,
     "resources": 9,
@@ -16,17 +16,56 @@
     "links": 6
   },
   "changes": {
-    "products_added": [],
+    "products_added": [
+      "alimentacion-bebe"
+    ],
     "products_retired": [],
-    "products_changed": [],
+    "products_changed": [
+      "grafismo-fonetico"
+    ],
     "price_changes": {},
     "resources_added": [],
     "resources_removed": [],
     "resources_changed": [],
-    "documents_added": [],
+    "documents_added": [
+      "affiliate.alimentacion-bebe.guarantee",
+      "affiliate.alimentacion-bebe.overview",
+      "affiliate.alimentacion-bebe.support"
+    ],
     "documents_removed": [],
-    "documents_changed": [],
-    "links_changed": [],
+    "documents_changed": [
+      "faq.grafismo-fonetico.01",
+      "faq.grafismo-fonetico.02",
+      "faq.grafismo-fonetico.03",
+      "faq.grafismo-fonetico.04",
+      "faq.grafismo-fonetico.05",
+      "faq.grafismo-fonetico.06",
+      "faq.grafismo-fonetico.07",
+      "faq.grafismo-fonetico.08",
+      "faq.grafismo-fonetico.09",
+      "faq.grafismo-fonetico.10",
+      "faq.grafismo-fonetico.11",
+      "policy.delivery",
+      "policy.guarantee",
+      "policy.payment",
+      "policy.withdrawal-ar",
+      "support.access.1",
+      "support.access.2",
+      "support.access.3",
+      "support.contact",
+      "support.limits",
+      "support.route.1",
+      "support.route.2",
+      "support.route.3"
+    ],
+    "links_changed": [
+      "hotmart-purchases",
+      "hotmart-refund",
+      "product-page.grafismo-fonetico",
+      "purchases-refunds",
+      "support",
+      "withdrawal"
+    ],
     "forbidden_terms_changed": false
   }
 }

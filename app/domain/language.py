@@ -326,7 +326,7 @@ _UNSUPPORTED_LANGUAGE_NAMES = (
 )
 _REPLY_VERB = (
     r'(?:responde(?:r|me)?|respond(?:a|as|an|eme)?|contesta(?:r|me)?|'
-    r'habla(?:r|me)?|escribe(?:me)?|traduce|traducir|explica|explique|antworte|antworten|'
+    r'habla(?:r|me)?|escribe(?:me)?|traduc(?:e|i|ir|ime)|traduzca(?:me)?|explica|explique|antworte|antworten|'
     r'answer|reply|respond|speak|write|translate|explain|reponds|repondez)'
 )
 _LANGUAGE_NAMES = rf'{_UNSUPPORTED_LANGUAGE_NAMES}|espanol|castellano|spanish|ingles|english|es|en'
@@ -334,7 +334,7 @@ _OUTPUT_LANGUAGE_REQUEST = re.compile(
     rf'\b{_REPLY_VERB}\b'
     r'(?:\s+(?:only|exclusively|just|all|every|my|your|the|this|that|a|an|question|questions|'
     r'answer|answers|response|responses|reply|replies|everything|shopping|solo|solamente|'
-    r'unicamente|todo|todas|todos|mis|mi|tu|tus|la|las|el|los|esta|este|respuesta|respuestas|'
+    r'unicamente|todo|toda|todas|todos|informacion|information|contenido|content|mis|mi|tu|tus|la|las|el|los|esta|este|respuesta|respuestas|'
     r'pregunta|preguntas|mensaje|mensajes|por|favor|porfa|please|about|sobre|kit|product|producto)){0,8}'
     r'\s+(?:en|in|to|a|al|using|usando|em|auf)\s+'
     rf'(?:(?:el idioma|idioma|the language)\s+)?(?:brazilian\s+|european\s+)?'

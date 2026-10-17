@@ -41,7 +41,7 @@ support promises. Retrieval keeps both product records for comparisons, scopes s
 to explicit product mentions, and uses the latest assistant's structured product references for
 follow-ups. A genuinely ambiguous question is clarified. Conversations are never indexed as
 knowledge. Prices remain subject to freshness and null prices cannot borrow the kit price.
-Medical outcome claims such as curing anemia or preventing allergies/choking are rejected;
+Bounded positive-claim recognizers reject explicit patterns such as curing anemia or preventing allergies/choking; this is not complete semantic verification. The prompt adds medical boundaries, and real-model review remains pending;
 the assistant may describe course topics, not prescribe personal diets or medical treatment.
 
 This increment closes the previously documented affiliate coverage gap; original October13
@@ -109,8 +109,9 @@ docs/handoffs/storefront-transition.md.
 ## Content rights
 
 Storefront copy and media are © Pequeverso, all rights reserved (storefront
-`LICENSE-CONTENT.md`). They are used here only to answer questions about Pequeverso's own
-product; the same text is already public in the storefront repository. This repository is public
+`LICENSE-CONTENT.md`). Core copy is used to answer product questions; affiliate metadata and disclosure use only
+the approved public storefront registry, never course videos, private course material or
+producer account information; the same text is already public in the storefront repository. This repository is public
 and grants no license. The owner has been asked to confirm this use (docs/business-questions.md).
 
 

@@ -171,35 +171,43 @@ class ActiveCatalog:
         return PriceStatus.UNVERIFIED
 
 
-def mentioned_products(text: str, catalog: Catalog) -> frozenset[str]:
-    """Bounded catalog aliases; topic words select evidence, never create product facts."""
+def product_mentioned(
+    text: str, name: str, product_id: str, kind: str, resource_ids: tuple[str, ...] = ()
+) -> bool:
+    """Shared bounded alias matching for retrieval and the deterministic fixture."""
     import re
     import unicodedata
 
-    normalized = ''.join(
-        c for c in unicodedata.normalize('NFD', text.lower()) if unicodedata.category(c) != 'Mn'
-    )
-    selected: set[str] = set()
-    for product in catalog.products:
-        name = ''.join(
-            c for c in unicodedata.normalize('NFD', product.name.lower()) if unicodedata.category(c) != 'Mn'
+    def normalize(value: str) -> str:
+        return ''.join(
+            c for c in unicodedata.normalize('NFD', value.lower()) if unicodedata.category(c) != 'Mn'
         )
-        aliases = (name, product.id.replace('-', ' '), *(r.id.replace('-', ' ') for r in product.resources))
-        if (
-            any(alias in normalized for alias in aliases)
-            or (
-                product.kind == 'affiliate'
-                and re.search(
-                    r'\b(?:alimentacion|complementaria|bebe|bebes|comidas|recetas|feeding|baby|babies)\b',
-                    normalized,
-                )
+
+    normalized = normalize(text)
+    aliases = (
+        normalize(name),
+        product_id.replace('-', ' '),
+        *(rid.replace('-', ' ') for rid in resource_ids),
+    )
+    return any(alias in normalized for alias in aliases) or bool(
+        (
+            kind == 'affiliate'
+            and re.search(
+                r'\b(?:alimentacion|complementaria|bebe|bebes|comidas|recetas|feeding|baby|babies)\b',
+                normalized,
             )
-            or (
-                product.kind == 'core'
-                and re.search(
-                    r'\b(?:grafismo|fonetico|kit|lectura|leer|silabas|reading|phonics)\b', normalized
-                )
-            )
-        ):
-            selected.add(product.id)
-    return frozenset(selected)
+        )
+        or (
+            kind == 'core'
+            and re.search(r'\b(?:grafismo|fonetico|kit|lectura|leer|silabas|reading|phonics)\b', normalized)
+        )
+    )
+
+
+def mentioned_products(text: str, catalog: Catalog) -> frozenset[str]:
+    """Topic words select evidence, never create product facts."""
+    return frozenset(
+        p.id
+        for p in catalog.products
+        if product_mentioned(text, p.name, p.id, p.kind, tuple(r.id for r in p.resources))
+    )

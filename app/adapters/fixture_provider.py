@@ -15,6 +15,7 @@ from typing import Any
 from app.ai.evidence import Passage, rank
 from app.ai.provider import ModelChunk, ModelRequest, TextChunk, UsageChunk
 from app.domain.budget import Usage
+from app.domain.catalog import product_mentioned
 
 CHUNK_CHARS = 24
 MODEL_NAME = 'fixture'
@@ -42,7 +43,7 @@ def _answer(store: dict[str, Any], turn: dict[str, Any]) -> dict[str, Any]:
         return {**answer, 'answer': lead, 'follow_ups': _EN_FOLLOW_UPS}
     return {
         **answer,
-        'answer': f'From the store information (the material is in Spanish): {text}',
+        'answer': f'From the store information: {text}',
         'follow_ups': _EN_FOLLOW_UPS,
     }
 
@@ -55,17 +56,14 @@ def _spanish_answer(store: dict[str, Any], turn: dict[str, Any]) -> dict[str, An
     selected = [
         p
         for p in store['products']
-        if fold(p['name']) in normalized or p['id'].replace('-', ' ') in normalized
+        if product_mentioned(
+            question,
+            p['name'],
+            p['id'],
+            p.get('kind', 'core'),
+            tuple(r['id'].rsplit('/', 1)[-1] for r in p['resources']),
+        )
     ]
-    if not selected:
-        affiliate = any(w in normalized for w in ('alimentacion', 'bebe', 'recetas', 'feeding', 'baby'))
-        core = any(w in normalized for w in ('grafismo', 'fonetico', 'kit', 'leer', 'lectura'))
-        selected = [
-            p
-            for p in store['products']
-            if (p.get('kind', 'core') == 'affiliate' and affiliate)
-            or (p.get('kind', 'core') == 'core' and core)
-        ]
     if len(selected) > 1:
         return {
             'answer': '\n'.join(f'{p["name"]}: {p["summary"]} Formato: {p["format"]}.' for p in selected),

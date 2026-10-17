@@ -161,6 +161,19 @@ class GroundedComposer:
                     candidate = replace(item, text=text, sha256=hashlib.sha256(text.encode()).hexdigest())
                     proposed = (*selected, candidate)
                     trial = self._request(turn, evidence, conversation, proposed)
+                    # Make room for effective procedure evidence by removing only whole,
+                    # low-ranked noncommercial FAQ documents. Mandatory policies/support and
+                    # product facts remain intact; the input bound never increases.
+                    for document_id in removable:
+                        if trial.size_bytes() <= limit:
+                            break
+                        if catalog.document(document_id) is None:
+                            continue
+                        catalog = replace(
+                            catalog, documents=tuple(d for d in catalog.documents if d.id != document_id)
+                        )
+                        evidence = evidence_text()
+                        trial = self._request(turn, evidence, conversation, proposed)
                     if trial.size_bytes() > limit:
                         break
                     kept.append(paragraph)

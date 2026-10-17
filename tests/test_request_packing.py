@@ -93,7 +93,9 @@ def test_old_context_compacts_but_latest_exchange_and_structured_catalog_survive
 
 
 def test_optional_article_fits_only_as_complete_prefix_with_effective_hash():
-    text = 'Synthetic public procedure with its complete condition.\n' + 'Long synthetic paragraph. ' * 70
+    # Each long paragraph alone exceeds the unchanged full request bound, independently
+    # of prompt compaction or eviction of optional FAQ evidence.
+    text = 'Synthetic public procedure with its complete condition.\n' + 'Long synthetic paragraph. ' * 1200
     original = WebEvidence(SOURCES[0], text, hashlib.sha256(text.encode()).hexdigest(), CATALOG.generated_at)
     prepared = _composer().prepare(_turn(evidence=(original,)))
     assert prepared.input_size_bytes <= 24000
@@ -109,7 +111,7 @@ def test_optional_article_fits_only_as_complete_prefix_with_effective_hash():
 
 def test_unfitting_whole_paragraph_is_omitted_without_fabricated_source():
     original = WebEvidence(
-        SOURCES[0], 'One indivisible qualified paragraph. ' * 55, 'a' * 64, CATALOG.generated_at
+        SOURCES[0], 'One indivisible qualified paragraph. ' * 800, 'a' * 64, CATALOG.generated_at
     )
     prepared = _composer().prepare(_turn(evidence=(original,)))
     assert prepared.input_size_bytes <= 24000 and not prepared.web_evidence

@@ -9,7 +9,7 @@ from dataclasses import dataclass, replace
 from urllib.parse import urlsplit
 
 from app.application.ports import Draft
-from app.domain.answer_policy import AnswerRules, Violation, check_answer
+from app.domain.answer_policy import AnswerRules, Violation, check_answer, fold
 from app.domain.catalog import (
     ActiveCatalog,
     Catalog,
@@ -32,7 +32,7 @@ from app.domain.conversation import (
 )
 from app.domain.language import Language
 from app.domain.page_claims import unsupported_page_claim
-from app.domain.web_evidence import WebEvidence, unsupported_platform_policy
+from app.domain.web_evidence import WebEvidence, negated_at, unsupported_platform_policy
 
 _MARKUP = re.compile(r'</?[A-Za-z][^<>]{0,300}>')
 _MARKDOWN_LINK = re.compile(r'\[([^\]\n]{1,180})\]\(([^)\n]{0,512})\)')
@@ -120,13 +120,27 @@ def answer_rules(
     )
 
 
-def support_link(catalog: Catalog) -> tuple[LinkRef, ...]:
+def support_link(catalog: Catalog, product_ids: frozenset[str] = frozenset()) -> tuple[LinkRef, ...]:
     link = catalog.link(catalog.site.support_link_id)
+    if link and product_ids and not catalog.applies_to(link.product_ids, product_ids):
+        link = next(
+            (
+                item
+                for item in catalog.links
+                if item.id.startswith('hotmart-') and catalog.applies_to(item.product_ids, product_ids)
+            ),
+            None,
+        )
     return (LinkRef(link.id, link.label, link.url),) if link else ()
 
 
-def replacement(catalog: Catalog, notice: Notice, language: Language = Language.ES) -> AnswerDetails:
-    return AnswerDetails(links=support_link(catalog), notices=(notice,), language=language.value)
+def replacement(
+    catalog: Catalog,
+    notice: Notice,
+    language: Language = Language.ES,
+    product_ids: frozenset[str] = frozenset(),
+) -> AnswerDetails:
+    return AnswerDetails(links=support_link(catalog, product_ids), notices=(notice,), language=language.value)
 
 
 def _image(image: Image | None) -> ImageRef | None:
@@ -211,12 +225,17 @@ def check_content(
             owners = tuple(p for p in catalog.products if p.id in selected)
             if not owners:
                 continue
-            if any(p.price is None for p in owners) and re.search(
-                r'(?:US\$|USD|\$|€|d[oó]lares?|euros?)\s*\d|\d[\d.,]*\s*(?:USD|d[oó]lares?|euros?)',
-                sentence,
-                re.IGNORECASE,
-            ):
-                violations.append(Violation.UNKNOWN_PRICE)
+            if any(p.price is None for p in owners):
+                scoped_rules = replace(rules, known_prices=frozenset(), known_price_pairs=frozenset())
+                if Violation.UNKNOWN_PRICE in check_answer(sentence, scoped_rules):
+                    violations.append(Violation.UNKNOWN_PRICE)
+            if any(p.pdf_count is None for p in owners):
+                normalized = fold(sentence)
+                if any(
+                    not negated_at(normalized, match.start())
+                    for match in re.finditer(r'\b\d{1,5}\s+(?:pdfs?|archivos? pdf)\b', normalized)
+                ):
+                    violations.append(Violation.UNSUPPORTED_PAGE_CLAIM)
             policies = tuple(d.text for d in catalog.documents if catalog.applies_to(d.product_ids, selected))
             if unsupported_platform_policy(sentence, policies):
                 violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
@@ -313,7 +332,7 @@ def finalize(
     if not checked.accepted:
         return FinalizedAnswer(
             replacement_text(language),
-            replacement(catalog, Notice.ANSWER_REPLACED, language),
+            replacement(catalog, Notice.ANSWER_REPLACED, language, selected),
             checked.violations,
             len(draft.references),
         )
@@ -325,11 +344,19 @@ def finalize(
     for reference in draft.references:
         if reference.kind == ReferenceKind.PRODUCT and (product := catalog.product(reference.id)):
             products.setdefault(product.id, product_ref(active, product, price_status))
-        elif reference.kind == ReferenceKind.RESOURCE and (found := catalog.resource(reference.id)):
+        elif (
+            reference.kind == ReferenceKind.RESOURCE
+            and (found := catalog.resource(reference.id))
+            and (not selected or found[0].id in selected)
+        ):
             owner, resource = found
             if len(resources) < MAX_RESOURCES:
                 resources.setdefault(reference.id, resource_ref(reference.id, owner, resource))
-        elif reference.kind == ReferenceKind.LINK and (link := catalog.link(reference.id)):
+        elif (
+            reference.kind == ReferenceKind.LINK
+            and (link := catalog.link(reference.id))
+            and (not selected or catalog.applies_to(link.product_ids, selected))
+        ):
             if len(links) < MAX_LINKS:
                 links.setdefault(link.id, LinkRef(link.id, link.label, link.url))
         else:
@@ -344,7 +371,11 @@ def finalize(
                 sources.setdefault(
                     external.id, SourceRef(external.id, external.source.title, external.source.url)
                 )
-        elif document is None or (catalog_source_ids is not None and source_id not in catalog_source_ids):
+        elif (
+            document is None
+            or (selected and not catalog.applies_to(document.product_ids, selected))
+            or (catalog_source_ids is not None and source_id not in catalog_source_ids)
+        ):
             dropped += 1
         elif len(sources) < MAX_SOURCES:
             sources.setdefault(document.id, SourceRef(document.id, document.title, document.url))
@@ -376,11 +407,19 @@ def finalize(
             if len(enriched) > MAX_ANSWER_CHARS:
                 return FinalizedAnswer(
                     replacement_text(language),
-                    replacement(catalog, Notice.ANSWER_REPLACED, language),
+                    replacement(catalog, Notice.ANSWER_REPLACED, language, selected),
                     (),
                     dropped,
                 )
-            content = enriched
+            checked_enriched = check_content(enriched, scoped, rules, web_evidence)
+            if not checked_enriched.accepted:
+                return FinalizedAnswer(
+                    replacement_text(language),
+                    replacement(catalog, Notice.ANSWER_REPLACED, language, selected),
+                    checked_enriched.violations,
+                    dropped,
+                )
+            content = checked_enriched.content
     details = AnswerDetails(
         products=tuple(products.values()),
         resources=tuple(resources.values()),

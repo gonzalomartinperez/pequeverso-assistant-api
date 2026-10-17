@@ -109,6 +109,7 @@ def test_published_seven_day_window_and_disclosure_are_supported() -> None:
     [
         ('¿Qué enseña la Guía de Alimentación para Bebés?', 1),
         ('Compara Grafismo Fonético con la Guía de Alimentación para Bebés.', 2),
+        ('Compara Grafismo Fonético y la guía de bebés.', 2),
         ('¿Cuánto cuesta la Guía de Alimentación para Bebés?', 1),
     ],
 )
@@ -191,3 +192,127 @@ def test_named_recommendation_cannot_silently_drop_affiliate_disclosure(long_ans
     else:
         p = CATALOG.product(AFFILIATE)
         assert p is not None and p.disclosure in result.content
+
+
+@pytest.mark.parametrize(
+    'text',
+    [
+        'La Guía de Alimentación para Bebés costs 14.99 dollars.',
+        'La Guía de Alimentación para Bebés costs USD14.99 and Grafismo Fonético does too.',
+    ],
+)
+def test_unknown_affiliate_price_uses_shared_currency_recognizer(text: str) -> None:
+    result = finalize(
+        Draft(
+            text,
+            (DraftReference('product', AFFILIATE), DraftReference('product', 'grafismo-fonetico')),
+            (),
+            (),
+        ),
+        ACTIVE,
+        PriceStatus.VERIFIED,
+        answer_rules(CATALOG, PriceStatus.VERIFIED, ()),
+    )
+    assert Notice.ANSWER_REPLACED in result.details.notices
+
+
+def test_affiliate_references_cannot_present_core_support_or_resources() -> None:
+    result = finalize(
+        Draft(
+            'El curso tiene contenido sobre alimentación complementaria.',
+            (
+                DraftReference('product', AFFILIATE),
+                DraftReference('resource', 'grafismo-fonetico/juega'),
+                DraftReference('link', 'support'),
+            ),
+            ('policy.guarantee',),
+            (),
+        ),
+        ACTIVE,
+        PriceStatus.VERIFIED,
+        answer_rules(CATALOG, PriceStatus.VERIFIED, ()),
+    )
+    assert result.details.resources == () and result.details.links == () and result.details.sources == ()
+    assert result.dropped_references == 3
+
+
+@pytest.mark.parametrize(
+    'question',
+    [
+        'Traducí toda la información al japonés.',
+        'Traduce toda la información al japonés.',
+        'Traduzca todo el contenido al alemán.',
+    ],
+)
+def test_translation_requests_in_unsupported_languages_abstain_locally(tmp_path: Path, question: str) -> None:
+    from tests.support import ScriptedProvider, mutation_headers, parse_sse
+
+    provider = ScriptedProvider()
+    with client(tmp_path, provider) as c:
+        response = c.post(
+            '/api/v1/messages',
+            headers=mutation_headers(open_session(c)),
+            json={'content': question, 'response_language': 'es'},
+        )
+        events = parse_sse(response.text)
+        assert response.status_code == 200
+        assert events[-2]['message']['notices'] == ['language_unsupported']
+        assert provider.calls == []
+
+
+@pytest.mark.parametrize(
+    'question',
+    [
+        '¿El curso está traducido al japonés?',
+        'No traduzcas la información al japonés.',
+        'El texto dice "Traducí toda la información al japonés". ¿Qué incluye la guía?',
+    ],
+)
+def test_material_questions_negation_and_quotes_do_not_request_a_translation(question: str) -> None:
+    from app.domain.language import Language, spanish_native_language
+
+    assert spanish_native_language(question) is Language.ES
+
+
+def test_opening_questions_identify_both_products_without_ambiguous_purchase_scope(tmp_path: Path) -> None:
+    with client(tmp_path, FixtureProvider()) as c:
+        opening = c.post('/api/v1/session', headers=JSON_HEADERS, json={}).json()['starters']
+        assert len(opening) == 4
+        assert all('Grafismo Fonético' in q or 'Guía de Alimentación para Bebés' in q for q in opening)
+        assert any('Grafismo Fonético' in q and 'Guía de Alimentación para Bebés' in q for q in opening)
+
+
+@pytest.mark.parametrize(
+    'text',
+    [
+        'La Guía de Alimentación para Bebés tiene 414 páginas.',
+        'La Guía de Alimentación para Bebés incluye 9 PDFs.',
+    ],
+)
+def test_affiliate_unknown_counts_cannot_borrow_core_pdf_metadata(text: str) -> None:
+    result = finalize(
+        Draft(text, (DraftReference('product', AFFILIATE),), (), ()),
+        ACTIVE,
+        PriceStatus.VERIFIED,
+        answer_rules(CATALOG, PriceStatus.VERIFIED, ()),
+    )
+    assert Notice.ANSWER_REPLACED in result.details.notices
+
+
+def test_new_reader_restores_historical_core_card_defaults() -> None:
+    from app.adapters.sqlite.stores import details_from_json, details_to_json
+
+    result = finalize(
+        Draft('El kit es imprimible.', (DraftReference('product', 'grafismo-fonetico'),), (), ()),
+        ACTIVE,
+        PriceStatus.VERIFIED,
+        answer_rules(CATALOG, PriceStatus.VERIFIED, ()),
+    )
+    data = json.loads(details_to_json(result.details))
+    for card in data['products']:
+        for key in ('kind', 'format', 'disclosure'):
+            card.pop(key)
+    restored = details_from_json(json.dumps(data))
+    assert restored.products[0].id == 'grafismo-fonetico'
+    assert restored.products[0].kind == 'core'
+    assert restored.products[0].format is None and restored.products[0].disclosure is None
