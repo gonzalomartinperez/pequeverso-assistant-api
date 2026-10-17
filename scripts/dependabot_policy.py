@@ -1,4 +1,4 @@
-"""Eligibility policy for unattended Dependabot merges (stdlib only; runs from the base branch).
+"""Read-only eligibility assessment for manual Dependabot review (stdlib only; runs from the base branch).
 
 The decision uses authenticated GitHub API metadata and a semantic comparison of the manifests
 at the base and head revisions. It never uses PR titles, labels or branch names as authority,
@@ -222,14 +222,16 @@ def evaluate(facts: PullFacts, policy: Policy) -> Decision:
             continue
         decision.reject(f'{name} {old.get(name)} -> {new.get(name)} ({kind}) is not allowlisted')
 
-    # Merge state and checks (native auto-merge still enforces required checks itself).
+    # Merge/check facts inform the reviewer; they never authorize a merge.
     if facts.mergeable_state in ('dirty', 'unknown'):
         decision.reject(f'mergeable state is {facts.mergeable_state!r} (conflict or not computed)')
     decision.ci = ci_state(facts.check_runs, policy.required_checks)
     if decision.ci in ('failure', 'cancelled'):
         decision.reject(f'required checks {decision.ci}')
 
-    decision.automerge = decision.eligible and facts.protection_available
+    # Classification never authorizes a merge: the project uses the manual profile.
+    if decision.eligible:
+        decision.reasons.append('manual profile: a maintainer reviews and merges every update')
     if decision.eligible and not facts.protection_available:
         decision.reasons.append(
             'eligible, but auto-merge stays off: the base branch has no enforceable protection '
@@ -362,7 +364,7 @@ def main() -> int:
             )
     if summary := os.environ.get('GITHUB_STEP_SUMMARY'):
         with open(summary, 'a') as handle:
-            verdict = 'eligible' if decision.eligible else 'manual review'
+            verdict = 'low-risk candidate; manual review required' if decision.eligible else 'manual review'
             handle.write(
                 f'### Dependabot policy: {verdict} (auto-merge {"on" if decision.automerge else "off"})\n\n'
             )
