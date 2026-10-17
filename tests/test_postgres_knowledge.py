@@ -173,6 +173,42 @@ def test_immutable_revision_rejects_different_vectors_and_detects_tampered_metad
     asyncio.run(run())
 
 
+def test_index_only_vector_reuse_is_ordered_bounded_and_rejects_tampering() -> None:
+    async def run() -> None:
+        async with isolated_store() as (store, db):
+            corpus = public_corpus()
+            await stage(store, corpus)
+            ids = tuple(chunk.id for chunk in reversed(corpus.chunks))
+            reused = await store.vectors_for_indexing(corpus.revision.version, ids)
+            assert len(reused) == len(ids)
+            canonical = await store.vectors_for_indexing(
+                corpus.revision.version, tuple(chunk.id for chunk in corpus.chunks)
+            )
+            assert reused == tuple(reversed(canonical))
+            await store.stage(corpus, canonical)
+            for invalid in ((), (ids[0], ids[0]), tuple(str(i) for i in range(2049))):
+                with pytest.raises(ValueError, match='unique chunk ids'):
+                    await store.vectors_for_indexing(corpus.revision.version, invalid)
+            with pytest.raises(ValueError, match='unknown chunk'):
+                await store.vectors_for_indexing(corpus.revision.version, ('unknown',))
+            with pytest.raises(ValueError, match='configured identity'):
+                await store.vectors_for_indexing('f' * 64, ids)
+            foreign = PostgresKnowledgeStore(
+                db, PARSE, EmbeddingSpec('openai', 'text-embedding-3-small', 1536), 'knowledge-v1'
+            )
+            with pytest.raises(ValueError, match='configured identity'):
+                await foreign.vectors_for_indexing(corpus.revision.version, ids)
+            async with db.pool.connection() as conn:
+                await conn.execute(
+                    'UPDATE knowledge.chunks SET embedding=%s::public.vector WHERE version=%s AND id=%s',
+                    (json.dumps([-x for x in canonical[0]]), corpus.revision.version, corpus.chunks[0].id),
+                )
+            with pytest.raises(ValueError, match='integrity hash'):
+                await store.vectors_for_indexing(corpus.revision.version, ids)
+
+    asyncio.run(run())
+
+
 @pytest.mark.parametrize('tamper', ['text', 'vector'])
 def test_preparation_rechecks_real_rows_without_replacing_the_previous_active(tamper: str) -> None:
     async def run() -> None:

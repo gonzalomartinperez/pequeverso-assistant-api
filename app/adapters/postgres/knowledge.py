@@ -260,6 +260,36 @@ class PostgresKnowledgeStore:
             len(manifest['relations']),
         )
 
+    async def vectors_for_indexing(self, version: str, ids: tuple[str, ...]) -> tuple[tuple[float, ...], ...]:
+        """Index-only immutable reuse, never called by the visitor retrieval path."""
+        if not 1 <= len(ids) <= 2048 or len(set(ids)) != len(ids):
+            raise ValueError('indexing requires one to 2048 unique chunk ids')
+        async with self._db.pool.connection() as connection:
+            revision = await (
+                await connection.execute(
+                    'SELECT * FROM knowledge.revisions WHERE version=%s FOR SHARE', (version,)
+                )
+            ).fetchone()
+            if revision is None or not self._matches(_revision(revision)):
+                raise ValueError('index revision does not match configured identity')
+            rows = await (
+                await connection.execute(
+                    'SELECT *,embedding::text AS stored_vector FROM knowledge.chunks'
+                    ' WHERE version=%s ORDER BY id LIMIT 2049 FOR SHARE',
+                    (version,),
+                )
+            ).fetchall()
+            if len(rows) > 2048:
+                raise ValueError('stored projection exceeds indexing bounds')
+            _verify_projection_rows(revision, rows)
+            by_id = {row['id']: row for row in rows}
+            if any(chunk_id not in by_id for chunk_id in ids):
+                raise ValueError('unknown chunk in indexing vector request')
+            return tuple(
+                tuple(float(value) for value in json.loads(by_id[chunk_id]['stored_vector']))
+                for chunk_id in ids
+            )
+
     async def mark_prepared(self, version: str, graph_stamp: ProjectionStamp) -> None:
         async with self._db.pool.connection() as connection:
             revision = await (
