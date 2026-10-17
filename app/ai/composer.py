@@ -202,7 +202,12 @@ class GroundedComposer:
                     request = trial
                     break
             else:
-                conversation[-1]['text'] = original_text
+                # A whole sentence can itself be too long beside mandatory facts and
+                # retrieved evidence. Omit only this model-context answer text, keeping
+                # its role/reference ids and the latest user question. Stored history is
+                # untouched; neither commercial qualifications nor passages are sliced.
+                conversation[-1]['text'] = ''
+                request = self._request(turn, evidence, conversation, ())
         selected: list[WebEvidence] = []
         if request.size_bytes() <= limit:
             for item in turn.web_evidence:
