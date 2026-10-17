@@ -114,10 +114,11 @@ sequenceDiagram
   participant AI as GPT-6 Luna
   UI->>API: Session + Origin + CSRF + idempotency key
   API->>App: Validated visitor turn
-  App->>App: Pack merchant context and complete source paragraphs within 24k
-  App->>DB: Claim request + reserve worst-case spend
-  App->>App: Verify active public PG/Neo identity; retrieve bounded evidence
-  App->>DB: Account query embedding separately
+  App->>App: Check ownership, catalog and dependency availability
+  App->>DB: Claim request + reserve generation worst-case spend
+  App->>App: Retrieve and verify public PG/Neo evidence
+  Note over App,DB: Query embeddings have separate reserve/settle accounting.
+  App->>App: Pack merchant facts, verified passages and history within 24k
   App->>AI: Authorized evidence + history, medium, no generation retries
   AI-->>App: Structured deltas + usage
   App->>App: Normalize and check complete cumulative prefixes
