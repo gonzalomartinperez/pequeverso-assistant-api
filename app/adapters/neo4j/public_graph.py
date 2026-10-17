@@ -54,9 +54,13 @@ WHERE any(id IN s.supports WHERE id IN $supports)
 WITH s ORDER BY s.id LIMIT 24
 MATCH path=(s)-[:PV_REL*1..2]-(t:PVEntity {version:$version})
 WHERE all(r IN relationships(path) WHERE r.version=$version)
-WITH t,path ORDER BY length(path),t.id LIMIT 96
+WITH t,path ORDER BY length(path),t.id,
+[n IN nodes(path) | n.id],[r IN relationships(path) | r.pointer] LIMIT 96
 UNWIND t.supports AS cid
 MATCH (c:PVChunk {version:$version,id:cid})
+WITH c,path ORDER BY length(path),c.id,
+[n IN nodes(path) | n.id],[r IN relationships(path) | r.pointer]
+WITH c,head(collect(path)) AS path
 RETURN c.id AS id,c.sha256 AS sha256,length(path) AS depth,
 [r IN relationships(path) | {subject:startNode(r).id,predicate:r.predicate,
 object:endNode(r).id,support:r.support,pointer:r.pointer}] AS relations
@@ -181,7 +185,12 @@ class Neo4jPublicGraph:
             if len(rows) > limit:
                 raise ValueError('graph returned more candidates than requested')
             hits: list[KnowledgeHit] = []
+            seen: set[str] = set()
             for row in rows:
+                chunk_id = self._text(row, 'id')
+                if chunk_id in seen:
+                    raise ValueError('graph returned duplicate chunk candidates')
+                seen.add(chunk_id)
                 depth = row.get('depth')
                 relations = row.get('relations')
                 if type(depth) is not int or not 1 <= depth <= 2 or not isinstance(relations, list):
@@ -204,7 +213,7 @@ class Neo4jPublicGraph:
                 hits.append(
                     KnowledgeHit(
                         version,
-                        self._text(row, 'id'),
+                        chunk_id,
                         self._text(row, 'sha256'),
                         1.0 / depth,
                         RetrievalStrategy.GRAPH,
