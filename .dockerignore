@@ -2,6 +2,8 @@
 *
 !pyproject.toml
 !uv.lock
+!LICENSE
+!NOTICE.md
 !app/
 !migrations/
 !catalog/

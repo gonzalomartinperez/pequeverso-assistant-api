@@ -24,6 +24,7 @@ COPY --from=build /opt/venv /opt/venv
 COPY app ./app
 COPY migrations ./migrations
 COPY catalog ./catalog
+COPY LICENSE NOTICE.md ./
 # Runtime installs nothing; remove the global installer and its unused vendored dependencies.
 RUN rm -rf /usr/local/lib/python3.15/ensurepip/_bundled \
         /usr/local/lib/python3.15/site-packages/pip \

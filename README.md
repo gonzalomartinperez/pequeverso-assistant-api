@@ -13,8 +13,10 @@
 
 Backend of the Pequeverso shopping assistant: an **advisory, read-only** AI assistant that helps
 adult buyers understand the Grafismo Fonético kit and the separately recommended affiliate
-course, compare their published scope and reach the appropriate storefront flow. Public repository; no license is granted
-(all rights reserved). `main` is the default and release branch; development happens on `develop`.
+course, compare their published scope and reach the appropriate storefront flow. Public
+repository; its owner-authored software is MIT-licensed ([license](LICENSE),
+[scope and reserved material](NOTICE.md)). `main` is the default and release branch;
+development happens on `develop`.
 
 - Python 3.15.0, FastAPI, uv; SQLite (single process); OpenAI Responses (`gpt-6-luna`) behind a
   provider port; a deterministic **fixture provider is the default**.
@@ -203,8 +205,9 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 - No build, screenshot or local test authorizes a deployment or production activation.
 
 Task branches target `develop` through protected squash PRs. A release into `main` requires
-separate owner authorization and a protected merge commit. Public repository, all rights reserved;
-no license is granted. Never commit secrets, private evaluations or customer conversations.
+separate owner authorization and a protected merge commit. The software license does not
+authorize deployment or access to private data. Never commit secrets, private evaluations
+or customer conversations.
 
 Shared runtime/version acceptance: [runtime baseline](docs/runtime-baseline.md).
 
@@ -218,3 +221,10 @@ to the course. Revision1.5 adds optional card kind/format/disclosure fields, wit
 for historical messages. See [catalog](docs/catalog.md) and [contract](docs/api-contract.md).
 Fixture tests prove transport, grounded metadata, history and replay; they do not establish
 real-model quality, a functioning affiliate redirect or readiness of an undeployed VPS.
+
+## Software license
+
+Owner-authored software and technical documentation use the [MIT License](LICENSE).
+Brand, commercial/product content, catalog datasets, media, private data and third-party
+material are excluded; see [NOTICE.md](NOTICE.md). Existing third-party licenses and
+attributions remain applicable. The runtime image carries both notices under `/app/`.
