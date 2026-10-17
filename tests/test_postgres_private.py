@@ -125,6 +125,89 @@ def test_atomic_budget_across_independent_pools_and_embedding_generation_purpose
     asyncio.run(run())
 
 
+def test_runtime_ownership_prevents_other_instance_recovery_and_preserves_history_cost() -> None:
+    async def run() -> None:
+        async with private_database() as db:
+            assert DSN is not None
+            other = PostgresDatabase(DSN)
+            await other.open()
+            try:
+                sessions, messages = PostgresSessionStore(db), PostgresMessageStore(db)
+                runs, ledger = PostgresRunStore(db), PostgresLedger(db)
+                await sessions.create(session('owner'), b'owner-fixture-hash')
+                await messages.append('owner', Message('owner-message', Role.USER, 'Fixture history', NOW))
+                await runs.claim('owner-run', 'owner', 'owner-key', 'owner-hash', NOW)
+                await ledger.reserve('owner-run', 30, '2026-10', '2026-10-17', lambda **_: True)
+                assert not await db.runtime_ownership_alive()
+
+                async def recover_other() -> None:
+                    async with other.runtime_ownership():
+                        await PostgresRunStore(other).abandon_active()
+                        await PostgresLedger(other).abandon_pending()
+
+                async with db.runtime_ownership():
+                    assert await db.runtime_ownership_alive()
+                    with pytest.raises(RuntimeError, match='already owned'):
+                        await recover_other()
+                    assert not await other.runtime_ownership_alive()
+                    record = await runs.claim('ignored', 'owner', 'owner-key', 'owner-hash', NOW)
+                    assert record.state is RunState.ACTIVE
+                    assert [m.id for m in await messages.history('owner', 10)] == ['owner-message']
+                    assert await ledger.spent('2026-10', '2026-10-17') == (30, 30)
+                    async with db.pool.connection() as conn:
+                        row = await (
+                            await conn.execute(
+                                "SELECT status FROM assistant_private.spend_ledger WHERE run_id='owner-run'"
+                            )
+                        ).fetchone()
+                        assert row is not None and row['status'] == 'pending'
+                assert not await db.runtime_ownership_alive()
+                async with other.runtime_ownership():
+                    assert await other.runtime_ownership_alive()
+            finally:
+                await other.close()
+
+    asyncio.run(run())
+
+
+def test_runtime_ownership_cancellation_and_connection_loss_never_reacquire() -> None:
+    async def run() -> None:
+        async with private_database() as db:
+            assert DSN is not None
+            other = PostgresDatabase(DSN)
+            await other.open()
+            entered = asyncio.Event()
+
+            async def owner() -> None:
+                async with db.runtime_ownership():
+                    entered.set()
+                    await asyncio.Event().wait()
+
+            try:
+                task = asyncio.create_task(owner())
+                await entered.wait()
+                task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await task
+                assert not await db.runtime_ownership_alive()
+                async with other.runtime_ownership():
+                    assert await other.runtime_ownership_alive()
+                async with db.runtime_ownership():
+                    async with other.pool.connection() as conn:
+                        await conn.execute(
+                            "SELECT pg_terminate_backend(pid) FROM pg_locks WHERE locktype='advisory'"
+                            ' AND classid=0 AND objid=684721026 AND objsubid=1'
+                        )
+                    assert not await db.runtime_ownership_alive()
+                    async with other.runtime_ownership():
+                        assert await other.runtime_ownership_alive()
+                        assert not await db.runtime_ownership_alive()
+            finally:
+                await other.close()
+
+    asyncio.run(run())
+
+
 def test_unknown_usage_late_settlement_recovery_and_cost_survive_session_delete() -> None:
     async def run() -> None:
         async with private_database() as db:

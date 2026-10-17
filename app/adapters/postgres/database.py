@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +32,7 @@ class PostgresDatabase:
                 'options': '-c statement_timeout=3000 -c lock_timeout=3000 -c idle_in_transaction_session_timeout=10000',
             },
         )
+        self._runtime_owner: AsyncConnection[Row] | None = None
 
     async def open(self) -> None:
         await self.pool.open(wait=True, timeout=5.0)
@@ -41,6 +44,47 @@ class PostgresDatabase:
         async with self.pool.connection() as connection:
             row = await (await connection.execute('SELECT 1 AS ready')).fetchone()
         return row is not None and row['ready'] == 1
+
+    @asynccontextmanager
+    async def runtime_ownership(self) -> AsyncIterator[None]:
+        """One stop-first private runtime. No takeover/recovery of another live instance.
+
+        The explicit SQLite import shares this key and therefore cannot race the runtime.
+        A lost connection makes admission unhealthy; this context never reacquires a lease.
+        """
+        if self._runtime_owner is not None:
+            raise RuntimeError('PostgreSQL private runtime ownership is already active')
+        async with self.pool.connection() as connection:
+            try:
+                await connection.set_autocommit(True)
+                row = await (
+                    await connection.execute('SELECT pg_try_advisory_lock(684721026) AS owned')
+                ).fetchone()
+                if row is None or not row['owned']:
+                    raise RuntimeError('PostgreSQL private runtime is already owned')
+                self._runtime_owner = connection
+                yield
+            finally:
+                if self._runtime_owner is connection:
+                    self._runtime_owner = None
+                # Session lock is released even after cancellation, without a pooled stale lock.
+                await connection.close()
+
+    async def runtime_ownership_alive(self) -> bool:
+        connection = self._runtime_owner
+        if connection is None or connection.closed:
+            return False
+        try:
+            row = await (
+                await connection.execute(
+                    "SELECT EXISTS(SELECT FROM pg_locks WHERE locktype='advisory'"
+                    ' AND pid=pg_backend_pid() AND classid=0 AND objid=684721026'
+                    " AND objsubid=1 AND mode='ExclusiveLock' AND granted) AS owned"
+                )
+            ).fetchone()
+            return row is not None and row['owned'] is True
+        except Exception:  # noqa: BLE001 - never reconnect/reacquire silently during admission
+            return False
 
     async def migrate(self) -> None:
         """Only the explicit migration identity calls this; normal runtime never executes DDL."""
