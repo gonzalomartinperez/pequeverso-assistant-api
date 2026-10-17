@@ -2,6 +2,10 @@
 # Tag verified 2026-10-17: 5.26.32-community; registry index pinned below.
 FROM neo4j:5.26.32-community@sha256:0a6e7aedf54a531f76286032d4365ead65b11cca05e4a15cdf23b8e53d6db02b
 USER root
+# Apply the signed Debian security update without changing the vendor's Java libraries.
+RUN apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update \
+    && apt-get install -y --no-install-recommends liblzma5=5.8.1-1+deb13u2 \
+    && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /conf \
     && cp /var/lib/neo4j/conf/* /conf/ \
     && chown -R 7474:7474 /conf \
