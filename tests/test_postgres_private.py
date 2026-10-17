@@ -178,6 +178,24 @@ def test_runtime_ownership_cancellation_and_connection_loss_never_reacquire() ->
             await other.open()
             entered = asyncio.Event()
 
+            async def observe_server_release() -> None:
+                # Socket close returns before PostgreSQL necessarily finishes backend cleanup.
+                # Observe server state; never retry API admission or reacquire a lost owner.
+                deadline = asyncio.get_running_loop().time() + 2
+                while asyncio.get_running_loop().time() < deadline:
+                    async with other.pool.connection() as conn:
+                        row = await (
+                            await conn.execute(
+                                "SELECT EXISTS(SELECT FROM pg_locks WHERE locktype='advisory'"
+                                ' AND classid=0 AND objid=684721026 AND objsubid=1'
+                                ' AND database=(SELECT oid FROM pg_database WHERE datname=current_database())) AS owned'
+                            )
+                        ).fetchone()
+                    if row is not None and row['owned'] is False:
+                        return
+                    await asyncio.sleep(0.01)
+                raise AssertionError('PostgreSQL did not release the closed owner backend')
+
             async def owner() -> None:
                 async with db.runtime_ownership():
                     entered.set()
@@ -190,8 +208,10 @@ def test_runtime_ownership_cancellation_and_connection_loss_never_reacquire() ->
                 with pytest.raises(asyncio.CancelledError):
                     await task
                 assert not await db.runtime_ownership_alive()
+                await observe_server_release()
                 async with other.runtime_ownership():
                     assert await other.runtime_ownership_alive()
+                await observe_server_release()
                 async with db.runtime_ownership():
                     async with other.pool.connection() as conn:
                         await conn.execute(
@@ -199,6 +219,7 @@ def test_runtime_ownership_cancellation_and_connection_loss_never_reacquire() ->
                             ' AND classid=0 AND objid=684721026 AND objsubid=1'
                         )
                     assert not await db.runtime_ownership_alive()
+                    await observe_server_release()
                     async with other.runtime_ownership():
                         assert await other.runtime_ownership_alive()
                         assert not await db.runtime_ownership_alive()
