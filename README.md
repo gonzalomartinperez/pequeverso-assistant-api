@@ -20,7 +20,8 @@ course, compare their published scope and reach the appropriate storefront flow.
   provider port; a deterministic **fixture provider is the default**.
 - Versioned HTTP/SSE contract (v1, revision 1.5) for the storefront's native assistant, which
   calls the API cross-origin; private, token-protected operations summary for the backoffice
-  (`pequeverso-assistant-backoffice`, formerly `pequeverso-assistant-web`).
+  (`pequeverso-backoffice`, renamed from `pequeverso-assistant-backoffice`; the original
+  chat repository was `pequeverso-assistant-web`).
 - The native assistant presents only neutral Latin American Spanish ("tú"), without a language
   selector. Every new native turn sends `response_language: "es"` and requires API revision1.4
   or later. Earlier API clients remain compatible when this field is absent, including their
@@ -120,7 +121,7 @@ sequenceDiagram
   App->>App: Resolve references + validate commercial claims
   App->>DB: Persist authoritative answer + settle known usage
   App-->>UI: message.completed + run.completed
-  Note over App,DB: Known usage is settled; missing usage retains its reservation. Partial answers are not stored.
+  Note over App,DB: Known usage is settled.<br/>Missing usage retains its reservation.<br/>Partial answers are not stored.
 ```
 
 Provider credentials exist only in the backend. Fixture is the default; real evaluations require
