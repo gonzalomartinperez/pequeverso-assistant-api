@@ -103,7 +103,7 @@ class HybridKnowledgeRetrieval:
         lexical = await self._store.lexical_candidates(revision.version, question, _CANDIDATES)
         if any(hit.strategy is not RetrievalStrategy.LEXICAL for hit in lexical):
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
-        await self._verified(revision, lexical, allowed)
+        await self.verify_hits(revision, lexical, allowed)
         vectors = await self._embeddings.encode((question,), EmbeddingPurpose.QUERY)
         if len(vectors) != 1:
             raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
@@ -113,7 +113,7 @@ class HybridKnowledgeRetrieval:
             hit.strategy is not RetrievalStrategy.VECTOR for hit in semantic
         ):
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
-        initial = await self._verified(revision, lexical + semantic, allowed)
+        initial = await self.verify_hits(revision, lexical + semantic, allowed)
         graph_current = await self._graph_current(revision)
         graph_hits: tuple[KnowledgeHit, ...] = ()
         if graph_current and initial:
@@ -129,7 +129,7 @@ class HybridKnowledgeRetrieval:
                 graph_current = False
         if any(hit.strategy is not RetrievalStrategy.GRAPH for hit in graph_hits):
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
-        verified = await self._verified(
+        verified = await self.verify_hits(
             revision, lexical + semantic + graph_hits, allowed, frozenset(tuple(initial)[:_CANDIDATES])
         )
         scores: dict[str, float] = {}
@@ -175,7 +175,7 @@ class HybridKnowledgeRetrieval:
             revision, tuple(verified[cid] for cid in selected), tuple(strategies), not graph_current
         )
 
-    async def _verified(
+    async def verify_hits(
         self,
         revision: KnowledgeRevision,
         hits: tuple[KnowledgeHit, ...],

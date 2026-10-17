@@ -102,3 +102,22 @@ def test_real_bolt_versions_are_isolated_and_tampering_invalidates_the_projectio
             await driver.close()
 
     asyncio.run(run())
+
+
+def test_real_bolt_existing_projection_is_verified_without_reindexing() -> None:
+    """The smoke runner executes this alone immediately after dump/load, before any stage."""
+
+    async def run():
+        driver = connect()
+        try:
+            corpus = build()
+            stamp = await Neo4jPublicGraph(driver).projection_stamp(corpus.revision.version)
+            assert stamp is not None
+            assert stamp.catalog_sha256 == corpus.revision.catalog_sha256
+            assert stamp.chunk_count == len(corpus.chunks)
+            assert stamp.entity_count == len(corpus.entities)
+            assert stamp.relation_count == len(corpus.relations)
+        finally:
+            await driver.close()
+
+    asyncio.run(run())
