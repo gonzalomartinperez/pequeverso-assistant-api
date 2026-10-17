@@ -1,20 +1,10 @@
----
-{"config": {"theme": "base", "look": "classic", "fontFamily": "Arial, sans-serif", "htmlLabels": false, "themeVariables": {"background": "#101b2b", "primaryTextColor": "#f4f5f8", "lineColor": "#9baac0", "clusterBkg": "#101b2b", "clusterBorder": "#9baac0", "edgeLabelBackground": "#101b2b", "fontSize": "18px", "textColor": "#f4f5f8", "titleColor": "#f4f5f8", "nodeTextColor": "#f4f5f8", "clusterTextColor": "#f4f5f8"}, "flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 36, "padding": 14, "htmlLabels": false, "wrappingWidth": 340}, "markdownAutoWrap": false, "themeCSS": ".cluster-label text,.nodeLabel,.edgeLabel text,.label text{fill:#f4f5f8!important;} .edgeLabel rect,.edgeLabel polygon{fill:#101b2b!important;opacity:1!important;}"}}
----
 flowchart TB
-  accTitle: Pequeverso assistant API components and trust boundaries
-  accDescr: Public session and CSRF boundary, API-owned SQLite, external OpenAI provider, separate private backoffice identity in PostgreSQL, and optional infrastructure-owned observability.
-  Store["PUBLIC CLIENT · ASSISTANT OFF<br/>Session · CSRF · HTTP/SSE /api/v1"] --> API["ASSISTANT API<br/>FastAPI · one process"]
-  Sources["AUTHORIZED SOURCES<br/>Pinned catalog snapshot<br/>3 fixed Hotmart articles · optional OFF"] -->|"Validated evidence"| API
-  BO["PRIVATE BACKOFFICE<br/>Better Auth · role guards<br/>Separate PostgreSQL18.6 identity"] -->|"Private server bearer"| API
-  API --> DB[("API-OWNED SQLite<br/>Catalog · conversations · ledger")]
-  API -->|"One bounded Responses call"| Model["OPENAI · EXTERNAL<br/>GPT-6 Luna · medium"]
-  API -. "Opt-in content-free OTLP<br/>Private authenticated metrics" .-> Monitor["VPS-OPS · FUTURE INFRASTRUCTURE<br/>Deployment · TLS · proxy · volumes<br/>OTLP → traces<br/>Prometheus3.13 LTS + traces → Grafana"]
-  Monitor ~~~ Legend["KEY · Solid: implemented path<br/>Dashed: OFF, optional or future · read labels"]
-  class Store,API,BO app
-  class Sources,DB data
-  class Model,Monitor,Legend external
-  classDef person fill:#423620,stroke:#a6c5ed,color:#f4f5f8,stroke-width:1.5px;
-  classDef app fill:#1c3049,stroke:#a6c5ed,color:#f4f5f8,stroke-width:1.5px;
-  classDef data fill:#183b3b,stroke:#77d3c4,color:#f4f5f8,stroke-width:1.5px;
-  classDef external fill:#253144,stroke:#9baac0,color:#f4f5f8,stroke-width:1.2px,stroke-dasharray:4 3;
+  UI[Native storefront: disabled] -->|Origin / cookie / CSRF / idempotency| API[Versioned HTTP and SSE]
+  BO[Private backoffice: separate identity DB] -->|Private ops token| API
+  API --> R[Finite retrieval and evidence verification]
+  API --> A[One generation / validation / persistence]
+  R -->|Verified public passages| A
+  R --> PG[Public PostgreSQL / pgvector: knowledge schema]
+  R --> N[Public Neo4j: rebuildable projection]
+  A --> P[Private PostgreSQL: sessions / history / ledger / metrics]
+  O[vps-ops deployment and observability] -.-> API

@@ -1,4 +1,20 @@
-# Runtime baseline candidate — 2026-10-17 (17:35 UTC cohort)
+# GraphRAG runtime profile — 2026-10-17
+
+The current source profile uses Python **3.14.8**, uv **0.13.1**, PostgreSQL **18.6** with
+pgvector **0.8.7**, Neo4j Community **5.26.32** on the 5.26 LTS line, LangGraph **1.2.16**,
+LangChain Core **1.6.12**, LangSmith **0.14.9**, psycopg **3.3.6** / pool **3.3.3** and Neo4j
+driver **6.4.1**. Exact dependency resolution is in `uv.lock`; container bases are digest-pinned.
+Frozen `--no-build` installs avoid ad hoc native builds. Python 3.15 is a stable branch but the
+selected GraphRAG dependency wheel set is incomplete; the owner permits 3.14 compatibility.
+
+LangGraph and LangChain 1.x have their own published support policy; Python and PostgreSQL
+use support schedules without the LTS label. LangSmith is a separately versioned dependency;
+local SDK beta/deprecation warnings are explicitly scoped, not globally ignored. OTel's locked
+tree includes beta components. No version badge establishes production security or deployment.
+See [operator gates](knowledge-operations.md) and [GraphRAG component evidence](graph-retrieval.md).
+The dated earlier baseline below remains historical evidence and is not relabeled.
+
+## Historical pre-GraphRAG baseline — 2026-10-17 (17:35 UTC cohort)
 
 The owner authorized execution of the shared deployment-readiness plan. This repository owns
 its code, tests, image and runtime contract. The private vps-ops inventory owns the shared

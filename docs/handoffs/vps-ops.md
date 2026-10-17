@@ -10,6 +10,17 @@ DNS record, route, database, secret or Coolify resource. Owner-authorized paid e
 only in isolated local services; see docs/verification/real-model-2026-10-12.md. vps-ops
 remains the only infrastructure authority; nothing here modifies vps-ops.
 
+## Current GraphRAG profile and deployment hold
+
+ADR-0009 supersedes the historical production SQLite topology described later in this dated
+handoff. Use [knowledge operations](../knowledge-operations.md) for PostgreSQL/pgvector public
+and private schemas, Neo4j public projection, separate capability roles, explicit migration /
+import / index jobs, one-worker ownership exclusion and no-overlap lifecycle. Backoffice identity
+remains separate. Production activation is still unauthorized; exact-image integrated service,
+security, restore and VPS gates are required. Earlier image sizes and SQLite smoke do not prove
+acceptance of the new profile. No images have been published or services deployed here.
+
+
 ## Current reconciled topology
 
 The current vps-ops inventory already distinguishes the native storefront, API, backoffice,
