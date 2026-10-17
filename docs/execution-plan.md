@@ -15,5 +15,5 @@
 | Production deployment, DNS and storefront activation | Deferred to vps-ops and separate owner activation; no deployment performed |
 | Contract 1.1: es/en languages, starters, ledger states (confirmed/estimated/pending), run metrics, private ops API, medium effort, published-only catalog sync with semantic report | Implemented on `feat/assistant-evolution` (2026-10-05) |
 | Evaluation corpus by intent family with dev/holdout split | PR #20 |
-| Native storefront assistant (cross-origin, disabled by default); backoffice consuming private ops | In pequeverso and pequeverso-assistant-backoffice; native Spanish policy requires v1.4 |
+| Native storefront assistant (cross-origin, disabled by default); backoffice consuming private ops | In pequeverso and pequeverso-backoffice (previously pequeverso-assistant-backoffice); native Spanish policy requires v1.4 |
 | Real-model medium-effort usage, latency and persistence | Executed via isolated HTTP/SSE; usage estimates are not invoices and shared WSL timings are not VPS capacity |

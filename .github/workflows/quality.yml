@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  UV_VERSION: 0.13.0 # keep equal to the uv image in Dockerfile
+  UV_VERSION: 0.13.1 # keep equal to the uv image in Dockerfile
   AI_PROVIDER: fixture
   ALLOW_PAID_AI: "false"
 
