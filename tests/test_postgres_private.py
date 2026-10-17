@@ -3,9 +3,11 @@
 import asyncio
 import hashlib
 import json
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import psycopg
 import pytest
@@ -238,5 +240,76 @@ def test_database_roles_keep_public_and_private_authorities_separate() -> None:
                     with pytest.raises(psycopg.errors.InsufficientPrivilege):
                         await conn.execute(query)
                     await conn.rollback()
+
+    asyncio.run(run())
+
+
+def test_index_accounting_role_cannot_modify_or_create_a_generation_reservation() -> None:
+    async def run() -> None:
+        async with private_database() as db:
+            ledger = PostgresLedger(db)
+            for id_, amount in [('generation-fixture', 100), ('embedding:index:fixture', 50)]:
+                assert await ledger.reserve(id_, amount, '2026-10', '2026-10-17', lambda **_: True)
+            async with db.pool.connection() as conn:
+                await conn.execute('SET LOCAL ROLE pequeverso_embedding_accounting')
+                total = await (
+                    await conn.execute('SELECT sum(reserved_micro) AS n FROM assistant_private.spend_ledger')
+                ).fetchone()
+                assert total is not None and total['n'] == 150
+                untouched = await conn.execute(
+                    "UPDATE assistant_private.spend_ledger SET actual_micro=0 WHERE run_id='generation-fixture'"
+                )
+                assert untouched.rowcount == 0
+                await conn.execute(
+                    "UPDATE assistant_private.spend_ledger SET actual_micro=25,status='settled' WHERE run_id='embedding:index:fixture'"
+                )
+            async with db.pool.connection() as conn:
+                await conn.execute('SET LOCAL ROLE pequeverso_embedding_accounting')
+                with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                    await conn.execute(
+                        "INSERT INTO assistant_private.spend_ledger(run_id,month,day,reserved_micro) VALUES('unauthorized-generation','2026-10','2026-10-17',1)"
+                    )
+                await conn.rollback()
+            assert await ledger.spent('2026-10', '2026-10-17') == (125, 125)
+
+    asyncio.run(run())
+
+
+def test_private_history_and_budget_query_plans_use_real_bounded_queries() -> None:
+    async def run() -> None:
+        async with private_database() as db:
+            await PostgresSessionStore(db).create(session('explain-fixture'), b'explain-fixture-digest')
+            await PostgresMessageStore(db).append(
+                'explain-fixture', Message('explain-message', Role.USER, 'Synthetic plan probe', NOW)
+            )
+            assert await PostgresLedger(db).reserve(
+                'plan-budget', 1, '2026-10', '2026-10-17', lambda **_: True
+            )
+            async with db.pool.connection() as conn:
+                history = await (
+                    await conn.execute(
+                        'EXPLAIN(ANALYZE,BUFFERS,FORMAT JSON) SELECT id FROM assistant_private.messages'
+                        ' WHERE session_id=%s ORDER BY seq DESC LIMIT 12',
+                        ('explain-fixture',),
+                    )
+                ).fetchone()
+                budget = await (
+                    await conn.execute(
+                        'EXPLAIN(ANALYZE,BUFFERS,FORMAT JSON) SELECT sum(coalesce(actual_micro,reserved_micro))'
+                        ' FROM assistant_private.spend_ledger WHERE month=%s',
+                        ('2026-10',),
+                    )
+                ).fetchone()
+            assert history is not None and budget is not None
+            assert history['QUERY PLAN'][0]['Plan']['Node Type'] == 'Limit'
+            assert history['QUERY PLAN'][0]['Plan']['Actual Rows'] == 1
+            assert budget['QUERY PLAN'][0]['Plan']['Actual Rows'] == 1
+            output = os.environ.get('KNOWLEDGE_PRIVATE_PLAN_OUTPUT')
+            if output:
+                await asyncio.to_thread(
+                    Path(output).write_text,
+                    json.dumps({'history': history['QUERY PLAN'], 'budget': budget['QUERY PLAN']}, indent=2)
+                    + '\n',
+                )
 
     asyncio.run(run())

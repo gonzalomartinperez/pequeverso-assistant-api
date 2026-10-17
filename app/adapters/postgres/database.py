@@ -46,5 +46,10 @@ class PostgresDatabase:
         """Only the explicit migration identity calls this; normal runtime never executes DDL."""
         async with self.pool.connection() as connection:
             await connection.execute('SELECT pg_advisory_xact_lock(684721023)')
-            for name in ('001_knowledge.sql', '002_roles.sql', '003_private.sql'):
+            for name in (
+                '001_knowledge.sql',
+                '002_roles.sql',
+                '003_private.sql',
+                '004_accounting_policy.sql',
+            ):
                 await connection.execute(Path(__file__).with_name(name).read_text())

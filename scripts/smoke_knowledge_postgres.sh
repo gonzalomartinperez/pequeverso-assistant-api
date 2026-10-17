@@ -43,6 +43,7 @@ done
 if [ "$ready" != true ]; then echo 'Isolated PostgreSQL did not become ready' >&2; exit 1; fi
 export TEST_KNOWLEDGE_DSN="postgresql://knowledge_test:${password}@127.0.0.1:55439/pv_knowledge_test"
 export KNOWLEDGE_PLAN_OUTPUT="$receipt/exact-vector-explain.json"
+export KNOWLEDGE_PRIVATE_PLAN_OUTPUT="$receipt/private-query-explain.json"
 uv run pytest tests/test_postgres_knowledge.py tests/test_postgres_private.py tests/test_postgres_import.py -q > "$receipt/integration.log" 2>&1
 uv run python -m tests.postgres_restore_fixture
 unset TEST_KNOWLEDGE_DSN

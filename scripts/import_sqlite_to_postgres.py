@@ -21,9 +21,11 @@ async def main() -> int:
     parser.add_argument('--receipt', type=Path, required=True)
     parser.add_argument('--source-quiescent', action='store_true', required=True)
     args = parser.parse_args()
-    dsn = os.environ.get('PRIVATE_DATABASE_URL')
+    dsn = os.environ.get('POSTGRES_IMPORT_DSN')
     if not dsn:
-        print('PRIVATE_DATABASE_URL is required; values are never accepted in command arguments')
+        print(
+            'POSTGRES_IMPORT_DSN is required for the explicit migration identity; no DSN arguments accepted'
+        )
         return 2
     db = PostgresDatabase(dsn, pool_size=2)
     try:
