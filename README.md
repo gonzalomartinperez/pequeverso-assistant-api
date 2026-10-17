@@ -68,26 +68,20 @@ they do not depict the later 2026-10-13 post-tool evaluation or its corrected ba
 
 ## System at a glance
 
-```mermaid
-flowchart LR
-  Visitor[Adult visitor] --> Store[Pequeverso storefront\nNative assistant · disabled by default]
-  Store -->|Session · CSRF · HTTP/SSE /api/v1| API[Assistant API\nFastAPI · one process]
-  Catalog[Storefront catalog\nPinned Git revision] -->|Validated snapshot| API
-  Help[Official Hotmart help\nThree fixed public articles] -.->|Optional server retrieval · default off| API
-  API --> DB[(SQLite\nCatalog · conversations · ledger)]
-  API -->|One bounded Responses call\nGPT-6 Luna · medium| Model[OpenAI]
-  BO[Private backoffice\nNext.js · Better Auth] -->|Server bearer · private ops| API
-  BO --> PG[(PostgreSQL 18.6\nIdentity · sessions · invitations)]
-  API -.->|Opt-in · content-free OTLP| Collector[Private collector\nManaged by vps-ops]
-  Prom[Prometheus 3.13 LTS\nManaged by vps-ops] -.->|Private authenticated scrape| API
-  Collector -.-> TraceStore[Trace backend\nSelected by vps-ops]
-  Graf[Grafana\nManaged by vps-ops] -.-> Prom
-  Graf -.-> TraceStore
-  Ops[vps-ops] -.->|Deployment · TLS · proxy · volumes| API
-  Ops -.-> BO
-  classDef app fill:#fff9ef,stroke:#06305b,color:#06305b;
-  class Store,API,BO app;
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture/system-dark.svg">
+  <img src="docs/architecture/system-light.svg" alt="Assistant API boundaries: public session and CSRF, validated evidence, API-owned SQLite, bounded OpenAI generation, separate backoffice PostgreSQL identity and future private vps-ops observability.">
+</picture>
+
+[Open full-size diagram](docs/architecture/system-light.svg) ·
+[Dark version](docs/architecture/system-dark.svg) ·
+[Editable Mermaid and provenance](docs/architecture/README.md).
+
+The API owns SQLite catalog, conversations and accounting; the backoffice owns its separate
+PostgreSQL identity database. Fixture is the default provider. An authorized real generation uses
+one bounded OpenAI call; optional Hotmart retrieval reads only three fixed official articles and
+is disabled by default. OTLP, private metrics and Grafana are integration responsibilities for
+vps-ops, not evidence of deployment, VPS capacity or production readiness.
 
 | Boundary | Responsibility |
 | --- | --- |
