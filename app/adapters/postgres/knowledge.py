@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import struct
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -20,6 +21,7 @@ from psycopg.types.json import Jsonb
 
 from app.adapters.postgres.database import PostgresDatabase, Row
 from app.application.ports import CatalogParser, StoredSnapshot
+from app.domain.answer_policy import fold
 from app.domain.catalog import Catalog
 from app.domain.knowledge import (
     ChunkKind,
@@ -35,6 +37,126 @@ from app.domain.knowledge import (
 )
 
 MAX_RETRIEVAL_LIMIT = 64
+
+
+# Retrieval treats a visitor turn as natural language, never as a power-search program.
+# The stored vector uses the same PostgreSQL simple dictionary; accents are preserved.
+_SEARCH_STOPWORDS = frozenset(
+    [
+        'a',
+        'al',
+        'algo',
+        'and',
+        'are',
+        'as',
+        'at',
+        'be',
+        'by',
+        'can',
+        'como',
+        'con',
+        'could',
+        'cual',
+        'cuales',
+        'de',
+        'del',
+        'do',
+        'does',
+        'el',
+        'ella',
+        'en',
+        'es',
+        'esa',
+        'ese',
+        'eso',
+        'esta',
+        'este',
+        'esto',
+        'for',
+        'from',
+        'gracias',
+        'hay',
+        'hello',
+        'hola',
+        'how',
+        'i',
+        'in',
+        'is',
+        'it',
+        'la',
+        'las',
+        'lo',
+        'los',
+        'me',
+        'mi',
+        'mis',
+        'no',
+        'of',
+        'on',
+        'or',
+        'para',
+        'pero',
+        'please',
+        'por',
+        'porque',
+        'que',
+        'quiero',
+        'se',
+        'si',
+        'sin',
+        'sobre',
+        'son',
+        'su',
+        'sus',
+        'te',
+        'tell',
+        'tengo',
+        'than',
+        'that',
+        'the',
+        'their',
+        'these',
+        'this',
+        'those',
+        'to',
+        'tu',
+        'un',
+        'una',
+        'uno',
+        'unos',
+        'want',
+        'was',
+        'we',
+        'what',
+        'when',
+        'where',
+        'which',
+        'who',
+        'why',
+        'will',
+        'with',
+        'would',
+        'y',
+        'ya',
+        'yo',
+        'you',
+        'your',
+    ]
+)
+
+
+def _natural_search_query(question: str) -> str:
+    terms: dict[str, None] = {}
+    for token in re.findall(r'[^\W_]+', question.casefold()):
+        if len(token) > 64 or fold(token) in _SEARCH_STOPWORDS:
+            continue
+        if len(token) > 1 or token.isdecimal():
+            terms[token] = None
+            if len(terms) == 32:
+                break
+    # Only regex-filtered lexical tokens and the fixed OR operator enter this VALUE.
+    # SQL itself is fixed and parameterized; visitor quotes/NOT/OR cannot change its grammar.
+    return ' OR '.join(terms)
 
 
 def _json(value: object) -> str:
@@ -435,13 +557,16 @@ class PostgresKnowledgeStore:
         _limit(limit)
         if not question.strip() or len(question.encode()) > 8000:
             return ()
+        query = _natural_search_query(question)
+        if not query:
+            return ()
         async with self._db.pool.connection() as connection:
             rows = await (
                 await connection.execute(
                     "SELECT id,sha256,ts_rank_cd(search,websearch_to_tsquery('simple',%s)) AS score"
                     " FROM knowledge.chunks WHERE version=%s AND search @@ websearch_to_tsquery('simple',%s)"
                     ' ORDER BY score DESC,id LIMIT %s',
-                    (question, version, question, limit),
+                    (query, version, query, limit),
                 )
             ).fetchall()
         return tuple(
