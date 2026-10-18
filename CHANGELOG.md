@@ -29,6 +29,9 @@ independent.
   product is ambiguous. The local policy preserves authorization, rate limits, redaction and
   persisted history without dispatching a generation. Affiliate prompt guidance requests the
   canonical disclosure once; server-side disclosure and commercial validation remain enforced.
+- Local public-catalog scope answers distinguish other visitors' private conversations from
+  public product information, without making claims about own-history retention or provider
+  processing. Mixed requests preserve the existing conversation and safety paths.
 - Reproducible hardened application and database image recipes, health/readiness checks,
   graceful streaming shutdown, persistence and restore procedures. Deployment, shared server
   infrastructure and production acceptance remain the responsibility of vps-ops.
