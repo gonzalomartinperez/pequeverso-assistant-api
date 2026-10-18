@@ -45,6 +45,16 @@ direct-memory limit 64MiB and transaction-memory limits are explicit. These are 
 limits, not measured VPS requirements. The private bridge exposes only loopback ports 17689
 and 17479; a bridge is not an outbound firewall.
 
+The owned image configuration already sets `dbms.usage_report.enabled=false`; this is not a
+new opt-out. On every healthy TCP admission, the smoke connects directly to the loopback Bolt
+server's `system` database and executes `SHOW SETTINGS 'dbms.usage_report.enabled' YIELD name,
+value RETURN name, value`. Exactly one row with string value `false` is required, with no driver
+retry and a three-second query timeout. Missing, enabled, malformed or duplicate settings fail
+before projection assertions. The receipt retains each observed setting row, including a failed
+value; the original smoke and restored-volume startup both check it. The owned HTTP fixture
+helper reuses the same admission method. This adds effective-configuration proof for future
+exact-image smoke runs; source review alone does not establish any existing image's runtime value.
+
 The unchanged vendor JNA jar supplies its matching native library at image-build time. The
 native resource is installed read-only, with its SHA-256 retained; vendor jar/license stay
 intact. The two JNA properties also apply to `neo4j-admin`, allowing `/tmp` to remain noexec.

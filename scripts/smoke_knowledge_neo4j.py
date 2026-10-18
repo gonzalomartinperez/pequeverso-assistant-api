@@ -16,6 +16,8 @@ from dataclasses import asdict
 from pathlib import Path
 from time import monotonic
 
+from neo4j import GraphDatabase, Query
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -56,6 +58,7 @@ class GraphFixture:
         self.network = f'{self.prefix}-net'
         self.volumes = (f'{self.prefix}-data', f'{self.prefix}-restore')
         self.created: list[tuple[str, str]] = []
+        self.usage_report_checks: list[list[dict[str, object]]] = []
         self.result: dict[str, object] = {
             'image_id': image,
             'fixture_only': True,
@@ -64,7 +67,31 @@ class GraphFixture:
             'production_security_gate': 'BLOCKED: upstream CVEs require disposition; no waiver',
             'network': 'dedicated bridge, host ports loopback only; not an egress firewall',
             'capacity': 'functional local cgroup evidence, not a VPS capacity benchmark',
+            'usage_report_checks': self.usage_report_checks,
         }
+
+    def assert_usage_reporting_disabled(self) -> None:
+        """Read the executing loopback server's effective value, not just the image input file."""
+        with (
+            GraphDatabase.driver(
+                'bolt://127.0.0.1:17689',
+                auth=('neo4j', self.password),
+                max_transaction_retry_time=0,
+                connection_timeout=3,
+                connection_acquisition_timeout=3,
+                max_connection_pool_size=1,
+            ) as driver,
+            driver.session(database='system') as session,
+        ):
+            rows = session.run(
+                Query(
+                    "SHOW SETTINGS 'dbms.usage_report.enabled' YIELD name, value RETURN name, value",
+                    timeout=3,
+                )
+            ).data()
+        self.usage_report_checks.append(rows)
+        if rows != [{'name': 'dbms.usage_report.enabled', 'value': 'false'}]:
+            raise RuntimeError('effective Neo4j usage reporting is not explicitly false')
 
     def runtime(self, volume: str) -> None:
         args = [
@@ -133,6 +160,7 @@ class GraphFixture:
                 ]
             )
             if state == 'running healthy':
+                self.assert_usage_reporting_disabled()
                 return monotonic() - started
             if state.startswith('exited'):
                 raise RuntimeError('fixture server exited; inspect private logs')
