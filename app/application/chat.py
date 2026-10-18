@@ -51,6 +51,7 @@ from app.application.ports import (
     RunStore,
     Turn,
 )
+from app.application.provenance import provenance_reply
 from app.application.runs import RunRegistry
 from app.domain.budget import BudgetPolicy, Pricing, Usage, cost_micro, worst_case_micro
 from app.domain.catalog import ActiveCatalog
@@ -620,6 +621,24 @@ class ChatService:
                     spanish_native=response_language == Language.ES.value,
                 )
             redacted = redact_contact_data(question)
+            provenance = provenance_reply(redacted.text, active.catalog, history, language)
+            if provenance is not None:
+                notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
+                user_message = Message(
+                    _message_id(), Role.USER, redacted.text, now, AnswerDetails(notices=notices)
+                )
+                await self.messages.append(session.id, user_message)
+                answer = Message(
+                    _message_id(),
+                    Role.ASSISTANT,
+                    provenance,
+                    now,
+                    AnswerDetails(language=language.value),
+                )
+                await self.messages.append(session.id, answer)
+                await self.runs.finish(run_id, RunState.COMPLETED, answer.id)
+                await self._record_static(run_id, now, RunOutcome.COMPLETED, None, language)
+                return _StaticRun(run_id, user_message, answer)
             web_evidence: tuple[WebEvidence, ...] = ()
             if self.official_help:
                 previous_question = next((m.content for m in reversed(history) if m.role is Role.USER), '')
