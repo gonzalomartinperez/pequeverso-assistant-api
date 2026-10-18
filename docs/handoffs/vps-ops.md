@@ -27,7 +27,8 @@ engine; the backoffice still owns its IAM migrations. vps-ops owns the single se
 resource allocation and deployment. No application starts a competing database controller.
 
 Cross-database admission and table access must be explicitly denied to the other runtime
-identity; do not rely on default PUBLIC CONNECT. A local same-engine drill now covers API31,
+identity; revoke PUBLIC database privileges, including CONNECT, TEMPORARY and CREATE, and
+grant each runtime only its own CONNECT and documented schema/table capabilities. A local same-engine drill covers API31,
 BO18 and BO51 browser tests, independent database restores with matching row hashes, and
 separate least-privilege role probes. The full suites used fixture administrative connections;
 this is not a production-runtime-role browser test or VPS-capacity approval. Follow the

@@ -54,8 +54,9 @@ Bootstrap is an explicit operator job, never HTTP startup:
 
 1. Provision two databases with separate ownership and distinct non-administrative LOGINs.
    Provision credentials privately; no password literal belongs in an SQL recipe or CLI argument.
-2. Revoke default PUBLIC CONNECT on both application databases and unused `postgres`/`template1`
-   databases of this dedicated project engine. Grant CONNECT only to each database's own job
+2. Use `REVOKE ALL ON DATABASE <database> FROM PUBLIC` on both application databases and unused
+   `postgres`/`template1` databases of this dedicated project engine. This removes default
+   CONNECT, TEMPORARY and CREATE privileges. Grant CONNECT only to each database's own job
    and runtime identities. Keep operator access explicit. Revoke PUBLIC CREATE on `public`.
 3. Run API migrations with the separate migration credential: it must create the vector
    extension, schemas and NOLOGIN capability groups. This is privileged setup authority, never
@@ -64,7 +65,8 @@ Bootstrap is an explicit operator job, never HTTP startup:
    Never grant runtime membership of an owner or another capability. BO runtime must not own
    relations, create tables, read migration history or update/delete access-audit rows.
 5. Verify denied cross-database connections with actual LOGINs, not just ACL inspection; verify
-   allowed reads and denied private/public cross-schema reads. Recheck grants after migration.
+   allowed reads and denied TEMP, DDL and private/public cross-schema reads. Recheck grants
+   after migration. Runtime identities must not inherit owner or administrative privileges.
 6. Restore each database independently into an isolated target and compare complete row hashes.
    Database dumps do not contain cluster roles, credentials or HBA rules: provision those
    separately from the private operator secret inventory before restoration.
