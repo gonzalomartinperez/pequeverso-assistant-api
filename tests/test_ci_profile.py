@@ -22,6 +22,7 @@ NAMES = {
     'database': 'Database tests',
     'container': 'Container verification',
     'checks': 'Required checks',
+    'legacy-checks': 'checks',
 }
 NEEDS = {
     'workflows': [],
@@ -30,6 +31,7 @@ NEEDS = {
     'database': ['static'],
     'container': ['static'],
     'checks': ['workflows', 'secrets', 'static', 'database', 'container'],
+    'legacy-checks': ['checks'],
 }
 COMMANDS = {
     'workflows': [],
@@ -80,8 +82,8 @@ def validate(value):
         assert job.get('needs', []) == NEEDS[key]
         assert job['runs-on'] == 'ubuntu-24.04'
         assert not job.get('continue-on-error')
-        assert job.get('if') == ('always()' if key == 'checks' else None)
-        assert job['permissions'] == ({} if key == 'checks' else {'contents': 'read'})
+        assert job.get('if') == ('always()' if key in {'checks', 'legacy-checks'} else None)
+        assert job['permissions'] == ({} if key in {'checks', 'legacy-checks'} else {'contents': 'read'})
         for step in job['steps']:
             assert 'if' not in step
             assert not step.get('continue-on-error')
@@ -94,12 +96,16 @@ def validate(value):
         commands = '\n'.join(step.get('run', '') for step in job['steps'])
         for command in COMMANDS.get(key, []):
             assert command in commands
-        if key != 'checks':
+        if key not in {'checks', 'legacy-checks'}:
             assert 'python3 -m scripts.ci_identity' in commands
     actions = [step.get('uses', '') for step in value['jobs']['workflows']['steps']]
     assert any(action.startswith('raven-actions/actionlint@') for action in actions)
     assert any(action.startswith('zizmorcore/zizmor-action@') for action in actions)
     assert value['jobs']['secrets']['steps'][0]['with']['fetch-depth'] == 0
+    bridge = value['jobs']['legacy-checks']
+    assert len(bridge['steps']) == 1
+    assert bridge['steps'][0]['env'] == {'REQUIRED_RESULT': '${{ needs.checks.result }}'}
+    assert bridge['steps'][0]['run'].strip() == 'test "$REQUIRED_RESULT" = success'
     gate = value['jobs']['checks']
     assert len(gate['steps']) == 1
     assert gate['steps'][0]['env'] == {
@@ -149,8 +155,9 @@ def test_filtered_privileged_or_missing_work_cannot_pass(mode):
         validate(value)
 
 
-def test_actual_aggregate_shell_fails_for_every_missing_or_unsuccessful_job():
-    gate = workflow()['jobs']['checks']['steps'][0]
+@pytest.mark.parametrize('job_id', ['checks', 'legacy-checks'])
+def test_actual_aggregate_shell_fails_for_every_missing_or_unsuccessful_job(job_id):
+    gate = workflow()['jobs'][job_id]['steps'][0]
     green = {name: 'success' for name in gate['env']}
     clean = {name: value for name, value in os.environ.items() if name not in green}
 
@@ -174,6 +181,7 @@ def test_required_check_name_is_unique_across_workflows():
         value = yaml.safe_load(path.read_text())
         names.extend(job.get('name', key) for key, job in value['jobs'].items())
     assert names.count('Required checks') == 1
+    assert names.count('checks') == 1
     assert len(names) == len(set(names))
 
 
@@ -226,3 +234,19 @@ def test_image_identity_rejects_unknown_image_and_invalid_digest():
         ci_identity.image_identity('pv-knowledge-pg:ci')
     with patch.object(ci_identity.subprocess, 'check_output', return_value='sha256:' + 'a' * 64):
         assert ci_identity.image_identity('pv-knowledge-pg:ci') == 'sha256:' + 'a' * 64
+
+
+@pytest.mark.parametrize('mutation', ['skip', 'wrong_result', 'empty_gate', 'unconditional_success'])
+def test_legacy_bridge_cannot_skip_or_replace_the_full_aggregate(mutation):
+    value = workflow()
+    bridge = value['jobs']['legacy-checks']
+    if mutation == 'skip':
+        bridge['if'] = 'success()'
+    elif mutation == 'wrong_result':
+        bridge['steps'][0]['env']['REQUIRED_RESULT'] = '${{ needs.static.result }}'
+    elif mutation == 'empty_gate':
+        bridge['steps'] = []
+    else:
+        bridge['steps'][0]['run'] = 'true'
+    with pytest.raises(AssertionError):
+        validate(value)

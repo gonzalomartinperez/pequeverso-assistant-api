@@ -11,6 +11,7 @@ branches, merge groups and manual runs. The paired API graph is:
 | database | Database tests | static | Own exact PostgreSQL/Neo4j builds; scoped roles, indexing, private state, restore, actual HTTP/SSE and operator/evaluation probes |
 | container | Container verification | static | Own application build and disposable SQLite fixture; readiness, session/stream, origin/auth enforcement, backup/restore, persistence and shutdown |
 | checks | Required checks | all five above | Every prerequisite must be success |
+| legacy-checks | checks | checks | Compatibility bridge: the full Required checks aggregate must be success |
 
 The source baseline is `0422c74aa25644978122232bcaae08fdf8c32310`. Its reported
 1143 offline passes and 40 service-dependent skips are historical inventory, not
@@ -53,8 +54,14 @@ job identities, dependencies, events, trust boundaries and substantive commands.
 Real database/container validation requires the hosted workflow or an explicitly
 authorized isolated service lease. CPU-only tests do not prove those checks.
 
-The owner must first observe the exact new `Required checks` context from GitHub
-Actions on a green candidate, add it alongside existing required `checks`, verify
-enforcement, and only then remove the old context. No settings change, bypass,
-merge or production action is performed by this source increment. Paired parity
-and release acceptance remain pending exact-head remote runs and that transition.
+The existing protected context remains `checks`. Its native, temporary compatibility
+job runs even when its prerequisite fails or is skipped, and succeeds only when the
+complete `Required checks` aggregate succeeds. It cannot independently approve a
+candidate. All five substantive jobs and the full aggregate remain unchanged; this
+transitional profile therefore contains seven jobs. No manual status is synthesized,
+and no ruleset or branch protection is changed to integrate it.
+
+Renaming the protected context or removing this bridge requires separate explicit
+authorization and verification of enforcement. Paired parity and release acceptance
+remain subject to every exact-head hosted check; this source increment authorizes
+no merge, deployment or production activation.

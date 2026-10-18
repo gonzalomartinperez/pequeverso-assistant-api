@@ -48,8 +48,8 @@ their compatibility and historical messages. Read this file, then the doc for yo
   Flow: `hotfix/<kebab-case>` from `main` → PR into `main` (merge commit) → PR `main` → `develop`
   (merge commit). Skill: `.agents/skills/release-and-hotfix/SKILL.md`.
 - Both branches are protected (as in portfolio-assistant-api): PR required, strict required status
-  `checks` pending the additive migration to `Required checks` (see `docs/ci.md`), no force push
-  or deletion, no bypass. The agent uses the owner's GitHub account, so
+  `checks` (a compatibility bridge to the full `Required checks` aggregate; see `docs/ci.md`),
+  no force push or deletion, no bypass. The agent uses the owner's GitHub account, so
   the hotfix authorization is this written rule, not a GitHub setting: never use `--admin`, never
   push to `main`, never change the protection to get a merge through.
   Conventional Commits; the PR body states what was verified and what was not.
