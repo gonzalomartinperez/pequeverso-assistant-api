@@ -15,7 +15,7 @@ RUN apk add --no-cache build-base=0.5-r4 clang21=21.1.8-r3 llvm21-dev=21.1.8-r1 
 FROM postgres:18.6-alpine3.24@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
 # Retain XML/ICU and the official entrypoint; compiler/toolchain files stay in vector-build.
 COPY --from=vector-build /extension/ /
-RUN apk add --no-cache libxml2=2.13.9-r2 \
+RUN apk add --no-cache libxml2=2.13.9-r2 nghttp2-libs=1.70.0-r0 zlib=1.3.2-r1 \
     && rm /usr/local/bin/gosu \
     && test "$(id -u postgres)" = 70 && test "$(id -g postgres)" = 70 \
     && test -f /usr/local/share/postgresql/extension/vector--0.8.7.sql \
