@@ -68,6 +68,11 @@ silent takeover. A shared database alone does not make this runtime HA or multi-
 
 Health paths are internal; the public proxy routes only `/api/*`.
 
+The PostgreSQL image probes TCP at `127.0.0.1`, not its Unix socket. The official entrypoint
+starts a socket-only temporary server during initialization; that server must not satisfy
+service readiness. A ready PostgreSQL listener does not prove migrations, capability roles,
+active knowledge or API readiness; verify those separately.
+
 ## Private operations API
 
 `GET /internal/v1/ops/summary` (schema `contracts/ops.schema.json`, example
