@@ -161,13 +161,21 @@ const coreDocuments = [
       url: support,
     })),
 ];
+// Optional producer-attributed facts stay public product evidence, never provider instructions.
+// Older storefront revisions without details continue to export their existing overview.
+function affiliateCourseEvidence(id: string): string {
+  const details = affiliates.find((product) => product.slug === id)?.details;
+  if (!details) return "";
+  return ` Según la descripción de su productora, ${details.producerName}: ${details.modules.length} módulos en video (${details.modules.join("; ")}) y ${details.bonuses.length} bonos (${details.bonuses.join("; ")}).`;
+}
+
 const documents = [
   ...coreDocuments.map((document) => ({ ...document, product_ids: coreIds })),
   ...affiliateProducts.flatMap((product) => [
     {
       id: `affiliate.${product.id}.overview`, kind: "faq",
       title: `¿Qué enseña ${product.name.startsWith("Guía ") ? "la " : ""}${product.name}?`,
-      text: `${product.format}. ${product.summary}. ${product.topics.join(" ")} ${product.disclosure}`,
+      text: `${product.format}. ${product.summary}. ${product.topics.join(" ")}${affiliateCourseEvidence(product.id) || ` ${product.disclosure}`}`,
       url: abs(product.path), product_ids: [product.id],
     },
     {

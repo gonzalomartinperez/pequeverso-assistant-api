@@ -232,6 +232,12 @@ for historical messages. See [catalog](docs/catalog.md) and [contract](docs/api-
 Fixture tests prove transport, grounded metadata, history and replay; they do not establish
 real-model quality, a functioning affiliate redirect or readiness of an undeployed VPS.
 
+The [dated real-model evaluation](docs/verification/real-evaluation-2026-10-18.md) records the
+complete229-turn application run, agent semantic review, preserved defects and usage estimates.
+The [exact-image PostgreSQL report](docs/verification/postgres-alpine-2026-10-18.md) distinguishes
+the patched local engine from historical images and retains API/Neo4j deployment blockers.
+Neither report authorizes production activation.
+
 ## Software license
 
 Owner-authored software and technical documentation use the [MIT License](LICENSE).

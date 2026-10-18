@@ -1,7 +1,7 @@
 # PostgreSQL Alpine candidate — 2026-10-18
 
-Status: local baseline image and isolated functional checks executed on2026-10-18. The
-subsequent two-package security patch still requires its own exact-image verification. No
+Status: the baseline and subsequent two-package security patch were built, smoke-tested and
+scanned as distinct exact images on2026-10-18. No
 deployment, production acceptance or physical-volume migration was performed. Previous
 dated Debian measurements keep their original source and image identities.
 
@@ -116,9 +116,8 @@ does not validate all collations,1536-dimensional migration, real backups or VPS
 
 A fresh2026-10-18 baseline image scan found0 critical,0 high and2 medium rows: nghttp2-libs
 and zlib, both with compatible fixes in the same official Alpine main repository. The recipe
-now pins `nghttp2-libs=1.70.0-r0` and `zlib=1.3.2-r1`; **the preceding scan and tests do not
-validate that changed image**. A new image, smoke and scan are required before closing this
-patch. No finding is suppressed or waived.
+now pins `nghttp2-libs=1.70.0-r0` and `zlib=1.3.2-r1`. The original baseline findings remain preserved. The separately verified
+patched image is described below; no finding was suppressed or waived.
 
 The separate retained Neo4j5.26.32LTS image scan, using vulnerability and Java databases dated
 2026-10-18, reported0 critical/50 high/78 medium/80 low/1 unknown. Four high rows are shaded
@@ -130,3 +129,43 @@ All measurements are local, synthetic and source/image-specific. vps-ops must ex
 an immutable candidate, map new volume ownership, choose HBA/CIDRs and resource limits,
 validate actual backup recovery and run the external HTTPS/cookie/CORS/SSE checks. Never
 attach a historical999-owned physical cluster to70 or recursively chown shared volumes.
+
+
+## Patched exact image and revalidation
+
+The patched PostgreSQL image is
+`sha256:df480978a6e0294fca333996ad51874b72afebffdf458a89dc5c260f383d9a9e`,
+built with the same pinned PostgreSQL18.6/pgvector0.8.7 inputs and the two compatible Alpine
+patches. Docker reports123605498 bytes (about24.5% below the historical163740145-byte Debian
+image); this is image metadata, not measured transfer size or reclaimed disk space.
+
+- Its isolated smoke passed38 tests and6 subtests, covering logging privacy, role boundaries,
+  logical restore, restart and shutdown. The runtime still declares70:70 and retains XML/ICU.
+- Revalidation against the patched engine passed4 real HTTP/SSE fixture tests,2 cold/reuse
+  indexing jobs and19 backoffice IAM tests with zero schema drift and no skipped DB tests.
+- The2026-10-18 exact-image scan found0 critical/high/medium/low/unknown rows. Its vulnerability
+  JSON SHA256 is `2904e0ff0ba9df46eed7148bab2d38a06abb4054f02ea17738fd0ca14df461cb`;
+  the CycloneDX SBOM SHA256 is
+  `d2842cebab54d31c9d9171ecca93bc50217f0776ca07181d327f950eea1e57b9`. This dated database
+  snapshot does not establish universal security or future acceptance.
+
+The separately built API image from source
+`c4c3340bd84734e4f71589154d5ab1a71b79c7a2` is
+`sha256:daa35b4e034cb2fb52b9250e4f8bc85e5d3063a6b812a82f331bf166bd379d6f`.
+Its95 runtime payload files matched that source, UID65532, read-only root and dropped
+capabilities. Fixture session/CSRF/HTTP/SSE, private operations, a2-message restore and4
+concurrent fixture runs passed; graceful stop took2.516s locally. Docker reports78536819
+bytes. Neither that timing nor the local run establishes VPS capacity.
+
+The same dated scan found API0 critical/44 high/58 medium/61 low/1 unknown, with no fixable
+rows reported in the selected compatible image. Retained Neo4j findings remain as above.
+**API and Neo4j deployment remain blocked by these unresolved findings.** No image was
+published or deployed. Operators must retain the SBOMs, recheck current advisories and select
+compatible remediation rather than treating a successful smoke as production approval.
+
+The consolidated local receipt SHA256 is
+`8de4db6eca17be5b020a7dc0d061f74dddfa8e615256c3a5056a63e11dc23d3e`.
+Failed external harness attempts remain preserved: an import-path error before Docker, a
+read-only scanner-cache error before vulnerability analysis, and the earlier cleanup observer
+error. They are not silently relabeled as successful runs. The corrected owned-resource
+executions finished and removed their own services; no shared volume was deleted.

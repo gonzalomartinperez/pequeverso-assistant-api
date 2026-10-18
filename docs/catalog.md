@@ -41,7 +41,7 @@ support promises. Retrieval keeps both product records for comparisons, scopes s
 to explicit product mentions, and uses the latest assistant's structured product references for
 follow-ups. A genuinely ambiguous question is clarified. Conversations are never indexed as
 knowledge. Prices remain subject to freshness and null prices cannot borrow the kit price.
-Bounded positive-claim recognizers reject explicit patterns such as curing anemia or preventing allergies/choking; this is not complete semantic verification. The prompt adds medical boundaries, and real-model review remains pending;
+Bounded positive-claim recognizers reject explicit patterns such as curing anemia or preventing allergies/choking; this is not complete semantic verification. The prompt adds medical boundaries; the dated real-model evaluation and its remaining defects are recorded in [the evaluation report](verification/real-evaluation-2026-10-18.md);
 the assistant may describe course topics, not prescribe personal diets or medical treatment.
 
 The initial affiliate-catalog increment closed the earlier coverage gap without adding a
@@ -126,3 +126,19 @@ and grants no license. The owner has been asked to confirm this use (docs/busine
 The catalog remains the only authority for products, prices and merchant policies. Optional
 [official platform evidence](official-web-evidence.md) explains general buyer procedures only;
 its fetch time cannot refresh catalog price verification or change a merchant guarantee.
+
+
+## Attributed producer detail export
+
+The optional storefront affiliate `details` block supplies neutral module summaries, bonus
+topics and the producer name from owner-supplied producer copy received2026-10-18. The exporter
+adds these to that product's existing `affiliate.<id>.overview` document, keeping the same
+wire schema, document ID and product scope. A storefront revision without `details` retains
+its earlier overview. No deployment variable, external scrape, private evaluation question,
+professional credential or outcome promise is added. The overview explicitly attributes this
+commercial evidence; it does not assert independent credential verification or medical advice.
+
+Only synchronize after the referenced storefront source reaches `main` and its public build
+is checked. A new catalogue changes the exact GraphRAG version/hash and requires reindexing
+public records, targeted retrieval and response checks. Preserve earlier run/catalogue
+identities; a later catalogue must not be presented as the source of an earlier evaluation.
