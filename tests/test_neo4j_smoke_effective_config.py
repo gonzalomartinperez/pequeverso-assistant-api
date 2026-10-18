@@ -27,6 +27,8 @@ def test_effective_usage_setting_uses_direct_bolt_system_database_and_no_retry(m
         'bolt://127.0.0.1:17689',
         auth=('neo4j', fixture.password),
         max_transaction_retry_time=0,
+        disable_auto_commit_retries=True,
+        telemetry_disabled=True,
         connection_timeout=3,
         connection_acquisition_timeout=3,
         max_connection_pool_size=1,
@@ -35,6 +37,34 @@ def test_effective_usage_setting_uses_direct_bolt_system_database_and_no_retry(m
     query = session.run.call_args.args[0]
     assert query.text == ("SHOW SETTINGS 'dbms.usage_report.enabled' YIELD name, value RETURN name, value")
     assert query.timeout == 3
+
+
+def test_smoke_flags_reach_real_sdk_pool_and_session_configuration(monkeypatch):
+    actual_factory = smoke.GraphDatabase.driver
+    observed = []
+
+    def create(*args, **kwargs):
+        driver = actual_factory(*args, **kwargs)
+        assert driver._pool.pool_config.telemetry_disabled is True
+        session = driver.session(database='system')
+        assert session._config.disable_auto_commit_retries is True
+        assert session._config.max_transaction_retry_time == 0
+        session.close()
+        result_session = MagicMock()
+        result_session.__enter__.return_value.run.return_value.data.return_value = [
+            {'name': 'dbms.usage_report.enabled', 'value': 'false'}
+        ]
+        monkeypatch.setattr(driver, 'session', lambda **options: result_session)
+        observed.append(driver)
+        return driver
+
+    monkeypatch.setattr(smoke.GraphDatabase, 'driver', create)
+    fixture = smoke.GraphFixture.__new__(smoke.GraphFixture)
+    fixture.password = 'synthetic-fixture-password'
+    fixture.usage_report_checks = []
+    fixture.assert_usage_reporting_disabled()
+    assert len(observed) == 1
+    assert observed[0]._closed is True
 
 
 @pytest.mark.parametrize(

@@ -28,6 +28,8 @@ class Neo4jDatabase:
             connection_timeout=3.0,
             connection_acquisition_timeout=3.0,
             max_transaction_retry_time=0.0,
+            disable_auto_commit_retries=True,
+            telemetry_disabled=True,
             max_connection_lifetime=300.0,
         )
         self._closed = False

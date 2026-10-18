@@ -77,6 +77,8 @@ class GraphFixture:
                 'bolt://127.0.0.1:17689',
                 auth=('neo4j', self.password),
                 max_transaction_retry_time=0,
+                disable_auto_commit_retries=True,
+                telemetry_disabled=True,
                 connection_timeout=3,
                 connection_acquisition_timeout=3,
                 max_connection_pool_size=1,
