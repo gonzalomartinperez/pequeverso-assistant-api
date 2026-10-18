@@ -28,6 +28,7 @@ from app.adapters.graph.composer import GraphAnswerComposer
 from app.adapters.official_help import OfficialHelpReader
 from app.adapters.postgres.database import PostgresDatabase
 from app.adapters.postgres.knowledge import PostgresKnowledgeStore
+from app.adapters.postgres.product_analytics import PostgresProductAnalytics
 from app.adapters.providers.fixture_provider import FixtureProvider
 from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
 from app.adapters.providers.openai_provider import OpenAIResponsesProvider
@@ -40,6 +41,7 @@ from app.application.knowledge import HybridKnowledgeRetrieval
 from app.application.knowledge_ports import EmbeddingAccounting, Embeddings
 from app.application.operations import OperationsService, ServiceInfo
 from app.application.ports import AnswerComposer, CatalogSource, Clock
+from app.application.product_analytics import AnalyticsService
 from app.application.runs import RunRegistry
 from app.application.sessions import SessionLimits, SessionService
 from app.bootstrap.config import Settings, get_settings
@@ -48,8 +50,10 @@ from app.bootstrap.persistence import build_persistence
 from app.bootstrap.provider_transport import close_owned_provider, provider_http_client
 from app.domain.budget import BudgetPolicy, Pricing, to_micro
 from app.presentation.http import CookiePolicy, HttpSettings, Services, health, install_error_handlers, router
-from app.presentation.middleware import BodyLimitMiddleware, OriginMiddleware, RequestContextMiddleware
+from app.presentation.middleware import OriginMiddleware, RequestContextMiddleware
 from app.presentation.operations import build_router as build_operations_router
+from app.presentation.product_analytics import AnalyticsBodyLimitMiddleware
+from app.presentation.product_analytics import build_router as build_analytics_router
 from app.presentation.streaming import ResponseCleanups
 
 log = logging.getLogger(__name__)
@@ -129,6 +133,10 @@ def create_app(
     parser = CatalogParser(frozenset(settings.catalog_allowed_hosts))
     persistence = build_persistence(settings, parser)
     db = persistence.database
+    analytics: AnalyticsService | None = None
+    if settings.product_analytics_enabled:
+        assert isinstance(db, PostgresDatabase)
+        analytics = AnalyticsService(PostgresProductAnalytics(db), synthetic=True)
     stores_rate = persistence.rates
     sessions_store = persistence.sessions
     messages = persistence.messages
@@ -259,6 +267,8 @@ def create_app(
                 return False
             if isinstance(db, PostgresDatabase) and not await db.runtime_ownership_alive():
                 return False
+            if analytics is not None and not await analytics.repository.ready():
+                return False
             return knowledge is None or (catalog.synchronized and await knowledge.ready(catalog.active))
         except Exception:  # noqa: BLE001
             return False
@@ -320,6 +330,8 @@ def create_app(
                     # Hold the dedicated connection until all streams and tasks have drained.
                     # An overlapping instance must fail before touching another owner's runs.
                     await resources.enter_async_context(db.runtime_ownership())
+                if analytics is not None and not await analytics.repository.ready():
+                    raise RuntimeError('product analytics requires the exact offline schema migration')
                 abandoned = await runs.abandon_active()
                 await ledger.abandon_pending()
                 if abandoned:
@@ -388,12 +400,26 @@ def create_app(
     )
     app.include_router(router)
     app.include_router(health)
+    analytics_digest = (
+        hashlib.sha256(settings.ops_read_token.get_secret_value().encode()).digest()
+        if settings.ops_read_token is not None
+        else None
+    )
+    app.include_router(
+        build_analytics_router(
+            analytics,
+            enabled=settings.product_analytics_enabled,
+            token_digest=analytics_digest,
+            origins=tuple(settings.allowed_origins),
+            clock=clock,
+        )
+    )
     if settings.ops_read_token is not None:
         digest = hashlib.sha256(settings.ops_read_token.get_secret_value().encode()).digest()
         app.include_router(build_operations_router(operations, digest, telemetry))
     install_error_handlers(app)
     # Outermost first at runtime: context → CORS → origin policy → body limit → routes.
-    app.add_middleware(BodyLimitMiddleware, max_bytes=settings.max_body_bytes)
+    app.add_middleware(AnalyticsBodyLimitMiddleware, max_bytes=settings.max_body_bytes)
     app.add_middleware(OriginMiddleware, allowed_origins=settings.allowed_origins)
     app.add_middleware(
         CORSMiddleware,

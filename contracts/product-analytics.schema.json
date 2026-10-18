@@ -1,0 +1,391 @@
+{
+  "$defs": {
+    "Cell": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 7,
+          "minimum": 0,
+          "title": "X",
+          "type": "integer"
+        },
+        "y": {
+          "maximum": 7,
+          "minimum": 0,
+          "title": "Y",
+          "type": "integer"
+        },
+        "count": {
+          "maximum": 310000,
+          "minimum": 3,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "count"
+      ],
+      "title": "Cell",
+      "type": "object"
+    },
+    "Country": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "unknown",
+            "withheld"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "count": {
+          "maximum": 310000,
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code",
+        "count"
+      ],
+      "title": "Country",
+      "type": "object"
+    },
+    "Counts": {
+      "additionalProperties": false,
+      "properties": {
+        "page_views": {
+          "maximum": 310000,
+          "minimum": 0,
+          "title": "Page Views",
+          "type": "integer"
+        },
+        "section_views": {
+          "maximum": 310000,
+          "minimum": 0,
+          "title": "Section Views",
+          "type": "integer"
+        },
+        "public_clicks": {
+          "maximum": 310000,
+          "minimum": 0,
+          "title": "Public Clicks",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page_views",
+        "section_views",
+        "public_clicks"
+      ],
+      "title": "Counts",
+      "type": "object"
+    },
+    "Daily": {
+      "additionalProperties": false,
+      "properties": {
+        "page_views": {
+          "maximum": 310000,
+          "minimum": 0,
+          "title": "Page Views",
+          "type": "integer"
+        },
+        "section_views": {
+          "maximum": 310000,
+          "minimum": 0,
+          "title": "Section Views",
+          "type": "integer"
+        },
+        "public_clicks": {
+          "maximum": 310000,
+          "minimum": 0,
+          "title": "Public Clicks",
+          "type": "integer"
+        },
+        "day": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Day",
+          "type": "string"
+        }
+      },
+      "required": [
+        "page_views",
+        "section_views",
+        "public_clicks",
+        "day"
+      ],
+      "title": "Daily",
+      "type": "object"
+    },
+    "Grid": {
+      "additionalProperties": false,
+      "properties": {
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        },
+        "visible_clicks": {
+          "maximum": 310000,
+          "minimum": 0,
+          "title": "Visible Clicks",
+          "type": "integer"
+        },
+        "withheld_clicks": {
+          "maximum": 310000,
+          "minimum": 0,
+          "title": "Withheld Clicks",
+          "type": "integer"
+        },
+        "unselected_clicks": {
+          "maximum": 310000,
+          "minimum": 0,
+          "title": "Unselected Clicks",
+          "type": "integer"
+        },
+        "cells": {
+          "items": {
+            "$ref": "#/$defs/Cell"
+          },
+          "maxItems": 64,
+          "title": "Cells",
+          "type": "array"
+        }
+      },
+      "required": [
+        "available",
+        "visible_clicks",
+        "withheld_clicks",
+        "unselected_clicks",
+        "cells"
+      ],
+      "title": "Grid",
+      "type": "object"
+    },
+    "SelectionOut": {
+      "additionalProperties": false,
+      "properties": {
+        "period": {
+          "enum": [
+            "day",
+            "week",
+            "month"
+          ],
+          "title": "Period",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "route": {
+          "enum": [
+            "all",
+            "/",
+            "/grafismo-fonetico/"
+          ],
+          "title": "Route",
+          "type": "string"
+        },
+        "section_id": {
+          "enum": [
+            "all",
+            "hero",
+            "leer",
+            "bebe",
+            "preguntas",
+            "incluye",
+            "metodo"
+          ],
+          "title": "Section Id",
+          "type": "string"
+        },
+        "viewport_bucket": {
+          "enum": [
+            "all",
+            "mobile",
+            "tablet",
+            "desktop"
+          ],
+          "title": "Viewport Bucket",
+          "type": "string"
+        },
+        "locale": {
+          "const": "es",
+          "title": "Locale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "period",
+        "offset",
+        "route",
+        "section_id",
+        "viewport_bucket",
+        "locale"
+      ],
+      "title": "SelectionOut",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "project": {
+      "const": "pequeverso",
+      "default": "pequeverso",
+      "title": "Project",
+      "type": "string"
+    },
+    "layout_revision": {
+      "const": "pequeverso-v1",
+      "default": "pequeverso-v1",
+      "title": "Layout Revision",
+      "type": "string"
+    },
+    "profile_source_revision": {
+      "const": "88d6d0add414261e5ccf5bd3e2b21285e1a33179",
+      "default": "88d6d0add414261e5ccf5bd3e2b21285e1a33179",
+      "title": "Profile Source Revision",
+      "type": "string"
+    },
+    "synthetic": {
+      "const": true,
+      "title": "Synthetic",
+      "type": "boolean"
+    },
+    "coverage": {
+      "const": "received_events_only",
+      "default": "received_events_only",
+      "title": "Coverage",
+      "type": "string"
+    },
+    "timezone": {
+      "const": "UTC",
+      "default": "UTC",
+      "title": "Timezone",
+      "type": "string"
+    },
+    "country_collection": {
+      "const": "disabled",
+      "default": "disabled",
+      "title": "Country Collection",
+      "type": "string"
+    },
+    "retention_days": {
+      "const": 93,
+      "default": 93,
+      "title": "Retention Days",
+      "type": "integer"
+    },
+    "min_bucket": {
+      "const": 3,
+      "default": 3,
+      "title": "Min Bucket",
+      "type": "integer"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "selection": {
+      "$ref": "#/$defs/SelectionOut"
+    },
+    "start": {
+      "format": "date-time",
+      "title": "Start",
+      "type": "string"
+    },
+    "end": {
+      "format": "date-time",
+      "title": "End",
+      "type": "string"
+    },
+    "partial": {
+      "title": "Partial",
+      "type": "boolean"
+    },
+    "first_observed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "First Observed At"
+    },
+    "last_observed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Last Observed At"
+    },
+    "totals": {
+      "$ref": "#/$defs/Counts"
+    },
+    "daily": {
+      "items": {
+        "$ref": "#/$defs/Daily"
+      },
+      "maxItems": 31,
+      "title": "Daily",
+      "type": "array"
+    },
+    "countries": {
+      "items": {
+        "$ref": "#/$defs/Country"
+      },
+      "maxItems": 1,
+      "title": "Countries",
+      "type": "array"
+    },
+    "grid": {
+      "$ref": "#/$defs/Grid"
+    }
+  },
+  "required": [
+    "schema_version",
+    "project",
+    "layout_revision",
+    "profile_source_revision",
+    "synthetic",
+    "coverage",
+    "timezone",
+    "country_collection",
+    "retention_days",
+    "min_bucket",
+    "generated_at",
+    "selection",
+    "start",
+    "end",
+    "partial",
+    "first_observed_at",
+    "last_observed_at",
+    "totals",
+    "daily",
+    "countries",
+    "grid"
+  ],
+  "title": "ReportOut",
+  "type": "object"
+}

@@ -68,3 +68,12 @@ directory containing one relative directory symlink per skill to the same canoni
 Automatic/default discovery remains enabled; load only the skill matching the task. See
 `docs/agent-skills.md`. Validate with `python -m scripts.validate_skills`; skills never add
 authority for paid calls, deployment, cross-repository edits or protected-branch mutations.
+
+## Local product analytics fixture exception
+
+The owner-authorized three-event fixture channel is separate from assistant operations and RAG.
+Follow `docs/product-analytics.md`: default OFF, nonproduction/fixture/PostgreSQL only, country OFF,
+closed Peque public profile, content-free scoped aggregates and private server-only bearer reads.
+No Store collector, advertising/consent changes, identity joins, model calls or production
+collection are authorized by implementing or testing this channel. Preserve existing chat/ops/
+telemetry contracts and migration history. Real PG/BO/browser proof needs its own fresh lease.

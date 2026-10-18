@@ -49,6 +49,7 @@ from app.presentation.middleware import error_payload
 from app.presentation.operations import OpsSummaryOut
 from app.presentation.schemas import CONTRACT_REVISION, AvailabilityOut, LimitsOut, MessageOut, SessionOut
 from app.presentation.telemetry import OpsTelemetryOut
+from contracts.product_analytics import artifacts as product_analytics_artifacts
 
 ROOT = Path(__file__).resolve().parent
 CONTRACT_VERSION = '1'
@@ -248,6 +249,7 @@ def build() -> dict[str, bytes]:
             {code.value: error_payload(code, 'req_EXAMPLE') for code in FailureCode}
         ),
     }
+    artifacts.update(product_analytics_artifacts())
     manifest = {
         'contract_version': CONTRACT_VERSION,
         'contract_revision': CONTRACT_REVISION,

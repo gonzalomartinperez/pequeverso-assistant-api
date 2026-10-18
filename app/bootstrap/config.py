@@ -77,6 +77,8 @@ class Settings(BaseSettings):
     client_hash_key: SecretStr = SecretStr(DEV_CLIENT_HASH_KEY)
 
     # App-owned observability, disabled until explicitly configured by infrastructure.
+    product_analytics_enabled: bool = False
+    product_analytics_country_enabled: bool = False
     observability_enabled: bool = False
     telemetry_otlp_endpoint: str | None = None
     telemetry_trace_sampling_ratio: float = Field(default=0.1, ge=0, le=1)
@@ -196,6 +198,14 @@ class Settings(BaseSettings):
                 and (self.application_storage != 'postgres' or self.knowledge_backend != 'graphrag')
             ):
                 raise ValueError('production answers require PostgreSQL application storage and GraphRAG')
+        if self.product_analytics_country_enabled:
+            raise ValueError('product analytics country collection is not implemented')
+        if self.product_analytics_enabled and (
+            self.environment == 'production'
+            or self.ai_provider != 'fixture'
+            or self.application_storage != 'postgres'
+        ):
+            raise ValueError('product analytics is local PostgreSQL fixture-only')
         if self.application_storage == 'postgres' and self.postgres_private_dsn is None:
             raise ValueError('PostgreSQL application storage requires POSTGRES_PRIVATE_DSN')
         if self.knowledge_backend == 'graphrag' and not (

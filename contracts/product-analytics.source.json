@@ -1,0 +1,46 @@
+{
+  "profile_source_revision": "88d6d0add414261e5ccf5bd3e2b21285e1a33179",
+  "source_repository": "gonzalomartinperez/pequeverso",
+  "layout_revision": "pequeverso-v1",
+  "routes": {
+    "/": [
+      "hero",
+      "leer",
+      "bebe",
+      "preguntas"
+    ],
+    "/grafismo-fonetico/": [
+      "hero",
+      "incluye",
+      "metodo",
+      "preguntas"
+    ]
+  },
+  "locales": [
+    "es"
+  ],
+  "viewport_widths_css_px": {
+    "mobile": [
+      0,
+      767
+    ],
+    "tablet": [
+      768,
+      1023
+    ],
+    "desktop": [
+      1024,
+      null
+    ]
+  },
+  "public_endpoint": "/api/v1/analytics/events",
+  "private_endpoint": "/internal/v1/ops/product-analytics",
+  "scope": "committed_profile_reference_not_production_collection_or_deployment",
+  "pointer_only_clicks": true,
+  "country_collection": "disabled",
+  "artifacts_sha256": {
+    "site-experience-pequeverso-v1.schema.json": "10264058e6c9b26fd308f51eaa2b9286b352b418e2c625511caf22d0e9c7dcf7",
+    "product-analytics.schema.json": "a3da0d55794a815ec585417bd68c987b031ceeadbb9e0d2273352a35cda7cf1b",
+    "examples/product-analytics.json": "3662d1a6ae8e5b34903baa6c57a0d0bec8a350f088eaefc607aeab2fec2e0292"
+  }
+}
