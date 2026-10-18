@@ -7,7 +7,7 @@ branches, merge groups and manual runs. The paired API graph is:
 | --- | --- | --- | --- |
 | workflows | Workflow validation | — | actionlint and zizmor |
 | secrets | Secret scan | — | Full-history redacted gitleaks |
-| static | Static checks | — | Frozen install, Ruff, strict Mypy, full pytest, contract drift, retrieval and fixture conversation evaluations |
+| static | Static checks | — | Frozen install, Ruff, strict Mypy, pinned Node24.22.0 local fixture regression (10s, no browser/network), full pytest, contract drift, retrieval and fixture conversation evaluations |
 | database | Database tests | static | Own exact PostgreSQL/Neo4j builds; scoped roles, indexing, private state, restore, actual HTTP/SSE and operator/evaluation probes |
 | container | Container verification | static | Own application build and disposable SQLite fixture; readiness, session/stream, origin/auth enforcement, backup/restore, persistence and shutdown |
 | checks | checks | all five above | Every prerequisite must be success |

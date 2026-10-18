@@ -103,6 +103,13 @@ jobs:
         run: uv run python -m scripts.validate_skills
       - name: Mypy (strict)
         run: uv run mypy
+      - name: Setup Node for local fixture regression
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.0
+          package-manager-cache: false
+      - name: Local analytics pointer fixture regression (no browser or network)
+        run: timeout 10s node --test tests/fixtures/product-analytics-pointer.test.cjs
       - name: Tests
         run: uv run pytest -q
       - name: Contract artifacts are current

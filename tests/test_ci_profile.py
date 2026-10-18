@@ -97,6 +97,18 @@ def validate(value):
             assert command in commands
         if key != 'checks':
             assert 'python3 -m scripts.ci_identity' in commands
+    static_steps = value['jobs']['static']['steps']
+    setup = [step for step in static_steps if step.get('uses', '').startswith('actions/setup-node@')]
+    assert len(setup) == 1
+    assert setup[0]['uses'] == 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
+    assert setup[0]['with'] == {'node-version': '24.22.0', 'package-manager-cache': False}
+    fixture = [
+        step
+        for step in static_steps
+        if step.get('run') == 'timeout 10s node --test tests/fixtures/product-analytics-pointer.test.cjs'
+    ]
+    assert len(fixture) == 1
+    assert static_steps.index(setup[0]) < static_steps.index(fixture[0])
     actions = [step.get('uses', '') for step in value['jobs']['workflows']['steps']]
     assert any(action.startswith('raven-actions/actionlint@') for action in actions)
     assert any(action.startswith('zizmorcore/zizmor-action@') for action in actions)
@@ -245,5 +257,26 @@ def test_required_aggregate_cannot_skip_or_replace_any_prerequisite(mutation):
         gate['steps'] = []
     else:
         gate['steps'][0]['run'] = 'true'
+    with pytest.raises(AssertionError):
+        validate(value)
+
+
+@pytest.mark.parametrize('mutation', ['missing_setup', 'version', 'unpin', 'missing_test', 'order'])
+def test_pointer_fixture_regression_cannot_be_removed_or_unpinned(mutation):
+    value = workflow()
+    steps = value['jobs']['static']['steps']
+    setup = next(step for step in steps if 'actions/setup-node@' in step.get('uses', ''))
+    fixture = next(step for step in steps if 'node --test' in step.get('run', ''))
+    if mutation == 'missing_setup':
+        steps.remove(setup)
+    elif mutation == 'version':
+        setup['with']['node-version'] = '24'
+    elif mutation == 'unpin':
+        setup['uses'] = 'actions/setup-node@main'
+    elif mutation == 'missing_test':
+        steps.remove(fixture)
+    else:
+        steps.remove(setup)
+        steps.append(setup)
     with pytest.raises(AssertionError):
         validate(value)
