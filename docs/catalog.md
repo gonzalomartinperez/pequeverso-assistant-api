@@ -70,12 +70,14 @@ only; before enabling the assistant, reconcile the snapshot with the actually de
 storefront revision and its public commercial content. Do not use repeated exports as proof
 of production freshness.
 
-The script reads the storefront through `git archive <sha>` into a temporary directory. No
-storefront working tree, branch or index is touched. It links the storefront's installed
-`node_modules` read-only and runs `tools/catalog/export.ts` with Node, so every value comes
-from the storefront modules (`src/products`, `config/commerce.ts`, `content/es/**`). Review the
-diff (prices, counts, policy text) in a PR like any code change. Tests assert that the page
-counts sum, that the offer never appears, and that every URL is https on an allowlisted host.
+The script reads the committed storefront revision through `git archive <sha>` into a temporary
+directory. No storefront working tree, branch or index is touched. It links the storefront's
+installed `node_modules` read-only, copies this API repository's `tools/catalog/export.ts` into
+the archive, and runs that exporter with Node. Product facts come from the archived storefront
+modules (`src/products`, `config/commerce.ts`, `content/es/**`), never uncommitted storefront
+copy. The exporter itself is reviewed and versioned in the API; its hash is included in the sync
+report. Review the diff (prices, counts, policy text) in a PR like any code change. Tests
+assert that the page counts sum, that the offer never appears, and that every URL is https on an allowlisted host.
 
 ## Freshness policy
 
