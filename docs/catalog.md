@@ -91,8 +91,11 @@ validation failure is never retried against the other layout. This changes physi
 compatibility only. The publication guard, fact transformation and snapshot provenance stay intact.
 
 An explicit offline integration regression reads pinned actual Store Git archives (production
-`3c8cbc29`, pre-move `88d6d0ad`, paired `d160a952`) and compares legacy output byte-for-byte
-with exporter `04ad01a2`. It compares paired facts after normalizing only generation time and
+`3c8cbc29`, pre-move `88d6d0ad`, paired `d160a952`) and checks complete legacy output bytes
+against two frozen SHA-256 goldens from exporter `04ad01a2` (its commit and source hash remain
+provenance in the test, never a runtime Git dependency). The golden invocations use origin
+`https://pequeverso.com` and generation time `2026-10-18T00:00:00Z`, including the JSON trailing
+newline. It compares paired facts after normalizing only generation time and
 source revision, checks attributed six-module/four-bonus evidence, and rejects incomplete/mixed
 layouts and registry import failures. Run with existing dependencies only:
 
@@ -106,6 +109,10 @@ These optional source-compatibility checks require those local Git objects; they
 install, call a provider, run a build or write a catalog snapshot. `CATALOG_TEST_OUTPUT` may name
 an existing external directory to retain exact outputs; existing files must match and are never
 overwritten. Testing a committed unpublished layout grants no synchronization or release authority.
+The paired pin is currently a pre-integration task commit: this is not yet a clean Store-main
+reproducibility claim. Before the compatibility PR is ready, replace only the paired Store revision
+with the accepted production-main commit and rerun; the two historical legacy goldens stay fixed.
+No historical API task-branch object is required to execute the regression.
 
 ## Freshness policy
 

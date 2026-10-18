@@ -1,6 +1,7 @@
 /** Offline integration regression: only pinned Git archives, never a Store working tree. */
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -10,17 +11,20 @@ const storefront = process.env.CATALOG_TEST_STOREFRONT;
 const dependencies = process.env.CATALOG_TEST_NODE_MODULES;
 assert.ok(storefront, "set CATALOG_TEST_STOREFRONT to a read-only local Store Git repository");
 assert.ok(dependencies, "set CATALOG_TEST_NODE_MODULES to existing Store dependencies (no install)");
-const api = resolve(import.meta.dirname, "../..");
 const exporter = readFileSync(join(import.meta.dirname, "export.ts"));
-const priorExporter = execFileSync("git", [
-  "-C", api, "show", "04ad01a2f7690433d170519ea4581ca5983cd71a:tools/catalog/export.ts",
-]);
 const revisions = {
   main: "3c8cbc29a990347549340b05f80de98f12a26bf3",
   legacy: "88d6d0add414261e5ccf5bd3e2b21285e1a33179",
   paired: "d160a9524feb306e0a20e4a98fe5428174eafcc0",
 } as const;
 const generatedAt = "2026-10-18T00:00:00Z";
+// Historical raw UTF-8 outputs, including trailing newline, at this exact generatedAt/origin.
+// Prior API exporter: 04ad01a2f7690433d170519ea4581ca5983cd71a (provenance only; never loaded).
+// Prior exporter SHA-256: 0b7aa611d1757a65b2bd45afc5396c103bec92bd0d0036b36ea4baa8bc0423da.
+const legacyOutputSha256 = {
+  [revisions.main]: "9765f180b2827a1adad172f54465889ba67b5da9e594835a18805773e9aa25dd",
+  [revisions.legacy]: "4bf6b82fa2143cbe29bc85b5db3348c81b2154dc252830b6935a913b602570b8",
+};
 const temporary = mkdtempSync(join(tmpdir(), "pv-export-layout-"));
 after(() => rmSync(temporary, { recursive: true, force: true }));
 
@@ -35,9 +39,9 @@ function archive(name: string, revision: string): string {
   return tree;
 }
 
-function run(tree: string, revision: string, source = exporter) {
+function run(tree: string, revision: string) {
   const script = join(tree, "__assistant_export.ts");
-  writeFileSync(script, source);
+  writeFileSync(script, exporter);
   return spawnSync(process.execPath, [script, "https://pequeverso.com", revision, generatedAt], {
     cwd: tree,
     env: { PATH: process.env.PATH, NEXT_PUBLIC_SITE_URL: "https://pequeverso.com" },
@@ -47,24 +51,25 @@ function run(tree: string, revision: string, source = exporter) {
   });
 }
 
-function successful(tree: string, revision: string, source = exporter): string {
-  const result = run(tree, revision, source);
+function successful(tree: string, revision: string): string {
+  const result = run(tree, revision);
   assert.equal(result.status, 0, result.stderr || String(result.error));
   const catalog = JSON.parse(result.stdout);
   assert.equal(catalog.source.revision, revision);
   assert.equal(catalog.generated_at, generatedAt);
   if (process.env.CATALOG_TEST_OUTPUT) {
-    const output = join(process.env.CATALOG_TEST_OUTPUT, `${revision}-${source === exporter ? "current" : "prior"}.json`);
+    const output = join(process.env.CATALOG_TEST_OUTPUT, `${revision}-current.json`);
     if (existsSync(output)) assert.equal(readFileSync(output, "utf8"), result.stdout);
     else writeFileSync(output, result.stdout, { flag: "wx" });
   }
   return result.stdout;
 }
 
-test("legacy exports are byte-identical to the prior exporter at actual main and reviewed header", () => {
+test("legacy raw exports match frozen prior-exporter SHA-256 goldens at main and reviewed header", () => {
   for (const revision of [revisions.main, revisions.legacy]) {
     const tree = archive(revision, revision);
-    assert.equal(successful(tree, revision), successful(tree, revision, priorExporter));
+    const actual = createHash("sha256").update(successful(tree, revision)).digest("hex");
+    assert.equal(actual, legacyOutputSha256[revision]);
   }
 });
 
