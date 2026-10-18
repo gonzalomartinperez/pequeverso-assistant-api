@@ -33,7 +33,7 @@ from dotenv import dotenv_values
 from pydantic import SecretStr
 
 from app.adapters.providers.fixture_provider import FixtureProvider
-from app.ai.evidence import passages, rank
+from app.ai.evidence import decode_documents, passages, rank
 from app.ai.provider import ModelChunk, ModelRequest
 from app.application.knowledge_ports import EmbeddingAccounting
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
@@ -104,7 +104,7 @@ class EvidenceProvider:
                 'price_status': payload['price_status'],
                 'products': [p['id'] for p in payload['products']],
                 'resources': [r['id'] for p in payload['products'] for r in p['resources']],
-                'documents': [d['id'] for d in payload['documents']],
+                'documents': [d['id'] for d in decode_documents(payload['documents'])],
                 'links': [link['id'] for link in payload['links']],
                 **official_record,
                 **(

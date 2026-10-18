@@ -12,7 +12,7 @@ import json
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from app.ai.evidence import Passage, rank
+from app.ai.evidence import Passage, decode_documents, rank
 from app.ai.provider import ModelChunk, ModelRequest, TextChunk, UsageChunk
 from app.domain.budget import Usage
 from app.domain.catalog import product_mentioned
@@ -153,6 +153,7 @@ class FixtureProvider:
 
     async def stream(self, request: ModelRequest) -> AsyncGenerator[ModelChunk]:
         store = _payload(request, 'store_data:\n')
+        store['documents'] = decode_documents(store['documents'])
         turn = _payload(request, 'visitor_turn:\n')
         output = json.dumps(_answer(store, turn), ensure_ascii=False)
         for start in range(0, len(output), CHUNK_CHARS):

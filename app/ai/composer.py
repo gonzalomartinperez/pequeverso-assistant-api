@@ -8,7 +8,7 @@ import re
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field, replace
 
-from app.ai.evidence import catalog_payload, passages, rank
+from app.ai.evidence import catalog_payload, decode_documents, passages, rank
 from app.ai.output import AnswerStreamParser
 from app.ai.prompt import INSTRUCTIONS, OUTPUT_SCHEMA, PROMPT_VERSION
 from app.ai.provider import ModelInput, ModelProvider, ModelRequest, TextChunk, UsageChunk
@@ -238,7 +238,7 @@ class GroundedComposer:
                 if accepted is not None:
                     selected.append(accepted)
             request = self._request(turn, evidence, conversation, tuple(selected))
-        source_ids = frozenset(d['id'] for d in json.loads(evidence)['documents'])
+        source_ids = frozenset(d['id'] for d in decode_documents(json.loads(evidence)['documents']))
         return PreparedRequest(request, tuple(selected), source_ids)
 
     def _request(
