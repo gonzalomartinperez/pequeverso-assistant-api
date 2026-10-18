@@ -79,3 +79,9 @@ The value is the public Git object04ad01a2f7690433d170519ea4581ca5983cd71a, not 
 The comment now names its purpose directly. The full-history scanner retains its default
 rules and redaction; `.github/.gitleaksignore` excludes only the original exact
 commit/file/rule/line fingerprint. Later changes at that location remain scanned.
+
+CI run39177729761 also matched the public backend Git revision in two original local-fixture
+screenshot provenance documents. Their byte-preserved evidence remains intact. Two additional
+exceptions identify only those original immutable findings; no path-wide or rule-wide
+exception was added. The value was independently verified as a committed Git object, and
+the private-key byte exposure check found no match in the candidate sources or preview files.
