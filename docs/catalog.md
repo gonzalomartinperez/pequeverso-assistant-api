@@ -21,7 +21,7 @@ reachability alone does not prove that customers currently see that revision.
 
 ## Current coverage (2026-10-18)
 
-The snapshot comes from storefront main `fd2f150fe2e08955b3817c3b18ff14dea920d74e`:
+The snapshot comes from published storefront main `7dde2968783c809205bd6ba16ec4a4661b936ca0`:
 **two products, nine resources, 26 documents and six links**. Grafismo Fonético remains the
 priced core PDF kit. Guía de Alimentación para Bebés is a separately purchased, third-party
 video course for complementary feeding from 6 to 12 months. Affiliate facts come exclusively
@@ -47,10 +47,13 @@ the assistant may describe course topics, not prescribe personal diets or medica
 The initial affiliate-catalog increment closed the earlier coverage gap without adding a
 vector store or graph database; that architecture decision was subsequently superseded by
 [the production GraphRAG profile](decisions/ADR-0009-versioned-commercial-graphrag.md).
-The October18 catalog refresh changes only the affiliate usage wording to "Primeras comidas
-de tu bebé". Prices, policies, resource counts and links are unchanged. This refresh makes no
-paid calls or indexing changes; historical evaluation and vector manifests keep their actual
-source/hash identities rather than being relabeled as this snapshot.
+The latest October 18 refresh adds the published, attributed six-module/four-bonus course
+overview and updates two affiliate topic labels. Prices, policies, resource counts and links
+are unchanged. Public verification at 23:11 UTC confirmed this exact main in Hostinger
+(standalone, assistant disabled), with Home/Grafismo HTTP 200 and the affiliate route HTTP 307
+to the approved Hotmart host; the external merchant was not followed. Post-deploy run
+39175289480 passed. Export itself makes no paid calls or indexing changes; historical
+evaluations and vector manifests retain their actual source/hash identities.
 
 ## Updating
 
@@ -91,7 +94,7 @@ validation failure is never retried against the other layout. This changes physi
 compatibility only. The publication guard, fact transformation and snapshot provenance stay intact.
 
 An explicit offline integration regression reads pinned actual Store Git archives (production
-`3c8cbc29`, pre-move `88d6d0ad`, paired `d160a952`) and checks complete legacy output bytes
+`3c8cbc29`, pre-move `88d6d0ad`, published paired `7dde2968`) and checks complete legacy output bytes
 against two frozen SHA-256 goldens from exporter `04ad01a2` (its commit and source hash remain
 provenance in the test, never a runtime Git dependency). The golden invocations use origin
 `https://pequeverso.com` and generation time `2026-10-18T00:00:00Z`, including the JSON trailing
@@ -109,9 +112,9 @@ These optional source-compatibility checks require those local Git objects; they
 install, call a provider, run a build or write a catalog snapshot. `CATALOG_TEST_OUTPUT` may name
 an existing external directory to retain exact outputs; existing files must match and are never
 overwritten. Testing a committed unpublished layout grants no synchronization or release authority.
-The paired pin is currently a pre-integration task commit: this is not yet a clean Store-main
-reproducibility claim. Before the compatibility PR is ready, replace only the paired Store revision
-with the accepted production-main commit and rerun; the two historical legacy goldens stay fixed.
+The paired pin now identifies the accepted, publicly verified Store-main revision. The two
+historical legacy goldens remain fixed; the compatibility test does not relabel those old outputs
+as current production or confer future synchronization authority.
 No historical API task-branch object is required to execute the regression.
 
 ## Freshness policy

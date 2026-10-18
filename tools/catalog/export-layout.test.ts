@@ -15,7 +15,7 @@ const exporter = readFileSync(join(import.meta.dirname, "export.ts"));
 const revisions = {
   main: "3c8cbc29a990347549340b05f80de98f12a26bf3",
   legacy: "88d6d0add414261e5ccf5bd3e2b21285e1a33179",
-  paired: "d160a9524feb306e0a20e4a98fe5428174eafcc0",
+  paired: "7dde2968783c809205bd6ba16ec4a4661b936ca0",
 } as const;
 const generatedAt = "2026-10-18T00:00:00Z";
 // Historical raw UTF-8 outputs, including trailing newline, at this exact generatedAt/origin.
@@ -65,7 +65,7 @@ function successful(tree: string, revision: string): string {
   return result.stdout;
 }
 
-test("legacy raw exports match frozen prior-exporter SHA-256 goldens at main and reviewed header", () => {
+test("legacy raw exports match frozen prior-exporter SHA-256 goldens at historical main and reviewed header", () => {
   for (const revision of [revisions.main, revisions.legacy]) {
     const tree = archive(revision, revision);
     const actual = createHash("sha256").update(successful(tree, revision)).digest("hex");
