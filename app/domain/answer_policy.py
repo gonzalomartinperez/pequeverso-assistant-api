@@ -138,10 +138,15 @@ _CHECKOUT_SUBJECT = re.compile(
     r'\b(?:compras?|productos?|pedidos?|pagos?|carritos?|purchases?|products?|orders?|payments?|carts?|checkout|bonos?|bonuses)\b'
 )
 _CHECKOUT_PREDICATE = re.compile(
-    r'\b(?:realiza\w*|completa\w*|compr\w*|pag\w*|vend\w*|requiere\w*|debes?|puede\w*|purchase\w*|buy|bought|paid|pay|sold|sell|requires?|must|can|cannot|share)\b'
+    r'\b(?:realiza\w*|completa\w*|compr\w*|pag(?!os?\b)\w*|cuestan?|costs?|vend\w*|requiere\w*|debes?|puede\w*|purchase\w*|buy|bought|paid|pay|sold|sell|requires?|must|can|cannot|share)\b'
 )
 _CHECKOUT_GROUPING = re.compile(
-    r'\b(?:aparte|por separado|separad[oa]s?|separately|separate|individualmente|individually|one at a time|uno a uno|junt[oa]s?|together|combina\w*|combin\w*|single checkout|un (?:solo|unico) (?:pago|carrito)|same (?:cart|checkout))\b'
+    r'\b(?:aparte|por separado|separad[oa]s?|separately|separate|individualmente|individually|one at a time|uno a uno|junt[oa]s?|together|combina\w*|combin\w*|single (?:checkout|payment)|un (?:solo|unico) (?:pago|carrito)|same (?:cart|checkout))\b'
+)
+# One payment for a single product is a payment plan, not a multi-product rule.
+_CHECKOUT_SINGLE_PAYMENT = re.compile(r'(?:un (?:solo|unico) pago|single payment)')
+_CHECKOUT_MULTIPLE_PRODUCTS = re.compile(
+    r'\b(?:ambos|ambas|dos|varios|varias|productos|compras|both|two|multiple|products|purchases)\b'
 )
 _CHECKOUT_IMPLICIT_SALE = re.compile(r'\b(?:vend\w*|sold|sell|selling)\b')
 _CHECKOUT_UNCERTAIN = re.compile(
@@ -153,14 +158,18 @@ _CHECKOUT_SELF_REFUSAL = re.compile(
 
 
 def _checkout_claims(text: str) -> frozenset[str]:
-    clauses = re.split(r'[.!?;\n]|\b(?:pero|but|however|porque|because)\b', fold(text))
+    clauses = re.split(r'[!?;\n]|[.](?!\d)|\b(?:pero|but|however|porque|because)\b', fold(text))
     return frozenset(
         clause
         for raw in clauses
         if (clause := ' '.join(raw.strip(' ,:').split()))
         and (_CHECKOUT_SUBJECT.search(clause) or _CHECKOUT_IMPLICIT_SALE.search(clause))
         and _CHECKOUT_PREDICATE.search(clause)
-        and _CHECKOUT_GROUPING.search(clause)
+        and any(
+            not _CHECKOUT_SINGLE_PAYMENT.fullmatch(match.group())
+            or _CHECKOUT_MULTIPLE_PRODUCTS.search(clause)
+            for match in _CHECKOUT_GROUPING.finditer(clause)
+        )
         and not _CHECKOUT_UNCERTAIN.search(clause)
         and not _CHECKOUT_SELF_REFUSAL.search(clause)
     )

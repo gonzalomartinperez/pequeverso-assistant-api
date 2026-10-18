@@ -29,6 +29,8 @@ CATALOG = CatalogParser(frozenset({'pequeverso.com', 'consumer.hotmart.com', 're
         'You must buy the products one at a time.',
         'The products cannot be purchased together.',
         'Both products can share a single checkout.',
+        'Puedes pagar ambos productos en un único pago.',
+        'Both products cost US$14.99 in a single payment.',
         'No puedo confirmarlo, pero las compras se pagan por separado.',
     ],
 )
@@ -50,6 +52,8 @@ def test_unpublished_checkout_grouping_is_replaced_before_streaming(text: str) -
         'No puedo confirmar si las compras se realizan por separado.',
         'I do not know whether the products can be purchased together.',
         'El pago se hace en la página segura de Hotmart.',
+        'El kit se paga en un único pago.',
+        'The kit costs US$14.99 in a single payment.',
         'El kit incluye ocho bonos; los bonos no se pagan aparte.',
         'Puedes elegir una hoja y practicar por separado los sonidos.',
     ],
@@ -136,3 +140,19 @@ def test_published_inclusion_and_no_extra_payment_remain_valid() -> None:
     )
     assert result.details.notices == ()
     assert result.content == text
+
+
+def test_real_recommendation_single_product_payment_remains_valid() -> None:
+    from app.application.ports import DraftReference
+
+    text = 'El kit cuesta US$14,99 en un único pago; Hotmart lo convierte a tu moneda local.'
+    active = ActiveCatalog(CATALOG, 'sha', CATALOG.generated_at, timedelta(hours=168))
+    result = finalize(
+        Draft(text, (DraftReference('product', 'grafismo-fonetico'),), (), ()),
+        active,
+        PriceStatus.VERIFIED,
+        answer_rules(CATALOG, PriceStatus.VERIFIED, ()),
+    )
+    assert result.details.notices == ()
+    assert result.content == text
+    assert tuple(product.id for product in result.details.products) == ('grafismo-fonetico',)
