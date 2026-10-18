@@ -1,8 +1,9 @@
 # PostgreSQL Alpine candidate — 2026-10-18
 
-Status: source implementation and isolated mock checks only. No image build, real database,
-security scan, deployment or production acceptance has been performed for this candidate.
-Previous dated Debian measurements keep their original source and image identities.
+Status: local baseline image and isolated functional checks executed on2026-10-18. The
+subsequent two-package security patch still requires its own exact-image verification. No
+deployment, production acceptance or physical-volume migration was performed. Previous
+dated Debian measurements keep their original source and image identities.
 
 ## Reason and provenance
 
@@ -35,8 +36,8 @@ Primary metadata checked on2026-10-18:
   fixes CVE-2026-103484; this change does not downgrade the extension.
 - Official Alpine main/x86_64 package index confirms `build-base=0.5-r4`,
   `clang21=21.1.8-r3`, `llvm21-dev=21.1.8-r1` and `libxml2=2.13.9-r2`.
-  APK verifies repository/package signatures during the future build. HTTPS metadata and
-  checksums alone do not claim that a build already verified them.
+  The baseline build verified APK repository/package signatures. Metadata and checksums alone
+  are not a substitute for verification of any subsequently changed image.
 - [Alpine support policy](https://www.alpinelinux.org/releases/): main support until2028-06-01;
   no invented LTS label. Compiler packages belong only to the build stage. The runtime package
   inventory and pgvector notices remain in the final image.
@@ -82,3 +83,50 @@ actual volumes, SQL authorization, database recovery or memory usage.
    suppression, waiver or promised space/performance saving is part of this source change.
 7. Run required repository checks, contracts and image smoke, obtain independent review and pass
    protected CI before integration. vps-ops owns any later deployment decision and restore plan.
+
+
+## Executed local baseline and unresolved gates
+
+The initial Alpine image `sha256:cfeb40d4268c19519d6ced27fecf4c98823b65191ae6dc51b1dcfb51612bb252`
+was built from source `31ff1cb` (the complete source identity is retained in the build receipt).
+Docker reported `Size=123482390` bytes, compared with163740145 bytes for the earlier Debian
+image:24.59% lower **Docker-reported size**, not measured download size or physical disk savings.
+The image declares `USER70:70`; XML/ICU, pgvector0.8.7 and runtime notices remain present and
+the compiler toolchain is absent from its final stage.
+
+- The isolated PostgreSQL smoke passed37 tests and6 subtests. It exercised the four independent
+  capability groups, private/public boundaries, fresh volumes, logging privacy, TCP readiness,
+  logical dump/restore, restart and shutdown with a read-only root and dropped capabilities.
+- The GraphRAG HTTP fixture passed4 tests; two offline cold/reuse indexing jobs passed on the
+  subsequently corrected source `7e80cdfc7de0d97fe9141fb99a8a658c0b32723a`. No evaluation
+  question was indexed and these fixture checks did not call a paid model.
+- Backoffice IAM against this exact local engine passed19 tests with zero schema drift. The
+  external harness subsequently reported a cleanup bind-probe failure; the original failure
+  remains intact. Independent later checks found both owned ports closed. Neither result is
+  silently reclassified as a wholly green external harness.
+
+A separate synthetic Debian→Alpine logical transfer compared12 tables/54 rows, including
+conversations and all three reservation states. Canonical row values,137 effective ACL checks,
+four allow/deny probes, roles, memberships and vector top-five IDs/order matched. The original
+raw comparator **failed** on owner-default ACL representation and two vector distances
+(maximum difference5.960464477539063e-8). Independent semantic review accepted that fixture
+transfer with those explicit limitations; the original failure was not overwritten, and a
+subsequently suggested float tolerance was not a preregistered acceptance threshold. This
+does not validate all collations,1536-dimensional migration, real backups or VPS capacity.
+
+A fresh2026-10-18 baseline image scan found0 critical,0 high and2 medium rows: nghttp2-libs
+and zlib, both with compatible fixes in the same official Alpine main repository. The recipe
+now pins `nghttp2-libs=1.70.0-r0` and `zlib=1.3.2-r1`; **the preceding scan and tests do not
+validate that changed image**. A new image, smoke and scan are required before closing this
+patch. No finding is suppressed or waived.
+
+The separate retained Neo4j5.26.32LTS image scan, using vulnerability and Java databases dated
+2026-10-18, reported0 critical/50 high/78 medium/80 low/1 unknown. Four high rows are shaded
+Jackson dependencies inside the vendor Parquet artifact. No manual JAR replacement or
+unreviewed non-LTS upgrade was used to hide them. These and the API image's unresolved
+findings remain deployment blockers until vps-ops and the owner review compatible remediation.
+
+All measurements are local, synthetic and source/image-specific. vps-ops must explicitly adopt
+an immutable candidate, map new volume ownership, choose HBA/CIDRs and resource limits,
+validate actual backup recovery and run the external HTTPS/cookie/CORS/SSE checks. Never
+attach a historical999-owned physical cluster to70 or recursively chown shared volumes.
