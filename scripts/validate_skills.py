@@ -39,7 +39,7 @@ def scalar(value: str) -> str:
         require(isinstance(parsed, str), 'Frontmatter value must be text')
         return str(parsed)
     if value.startswith("'"):
-        require(value.endswith("'") and len(value) >= 2, 'Invalid quoted scalar')
+        require(re.fullmatch(r"'(?:[^']|'')*'", value), 'Invalid quoted scalar')
         return value[1:-1].replace("''", "'")
     require(
         value.lower() not in {'true', 'false', 'null', '~'}
@@ -147,16 +147,14 @@ def validate(root: Path) -> list[str]:
         )
         require(
             not re.search(
-                r'\bsk-[A-Za-z0-9_-]{20,}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----',
+                r'\bsk-[A-Za-z0-9_-]{20,}|\bAKIA[0-9A-Z]{16}\b|\bgh[pousr]_[A-Za-z0-9]{36,}'
+                r'|\bgithub_pat_[A-Za-z0-9_]{20,}|-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----',
                 text,
             ),
             name + ': secret-like material',
         )
-        require(
-            'merge to main' not in text.lower() and 'deploy to production' not in text.lower(),
-            name + ': standing authorization phrase',
-        )
         for path in folder.rglob('*'):
+            require(not path.is_symlink(), name + ': canonical resources must be real files/directories')
             inside(path, root)
             require(not path.is_dir() or any(path.iterdir()), name + ': empty resource directory')
         references = [

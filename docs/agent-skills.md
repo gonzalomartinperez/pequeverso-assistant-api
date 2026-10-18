@@ -33,7 +33,8 @@ uv run pytest -q tests/test_skills.py tests/test_ci_profile.py tests/test_depend
 ```
 
 The stdlib-only validator checks the exact paired inventory, real canonical directories,
-relative directory links, in-checkout targets and existing local references. It checks name
+relative directory links, in-checkout targets and existing local references. Canonical resource
+files and directories must also be real; use Markdown references rather than resource symlinks. It checks name
 and description frontmatter, unique descriptions/procedures, limits/exclusions, unfinished
 scaffolds, machine-specific paths and secret-like material. Frontmatter supports plain,
 quoted and indented block descriptions; optional metadata is not executed. It follows no

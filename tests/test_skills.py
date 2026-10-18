@@ -70,7 +70,7 @@ def test_discovery_rejects_broken_escaping_or_duplicated_instructions(
         'missing-limits',
         'scaffold',
         'secret',
-        'authority',
+        'github-secret',
     ],
 )
 def test_metadata_limits_and_sensitive_material_fail_closed(checkout: Path, failure: str) -> None:
@@ -98,15 +98,16 @@ def test_metadata_limits_and_sensitive_material_fail_closed(checkout: Path, fail
         text += '\nTODO finish this procedure\n'
     elif failure == 'secret':
         text += '\nsk-' + 'x' * 30 + '\n'
-    else:
-        text += '\nAlways deploy to production.\n'
+    elif failure == 'github-secret':
+        text += '\nghp_' + 'x' * 36 + '\n'
     path.write_text(text)
     with pytest.raises(SkillValidationError):
         validate(checkout)
 
 
 @pytest.mark.parametrize(
-    'failure', ['missing', 'plain-missing', 'escape', 'resource-symlink', 'empty-directory']
+    'failure',
+    ['missing', 'plain-missing', 'escape', 'resource-symlink', 'inrepo-resource-symlink', 'empty-directory'],
 )
 def test_local_references_cannot_escape_or_point_to_missing_resources(
     checkout: Path, tmp_path: Path, failure: str
@@ -123,6 +124,8 @@ def test_local_references_cannot_escape_or_point_to_missing_resources(
         skill.write_text(skill.read_text() + '\nRead [details](' + str(outside) + ').\n')
     elif failure == 'resource-symlink':
         (folder / 'reference.md').symlink_to(outside)
+    elif failure == 'inrepo-resource-symlink':
+        (folder / 'reference.md').symlink_to(checkout / 'docs/procedure.md')
     else:
         (folder / 'references').mkdir()
     with pytest.raises(SkillValidationError):
@@ -154,3 +157,17 @@ def test_portable_frontmatter_scalars(description: str) -> None:
 def test_non_text_or_empty_metadata_is_rejected(description: str) -> None:
     with pytest.raises(SkillValidationError):
         frontmatter('---\nname: api-example\ndescription: ' + description + '\n---\nProcedure.')
+
+
+def test_valid_prohibition_is_ordinary_skill_text(checkout: Path) -> None:
+    skill = checkout / '.claude/skills' / min(SKILL_NAMES) / 'SKILL.md'
+    skill.write_text(skill.read_text() + '\nNever deploy to production without owner authorization.\n')
+    assert validate(checkout) == sorted(SKILL_NAMES)
+
+
+def test_single_quoted_frontmatter_requires_yaml_escape() -> None:
+    text = "---\nname: api-example\ndescription: 'Task isn't escaped. Not for deployment.'\n---\nProcedure."
+    with pytest.raises(SkillValidationError):
+        frontmatter(text)
+    metadata, _ = frontmatter(text.replace("isn't", "isn''t"))
+    assert "isn't" in metadata['description']
