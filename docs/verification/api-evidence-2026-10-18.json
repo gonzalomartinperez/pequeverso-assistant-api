@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "scope": "dated local/hosted evidence, not final release or activation",
+  "source_revision": "2f22f24b30de7ee6a797d6397bef7422eb8e31cc",
+  "tree": "c62525942448d427c82b6e7ed1104e45eca3ca08",
+  "ci": {
+    "run": 39171802011,
+    "pull_request_head": "2f22f24b30de7ee6a797d6397bef7422eb8e31cc",
+    "actual_merge_checkout": "51f684d68fb148fae84a39f58c8995302f0785f2",
+    "same_tree": true,
+    "jobs": [
+      {
+        "name": "Secret scan",
+        "start_utc": "2026-10-18T22:20:35Z",
+        "end_utc": "2026-10-18T22:20:48Z",
+        "elapsed_seconds": 13.0,
+        "conclusion": "success"
+      },
+      {
+        "name": "Workflow validation",
+        "start_utc": "2026-10-18T22:20:36Z",
+        "end_utc": "2026-10-18T22:20:53Z",
+        "elapsed_seconds": 17.0,
+        "conclusion": "success"
+      },
+      {
+        "name": "Static checks",
+        "start_utc": "2026-10-18T22:20:36Z",
+        "end_utc": "2026-10-18T22:22:32Z",
+        "elapsed_seconds": 116.0,
+        "conclusion": "success"
+      },
+      {
+        "name": "Container verification",
+        "start_utc": "2026-10-18T22:22:34Z",
+        "end_utc": "2026-10-18T22:23:09Z",
+        "elapsed_seconds": 35.0,
+        "conclusion": "success"
+      },
+      {
+        "name": "Database tests",
+        "start_utc": "2026-10-18T22:22:34Z",
+        "end_utc": "2026-10-18T22:24:52Z",
+        "elapsed_seconds": 138.0,
+        "conclusion": "success"
+      },
+      {
+        "name": "checks",
+        "start_utc": "2026-10-18T22:24:55Z",
+        "end_utc": "2026-10-18T22:24:59Z",
+        "elapsed_seconds": 4.0,
+        "conclusion": "success"
+      }
+    ]
+  },
+  "postgres_fixed_receipt_sha256": "41173ab73419e7cde340b888d17e69527928f5551d94c73a98bad34c8d69c8fd",
+  "postgres_original_red_receipt_sha256": "293f4f7da85fe14031cc35d4c6ee907b7e21f3409827ecbb32b6b421bd055e6e",
+  "postgres_fixed_proof_sha256": "99eac503c2d87eabde5a780aaca4919983475145a0db15e7a49df88ed0faa071",
+  "postgres_scope": "four synthetic analytics tables only; 3 real PG tests, nonempty logical restore and concurrent-report availability; no whole-system backup acceptance",
+  "screenshot_manifest_sha256": "8c03e059a3411138acac7cf4a31bd1f25d6a9a1a1ace3760996c2792cf0ddbed"
+}

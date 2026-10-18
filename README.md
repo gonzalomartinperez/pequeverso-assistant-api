@@ -52,22 +52,21 @@ assistant stays **disabled in publishable builds** until the VPS and activation 
 
 ## The native assistant in use
 
-These are genuine local captures of the refined Spanish interface, using an isolated **fixture
-API**. They show layout and interaction, not real-model quality or the deployed VPS. Production
-remains disabled: no launcher, runtime load or assistant API traffic in the publishable build.
+These actual local captures use Store `755d541` and API `2f22f24` with an isolated
+**fixture provider**. They show the Spanish interface, not real-model output or a deployed VPS.
+The production assistant remains **OFF**; the enabled fixture export must never be published.
 
-| Welcome and suggested questions | Answer and disclosed sources |
+| Desktop conversation and sources | Mobile conversation and composer |
 | :---: | :---: |
-| [![Compact welcome with question chips](docs/verification/native-assistant-2026-10-17/desktop-welcome.png)](docs/verification/native-assistant-2026-10-17/desktop-welcome.png) | [![Complete compact answer and authorized sources](docs/verification/native-assistant-2026-10-17/desktop-answer-sources.png)](docs/verification/native-assistant-2026-10-17/desktop-answer-sources.png) |
-| Mobile conversation and input | Expanded conversation |
-| [![Mobile conversation, product reference and comfortable input](docs/verification/native-assistant-2026-10-17/mobile-conversation.png)](docs/verification/native-assistant-2026-10-17/mobile-conversation.png) | [![Expanded assistant conversation with checked sources](docs/verification/native-assistant-2026-10-17/desktop-expanded.png)](docs/verification/native-assistant-2026-10-17/desktop-expanded.png) |
+| [<img src="docs/verification/native-assistant-2026-10-18/03-Desktop-Conversacion.png" height="340" alt="Actual desktop fixture conversation with the guarantee answer and disclosed sources.">](docs/verification/native-assistant-2026-10-18/03-Desktop-Conversacion.png) | [<img src="docs/verification/native-assistant-2026-10-18/06-Mobile-Conversacion.png" height="340" alt="Actual mobile fixture conversation, scrollable product detail and fixed composer.">](docs/verification/native-assistant-2026-10-18/06-Mobile-Conversacion.png) |
 
-Open each original PNG for full detail. The [capture manifest](docs/verification/native-assistant-2026-10-17/manifest.json)
-retains its actual UI/fixture API revisions; copying these reviewed assets from storefront
-`c9aaa99169f3db16dcea354734aea866f3a86bef` does not relabel them as a later API build.
-The [historical real-model gallery](docs/verification/native-assistant-2026-10-12/README.md)
-separately preserves the earlier GPT-6 Luna medium session, history and completed-request replay.
-Neither gallery establishes the quality of the new semantic retrieval profile or production readiness.
+[All seven original captures and provenance](docs/verification/native-assistant-2026-10-18/README.md)
+cover launcher, welcome, conversation, waiting, mobile and expanded states.
+The [dated API evidence report](docs/verification/api-evidence-2026-10-18.md) separates these UI
+fixtures from actual PostgreSQL restore/CI evidence and remaining deployment/model gates.
+The [October17 fixture gallery](docs/verification/native-assistant-2026-10-17/README.md) and
+[October12 real-model gallery](docs/verification/native-assistant-2026-10-12/README.md) retain their
+original sources; none is relabeled as a later run or production acceptance.
 
 ## System at a glance
 

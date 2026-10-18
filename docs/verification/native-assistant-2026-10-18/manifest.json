@@ -1,0 +1,46 @@
+{
+  "created_at_utc": "2026-10-18T22:32:13.248766+00:00",
+  "store_revision": "755d541a86389703665e65c2b762aacfb6e345ad",
+  "api_fixture_revision": "2f22f24b30de7ee6a797d6397bef7422eb8e31cc",
+  "mode": "local enabled UNPUBLISHABLE fixture only; production assistant disabled",
+  "model_output": false,
+  "paid_calls": 0,
+  "visual_review": "All7PNG viewed by Root agent; not human review",
+  "source_FIN": "2026-10-18T22:27:59.398620+00:00",
+  "screenshots": {
+    "04-Desktop-Espera.png": {
+      "sha256": "14afc1191edb1a50c1fae437915d04b0b16f86e41c9d165331f59da213b5cff1",
+      "bytes": 388528
+    },
+    "03-Desktop-Conversacion.png": {
+      "sha256": "05c9bdd07c59f7907b00f5bd45c2369a0259910ac53f5f7c0a5a43124783570b",
+      "bytes": 409016
+    },
+    "06-Mobile-Conversacion.png": {
+      "sha256": "16a60acd0483b5626e10bf5dff1b588339704a4056132024e64686506649a3a9",
+      "bytes": 297364
+    },
+    "02-Desktop-Bienvenida.png": {
+      "sha256": "73beee9d0e1e863c1f7fd548a15a738d6f3409faeac0ffd7a40982bf9a18006c",
+      "bytes": 400270
+    },
+    "01-Desktop-Boton.png": {
+      "sha256": "69c7755ca9b3bc89b669756cb981bb451a37e5aaa86987234f5b23389e0cfc50",
+      "bytes": 484432
+    },
+    "05-Mobile-Bienvenida.png": {
+      "sha256": "39adb9e3ba8f42ab99c0e654b8ef67cf6cf24eeac4950a1f31b2807c9ad40756",
+      "bytes": 133678
+    },
+    "07-Desktop-Conversacion-Ampliada.png": {
+      "sha256": "30938d20e5566bf3a8c6d2c6feb330e39737e9b462b4d936a052b41d4d492b8d",
+      "bytes": 266562
+    }
+  },
+  "historical_files_preserved": "Historial-antes-2026-10-18-final-2232",
+  "scope": "Documentation-only screenshots of native fixture flow; not public/media or deployable assets",
+  "independent_review": "Ops agent visually reviewed exact first six hashes; no human review or accessibility certification",
+  "copied_from_store_commit": "87c2e4433eb2ebda30a369935efa8a59f3256295",
+  "copied_from_store_directory": "docs/verification/assistant/2026-10-18/",
+  "copy_policy": "All seven PNG bytes copied unchanged via git show; historical galleries retained."
+}
