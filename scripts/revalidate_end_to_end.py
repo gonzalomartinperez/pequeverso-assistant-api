@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT))
 
 from app.bootstrap.config import DEFAULT_CATALOG
 from scripts.evaluate_end_to_end import digest, evaluate, load_live_provider, write_private
+from scripts.real_eval_budget import evaluation_run_ownership
 from scripts.resume_end_to_end import verify_existing_budget
 
 MAX_REVALIDATION_QUERIES = 64
@@ -91,33 +92,36 @@ def main() -> None:
     if manifest.get('baseline_manifest_sha256') != digest(args.baseline_manifest.read_bytes()):
         parser.error('the baseline manifest does not match its frozen digest')
     counts = validate_matrix(manifest, baseline)
-    verify_existing_budget(args.previous_run, args.budget_state, terminal_only=False)
-    destination = args.output_dir.resolve()
-    if destination.is_relative_to(ROOT) or destination.exists():
-        parser.error('output must be a new private directory outside the repository')
-    bounded = load_live_provider(args.key_file, args.budget_state)
-    destination.mkdir(parents=True, mode=0o700)
-    write_private(destination / 'manifest.json', manifest)
-    write_private(
-        destination / 'revalidation-receipt.json',
-        {
-            **counts,
-            'phase': manifest['phase'],
-            'reply_policy': manifest['reply_policy'],
-            'baseline_manifest_sha256': digest(args.baseline_manifest.read_bytes()),
-            'manifest_sha256': digest(args.manifest.read_bytes()),
-            'catalog_sha256': digest(DEFAULT_CATALOG.read_bytes()),
-            'source_revision': args.source_revision,
-            'budget_before': bounded.envelope.snapshot(),
-            'automatic_generation_retries': 0,
-        },
-    )
-    (destination / 'catalog.json').write_bytes(DEFAULT_CATALOG.read_bytes())
-    (destination / 'catalog.json').chmod(0o600)
-    summary = evaluate(manifest, destination, args.source_revision, bounded=bounded)
-    print(json.dumps({k: v for k, v in summary.items() if k not in ('cases', 'usage_receipts')}, indent=2))
-    if summary['stop_reason']:
-        raise SystemExit(1)
+    with evaluation_run_ownership(args.budget_state):
+        verify_existing_budget(args.previous_run, args.budget_state, terminal_only=False)
+        destination = args.output_dir.resolve()
+        if destination.is_relative_to(ROOT) or destination.exists():
+            parser.error('output must be a new private directory outside the repository')
+        bounded = load_live_provider(args.key_file, args.budget_state)
+        destination.mkdir(parents=True, mode=0o700)
+        write_private(destination / 'manifest.json', manifest)
+        write_private(
+            destination / 'revalidation-receipt.json',
+            {
+                **counts,
+                'phase': manifest['phase'],
+                'reply_policy': manifest['reply_policy'],
+                'baseline_manifest_sha256': digest(args.baseline_manifest.read_bytes()),
+                'manifest_sha256': digest(args.manifest.read_bytes()),
+                'catalog_sha256': digest(DEFAULT_CATALOG.read_bytes()),
+                'source_revision': args.source_revision,
+                'budget_before': bounded.envelope.snapshot(),
+                'automatic_generation_retries': 0,
+            },
+        )
+        (destination / 'catalog.json').write_bytes(DEFAULT_CATALOG.read_bytes())
+        (destination / 'catalog.json').chmod(0o600)
+        summary = evaluate(manifest, destination, args.source_revision, bounded=bounded)
+        print(
+            json.dumps({k: v for k, v in summary.items() if k not in ('cases', 'usage_receipts')}, indent=2)
+        )
+        if summary['stop_reason']:
+            raise SystemExit(1)
 
 
 if __name__ == '__main__':
