@@ -1,27 +1,30 @@
 name: Quality
 
-# Every pull request and every push to develop/main: static checks, tests, contract drift,
-# deterministic evaluations and the container smoke. `checks` is the single required status.
+# Exact paired API profile; required-context migration is owned separately.
 on:
   pull_request:
+    branches: [develop, main]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
   push:
     branches: [develop, main]
   workflow_dispatch:
+  merge_group:
 
 permissions: {}
 
 concurrency:
-  group: quality-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   UV_VERSION: 0.13.1 # keep equal to the uv image in infra/docker/app/Dockerfile
   AI_PROVIDER: fixture
   ALLOW_PAID_AI: "false"
+  LANGSMITH_TRACING: "false"
 
 jobs:
   workflows:
-    name: Lint workflows
+    name: Workflow validation
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -31,6 +34,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Bind reviewed source and configuration
+        run: python3 -m scripts.ci_identity
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
       - name: actionlint
         uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2.2.0
         with:
@@ -45,7 +52,7 @@ jobs:
           min-severity: low
 
   secrets:
-    name: Secret scan (history)
+    name: Secret scan
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
@@ -56,11 +63,15 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Bind reviewed source and configuration
+        run: python3 -m scripts.ci_identity
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
       - name: gitleaks over the full history (redacted; fails on zero commits scanned)
         run: .github/scripts/secret-scan.sh
 
   static:
-    name: Lint, types, tests, contract, evaluations
+    name: Static checks
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -70,12 +81,18 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Bind reviewed source and configuration
+        run: python3 -m scripts.ci_identity
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
       - name: Setup uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: |
+            uv.lock
+            .python-version
       - name: Install (frozen lockfile)
         run: uv sync --frozen
       - name: Ruff
@@ -94,7 +111,8 @@ jobs:
         run: uv run python scripts/evaluate_conversations.py
 
   container:
-    name: Container build and smoke
+    needs: [static]
+    name: Container verification
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -104,12 +122,23 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Build and smoke the image
-        run: scripts/smoke_container.sh
+      - name: Bind reviewed source and configuration
+        run: python3 -m scripts.ci_identity
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+      - name: Build exact application candidate (no publication)
+        run: docker build -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION="$GITHUB_SHA" -t pequeverso-assistant-api:smoke .
+      - name: Smoke the owned image and disposable SQLite fixture
+        run: scripts/smoke_container.sh pequeverso-assistant-api:smoke
+      - name: Record tested image identity
+        run: python3 -m scripts.ci_identity --image pequeverso-assistant-api:smoke
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
 
 
-  knowledge:
-    name: Real knowledge stores, recovery and HTTP
+  database:
+    needs: [static]
+    name: Database tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -119,12 +148,18 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Bind reviewed source and configuration
+        run: python3 -m scripts.ci_identity
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
       - name: Setup uv
         uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
-          cache-dependency-glob: uv.lock
+          cache-dependency-glob: |
+            uv.lock
+            .python-version
       - name: Install frozen service-test dependencies
         run: uv sync --frozen --no-build
       - name: Build exact project database candidates (no publication)
@@ -155,21 +190,29 @@ jobs:
             --receipt-dir "$RUNNER_TEMP/knowledge-http" --source-dir "$GITHUB_WORKSPACE" \
             --with-index-jobs --with-evaluation-tests
 
+      - name: Record tested database image identities
+        run: python3 -m scripts.ci_identity --image pv-knowledge-pg:ci --image pv-knowledge-neo:ci
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+
   checks:
-    name: checks
+    name: Required checks
     if: always()
-    needs: [workflows, secrets, static, container, knowledge]
+    needs: [workflows, secrets, static, database, container]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     permissions: {}
     steps:
       - name: All required jobs succeeded
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
+          WORKFLOWS_RESULT: ${{ needs.workflows.result }}
+          SECRETS_RESULT: ${{ needs.secrets.result }}
+          STATIC_RESULT: ${{ needs.static.result }}
+          DATABASE_RESULT: ${{ needs.database.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
         run: |
-          for result in $RESULTS; do
-            if [ "$result" != "success" ]; then
-              echo "a required job finished with: $result"
-              exit 1
-            fi
-          done
+          test "$WORKFLOWS_RESULT" = success
+          test "$SECRETS_RESULT" = success
+          test "$STATIC_RESULT" = success
+          test "$DATABASE_RESULT" = success
+          test "$CONTAINER_RESULT" = success

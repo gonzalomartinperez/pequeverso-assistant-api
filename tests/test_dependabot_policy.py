@@ -89,7 +89,7 @@ def facts(**changes: object) -> PullFacts:
             'pyproject.toml': PYPROJECT.replace('"fastapi>=0.141.1"', '"fastapi>=0.141.2"'),
             'uv.lock': _bump(LOCK, 'fastapi', '0.141.1', '0.141.2'),
         },
-        check_runs=(CheckRun('checks', 'completed', 'success'),),
+        check_runs=(CheckRun('Required checks', 'completed', 'success'),),
         protection_available=True,
     )
     return replace(base, **changes)  # type: ignore[arg-type]
@@ -219,16 +219,16 @@ def test_new_head_after_evaluation_is_rejected() -> None:
 @pytest.mark.parametrize(
     ('runs', 'state', 'eligible'),
     [
-        ((CheckRun('checks', 'completed', 'success'),), 'success', True),
+        ((CheckRun('Required checks', 'completed', 'success'),), 'success', True),
         (
-            (CheckRun('checks', 'in_progress', None),),
+            (CheckRun('Required checks', 'in_progress', None),),
             'pending',
             True,
         ),  # classification only; a maintainer waits for CI
         ((), 'missing', True),  # missing CI never authorizes a merge
-        ((CheckRun('checks', 'completed', 'failure'),), 'failure', False),
-        ((CheckRun('checks', 'completed', 'cancelled'),), 'cancelled', False),
-        ((CheckRun('checks', 'completed', 'timed_out'),), 'failure', False),
+        ((CheckRun('Required checks', 'completed', 'failure'),), 'failure', False),
+        ((CheckRun('Required checks', 'completed', 'cancelled'),), 'cancelled', False),
+        ((CheckRun('Required checks', 'completed', 'timed_out'),), 'failure', False),
         ((CheckRun('other', 'completed', 'success'),), 'missing', True),
     ],
 )
@@ -271,7 +271,7 @@ RULES = [
         'type': 'required_status_checks',
         'parameters': {
             'strict_required_status_checks_policy': True,
-            'required_status_checks': [{'context': 'checks', 'integration_id': 15368}],
+            'required_status_checks': [{'context': 'Required checks', 'integration_id': 15368}],
         },
     },
 ]
@@ -289,7 +289,7 @@ def test_protection_requires_pull_requests_and_strict_required_checks() -> None:
             'type': 'required_status_checks',
             'parameters': {
                 'strict_required_status_checks_policy': False,
-                'required_status_checks': [{'context': 'checks'}],
+                'required_status_checks': [{'context': 'Required checks'}],
             },
         },
     ]
@@ -308,7 +308,7 @@ def test_protection_requires_pull_requests_and_strict_required_checks() -> None:
 
 
 def test_manual_profile_has_no_privileged_workflow_or_merge_command() -> None:
-    workflow = (Path(__file__).parents[1] / '.github/workflows/dependabot-policy.yml').read_text()
+    workflow = (Path(__file__).parents[1] / '.github/workflows/dependency-policy.yml').read_text()
     assert not re.search(
         r"""(?:^|[\s{,])["']?[\w-]+["']?\s*:\s*["']?write(?:-all)?["']?(?=$|[\s,}])""", workflow, re.MULTILINE
     )

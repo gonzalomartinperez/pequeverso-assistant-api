@@ -5,7 +5,7 @@ description: Review a Dependabot update using the read-only assessment and prote
 
 # Review a dependency update
 
-1. Read the `Dependabot policy` job summary: it lists every changed package with its semantic
+1. Read the `Dependency policy` job summary: it lists every changed package with its semantic
    update type and review reasons. Every update stays manual; classification and labels are not authorization.
 2. For each package, read its changelog between the two versions. Focus on sessions and cookies
    (starlette), validation (pydantic), streaming and the Responses API (openai), TLS and
