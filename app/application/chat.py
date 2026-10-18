@@ -29,6 +29,7 @@ from app.application.answers import (
     payment_refusal_text,
     replacement,
 )
+from app.application.catalog_scope import catalog_scope_reply
 from app.application.knowledge_ports import KnowledgeRetrieval
 from app.application.ports import (
     AnswerComposer,
@@ -621,8 +622,10 @@ class ChatService:
                     spanish_native=response_language == Language.ES.value,
                 )
             redacted = redact_contact_data(question)
-            provenance = provenance_reply(redacted.text, active.catalog, history, language)
-            if provenance is not None:
+            local_answer = catalog_scope_reply(redacted.text, active.catalog, history, language)
+            if local_answer is None:
+                local_answer = provenance_reply(redacted.text, active.catalog, history, language)
+            if local_answer is not None:
                 notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
                 user_message = Message(
                     _message_id(), Role.USER, redacted.text, now, AnswerDetails(notices=notices)
@@ -631,7 +634,7 @@ class ChatService:
                 answer = Message(
                     _message_id(),
                     Role.ASSISTANT,
-                    provenance,
+                    local_answer,
                     now,
                     AnswerDetails(language=language.value),
                 )
