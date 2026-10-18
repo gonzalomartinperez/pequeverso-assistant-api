@@ -17,7 +17,7 @@ import pytest
 from openai import AsyncOpenAI
 from pydantic import ValidationError
 
-from app.adapters.openai_provider import OpenAIResponsesProvider
+from app.adapters.providers.openai_provider import OpenAIResponsesProvider
 from app.ai.provider import TextChunk, UsageChunk
 from app.bootstrap.config import Settings
 from app.domain.errors import FailureCode, RejectedError

@@ -1,0 +1,11 @@
+# Admit parent directories for traversal, then exclude their other children.
+*
+!infra/
+infra/*
+!infra/docker/
+infra/docker/*
+!infra/docker/neo4j/
+infra/docker/neo4j/*
+!infra/docker/neo4j/neo4j.conf
+!LICENSE
+!NOTICE.md

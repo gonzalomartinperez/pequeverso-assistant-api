@@ -1,16 +1,17 @@
 # syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # Pequeverso assistant API. One process, one uvicorn worker (in-process run registry and a single
-# SQLite writer; see docs/deployment-contract.md). Persistent state lives in /data.
+# private-runtime ownership lease; see docs/deployment-contract.md). PostgreSQL holds production
+# state; /data is only the explicitly mounted SQLite fixture/import path.
 FROM ghcr.io/astral-sh/uv:0.13.1@sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336 AS uv
 
-FROM python:3.15.0-slim-trixie@sha256:2da676046630d7bf14c6764ae1143dc7fa0377a53f94bf5a642f0b214aca5bce AS build
+FROM python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS build
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_PROJECT_ENVIRONMENT=/opt/venv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,id=vps-ops-uv-python315,target=/root/.cache/uv,sharing=locked uv sync --frozen --no-build --no-dev --no-install-project
+RUN --mount=type=cache,id=vps-ops-uv-python314,target=/root/.cache/uv,sharing=locked uv sync --frozen --no-build --no-dev --no-install-project
 
-FROM python:3.15.0-slim-trixie@sha256:2da676046630d7bf14c6764ae1143dc7fa0377a53f94bf5a642f0b214aca5bce AS runtime
+FROM python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS runtime
 ENV PATH=/opt/venv/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -26,16 +27,16 @@ COPY migrations ./migrations
 COPY catalog ./catalog
 COPY LICENSE NOTICE.md ./
 # Runtime installs nothing; remove the global installer and its unused vendored dependencies.
-RUN rm -rf /usr/local/lib/python3.15/ensurepip/_bundled \
-        /usr/local/lib/python3.15/site-packages/pip \
-        /usr/local/lib/python3.15/site-packages/pip-*.dist-info \
-        /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.15 \
+RUN rm -rf /usr/local/lib/python3.14/ensurepip/_bundled \
+        /usr/local/lib/python3.14/site-packages/pip \
+        /usr/local/lib/python3.14/site-packages/pip-*.dist-info \
+        /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.14 \
     && mkdir -p /data && chown 65532:65532 /data
 # Keep revision metadata after filesystem layers so a new revision reuses dependencies.
 ARG SERVICE_REVISION=
 ENV SERVICE_REVISION=${SERVICE_REVISION}
 USER 65532:65532
-VOLUME ["/data"]
+# No anonymous volume: fixture/import operators mount /data explicitly.
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=4).status == 200 else 1)"]

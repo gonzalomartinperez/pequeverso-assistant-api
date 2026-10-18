@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-17T15:13:29+00:00",
+  "generated_at": "2026-10-18T02:40:55+00:00",
   "source": {
     "repository": "gonzalomartinperez/pequeverso",
-    "revision": "bddd36f45b319571f52029dfe4d6b3283cd71287"
+    "revision": "fd2f150fe2e08955b3817c3b18ff14dea920d74e"
   },
   "site": {
     "name": "Pequeverso",
@@ -189,7 +189,7 @@
       "summary": "Alimentación complementaria de 6 a 12 meses. Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.",
       "age_range": "6 a 12 meses",
       "format": "Curso en video",
-      "usage": "Empezar a comer",
+      "usage": "Primeras comidas de tu bebé",
       "disclosure": "Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.",
       "guarantee_days": 7,
       "topics": [

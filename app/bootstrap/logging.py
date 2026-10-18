@@ -40,13 +40,13 @@ _EVENTS: dict[str, dict[str, frozenset[str]]] = {
         'catalog_restore': frozenset({'outcome'}),
         'catalog_refresh': frozenset({'outcome', 'reason', 'sha256'}),
     },
-    'app.adapters.openai_provider': {
+    'app.adapters.providers.openai_provider': {
         'provider_usage': frozenset({'outcome'}),
         'provider_open': frozenset({'outcome', 'error'}),
         'provider_stream': frozenset({'outcome', 'reason'}),
     },
     'app.adapters.official_help': {'official_help': frozenset({'outcome', 'topic'})},
-    'app.adapters.observability': {
+    'app.adapters.observability.telemetry': {
         'telemetry_export': frozenset({'outcome'}),
         'telemetry_shutdown': frozenset({'outcome'}),
         'telemetry_run_window': frozenset({'outcome'}),

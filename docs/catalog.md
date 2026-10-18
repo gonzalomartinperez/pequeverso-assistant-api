@@ -19,9 +19,9 @@ reachability alone does not prove that customers currently see that revision.
   Also excluded are seller tax id and address, legal-only mailboxes, and anything not
   customer-facing.
 
-## Current coverage (2026-10-17)
+## Current coverage (2026-10-18)
 
-The snapshot comes from storefront main `bddd36f45b319571f52029dfe4d6b3283cd71287`:
+The snapshot comes from storefront main `fd2f150fe2e08955b3817c3b18ff14dea920d74e`:
 **two products, nine resources, 26 documents and six links**. Grafismo Fonético remains the
 priced core PDF kit. Guía de Alimentación para Bebés is a separately purchased, third-party
 video course for complementary feeding from 6 to 12 months. Affiliate facts come exclusively
@@ -44,9 +44,13 @@ knowledge. Prices remain subject to freshness and null prices cannot borrow the 
 Bounded positive-claim recognizers reject explicit patterns such as curing anemia or preventing allergies/choking; this is not complete semantic verification. The prompt adds medical boundaries, and real-model review remains pending;
 the assistant may describe course topics, not prescribe personal diets or medical treatment.
 
-This increment closes the previously documented affiliate coverage gap; original October13
-reports remain historical and are not relabeled as a new real-model evaluation. No new paid
-calls, vector store, graph database or model-callable transaction tools are introduced.
+The initial affiliate-catalog increment closed the earlier coverage gap without adding a
+vector store or graph database; that architecture decision was subsequently superseded by
+[the production GraphRAG profile](decisions/ADR-0009-versioned-commercial-graphrag.md).
+The October18 catalog refresh changes only the affiliate usage wording to "Primeras comidas
+de tu bebé". Prices, policies, resource counts and links are unchanged. This refresh makes no
+paid calls or indexing changes; historical evaluation and vector manifests keep their actual
+source/hash identities rather than being relabeled as this snapshot.
 
 ## Updating
 
@@ -70,12 +74,14 @@ only; before enabling the assistant, reconcile the snapshot with the actually de
 storefront revision and its public commercial content. Do not use repeated exports as proof
 of production freshness.
 
-The script reads the storefront through `git archive <sha>` into a temporary directory. No
-storefront working tree, branch or index is touched. It links the storefront's installed
-`node_modules` read-only and runs `tools/catalog/export.ts` with Node, so every value comes
-from the storefront modules (`src/products`, `config/commerce.ts`, `content/es/**`). Review the
-diff (prices, counts, policy text) in a PR like any code change. Tests assert that the page
-counts sum, that the offer never appears, and that every URL is https on an allowlisted host.
+The script reads the committed storefront revision through `git archive <sha>` into a temporary
+directory. No storefront working tree, branch or index is touched. It links the storefront's
+installed `node_modules` read-only, copies this API repository's `tools/catalog/export.ts` into
+the archive, and runs that exporter with Node. Product facts come from the archived storefront
+modules (`src/products`, `config/commerce.ts`, `content/es/**`), never uncommitted storefront
+copy. The exporter itself is reviewed and versioned in the API; its hash is included in the sync
+report. Review the diff (prices, counts, policy text) in a PR like any code change. Tests
+assert that the page counts sum, that the offer never appears, and that every URL is https on an allowlisted host.
 
 ## Freshness policy
 

@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT))
 
 from app.bootstrap.config import DEFAULT_CATALOG
 from scripts.evaluate_end_to_end import digest, evaluate, load_live_provider, write_private
-from scripts.real_eval_budget import CAP_MICRO
+from scripts.real_eval_budget import CAP_MICRO, evaluation_run_ownership
 
 
 def verify_existing_budget(previous: Path, state: Path, terminal_only: bool) -> None:
@@ -117,28 +117,31 @@ def main() -> None:
     os.umask(0o077)
     for name in ('httpx', 'httpx2', 'httpcore', 'httpcore2', 'openai'):
         logging.getLogger(name).setLevel(logging.CRITICAL)
-    manifest = json.loads(args.manifest.read_text())
-    remaining, receipt = remaining_cases(manifest, args.previous_run)
-    verify_existing_budget(
-        args.previous_run, args.budget_state, receipt['terminal_only_completion'] is not None
-    )
-    destination = args.output_dir.resolve()
-    if destination.is_relative_to(ROOT) or destination.exists():
-        parser.error('output must be a new private directory outside the repository')
-    bounded = load_live_provider(args.key_file, args.budget_state)
-    destination.mkdir(parents=True, mode=0o700)
-    write_private(destination / 'manifest.json', remaining)
-    write_private(destination / 'original-manifest.json', manifest)
-    write_private(destination / 'continuation-receipt.json', receipt)
-    catalog = args.previous_run / 'catalog.json'
-    if catalog.read_bytes() != DEFAULT_CATALOG.read_bytes():
-        raise ValueError('continuation cannot silently change the original catalog')
-    (destination / 'catalog.json').write_bytes(catalog.read_bytes())
-    (destination / 'catalog.json').chmod(0o600)
-    summary = evaluate(remaining, destination, args.source_revision, bounded=bounded)
-    print(json.dumps({k: v for k, v in summary.items() if k not in ('cases', 'usage_receipts')}, indent=2))
-    if summary['stop_reason']:
-        raise SystemExit(1)
+    with evaluation_run_ownership(args.budget_state):
+        manifest = json.loads(args.manifest.read_text())
+        remaining, receipt = remaining_cases(manifest, args.previous_run)
+        verify_existing_budget(
+            args.previous_run, args.budget_state, receipt['terminal_only_completion'] is not None
+        )
+        destination = args.output_dir.resolve()
+        if destination.is_relative_to(ROOT) or destination.exists():
+            parser.error('output must be a new private directory outside the repository')
+        bounded = load_live_provider(args.key_file, args.budget_state)
+        destination.mkdir(parents=True, mode=0o700)
+        write_private(destination / 'manifest.json', remaining)
+        write_private(destination / 'original-manifest.json', manifest)
+        write_private(destination / 'continuation-receipt.json', receipt)
+        catalog = args.previous_run / 'catalog.json'
+        if catalog.read_bytes() != DEFAULT_CATALOG.read_bytes():
+            raise ValueError('continuation cannot silently change the original catalog')
+        (destination / 'catalog.json').write_bytes(catalog.read_bytes())
+        (destination / 'catalog.json').chmod(0o600)
+        summary = evaluate(remaining, destination, args.source_revision, bounded=bounded)
+        print(
+            json.dumps({k: v for k, v in summary.items() if k not in ('cases', 'usage_receipts')}, indent=2)
+        )
+        if summary['stop_reason']:
+            raise SystemExit(1)
 
 
 if __name__ == '__main__':

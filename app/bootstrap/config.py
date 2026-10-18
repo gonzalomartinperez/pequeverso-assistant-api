@@ -94,12 +94,33 @@ class Settings(BaseSettings):
 
     database_path: str = str(ROOT / 'data' / 'assistant.sqlite3')
 
+    # Production GraphRAG uses one relational service with separately privileged schemas.
+    # SQLite remains an isolated fixture/legacy profile; changing this never imports old data.
+    application_storage: Literal['sqlite', 'postgres'] = 'sqlite'
+    knowledge_backend: Literal['sqlite', 'graphrag'] = 'sqlite'
+    postgres_private_dsn: SecretStr | None = None
+    postgres_knowledge_dsn: SecretStr | None = None
+    postgres_private_pool_size: int = Field(default=4, ge=2, le=8)
+    postgres_knowledge_pool_size: int = Field(default=2, ge=2, le=4)
+    neo4j_uri: str | None = None
+    neo4j_username: str = 'neo4j'
+    neo4j_password: SecretStr | None = None
+    embedding_input_price_per_million: Decimal = Field(default=Decimal('0.02'), gt=0)
+
     # Private operations API (server-to-server, backoffice). Unset = the endpoint does not exist.
     ops_read_token: SecretStr | None = None
     # Source revision baked into the image (build arg), shown to operators.
     service_revision: str | None = Field(default=None, pattern=r'^[0-9a-f]{7,40}$')
 
-    @field_validator('service_revision', 'ops_read_token', mode='before')
+    @field_validator(
+        'service_revision',
+        'ops_read_token',
+        'postgres_private_dsn',
+        'postgres_knowledge_dsn',
+        'neo4j_uri',
+        'neo4j_password',
+        mode='before',
+    )
     @classmethod
     def empty_is_unset(cls, value: object) -> object:
         return None if value in ('', None) else value
@@ -140,6 +161,10 @@ class Settings(BaseSettings):
 
         if self.ai_provider == 'openai' and not (self.allow_paid_ai and self.openai_api_key):
             raise ValueError('AI_PROVIDER=openai requires ALLOW_PAID_AI=true and OPENAI_API_KEY')
+        if self.ai_provider == 'openai' and (
+            self.openai_model != 'gpt-6-luna' or self.openai_reasoning_effort != 'medium'
+        ):
+            raise ValueError('OpenAI answers require gpt-6-luna with medium reasoning; no fallback')
         if self.ai_provider == 'fixture' and self.environment == 'production' and self.assistant_enabled:
             raise ValueError(
                 'production cannot serve fixture answers; set AI_PROVIDER=openai or disable the assistant'
@@ -165,6 +190,37 @@ class Settings(BaseSettings):
             key = self.client_hash_key.get_secret_value()
             if key == DEV_CLIENT_HASH_KEY or len(key) < 32:
                 raise ValueError('production requires a CLIENT_HASH_KEY of at least 32 characters')
+            if (
+                self.assistant_enabled
+                and self.ai_provider == 'openai'
+                and (self.application_storage != 'postgres' or self.knowledge_backend != 'graphrag')
+            ):
+                raise ValueError('production answers require PostgreSQL application storage and GraphRAG')
+        if self.application_storage == 'postgres' and self.postgres_private_dsn is None:
+            raise ValueError('PostgreSQL application storage requires POSTGRES_PRIVATE_DSN')
+        if self.knowledge_backend == 'graphrag' and not (
+            self.postgres_knowledge_dsn and self.neo4j_uri and self.neo4j_password
+        ):
+            raise ValueError('GraphRAG requires explicit PostgreSQL and authenticated Neo4j configuration')
+        if (self.application_storage == 'postgres') != (self.knowledge_backend == 'graphrag'):
+            raise ValueError('PostgreSQL application storage and GraphRAG must be selected together')
+        for dsn in (self.postgres_private_dsn, self.postgres_knowledge_dsn):
+            if dsn is not None:
+                parts = urlsplit(dsn.get_secret_value())
+                if parts.scheme not in ('postgres', 'postgresql') or not parts.hostname or not parts.path:
+                    raise ValueError('PostgreSQL DSNs must be explicit database URIs')
+        if self.neo4j_uri:
+            parts = urlsplit(self.neo4j_uri)
+            if (
+                parts.scheme not in ('bolt', 'bolt+s', 'neo4j', 'neo4j+s')
+                or not parts.hostname
+                or parts.username is not None
+                or parts.password is not None
+                or parts.path not in ('', '/')
+                or parts.query
+                or parts.fragment
+            ):
+                raise ValueError('Neo4j requires a bare Bolt URI; credentials use private fields')
         return self
 
     @property

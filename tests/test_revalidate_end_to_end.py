@@ -119,3 +119,112 @@ def test_wrong_baseline_digest_stops_before_key_or_budget_access(tmp_path, monke
     assert error.value.code == 2
     assert 'baseline manifest does not match its frozen digest' in capsys.readouterr().err
     assert not budget.exists()
+
+
+def owned_invocation(tmp_path, monkeypatch):
+    from scripts import revalidate_end_to_end as revalidate
+    from scripts.real_eval_budget import Envelope
+
+    manifest, baseline = matrices()
+    baseline_path = tmp_path / 'baseline.json'
+    baseline_path.write_text(json.dumps(baseline))
+    manifest['baseline_manifest_sha256'] = revalidate.digest(baseline_path.read_bytes())
+    manifest_path = tmp_path / 'manifest.json'
+    manifest_path.write_text(json.dumps(manifest))
+    previous = tmp_path / 'previous'
+    previous.mkdir()
+    ledger = Envelope(tmp_path / 'budget.sqlite3')
+    (previous / 'budget.json').write_text(json.dumps(ledger.snapshot()))
+    output = tmp_path / 'new-output'
+    monkeypatch.setattr(
+        revalidate.sys,
+        'argv',
+        [
+            'revalidate_end_to_end',
+            '--manifest',
+            str(manifest_path),
+            '--baseline-manifest',
+            str(baseline_path),
+            '--previous-run',
+            str(previous),
+            '--key-file',
+            str(tmp_path / 'synthetic-never-read'),
+            '--budget-state',
+            str(ledger.path),
+            '--output-dir',
+            str(output),
+            '--source-revision',
+            'a' * 40,
+        ],
+    )
+    return revalidate, ledger, output
+
+
+def test_revalidation_refuses_owned_budget_before_validation_key_output_or_evaluation(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from scripts.real_eval_budget import evaluation_run_ownership
+
+    revalidate, ledger, output = owned_invocation(tmp_path, monkeypatch)
+    before = ledger.snapshot()
+    phases = []
+    monkeypatch.setattr(revalidate, 'verify_existing_budget', lambda *args, **kwargs: phases.append('verify'))
+    monkeypatch.setattr(
+        revalidate,
+        'load_live_provider',
+        lambda *args: phases.append('key') or SimpleNamespace(envelope=ledger),
+    )
+    monkeypatch.setattr(
+        revalidate, 'evaluate', lambda *args, **kwargs: phases.append('evaluate') or {'stop_reason': None}
+    )
+    with evaluation_run_ownership(ledger.path), pytest.raises(ValueError, match='already owned'):
+        revalidate.main()
+    assert phases == []
+    assert not output.exists()
+    assert ledger.snapshot() == before
+
+
+@pytest.mark.parametrize('evaluation_fails', [False, True])
+def test_revalidation_owns_entire_paid_boundary_and_releases_on_success_or_error(
+    tmp_path, monkeypatch, evaluation_fails
+):
+    from types import SimpleNamespace
+
+    from scripts.real_eval_budget import evaluation_run_ownership
+
+    revalidate, ledger, _ = owned_invocation(tmp_path, monkeypatch)
+    before = ledger.snapshot()
+    phases = []
+    original_verify = revalidate.verify_existing_budget
+
+    def require_ownership(phase):
+        with pytest.raises(ValueError, match='already owned'), evaluation_run_ownership(ledger.path):
+            pass
+        phases.append(phase)
+
+    def verify(*args, **kwargs):
+        require_ownership('verify')
+        original_verify(*args, **kwargs)
+
+    def load(*args):
+        require_ownership('key')
+        return SimpleNamespace(envelope=ledger)
+
+    def evaluate(*args, **kwargs):
+        require_ownership('evaluate')
+        if evaluation_fails:
+            raise RuntimeError('synthetic_revalidation_failure')
+        return {'stop_reason': None}
+
+    monkeypatch.setattr(revalidate, 'verify_existing_budget', verify)
+    monkeypatch.setattr(revalidate, 'load_live_provider', load)
+    monkeypatch.setattr(revalidate, 'evaluate', evaluate)
+    if evaluation_fails:
+        with pytest.raises(RuntimeError, match='synthetic_revalidation_failure'):
+            revalidate.main()
+    else:
+        revalidate.main()
+    assert phases == ['verify', 'key', 'evaluate']
+    with evaluation_run_ownership(ledger.path):
+        pass
+    assert ledger.snapshot() == before

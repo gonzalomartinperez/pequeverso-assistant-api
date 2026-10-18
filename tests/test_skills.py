@@ -27,7 +27,7 @@ def test_every_skill_has_valid_frontmatter_and_an_adapter() -> None:
 def test_skills_reference_existing_paths() -> None:
     for skill in CANONICAL.glob('*/SKILL.md'):
         for path in re.findall(
-            r'`((?:app|docs|evals|scripts|tests|contracts|catalog)/[\w./-]+)`', skill.read_text()
+            r'`((?:app|docs|evals|scripts|tests|contracts|catalog|infra)/[\w./-]+)`', skill.read_text()
         ):
             assert (ROOT / path.split(' ')[0]).exists(), f'{skill.parent.name}: {path}'
 

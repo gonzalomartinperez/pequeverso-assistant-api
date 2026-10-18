@@ -1,4 +1,4 @@
-name: Dependabot policy
+name: Dependency policy
 
 # Read-only assessment from the protected base commit. Every update is reviewed and merged
 # manually. PR code is never checked out, installed or executed by this workflow.

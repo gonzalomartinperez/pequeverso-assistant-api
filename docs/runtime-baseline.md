@@ -1,4 +1,27 @@
-# Runtime baseline candidate — 2026-10-17 (17:35 UTC cohort)
+# GraphRAG runtime profile — 2026-10-17
+
+The current source profile uses Python **3.14.8**, uv **0.13.1**, PostgreSQL **18.6** with
+pgvector **0.8.7**, Neo4j Community **5.26.32** on the 5.26 LTS line, LangGraph **1.2.16**,
+LangChain Core **1.6.12**, LangSmith **0.14.9**, psycopg **3.3.6** / pool **3.3.3** and Neo4j
+driver **6.4.1**. Exact dependency resolution is in `uv.lock`; container bases are digest-pinned.
+Frozen `--no-build` installs avoid ad hoc native builds. Python 3.15 is a stable branch but the
+selected GraphRAG dependency wheel set is incomplete; the owner permits 3.14 compatibility.
+The failed CP315 frozen install identified PyYAML 6.0.3, uuid-utils 0.17.1 and zstandard 0.25.0
+without compatible wheels. The CP314 frozen 74-package installation passed. Pequeverso has no
+Lingua dependency; this intentional return does not claim Python 3.15 or its Docker tags are unavailable.
+
+LangGraph and LangChain 1.x have their own published support policy; Python and PostgreSQL
+use support schedules without the LTS label. LangSmith is a separately versioned dependency;
+local SDK beta/deprecation warnings are explicitly scoped, not globally ignored. OTel's locked
+tree includes beta components. No version badge establishes production security or deployment.
+See [operator gates](knowledge-operations.md) and [GraphRAG component evidence](graph-retrieval.md).
+The dated earlier baseline below remains historical evidence and is not relabeled.
+
+Current container recipes are `infra/docker/{app,postgres,neo4j}/Dockerfile`, built with the
+repository root as context. Recipe relocation does not update dependency/image pins or make
+historical artifacts current. See [the deployment contract](deployment-contract.md).
+
+## Historical pre-GraphRAG baseline — 2026-10-17 (17:35 UTC cohort)
 
 The owner authorized execution of the shared deployment-readiness plan. This repository owns
 its code, tests, image and runtime contract. The private vps-ops inventory owns the shared
@@ -19,7 +42,8 @@ baseline/routing/release policy; Coolify remains the sole deployment executor.
 The lockfile is authoritative for the complete dependency graph. This dated view does not
 assert that these versions remain the newest forever or that an image has been published.
 Python 3.15.0 is maintained stable, not named LTS; uv 0.13.1 is stable tooling.
-Pequeverso has no Lingua dependency and uses SQLite rather than the portfolio retrieval stack.
+This historical pre-GraphRAG candidate had no Lingua dependency and used SQLite rather than
+the portfolio retrieval stack; it is superseded by the current production profile above.
 The portfolio remains an immutable implementation reference, not evidence that Pequeverso
 has passed its own checks. This candidate deliberately uses regular GIL CPython; no global lazy
 imports, experimental JIT or free-threaded runtime is enabled.

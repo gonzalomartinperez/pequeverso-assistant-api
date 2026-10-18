@@ -183,3 +183,28 @@ def test_http_source_refuses_redirects_wrong_types_and_oversize() -> None:
 def test_generated_at_is_timezone_aware() -> None:
     assert PARSE(CATALOG_BYTES).generated_at.tzinfo is not None
     assert PARSE(CATALOG_BYTES).generated_at <= datetime.now(UTC)
+
+
+@pytest.mark.parametrize('unchanged', [False, True])
+def test_projection_binding_failure_preserves_snapshot_and_marks_unsynchronized(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, unchanged: bool
+) -> None:
+    async def scenario() -> None:
+        clock = FixedClock()
+        second = CATALOG_BYTES if unchanged else _mutated(products__0__summary='Resumen actualizado.')
+        service, db = _service(tmp_path, _Source([CATALOG_BYTES, second]), clock)
+        await db.open()
+        try:
+            assert await service.refresh() and service.synchronized
+            first = service.active
+
+            async def rejected(*args: object) -> None:
+                raise ValueError('synthetic-private-repository-detail')
+
+            monkeypatch.setattr(service._repository, 'mark_verified' if unchanged else 'activate', rejected)
+            assert await service.refresh()
+            assert service.active is first and not service.synchronized
+        finally:
+            await db.close()
+
+    asyncio.run(scenario())

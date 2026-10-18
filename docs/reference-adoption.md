@@ -1,8 +1,14 @@
 # Reference adoption record (portfolio-assistant-api)
 
-`portfolio-assistant-api` has **no source license** (all rights reserved). Ideas were adapted;
-no code was copied. It was inspected read-only: `git show` and the GitHub API on immutable
-commits, never its working tree.
+At the original inspection of `47219c3`, no source license was identified in
+`portfolio-assistant-api`. That is a historical licensing observation, not a claim about its
+current license. Ideas were adapted; no code was copied. References below were inspected
+read-only with `git show` and the GitHub API on immutable commits, never its working tree.
+
+The initial GraphRAG rejection below is historical. The later owner-authorized
+[ADR-0009](decisions/ADR-0009-versioned-commercial-graphrag.md) supersedes it with the current
+PostgreSQL/pgvector, Neo4j and bounded LangGraph production profile; it does not grant source
+reuse, deployment, provider spending or access to private reference data.
 
 | Inspected | Improvement | Decision | Reason / compatibility |
 |---|---|---|---|
@@ -13,7 +19,7 @@ commits, never its working tree.
 | `47219c3` | SSE envelope with sequence, heartbeat comments, guaranteed close on disconnect | Adapted | Own event set (`message.completed` authoritative); explicit per-step deadline (a task-bound timeout across generator yields never fires, a bug found in testing) |
 | `47219c3` | Redacting JSON log formatter, no access logs, uniform error envelope | Adopted (own code) | — |
 | `47219c3` | Pinned contract artifacts + manifest + drift check in CI | Adopted | `contracts/export.py` also builds examples through real validation code |
-| `47219c3` | Postgres + pgvector + Neo4j GraphRAG + LangGraph | **Rejected** | A catalog of about 17 KB; retrieval eval 0.95 recall@3 lexically (ADR-0002) |
+| `47219c3` | Postgres + pgvector + Neo4j GraphRAG + LangGraph | Initially rejected; superseded by ADR-0009 | Historical ADR-0002 used a catalog of about17KB and reported lexical recall@3 of0.95; that is not current GraphRAG evaluation evidence |
 | `47219c3` | Skills as real files in `.claude/skills`, symlinked from `.agents` | Rejected (layout) | Followed the storefront convention instead: canonical `.agents/skills`, thin `.claude` adapters |
 | `4602abe` | Spoofed and malformed `X-Forwarded-For` rejection | Adopted | Right-to-left walk over trusted CIDRs, chain ≤ 5 |
 | `44f70ed` | Concurrency test for reservations | Adopted | Plus a 4-process test on one SQLite file |

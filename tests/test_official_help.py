@@ -445,7 +445,7 @@ def test_preparation_deadline_expires_before_reservation_without_provider_attemp
             assert db.execute('SELECT model_call FROM run_metrics').fetchone()[0] == 0
 
 
-def test_deadline_after_reservation_keeps_conservative_cost_and_releases_run(
+def test_deadline_before_dispatch_records_known_zero_cost_and_releases_run(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     import sqlite3
@@ -475,7 +475,7 @@ def test_deadline_after_reservation_keeps_conservative_cost_and_releases_run(
         assert response.status_code == 404
         with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as db:
             row = db.execute('SELECT status,actual_micro,reserved_micro FROM spend_ledger').fetchone()
-            assert row[0] == 'unreported' and row[1] is None and row[2] > 0
+            assert row[0] == 'settled' and row[1] == 0 and row[2] > 0
             assert db.execute('SELECT model_call FROM run_metrics').fetchone()[0] == 0
 
 

@@ -1,212 +1,185 @@
-# Handoff to vps-ops: Pequeverso assistant API and backoffice
+# Handoff to vps-ops: Pequeverso applications
 
-Reconciles with vps-ops `main` `2b310f2ee86e600f13c87a29806569adb3e8e10e`, inspected through
-`git show` at `docs/handoffs/pequeverso-assistant.md`, `docs/handoffs/integration-matrix.md`,
-`inventory/runtime.json` and `infra/edge/coolify-traefik.yaml`. This supersedes the earlier
-`develop` `04be619` planning attribution; the matrix's pinned application revisions still need
-refreshing to the separately approved release SHAs before deployment. This is a
-handoff, not an authorization: no image is published, and this document does not approve any
-DNS record, route, database, secret or Coolify resource. Owner-authorized paid evaluations ran
-only in isolated local services; see docs/verification/real-model-2026-10-12.md. vps-ops
-remains the only infrastructure authority; nothing here modifies vps-ops.
+Current application profile: **2026-10-17, GraphRAG candidate**. This replaces the earlier
+SQLite production handoff. Dated image measurements and legacy SQLite recovery procedures
+remain in [the deployment contract](../deployment-contract.md) and Git history; they are
+not current production topology or approval. No images are published and no API/backoffice
+service is deployed by this work. vps-ops owns Coolify, proxy, DNS, secrets, infrastructure
+allocation, monitored backups and deployment. The storefront assistant remains disabled.
 
-## Current reconciled topology
+## Current topology and project isolation
 
-The current vps-ops inventory already distinguishes the native storefront, API, backoffice,
-private IAM PostgreSQL and API-owned SQLite. The earlier public web/iframe service is
-superseded; there is no VPS chat frontend or `/embed` service:
+| Component | Responsibility and placement |
+| --- | --- |
+| Storefront `pequeverso` | Hostinger builds `main`, owner-confirmed. Home links to the Grafismo Fonético landing or the existing affiliate redirect to the producer; Hotmart handles purchase. No VPS frontend, iframe or `/embed` service |
+| `pequeverso-assistant-api` | Future private-network application container; only `/api/v1/*` exposed through its future public host |
+| API PostgreSQL 18.6 + pgvector 0.8.7 | Production relational authority: public `knowledge` and private `assistant_private` schemas with distinct capability identities |
+| API Neo4j Community 5.26 LTS | Versioned rebuildable **public-only** projection, private Bolt/HTTP, no customer or conversation data |
+| `pequeverso-backoffice` | Separate authenticated host; OAuth, owner/viewer permissions and server-side consumption of private operations data |
+| Backoffice identity database on the same project PostgreSQL 18.6 service | Separate database, credentials and migration/backup custody; never part of public retrieval |
 
-| Component | Repository | Hosting | Public? |
-|---|---|---|---|
-| Storefront with the **native** assistant (disabled by default; no iframe) | `gonzalomartinperez/pequeverso` | Hostinger hosting, Git integration connected to `main` as confirmed by the owner. Consumes **no** VPS resources or Hostinger Node slots | Yes |
-| Assistant API | `gonzalomartinperez/pequeverso-assistant-api` | VPS, Coolify | `/api/*` only |
-| Private backoffice (OAuth, owner/viewer, ops dashboard) | `gonzalomartinperez/pequeverso-backoffice` (previously `pequeverso-assistant-backoffice`; originally `pequeverso-assistant-web`, whose backoffice rename was on 2026-10-05) | VPS, Coolify | Only behind its own sign-in |
-| Backoffice PostgreSQL (identity and access only) | — | VPS, private network, project volume | Never |
+The coordinated target is **one PostgreSQL service instance for the Pequeverso project**,
+with **two distinct databases**: assistant public/private state in one, backoffice identity in
+the other. Each has separate ownership, runtime credentials, CONNECT/schema/table privileges,
+migration authority, backups and restore custody. These are logical database boundaries, not
+physically isolated servers. The API-owned PostgreSQL/pgvector artifact is the common project
+engine; the backoffice still owns its IAM migrations. vps-ops owns the single service lifecycle,
+resource allocation and deployment. No application starts a competing database controller.
 
-Hostinger builds and publishes `main`, as confirmed by the owner. A storefront merge can
-therefore publish the site, but must keep the assistant disabled. Verify the public build and
-post-deploy checks after a storefront release. API/backoffice merges do not deploy to the VPS;
-that separate rollout remains owned by vps-ops.
+Cross-database admission and table access must be explicitly denied to the other runtime
+identity; revoke PUBLIC database privileges, including CONNECT, TEMPORARY and CREATE, and
+grant each runtime only its own CONNECT and documented schema/table capabilities. A local same-engine drill covers API31,
+BO18 and BO51 browser tests, independent database restores with matching row hashes, and
+separate least-privilege role probes. The full suites used fixture administrative connections;
+this is not a production-runtime-role browser test or VPS-capacity approval. Follow the
+[bootstrap custody and acceptance steps](../knowledge-operations.md#one-project-engine-two-database-bootstrap). This
+choice is not provisioning approval. **Never share a PostgreSQL or Neo4j
+instance with Portfolio or another project.**
+SQLite remains an isolated fixture profile and a quiescent, non-destructive historical import
+source. The production API has no anonymous `/data` volume and never auto-migrates PostgreSQL
+at HTTP startup. Redis and LangGraph checkpoint storage are not part of this finite workflow.
 
-The backoffice needs a **separate host**; iframe, `frame-ancestors` and `/embed` are not current
-requirements. The storefront talks to the API cross-origin from the browser. Hostnames and
-runtime resources remain planned until vps-ops accepts the actual deployment inputs.
+## Artifact, process and storage contract
 
-## Answers to the six requests
+All three recipes use the repository root as their build context. The app uses root
+`.dockerignore`; PostgreSQL has its own adjacent deny-by-default filter allowing only LICENSE
+and NOTICE.md; Neo4j allows only those notices and its colocated `neo4j.conf`. No local Compose
+is implemented here, and production composition remains owned by vps-ops/Coolify.
 
-1. **Images.** Not published. Each repository builds from `Dockerfile` at a reviewed commit;
-   CI builds the exact image and smoke-tests it (API: `scripts/smoke_container.sh`; backoffice:
-   `scripts/smoke-image.sh`). Both are `linux/amd64`, non-root (API and current distroless backoffice UID/GID
-   65532), read-only root with tmpfs, `--cap-drop ALL`, `no-new-privileges`. Ports: API
-   `8000/tcp`, backoffice `3000/tcp`. Latest API local fixture acceptance (2026-10-13):
-   application `cf19c3b`, image `0691367`, 57,024,366 bytes, idle 69.27 MiB, cgroup peak 89,403,392 bytes
-   and core shutdown 2.02 s. BuildKit is required; vps-ops selects compatible build tooling. The separately identified checked-stream candidate 68c97bb/5a8526a
-   stopped an active stream with a blocked collector in 7.508 s; keep at least 40 s grace. These
-   feature-image digests are not relabeled as later integration/main builds. Exact evidence is in
-   [the deployment contract](../deployment-contract.md). Historical backoffice measurements
-   were 64–77 MiB idle and about 97 MB image metadata; its new PostgreSQL 18.6/telemetry candidate
-   requires fresh exact-image acceptance from that repository before selection.
-   Sizes are Docker metadata, not compressed transfer or physical disk use; layer whiteouts do
-   not imply physical image shrink. Proposed limits: API 0.5
-   CPU / 256 MiB, backoffice 1 CPU / 384 MiB (request 0.1 CPU / 128 MB). Real-model socket timings exist, but live-model container load and VPS capacity are not
-   measured. Publication to a private registry by digest needs separate authorization.
-2. **Health and persistence.**
-   - API: `GET /health/live` (liveness), `GET /health/ready` (database + valid catalog; Docker
-     `HEALTHCHECK` built in). State: one SQLite file in WAL mode on volume `/data` (sessions 24 h,
-     spend ledger, content-free run metrics 90 days, catalog snapshots). Migrations run
-     automatically at startup inside a transaction. **Single instance, one worker.** Backup:
-     Python sqlite3 `Connection.backup` from the same image (online-safe; concrete recipe in
-     `docs/deployment-contract.md`) before each deploy and daily; the spend ledger is the data worth keeping (it enforces the monthly budget).
-   - Backoffice: `GET /healthz` (liveness), `GET /readyz` (config + PostgreSQL + migrated
-     tables). Stateless container; PostgreSQL holds operator identities, encrypted OAuth tokens,
-     sessions, invitations and an id-only audit. Migrations are a **one-shot** command of the same
-     image digest (`node scripts/db-migrate.ts`), additive, advisory-locked, idempotent; run them
-     before starting a new digest. Backups: daily encrypted `pg_dump -Fc`, off-server, restore
-     drill before activation. Historical tests used PostgreSQL17.6 and18.4; the current backoffice target is18.6,
-     with its exact-image migration/restore evidence owned by that repository.
-   - Rollback: image rollback alone does not establish data compatibility. Public HTTP
-     revision1.5 is additive, but its internal catalog and persisted product-reference JSON
-     cannot be read by older strict readers. Before activation, require a compatible rollback
-     reader or an explicitly tested compatibility migration preserving newer conversations
-     and the spend ledger; see [the catalog/history compatibility gate](../deployment-contract.md#affiliate-catalog-rollout-and-rollback-2026-10-17).
-     Never restore an old whole database over intervening writes or clear conversations as a
-     generic rollback procedure. Backup restore is appropriate only with no intervening writes
-     or in an isolated drill. vps-ops owns the coordinated rollback and reconciliation.
-3. **Paths and streaming.** API routes include `/api` (`/api/v1/...`), `root_path` empty: route
-   `/api/*` **unchanged** (no stripping). SSE on `POST /api/v1/messages`: no buffering, no
-   compression; allow at least90s for the streaming **response/write**, separately from
-   request-body reading (runs end at60s; heartbeat every15s). The inspected vps-ops Traefik
-   input uses request `readTimeout: 15s`, response `writeTimeout: 135s` and upstream
-   `responseHeaderTimeout: 135s`; do not raise the request-body read timeout because SSE is
-   long-lived. Propagate client disconnects. `/health/*` and `/internal/*` must **never** be
-   routed publicly. See [the timeout semantics](../deployment-contract.md#routing-and-proxy-sse).
-4. **Origins (proposals, pending owner approval and DNS).** Storefront origin
-   `https://pequeverso.com` (apex; `www` redirects there). API: `https://assistant.pequeverso.com`
-   (inventory's proposed domain), `/api/*` only. Backoffice: a separate host, e.g.
-   `backoffice.assistant.pequeverso.com` (example only). Cross-origin contract (storefront → API):
-   exact `ALLOWED_ORIGINS=["https://pequeverso.com"]`, credentials allowed, preflight answered by
-   the API (the proxy must pass `OPTIONS` and add **no** CORS headers of its own); host-only
-   `__Host-pv_assistant` cookie (`Secure; HttpOnly; SameSite=Lax`), no `Domain`, no
-   `SameSite=None`; Origin allowlist + per-session CSRF token on every mutation. No browser-held
-   OpenAI key. Private responses are `no-store`; never cache at the proxy/CDN.
-5. **Storefront disable switch.** Build-time `NEXT_PUBLIC_ASSISTANT_ENABLED` (absent or `false`
-   = no assistant code in the export, verified by `npm run check:assistant-disabled`, which the
-   store's build and Deploy workflow run). Changing it requires a storefront rebuild and release;
-   vps-ops cannot flip it. The API has an instant kill switch: `ASSISTANT_ENABLED=false` (the
-   store then shows "unavailable" and keeps selling). API outage, budget exhaustion or a missing
-   widget never affect product browsing or the Hotmart checkout (store e2e covers the disabled
-   build; the enabled suite covers unavailable states).
-6. **Secrets and metrics.** Proposed secret names:
-   `pequeverso-assistant-openai` (OpenAI key of a **separate Pequeverso project**, never the
-   portfolio's), `pequeverso-assistant-client-hash-key`, `pequeverso-assistant-ops-read-token`
-   (shared by API and backoffice), `pequeverso-backoffice-auth-secret`,
-   `pequeverso-backoffice-database-url`, `pequeverso-backoffice-google-oauth`,
-   `pequeverso-backoffice-github-oauth`. Budget: USD 10/month (configurable), enforced per request
-   with atomic worst-case reservations, a 10 % margin and a daily cap; spend is reported as
-   confirmed / estimated / pending; when cost is unknown the reservation stays counted; when the
-   budget is exhausted the API refuses new questions (`budget_exhausted`). Verify the actual project billing/spend controls separately; this handoff does not assume
-   an administrative hard cap or prior account spend. Set `OPENAI_MAX_RETRIES=0` (the only
-   accepted runtime value): an ambiguous timeout may already have been billed, so it never
-   silently creates a second request against one reservation. The runtime endpoint is explicitly
-   `https://api.openai.com/v1` and tier explicitly Standard (`default`); ambient
-   `OPENAI_BASE_URL` cannot redirect the key. Regional/custom gateways or another tier require
-   security and pricing review before adoption. Input bounds include serialized
-   instructions, message roles/text and output schema, plus1024 protocol bytes. Aggregate metrics: the private `GET /internal/v1/ops/summary` (bearer
-   token) — schema `contracts/ops.schema.json` revision1.2. Optional authenticated
-   `/internal/v1/ops/telemetry` (independent schema1.0) and `/internal/v1/ops/metrics` are
-   opt-in, default off. OTLP traces, bounded queues, safe attributes and monitoring handoff
-   artifacts are documented in docs/observability/README.md; no monitoring server is installed.
-   Alerts for vps-ops integration: month spend ≥ 80 % / 100 % of the cutoff, catalog
-   `price_status=unverified`, `last_failure` set, readiness failing. No conversation content,
-   e-mail, cookie or secret is ever in logs or metrics.
+- Build from the approved exact application commit with `infra/docker/app/Dockerfile` and the frozen
+  lockfile; use immutable image digests for rollout. Local IDs in
+  [the dated evidence](../verification/graphrag-2026-10-17.md) are not published manifests or
+  final release identities. API/backoffice `main` merges do not deploy; storefront `main`
+  merges publish through Hostinger, so its disabled-build and post-deploy checks are mandatory.
+- API: port **8000/tcp**, UID/GID **65532**, read-only root, cap-drop ALL, no-new-privileges,
+  bounded `/tmp` tmpfs, rotated container logs. `APPLICATION_STORAGE=postgres` together with
+  `KNOWLEDGE_BACKEND=graphrag`; no production SQLite mount. Runtime code owns no host resources.
+- API PostgreSQL: port **5432/tcp**, UID/GID **999**, persistent mount
+  **`/var/lib/postgresql`** (PostgreSQL 18 layout), bounded writable `/var/run/postgresql`
+  and `/tmp` tmpfs. Use the project `infra/docker/postgres/Dockerfile` exact image and privacy logging CMD;
+  do not replace it with a less restrictive command. No public database port.
+- Neo4j: private **7687/tcp** Bolt and **7474/tcp** HTTP, UID/GID **7474**, persistent **`/data`**;
+  reviewed bounded runtime/log tmpfs, read-only root, no plugins, native JNA library installed
+  read-only at image build. Use `infra/docker/neo4j/Dockerfile` and its configuration. Community READ routing
+  is **not database-enforced read-only authorization**: use a project-isolated instance and
+  secret, fixed application queries and private network boundaries.
+- Backoffice: port **3000/tcp**, UID/GID **65532**, read-only stateless image. Its repository
+  owns the exact image, IAM migration command, PostgreSQL volume contract and acceptance proof.
+- **One API instance and worker, stop-first, no overlap.** A dedicated PostgreSQL advisory
+  ownership connection is acquired before abandoned-run recovery; a second owner fails
+  startup. Lease loss blocks readiness/admission without silent re-acquisition. A shared DB
+  does not make the process HA. Retain at least **40 seconds container stop grace** for stream,
+  run-registry and telemetry cleanup; confirm under actual VPS load before activation.
 
-## Networks and routing (proposal)
+Local fixture ceilings are API/SQLite 256 MiB/0.5 CPU, API/GraphRAG 512 MiB/1 CPU,
+API PostgreSQL 384 MiB/1 CPU and Neo4j 768 MiB/1 CPU. Backoffice fixture acceptance uses 384 MiB/1 CPU. These are separately tested
+functional cgroups, **not approved reservations, throughput figures or combined VPS sizing**.
+Database/index/restore peaks, simultaneous application load, disk growth and actual capacity
+remain vps-ops gates. Do not add these figures and label the result production capacity.
 
-| Network | Members |
-|---|---|
-| `pequeverso-assistant-production-ingress` (reserved) | Coolify's proxy, API, backoffice |
-| new internal network (proposal) | backoffice, API (for `/internal/v1/ops`), backoffice PostgreSQL |
+## Migration, indexing, backup and rollback custody
 
-Set `TRUSTED_PROXY_CIDRS` (API) and `TRUSTED_PROXY_IPS` (backoffice) to the exact proxy
-container address(es). Volumes (proposal): `pequeverso-assistant-production-api-data` (`/data`),
-`pequeverso-assistant-production-backoffice-pg`. Never attach portfolio services.
+Use [knowledge operations](../knowledge-operations.md) for exact commands and capabilities:
 
-## Acceptance before activation (isolated, synthetic, no paid calls)
+1. Run the explicit `python -m app.bootstrap.knowledge_jobs migrate` job from the selected
+   application image with **`POSTGRES_MIGRATION_DSN`**, then provision distinct LOGIN identities
+   with the documented NOLOGIN capability memberships. Migration authority is never runtime
+   authority. The backoffice runs its own separate IAM migration from its own exact image.
+2. If historical SQLite exists, first stop its writer and take a closed, verified snapshot
+   without WAL/SHM sidecars. `python -m app.bootstrap.import_database --snapshot ... --receipt
+   ... --source-quiescent` uses **`POSTGRES_IMPORT_DSN`**. It refuses a populated target,
+   preserves source data and accounting, and is not an automatic destructive migration.
+3. Index only the pinned authorized public catalog with `python -m app.bootstrap.knowledge_jobs
+   index --catalog ... --expected-catalog-sha256 ... --receipt ...`. Use
+   **`POSTGRES_INDEXER_DSN`**, **`POSTGRES_EMBEDDING_DSN`** and private Neo4j credentials. Jobs
+   are fixture-only by default; semantic indexing additionally needs owner-approved spending,
+   a private key and the explicit paid-indexing flag. The standalone CLI enforces the
+   application ledger, not the independent local evaluation envelope. Evaluation indexing
+   must additionally pass through the reviewed aggregate evaluation envelope before any
+   paid batch; selecting the ordinary CLI does not enforce that separate cap.
+4. PostgreSQL staging/vector reuse and Neo4j staging must agree on version, parser, model,
+   dimensions, canonical hashes and counts before the single PostgreSQL active pointer moves.
+   Failure leaves the old active revision. This is coherent staged activation, not distributed
+   PostgreSQL/Neo4j ACID. No evaluation questions or private state enter the projection.
+5. Runtime uses distinct **`POSTGRES_PRIVATE_DSN`** and **`POSTGRES_KNOWLEDGE_DSN`**, neither
+   owner/indexer credentials. Neo4j credentials stay server-side. Normal startup performs no
+   schema migration, semantic indexing, provider retry or rebuild after a restore.
+6. Back up the API PostgreSQL private state/ledger and public revision proofs together with
+   separately identified backoffice identity backups. Keep encrypted off-server copies,
+   recovery credentials and tested hashes/checksums. Neo4j is rebuildable, but its restore or
+   rebuild must match the approved PostgreSQL/catalog revision before readiness; never report
+   a reindex as successful restoration of the original dump.
+7. Stop all writers before an incompatible image rollback; confirm migration/reader and
+   catalog/history compatibility. A pre-GraphRAG SQLite image cannot read production PG state.
+   Never restore a whole old database over intervening conversations or spend. Snapshot
+   recovery begins with the API disabled until post-snapshot spend is reconciled or
+   conservatively retained. vps-ops owns the actual backup schedule, restore drill and rollout.
 
-1. Both images by digest: health, readiness, non-root, read-only, migrations.
-2. From an HTTPS host page on `https://pequeverso.com`-equivalent test origin: preflight,
-   credentialed session, CSRF, incremental SSE timing through the proxy, stop/disconnect,
-   disallowed origin refused (403), `/internal/*` and `/health/*` unreachable from outside.
-3. Backoffice: real OAuth apps (owner-created), owner sign-in, invitation, revocation, HSTS,
-   `__Secure-` cookies through TLS; ops summary reachable only on the internal network.
-4. Simulate API loss and `budget_exhausted`: storefront browsing and checkout continue (no real
-   purchase).
-5. Backups taken and one restore drill for both data stores.
+No automatic public-version pruning, volume deletion, private-ledger purge, global Docker
+prune or vendor-jar removal is authorized. Monitor database/WAL/index/backup bytes, free disk,
+container log bounds and retained known-good image digests. Deleted pages or image whiteouts
+are not proof of physical erasure or disk reclamation.
 
-Activation itself (DNS, Coolify resources, enabling the storefront flag, paid model use) needs
-the owner's explicit, separate authorization.
+## Health, routes and private operations
 
-## Runtime budget and disk handoff update (2026-10-10)
+| Endpoint | Contract |
+| --- | --- |
+| API `/health/live` | Internal process liveness |
+| API `/health/ready` | Internal private DB + ownership + synchronized catalog + matching public PG/Neo knowledge readiness |
+| API `/api/v1/*` | Public session/chat contract **v1 revision 1.5**, no prefix stripping |
+| API `/internal/v1/ops/summary` | Private bearer-token, content-free aggregates, schema revision **1.2** |
+| API `/internal/v1/ops/telemetry`, `/internal/v1/ops/metrics` | Private, opt-in telemetry schema **1.0** and Prometheus metrics; default off |
+| Backoffice `/healthz`, `/readyz` | Internal liveness and migrated IAM database readiness |
 
-Carry the API's reviewed bounded runtime recipe from `docs/deployment-contract.md` into future
-vps-ops configuration: 256 MiB / 0.5 CPU, no extra swap, 64 PIDs, 64 MiB hardened `/tmp`,
-read-only root, uid65532, cap-drop ALL/no-new-privileges and rotating local logs (10 MiB × 3).
-The application remains one process/worker and does not change proxy, network or deployment
-state. Use the committed smoke and its exact-image evidence, not an assumed aggregate limit.
+The proposed public API host is `assistant.pequeverso.com`; backoffice needs its own sign-in
+host. Hostnames are not DNS/deployment instructions. Public routing exposes only `/api/*`;
+health, database ports and `/internal/*` must remain inaccessible outside the private network.
+Backoffice consumes aggregates **server-side** after its `read_operations` permission check.
+Prometheus/Grafana/OTLP complement that custom UI and never replace the accounting ledger or
+prove OpenAI availability. vps-ops selects and operates its monitoring components; this repo
+provides only opt-in application signals and integration examples.
 
-SQLite WAL now requests FULL synchronization for committed ledger durability. Online backup
-uses Python sqlite3 already in the same image; the smoke performs a real restore into its own
-stopped disposable volume and rechecks charged spend. Recovery from an older backup starts
-with ASSISTANT_ENABLED=false until post-snapshot spend is reconciled or conservatively accounted
-for; unknown usage is never zero and project budget settings are not an assumed hard cap.
-Storage must honor fsync; the VPS has not
-been subjected to a power-loss test. Keep encrypted off-server backups and a separate restore
-exercise. Monitor data/WAL/staged-backup bytes, host free space, image/cache usage and bounded
-container logs; never purge financial history or prune other projects to satisfy a disk alert.
-No monitoring service is added: existing private ops and internal readiness supply aggregates,
-while Docker/host metrics belong to vps-ops. Neither release nor this handoff enables the
-storefront, publishes an image or authorizes an infrastructure action.
+Preserve SSE on `POST /api/v1/messages`: no buffering or compression; allow at least90s for
+streamed response/write, independently of request-body read deadlines. Runs end at60s and
+heartbeats occur every15s. Propagate disconnects. Do not force a client HTTP version; TLS,
+HTTP/2/3 and upstream proxy timeouts belong to vps-ops. A local loopback test is not a TLS or
+public-proxy acceptance test.
 
+Origins are exact, credentials allowed: `ALLOWED_ORIGINS=["https://pequeverso.com"]` (the
+owner-confirmed apex; www redirects). Forward OPTIONS without adding proxy CORS headers.
+Host-only `__Host-pv_assistant` cookie: Secure, HttpOnly, SameSite=Lax, no Domain. Mutations
+require allowlisted Origin and per-session CSRF; sensitive responses are no-store. Configure
+trusted proxy peer CIDRs explicitly; application uvicorn proxy headers stay off.
 
-## Current consumer and lifecycle requirements
+## Secrets, budgets and activation
 
-- Keep public routing as `/api/v1/*`, with no prefix rewrite. `/v1` is the version within
-  the application-owned `/api` namespace; changing it requires coordinated contracts. The
-  current native Spanish-only storefront with affiliate cards consumes public revision1.5
-  (`contracts/openapi.json`, `contracts/sse.schema.json`, `contracts/manifest.json`) and sends
-  `response_language: "es"`. Revision1.4 introduced that optional language field; absence/null
-  keeps legacy ES/EN compatibility. Existing saved English history is not rewritten. Consume
-  the exact merged contract artifacts, not a mutable branch or another application's contract.
-- Preserve the private summary revision1.2 and independent telemetry1.0. Backoffice custom UI
-  consumes them server-side after `read_operations`; Prometheus scraping and OTLP export
-  complement that UI rather than replace its budget/run ledger. No metric equals a billing
-  invoice or proves the provider is available.
-  Their exact artifacts are `contracts/ops.schema.json` with
-  `contracts/examples/ops.summary.json`, and `contracts/ops.telemetry.schema.json` with
-  `contracts/examples/ops.telemetry.json`. See [private observability](../observability/README.md).
-- Current API container grace is at least 40s:15s Uvicorn stream grace, separate10s registry
-  cleanup and bounded exporter shutdown/headroom. Dropped best-effort traces must not delay
-  application cleanup. Historical30s tracing-off evidence is not the current target.
-  The composition root now explicitly closes its owned OpenAI SDK client after draining
-  responses and before SQLite, then shuts down telemetry; partially failed SQLite startup
-  also releases acquired resources. Borrowed test providers remain caller-owned. See
-  [resource ownership](../architecture.md#resource-ownership) for the tested lifecycle.
-- Keep API SQLite on its own `/data` volume, backoffice identity on its own PostgreSQL 18.6
-  database/volume, and shared infrastructure in vps-ops. No Neo4j/vector/Redis is needed for
-  this catalog. Verify backup/restore, WAL/disk limits and physical erasure before activation.
-- LTS applies only where an official policy exists. Python3.15.0 and PostgreSQL 18.6 are
-  supported stable releases; Node24 is LTS. Python OTEL1.45.1 contains three explicit0.66b1
-  dependencies. Prometheus3.13 LTS, Grafana13.2 and collector components require final image
-  and compatibility selection by vps-ops. Examples are application handoff artifacts, not
-  permission to deploy a monitoring stack.
+All secrets are injected privately by vps-ops/Coolify, never build args, browser code, URLs,
+logs or screenshots. [Knowledge operations](../knowledge-operations.md) lists database role
+custody. Runtime secret names include **`OPENAI_API_KEY`**, **`CLIENT_HASH_KEY`**,
+**`OPS_READ_TOKEN`**, the two runtime DSNs and **`NEO4J_PASSWORD`**; job-only migration/import/
+index-accounting credentials must not be supplied to HTTP. Backoffice owns its separate auth,
+IAM and OAuth secrets. Share only the ops read token between API and backoffice as needed.
 
+The only generation configuration is GPT-6 Luna / medium; semantic embeddings use
+text-embedding-3-small /1536. No model fallback, automatic generation retry or arbitrary web
+search. Optional Hotmart procedural retrieval is server-owned, default off and limited to
+[three exact public articles](../official-web-evidence.md), without buyer/account credentials.
+Python **3.14.8** is intentional: the CP315 frozen graph-dependency install failed on missing
+wheels for **PyYAML 6.0.3, uuid-utils 0.17.1 and zstandard 0.25.0**. This is not a Docker/Python
+3.15 availability claim and Pequeverso has no Lingua dependency. Locks/digests are authoritative.
 
-## Optional official platform evidence (2026-10-13)
+The project budget is USD10/month with configured daily cutoff, atomic worst-case reservations
+and safety margin. Index/query embeddings and generation share it; unknown spend stays
+reserved. These are conservative application estimates, not provider invoices or an assumed
+account-level hard cap. The separate local evaluation cap remains USD1/650 attempts with
+historical counters preserved; no new 200+ semantic evaluation is claimed within its remaining
+108 requests. See [dated evidence and remaining security/model gates](../verification/graphrag-2026-10-17.md).
 
-`OFFICIAL_HELP_ENABLED=false` is the default. If later authorized, the API reads only
-`https://api-help-center.bkf.hotmart.com:443/articles/{approved_id}` for209033897,360061973392
-and9312940657933, with no credentials, redirects, proxies, visitor data or arbitrary query.
-Review egress and trusted-DNS residual; the transport does not pin resolved IPs. Human citations
-use three exact `help.hotmart.com` URLs. No other Hotmart/account/checkout endpoint is fetched.
-Failure omits this optional evidence without changing provider or catalog readiness. See
-[the source contract and limits](../official-web-evidence.md). This handoff authorizes no deployment.
+Storefront activation requires a separate owner-approved rebuild after VPS acceptance:
+`NEXT_PUBLIC_ASSISTANT_ENABLED` stays absent/false now, with no launcher, runtime or API traffic.
+Verify `npm run check:assistant-disabled` and `build-info.json` assistant=disabled in the
+publishable build, then post-deploy checks. API `ASSISTANT_ENABLED=false` is an independent
+kill switch, not permission to enable the storefront. HTTPS/CORS/cookies, real proxy SSE and
+cancellation, real OAuth/roles, isolated restore, monitored availability, capacity and image
+security gates must all be accepted before an activation recommendation. No main merge,
+skill, build, LTS badge or this handoff grants deployment or activation authority.

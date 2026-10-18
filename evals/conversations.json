@@ -260,6 +260,24 @@
           "español"
         ]
       }
+    },
+    {
+      "id": "public-catalog-private-conversation-boundary",
+      "turns": [
+        "¿Las fuentes públicas usan conversaciones privadas de otros clientes?"
+      ],
+      "quality": {
+        "max_resources": 0,
+        "mentions_any": [
+          "pública",
+          "public"
+        ],
+        "forbid_any": [
+          "no guardamos tu historial",
+          "no almacenamos conversaciones",
+          "el proveedor no recibe tus mensajes"
+        ]
+      }
     }
   ]
 }
