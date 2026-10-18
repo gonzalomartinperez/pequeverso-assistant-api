@@ -19,7 +19,7 @@ const revisions = {
 } as const;
 const generatedAt = "2026-10-18T00:00:00Z";
 // Historical raw UTF-8 outputs, including trailing newline, at this exact generatedAt/origin.
-// Prior API exporter: 04ad01a2f7690433d170519ea4581ca5983cd71a (provenance only; never loaded).
+// Historical exporter revision: 04ad01a2f7690433d170519ea4581ca5983cd71a (provenance only; never loaded).
 // Prior exporter SHA-256: 0b7aa611d1757a65b2bd45afc5396c103bec92bd0d0036b36ea4baa8bc0423da.
 const legacyOutputSha256 = {
   [revisions.main]: "9765f180b2827a1adad172f54465889ba67b5da9e594835a18805773e9aa25dd",

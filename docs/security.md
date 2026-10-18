@@ -71,3 +71,11 @@ fixture-network-off and sends no visitor data. It rejects redirects/compression/
 failures, treats text as untrusted evidence and resolves only ids actually sent in the turn.
 The fixed HTTPS upstream uses trusted DNS, not IP pinning; document egress review rather than
 claiming complete DNS-rebinding prevention. Final source support still needs semantic review.
+
+### Reviewed secret-scan false positives
+
+CI run39169802506 matched the historical exporter revision in a test provenance comment.
+The value is the public Git object04ad01a2f7690433d170519ea4581ca5983cd71a, not a credential.
+The comment now names its purpose directly. The full-history scanner retains its default
+rules and redaction; `.github/.gitleaksignore` excludes only the original exact
+commit/file/rule/line fingerprint. Later changes at that location remain scanned.
