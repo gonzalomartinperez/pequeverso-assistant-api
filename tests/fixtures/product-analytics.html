@@ -80,7 +80,7 @@ route.addEventListener("change", render);
 document.querySelector("#allow").addEventListener("click", () => { try { endpoint(); localStorage.setItem(key, "granted"); allowed = true; note("Aceptación local guardada."); start(); } catch { allowed = false; note("No se pudo guardar una elección o validar API; no se recopila."); } });
 document.querySelector("#withdraw").addEventListener("click", () => { allowed = false; cancelAll(); try { localStorage.setItem(key, "denied"); } catch {} note("Retirado: temporizadores y envíos pendientes cancelados. Lo ya recibido no se revoca."); });
 root.addEventListener("click", event => {
-  if (!(event instanceof PointerEvent) || !event.isTrusted || !event.isPrimary || event.button !== 0 || !event.pointerType) return;
+  if (!(event instanceof PointerEvent) || !event.isTrusted || event.button !== 0 || !event.pointerType) return;
   const section = event.target.closest("[data-section]"); if (!section || !root.contains(section)) return;
   const rect = section.getBoundingClientRect(); if (!rect.width || !rect.height) return;
   send("public_click", section.dataset.section, {cell_x: Math.max(0, Math.min(7, Math.floor((event.clientX - rect.left) / rect.width * 8))), cell_y: Math.max(0, Math.min(7, Math.floor((event.clientY - rect.top) / rect.height * 8)))});
