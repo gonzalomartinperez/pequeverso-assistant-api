@@ -82,7 +82,7 @@ class Envelope:
         path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.path = path
         with self.connect() as db:
-            if _extension_exists(db):
+            if _extension_exists(db) or _followup_exists(db):
                 raise ValueError('audited extension requires explicit open_authorized and audit SHA256')
             db.execute('PRAGMA journal_mode=WAL')
             db.execute('BEGIN IMMEDIATE')
@@ -139,7 +139,7 @@ class Envelope:
             record = _verified_extension(db, self._extension_sha256)
             if (self.cap_micro, self.max_attempts) != (record['new_cap_micro'], record['new_max_attempts']):
                 raise ValueError('effective evaluation limits cannot be changed')
-        elif _extension_exists(db):
+        elif _extension_exists(db) or _followup_exists(db):
             raise ValueError('stale evaluation owner must reopen the audited extension explicitly')
         elif (
             self.cap_micro > CAP_MICRO
@@ -525,12 +525,20 @@ def inspect_extension_candidate(path: Path) -> dict[str, Any]:
         closing(sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)) as db,
     ):
         db.execute('BEGIN')
-        if _extension_exists(db):
+        if _extension_exists(db) or _followup_exists(db):
             raise ValueError('evaluation extension already exists')
         return _snapshot(db)
 
 
 def _verified_extension(db: sqlite3.Connection, expected_sha256: str) -> dict[str, Any]:
+    if _followup_exists(db):
+        return _verified_followup(db, expected_sha256)
+    return _verified_first_extension(db, expected_sha256)
+
+
+def _verified_first_extension(
+    db: sqlite3.Connection, expected_sha256: str, *, effective_max_attempts: int = 1100
+) -> dict[str, Any]:
     if not _extension_exists(db):
         raise ValueError('no audited evaluation extension exists')
     rows = db.execute('SELECT id,record_json,record_sha256 FROM authorized_envelope_extension').fetchall()
@@ -597,7 +605,7 @@ def _verified_extension(db: sqlite3.Connection, expected_sha256: str) -> dict[st
     current = _snapshot(db)
     if (
         current['attempts'] < record['attempts']
-        or current['attempts'] > 1100
+        or current['attempts'] > effective_max_attempts
         or current['reserved_micro_usd'] > 6000000
     ):
         raise ValueError('current accounting exceeds the authorized extension')
@@ -643,7 +651,7 @@ def extend_evaluation_envelope(
     with evaluation_run_ownership(path), closing(sqlite3.connect(path, timeout=10)) as db, db:
         db.execute('PRAGMA synchronous=FULL')
         db.execute('BEGIN IMMEDIATE')
-        if _extension_exists(db):
+        if _extension_exists(db) or _followup_exists(db):
             raise ValueError('evaluation extension already exists')
         snapshot = _snapshot(db)
         state = _historical_state(db)
@@ -678,6 +686,253 @@ def extend_evaluation_envelope(
         }
         digest = _insert_extension(db, record)
         _verified_extension(db, digest)
+    return digest
+
+
+_FOLLOWUP_TABLE = 'authorized_envelope_followup'
+_FOLLOWUP_FIELDS = _EXTENSION_FIELDS | {'previous_audit_sha256', 'resolved_attempt_limit_status_rowid'}
+
+
+def _followup_exists(db: sqlite3.Connection) -> bool:
+    return (
+        db.execute(
+            'SELECT 1 FROM sqlite_master WHERE type=? AND name=?', ('table', _FOLLOWUP_TABLE)
+        ).fetchone()
+        is not None
+    )
+
+
+def _followup_state(
+    db: sqlite3.Connection, *, attempt_id: int | None = None, status_rowid: int | None = None
+) -> dict[str, Any]:
+    return {
+        'legacy': _historical_state(db, attempt_id=attempt_id, status_rowid=status_rowid),
+        'first_extension': db.execute(
+            'SELECT id,record_json,record_sha256 FROM authorized_envelope_extension ORDER BY id'
+        ).fetchall(),
+    }
+
+
+def _followup_snapshot(db: sqlite3.Connection) -> dict[str, Any]:
+    snapshot = _snapshot(db)
+    snapshot['state_sha256'] = _state_hash(_followup_state(db))
+    return snapshot
+
+
+def inspect_followup_candidate(path: Path, *, previous_audit_sha256: str) -> dict[str, Any]:
+    """Offline exact snapshot for the fixed second event, never a new allowance."""
+    _exact_hash(previous_audit_sha256, 64)
+    _private_existing_ledger(path)
+    with (
+        evaluation_run_ownership(path),
+        closing(sqlite3.connect(path.resolve().as_uri() + '?mode=ro', uri=True)) as db,
+    ):
+        db.execute('BEGIN')
+        if _followup_exists(db):
+            raise ValueError('evaluation followup already exists')
+        _verified_first_extension(db, previous_audit_sha256)
+        return _followup_snapshot(db)
+
+
+def _verified_followup(db: sqlite3.Connection, expected_sha256: str) -> dict[str, Any]:
+    rows = db.execute('SELECT id,record_json,record_sha256 FROM authorized_envelope_followup').fetchall()
+    if len(rows) != 1 or rows[0][0] != 1:
+        raise ValueError('invalid followup audit cardinality')
+    _, raw, digest = rows[0]
+    if (
+        not isinstance(raw, str)
+        or hashlib.sha256(raw.encode()).hexdigest() != digest
+        or digest != expected_sha256
+    ):
+        raise ValueError('final evaluation audit SHA256 mismatch')
+    record = json.loads(raw)
+    if not isinstance(record, dict) or set(record) != _FOLLOWUP_FIELDS or _canonical(record) != raw:
+        raise ValueError('invalid followup audit record')
+    for key in (
+        'version',
+        'old_cap_micro',
+        'old_max_attempts',
+        'new_cap_micro',
+        'new_max_attempts',
+        'attempts',
+        'reserved_micro_usd',
+        'last_attempt_id',
+        'last_status_rowid',
+        'resolved_attempt_limit_status_rowid',
+    ):
+        if type(record[key]) is not int or record[key] < 0:
+            raise ValueError('invalid followup audit integers')
+    if (
+        record['version'] != 2
+        or (record['old_max_attempts'], record['new_max_attempts']) != (1100, 1600)
+        or (record['old_cap_micro'], record['new_cap_micro']) != (6000000, 6000000)
+        or not 1 <= record['attempts'] <= 1100
+        or record['reserved_micro_usd'] > 6000000
+    ):
+        raise ValueError('followup is outside the exact authorized transition')
+    for key, size in (
+        ('previous_audit_sha256', 64),
+        ('state_sha256', 64),
+        ('authorization_sha256', 64),
+        ('source_revision', 40),
+        ('manifest_sha256', 64),
+    ):
+        _exact_hash(record[key], size)
+    if (
+        not isinstance(record['authorization_ref'], str)
+        or not record['authorization_ref'].strip()
+        or len(record['authorization_ref']) > 512
+        or not isinstance(record['created_at'], str)
+    ):
+        raise ValueError('followup authorization reference and timestamp required')
+    resolved = record['resolved_attempt_limit_status_rowid']
+    if resolved:
+        resolution = db.execute(
+            'SELECT reason,source_revision,verification_sha256,manifest_sha256,attempts,reserved_micro '
+            'FROM gate_resolutions WHERE status_rowid=?',
+            (resolved,),
+        ).fetchone()
+        status = db.execute('SELECT reason FROM status WHERE rowid=?', (resolved,)).fetchone()
+        if (
+            status != ('budget_or_attempt_limit',)
+            or resolution
+            != (
+                'budget_or_attempt_limit',
+                record['source_revision'],
+                record['authorization_sha256'],
+                record['manifest_sha256'],
+                record['attempts'],
+                record['reserved_micro_usd'],
+            )
+            or record['attempts'] != 1100
+            or record['reserved_micro_usd'] + ATTEMPT_MICRO > 6000000
+            or resolved > record['last_status_rowid']
+        ):
+            raise ValueError('invalid exact attempt-limit resolution in followup')
+    # The second verified event alone permits the larger current count. Event one
+    # and its historical prefix still retain their original exact limits/bytes.
+    _verified_first_extension(db, record['previous_audit_sha256'], effective_max_attempts=1600)
+    original = _followup_state(
+        db, attempt_id=record['last_attempt_id'], status_rowid=record['last_status_rowid']
+    )
+    attempts = original['legacy']['attempts']
+    if (
+        _state_hash(original) != record['state_sha256']
+        or len(attempts) != record['attempts']
+        or sum(row[1] for row in attempts) != record['reserved_micro_usd']
+    ):
+        raise ValueError('followup historical prefix changed')
+    current = _snapshot(db)
+    if (
+        current['attempts'] < record['attempts']
+        or current['attempts'] > 1600
+        or current['reserved_micro_usd'] > 6000000
+    ):
+        raise ValueError('current accounting exceeds the authorized followup')
+    return record
+
+
+def _insert_followup(db: sqlite3.Connection, record: dict[str, Any]) -> str:
+    raw = _canonical(record)
+    digest = hashlib.sha256(raw.encode()).hexdigest()
+    db.execute(
+        'CREATE TABLE authorized_envelope_followup (id INTEGER PRIMARY KEY CHECK(id=1), '
+        'record_json TEXT NOT NULL, record_sha256 TEXT NOT NULL)'
+    )
+    db.execute('INSERT INTO authorized_envelope_followup VALUES (1,?,?)', (raw, digest))
+    return digest
+
+
+def extend_evaluation_followup(
+    path: Path,
+    *,
+    previous_audit_sha256: str,
+    expected_snapshot: dict[str, Any],
+    authorization_ref: str,
+    authorization_sha256: str,
+    source_revision: str,
+    manifest_sha256: str,
+) -> str:
+    """Fixed offline 1100→1600 event; USD6 and every earlier row stay unchanged."""
+    _private_existing_ledger(path)
+    for value, size in (
+        (previous_audit_sha256, 64),
+        (authorization_sha256, 64),
+        (source_revision, 40),
+        (manifest_sha256, 64),
+    ):
+        _exact_hash(value, size)
+    if (
+        not isinstance(authorization_ref, str)
+        or not authorization_ref.strip()
+        or len(authorization_ref) > 512
+    ):
+        raise ValueError('authorization reference is required')
+    if set(expected_snapshot) != {'attempts', 'reserved_micro_usd', 'pending', 'stop_reason', 'state_sha256'}:
+        raise ValueError('exact full expected snapshot required')
+    _exact_hash(expected_snapshot['state_sha256'], 64)
+    if any(type(expected_snapshot[key]) is not int for key in ('attempts', 'reserved_micro_usd', 'pending')):
+        raise ValueError('snapshot integers must be exact')
+    with evaluation_run_ownership(path), closing(sqlite3.connect(path, timeout=10)) as db, db:
+        db.execute('PRAGMA synchronous=FULL')
+        db.execute('BEGIN IMMEDIATE')
+        if _followup_exists(db):
+            raise ValueError('evaluation followup already exists')
+        _verified_first_extension(db, previous_audit_sha256)
+        snapshot = _followup_snapshot(db)
+        state = _historical_state(db)
+        if snapshot != expected_snapshot or snapshot['pending']:
+            raise ValueError('snapshot mismatch or pending usage blocks followup')
+        active = db.execute(
+            'SELECT s.rowid,s.reason FROM status s WHERE NOT EXISTS '
+            '(SELECT 1 FROM gate_resolutions r WHERE r.status_rowid=s.rowid '
+            'AND r.reason=s.reason) ORDER BY s.rowid'
+        ).fetchall()
+        resolved = 0
+        if active:
+            if (
+                len(active) != 1
+                or active[0][1] != 'budget_or_attempt_limit'
+                or snapshot['attempts'] != 1100
+                or snapshot['reserved_micro_usd'] + ATTEMPT_MICRO > 6000000
+            ):
+                raise ValueError('only an exact attempt-limit stop with remaining USD6 may be resolved')
+            resolved = active[0][0]
+            db.execute(
+                'INSERT INTO gate_resolutions VALUES (?,?,?,?,?,?,?)',
+                (
+                    resolved,
+                    'budget_or_attempt_limit',
+                    source_revision,
+                    authorization_sha256,
+                    manifest_sha256,
+                    snapshot['attempts'],
+                    snapshot['reserved_micro_usd'],
+                ),
+            )
+        # Seal the post-acknowledgment prefix; both inserts roll back together.
+        sealed = _followup_snapshot(db)
+        record = {
+            'version': 2,
+            'old_cap_micro': 6000000,
+            'new_cap_micro': 6000000,
+            'old_max_attempts': 1100,
+            'new_max_attempts': 1600,
+            'attempts': snapshot['attempts'],
+            'reserved_micro_usd': snapshot['reserved_micro_usd'],
+            'last_attempt_id': state['attempts'][-1][0],
+            'last_status_rowid': state['status'][-1][0] if state['status'] else 0,
+            'state_sha256': sealed['state_sha256'],
+            'resolved_attempt_limit_status_rowid': resolved,
+            'previous_audit_sha256': previous_audit_sha256,
+            'authorization_ref': authorization_ref,
+            'authorization_sha256': authorization_sha256,
+            'source_revision': source_revision,
+            'manifest_sha256': manifest_sha256,
+            'created_at': datetime.now(UTC).isoformat(),
+        }
+        digest = _insert_followup(db, record)
+        _verified_followup(db, digest)
     return digest
 
 

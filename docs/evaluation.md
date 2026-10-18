@@ -427,3 +427,36 @@ multiple active stops, invalid hashes, a concurrent owner or repeated acknowledg
 The method never clears unknown costs, raises ceilings, performs a call or resumes a run. Any
 subsequent phase needs its own frozen selection, reviewed results and current owner authorization.
 This source procedure does not claim that a real ledger acknowledgment occurred.
+
+## Second audited event: 1600 attempts, the same USD 6
+
+The owner's separate 2026-10-18 authorization permits an accumulated 1600 attempts with the
+same USD 6 envelope and USD 10 monthly project limit. This does not reset any accounting or
+make calls. The fixed offline `inspect-followup` / `extend-1600-6-usd` actions require the
+previous audit SHA, an exact private snapshot and new owner/source/manifest provenance. Root
+operates only after the prior phase ends, pending usage is zero and active stops are
+independently reviewed. The single narrow attempt-limit case below is explicit, not automatic.
+
+The second event uses a separate append-only table: the first audit, legacy 650/USD 1 rows
+and CHECK constraints remain byte-for-byte intact. The final SHA opener verifies both linked
+events and both historical prefixes under the reservation transaction. Earlier audit hashes
+and stale objects fail closed after this transition. The target is only 1600/USD 6; constructors
+retain their 400/USD 1 defaults and 650 attempt bound. Fresh raised ledgers, repeated or
+out-of-order events, tampered prefixes, changed snapshots, pending usage, ineligible active stops and
+concurrent owners are rejected. Errors before commit roll back the second event completely.
+
+Use `inspect-followup --budget-state ... --previous-audit-sha256 ...` to record the exact
+snapshot privately, then `extend-1600-6-usd` with that same previous hash and the existing
+`--expected-snapshot`, `--authorization-ref`, `--authorization-sha256`, `--source-revision` and
+`--manifest-sha256` arguments. Retain the final audit SHA for the existing live CLI opener.
+Hashes bind operator evidence, not a cryptographic grant or proof that a future paid phase is
+authorized. These source changes do not claim a real second migration or evaluation occurred.
+
+If the original phase finished at exactly 1100 attempts and its preflight recorded the sole
+active `budget_or_attempt_limit` stop, the second event may acknowledge only that attempt
+ceiling when usage is fully known and `spent + next reservation <= USD 6`. A monetary ceiling,
+any other or additional stop, a different count or pending usage remains blocking. The same
+transaction appends a `gate_resolutions` row linked to the new owner-evidence hash, source and
+manifest, then seals the second audit prefix including that resolution and its status rowid.
+Both additions roll back together on failure; original status/accounting/audit rows stay intact.
+This grants no extra dollars and performs no automatic request or retry.
