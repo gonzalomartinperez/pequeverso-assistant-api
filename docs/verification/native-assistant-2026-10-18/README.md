@@ -16,11 +16,11 @@ byte-for-byte from Store commit `87c2e443`, whose gallery records the capture pr
 
 The capture used Store `755d541a86389703665e65c2b762aacfb6e345ad` with fixture producer
 `2f22f24b30de7ee6a797d6397bef7422eb8e31cc`. The [manifest](manifest.json) records all seven
-original hashes and the copying commit. Desktop image dimensions are1440×1000; mobile
-images are1082×2202. These are image pixels, not inferred CSS viewports. Mobile cards scroll;
+original hashes and the copying commit. Desktop image dimensions are 1440 × 1000; mobile
+images are 1082 × 2202. These are image pixels, not inferred CSS viewports. Mobile cards scroll;
 the screenshot does not claim to display their complete contents.
 
-The original local fixture build took53.700s and two native Chromium preview cases took28.461s,
+The original local fixture build took 53.700 s and two native Chromium preview cases took 28.461 s,
 with zero skips/retries/flakes. The waiting capture held the real local HTTP request. Root's
 capture review covered all seven images; a separate Ops agent reviewed the exact first six.
 This documentation author additionally inspected the two README images. All are agent reviews,
