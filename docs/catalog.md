@@ -78,10 +78,34 @@ The script reads the committed storefront revision through `git archive <sha>` i
 directory. No storefront working tree, branch or index is touched. It links the storefront's
 installed `node_modules` read-only, copies this API repository's `tools/catalog/export.ts` into
 the archive, and runs that exporter with Node. Product facts come from the archived storefront
-modules (`src/products`, `config/commerce.ts`, `content/es/**`), never uncommitted storefront
+modules (`src/products` in the legacy layout or `config/products` in the paired layout,
+alongside `config/commerce.ts` and `content/es/**`), never uncommitted storefront
 copy. The exporter itself is reviewed and versioned in the API; its hash is included in the sync
 report. Review the diff (prices, counts, policy text) in a PR like any code change. Tests
 assert that the page counts sum, that the offer never appears, and that every URL is https on an allowlisted host.
+
+The exporter accepts exactly two reviewed source layouts: legacy `src/products/index.ts` with
+`src/lib/media.ts`, or paired `config/products/index.ts` with `src/shared/media/media.ts`.
+Both entry files must exist for exactly one layout. Partial or mixed layouts fail; an import or
+validation failure is never retried against the other layout. This changes physical source
+compatibility only. The publication guard, fact transformation and snapshot provenance stay intact.
+
+An explicit offline integration regression reads pinned actual Store Git archives (production
+`3c8cbc29`, pre-move `88d6d0ad`, paired `d160a952`) and compares legacy output byte-for-byte
+with exporter `04ad01a2`. It compares paired facts after normalizing only generation time and
+source revision, checks attributed six-module/four-bonus evidence, and rejects incomplete/mixed
+layouts and registry import failures. Run with existing dependencies only:
+
+```
+CATALOG_TEST_STOREFRONT=/path/to/pequeverso \
+CATALOG_TEST_NODE_MODULES=/path/to/existing/store/node_modules \
+node --test tools/catalog/export-layout.test.ts
+```
+
+These optional source-compatibility checks require those local Git objects; they do not fetch,
+install, call a provider, run a build or write a catalog snapshot. `CATALOG_TEST_OUTPUT` may name
+an existing external directory to retain exact outputs; existing files must match and are never
+overwritten. Testing a committed unpublished layout grants no synchronization or release authority.
 
 ## Freshness policy
 

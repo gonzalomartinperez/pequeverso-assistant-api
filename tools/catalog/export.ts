@@ -9,6 +9,7 @@
  *
  * Usage: node export.ts <site-origin> <revision> <generated-at-iso>
  */
+import { existsSync } from "node:fs";
 import { guaranteeDays, hotmart, localCurrencyNote, formatUsd } from "./config/commerce.ts";
 import { site } from "./config/site.ts";
 import { consumerLaw } from "./content/es/legal/argentina.ts";
@@ -16,10 +17,24 @@ import { hotmartFacts } from "./content/es/legal/hotmart.ts";
 import { seller } from "./content/es/legal/seller.ts";
 import { soporteCopy } from "./content/es/soporte.ts";
 import { graciasCopy } from "./content/es/gracias.ts";
-import { getImage } from "./src/lib/media.ts";
-import { coreProducts, offerProducts } from "./src/products/index.ts";
 import { affiliates } from "./config/affiliates.ts";
 import { hubCopy } from "./content/es/hub.ts";
+
+// Closed, reviewed source layouts; never search arbitrary paths or substitute facts.
+// Resolve beside this exporter, which sync_catalog.py copies into the pinned archive.
+const legacy = ["./src/lib/media.ts", "./src/products/index.ts"];
+const paired = ["./src/shared/media/media.ts", "./config/products/index.ts"];
+const present = (paths: string[]) => paths.map((path) => existsSync(new URL(path, import.meta.url)));
+const legacyPresent = present(legacy);
+const pairedPresent = present(paired);
+const legacyLayout = legacyPresent.every(Boolean) && pairedPresent.every((found) => !found);
+const pairedLayout = pairedPresent.every(Boolean) && legacyPresent.every((found) => !found);
+if (!legacyLayout && !pairedLayout) {
+  throw new Error("unsupported storefront source layout: expected one complete legacy or paired layout");
+}
+const [{ getImage }, { coreProducts, offerProducts }] = pairedLayout
+  ? await Promise.all([import("./src/shared/media/media.ts"), import("./config/products/index.ts")])
+  : await Promise.all([import("./src/lib/media.ts"), import("./src/products/index.ts")]);
 
 const [origin, revision, generatedAt] = process.argv.slice(2);
 if (!origin || !revision || !generatedAt) throw new Error("usage: export.ts <origin> <revision> <generated-at>");
