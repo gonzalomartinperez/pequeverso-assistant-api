@@ -266,6 +266,69 @@ class Envelope:
                 ),
             )
 
+    def acknowledge_known_interruption(
+        self,
+        *,
+        expected_attempts: int,
+        expected_reserved_micro: int,
+        source_revision: str,
+        verification_sha256: str,
+        manifest_sha256: str,
+    ) -> None:
+        """Offline operator acknowledgment of one interruption with all usage known.
+
+        Never dispatch, settle/refund usage, retry, change limits or remove a stop.
+        Provenance identifies operator evidence; it is not payment authorization.
+        """
+        if (
+            type(expected_attempts) is not int
+            or expected_attempts < 1
+            or type(expected_reserved_micro) is not int
+            or expected_reserved_micro < 0
+        ):
+            raise ValueError('interruption acknowledgment requires exact existing accounting')
+        for value, size in (
+            (source_revision, 40),
+            (verification_sha256, 64),
+            (manifest_sha256, 64),
+        ):
+            _exact_hash(value, size)
+        _private_existing_ledger(self.path)
+        with evaluation_run_ownership(self.path), self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            self._assert_effective_limits(db)
+            active = db.execute(
+                'SELECT s.rowid,s.reason FROM status s WHERE NOT EXISTS '
+                '(SELECT 1 FROM gate_resolutions r WHERE r.status_rowid=s.rowid '
+                'AND r.reason=s.reason) ORDER BY s.rowid'
+            ).fetchall()
+            accounting = db.execute(
+                'SELECT count(*),coalesce(sum(reserved),0),'
+                'sum(CASE WHEN settled=0 THEN 1 ELSE 0 END) FROM attempts'
+            ).fetchone()
+            if (
+                len(active) != 1
+                or active[0][1] != 'interrupted'
+                or accounting != (expected_attempts, expected_reserved_micro, 0)
+                or expected_attempts >= self.max_attempts
+                or expected_reserved_micro + ATTEMPT_MICRO > self.cap_micro
+            ):
+                raise ValueError(
+                    'only one interruption with unchanged known usage and remaining budget is eligible'
+                )
+            db.execute(
+                'INSERT INTO gate_resolutions VALUES (?,?,?,?,?,?,?)',
+                (
+                    active[0][0],
+                    active[0][1],
+                    source_revision,
+                    verification_sha256,
+                    manifest_sha256,
+                    expected_attempts,
+                    expected_reserved_micro,
+                ),
+            )
+
     def settle(self, attempt: int, inputs: int, outputs: int) -> None:
         if (
             type(inputs) is not int

@@ -411,3 +411,19 @@ policy recognizer now runs regardless of that evidence. Its narrow negation hand
 rejects positive reminders ("No olvides…" / "Do not forget…") about unsupported guarantees,
 while preserving honest denials and the published seven-day window. Canonical fixture guards
 include the false window; frozen real matrices and historical checkpoints are unchanged.
+
+## Offline acknowledgment of a known-usage interruption
+
+A resource-window interruption is not a provider failure or permission to retry. After preserving
+the original run and independently reviewing its accounting, the operator may explicitly call
+`Envelope.acknowledge_known_interruption` on the same private ledger. It accepts only one active
+`interrupted` stop, exact attempt/spend counts, zero pending usage, remaining budget and exact
+code/verification/new-phase-manifest hashes. It takes the stable ownership lock and an immediate
+transaction, verifies the effective allowance and its historical audit prefix, and appends one
+`gate_resolutions` record. Every original stop, attempt, settlement and allowance row remains.
+
+Authentication, provider, unknown-usage, case-gate and budget stops are ineligible. Changed counts,
+multiple active stops, invalid hashes, a concurrent owner or repeated acknowledgment fail closed.
+The method never clears unknown costs, raises ceilings, performs a call or resumes a run. Any
+subsequent phase needs its own frozen selection, reviewed results and current owner authorization.
+This source procedure does not claim that a real ledger acknowledgment occurred.
