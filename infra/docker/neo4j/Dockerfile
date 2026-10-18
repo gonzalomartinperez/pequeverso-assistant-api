@@ -25,7 +25,7 @@ RUN set -eu; \
 # This pinned vendor image has no existing options; fail rather than silently discard future ones.
 RUN test -z "${JAVA_TOOL_OPTIONS:-}"
 ENV JAVA_TOOL_OPTIONS="-Djna.boot.library.path=/opt/pv-native -Djna.nounpack=true"
-COPY --chown=7474:7474 docker/neo4j/neo4j.conf /conf/neo4j.conf
+COPY --chown=7474:7474 infra/docker/neo4j/neo4j.conf /conf/neo4j.conf
 COPY --chown=7474:7474 LICENSE NOTICE.md /usr/share/licenses/pequeverso-assistant-api/
 USER 7474:7474
 # TCP liveness only. Application readiness also verifies the active canonical PG/graph version.

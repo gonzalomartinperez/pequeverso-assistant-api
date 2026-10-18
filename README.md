@@ -128,6 +128,22 @@ evidence actually sent in that generation. The [post-tool report](docs/verificat
 preserves the original halted run separately from subsequent fixes and revalidation; completion
 and agent review are distinct from semantic correctness and human acceptance.
 
+## Container recipes
+
+Recipes live under `infra/docker/`; build each with the repository root as context:
+
+```bash
+docker build -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION="$(git rev-parse HEAD)" .
+docker build -f infra/docker/postgres/Dockerfile --build-arg SERVICE_REVISION="$(git rev-parse HEAD)" .
+docker build -f infra/docker/neo4j/Dockerfile .
+```
+
+The app uses root `.dockerignore`. PostgreSQL's adjacent deny-by-default filter admits only
+software notices; Neo4j's filter also admits its colocated public configuration. No application,
+local evidence or secret files enter either database context. No local Compose is implemented;
+production composition and publication remain vps-ops responsibilities. These are build commands,
+not authorization to deploy, publish images or activate the storefront assistant.
+
 ## Quick start (clean checkout, no credentials)
 
 ```

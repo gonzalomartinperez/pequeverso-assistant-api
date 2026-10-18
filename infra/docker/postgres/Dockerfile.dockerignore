@@ -1,0 +1,4 @@
+# Recipe context: software notices only; no application, data or secrets.
+*
+!LICENSE
+!NOTICE.md

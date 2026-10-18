@@ -17,6 +17,10 @@ tree includes beta components. No version badge establishes production security 
 See [operator gates](knowledge-operations.md) and [GraphRAG component evidence](graph-retrieval.md).
 The dated earlier baseline below remains historical evidence and is not relabeled.
 
+Current container recipes are `infra/docker/{app,postgres,neo4j}/Dockerfile`, built with the
+repository root as context. Recipe relocation does not update dependency/image pins or make
+historical artifacts current. See [the deployment contract](deployment-contract.md).
+
 ## Historical pre-GraphRAG baseline — 2026-10-17 (17:35 UTC cohort)
 
 The owner authorized execution of the shared deployment-readiness plan. This repository owns

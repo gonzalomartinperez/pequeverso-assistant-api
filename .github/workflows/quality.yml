@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  UV_VERSION: 0.13.1 # keep equal to the uv image in Dockerfile
+  UV_VERSION: 0.13.1 # keep equal to the uv image in infra/docker/app/Dockerfile
   AI_PROVIDER: fixture
   ALLOW_PAID_AI: "false"
 
@@ -130,8 +130,8 @@ jobs:
       - name: Build exact project database candidates (no publication)
         id: images
         run: |
-          docker build --build-arg SERVICE_REVISION="$GITHUB_SHA" -f Dockerfile.postgres -t pv-knowledge-pg:ci .
-          docker build -f Dockerfile.neo4j -t pv-knowledge-neo:ci .
+          docker build --build-arg SERVICE_REVISION="$GITHUB_SHA" -f infra/docker/postgres/Dockerfile -t pv-knowledge-pg:ci .
+          docker build -f infra/docker/neo4j/Dockerfile -t pv-knowledge-neo:ci .
           echo "postgres=$(docker image inspect --format '{{.Id}}' pv-knowledge-pg:ci)" >> "$GITHUB_OUTPUT"
           echo "neo4j=$(docker image inspect --format '{{.Id}}' pv-knowledge-neo:ci)" >> "$GITHUB_OUTPUT"
       - name: PostgreSQL roles, indexing, private state, logging and restore

@@ -11,7 +11,7 @@ description: Review a Dependabot update using the read-only assessment and prote
    (starlette), validation (pydantic), streaming and the Responses API (openai), TLS and
    configuration loading.
 3. Check out the PR locally, then run `uv sync --frozen && uv run pytest && uv run python -m contracts.export --check`
-   and `scripts/smoke_container.sh`. For openai, also review `app/adapters/openai_provider.py`
+   and `scripts/smoke_container.sh`. For openai, also review `app/adapters/providers/openai_provider.py`
    against the new SDK types. A live check still needs the owner's authorization.
 4. Merge into `develop` only when CI is green and you understand the change. Otherwise comment,
    and use `@dependabot ignore this version` where appropriate. Never push to `main`.

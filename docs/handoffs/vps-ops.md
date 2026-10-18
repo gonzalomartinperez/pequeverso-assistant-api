@@ -41,7 +41,12 @@ at HTTP startup. Redis and LangGraph checkpoint storage are not part of this fin
 
 ## Artifact, process and storage contract
 
-- Build from the approved exact application commit with the repository Dockerfile and frozen
+All three recipes use the repository root as their build context. The app uses root
+`.dockerignore`; PostgreSQL has its own adjacent deny-by-default filter allowing only LICENSE
+and NOTICE.md; Neo4j allows only those notices and its colocated `neo4j.conf`. No local Compose
+is implemented here, and production composition remains owned by vps-ops/Coolify.
+
+- Build from the approved exact application commit with `infra/docker/app/Dockerfile` and the frozen
   lockfile; use immutable image digests for rollout. Local IDs in
   [the dated evidence](../verification/graphrag-2026-10-17.md) are not published manifests or
   final release identities. API/backoffice `main` merges do not deploy; storefront `main`
@@ -51,11 +56,11 @@ at HTTP startup. Redis and LangGraph checkpoint storage are not part of this fin
   `KNOWLEDGE_BACKEND=graphrag`; no production SQLite mount. Runtime code owns no host resources.
 - API PostgreSQL: port **5432/tcp**, UID/GID **999**, persistent mount
   **`/var/lib/postgresql`** (PostgreSQL 18 layout), bounded writable `/var/run/postgresql`
-  and `/tmp` tmpfs. Use the project `Dockerfile.postgres` exact image and privacy logging CMD;
+  and `/tmp` tmpfs. Use the project `infra/docker/postgres/Dockerfile` exact image and privacy logging CMD;
   do not replace it with a less restrictive command. No public database port.
 - Neo4j: private **7687/tcp** Bolt and **7474/tcp** HTTP, UID/GID **7474**, persistent **`/data`**;
   reviewed bounded runtime/log tmpfs, read-only root, no plugins, native JNA library installed
-  read-only at image build. Use `Dockerfile.neo4j` and its configuration. Community READ routing
+  read-only at image build. Use `infra/docker/neo4j/Dockerfile` and its configuration. Community READ routing
   is **not database-enforced read-only authorization**: use a project-isolated instance and
   secret, fixed application queries and private network boundaries.
 - Backoffice: port **3000/tcp**, UID/GID **65532**, read-only stateless image. Its repository

@@ -16,7 +16,7 @@ below retain their historical source/image identities and are not acceptance of 
 
 | Item | Value |
 |---|---|
-| Build | `docker build --build-arg SERVICE_REVISION=<sha> -t pequeverso-assistant-api:<sha> .` from a clean checkout of an exact commit (context allowlisted by `.dockerignore`). An empty `SERVICE_REVISION` is allowed; the ops summary then reports `revision: null` |
+| Build | `docker build -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION=<sha> -t pequeverso-assistant-api:<sha> .` from a clean checkout of an exact commit (context allowlisted by `.dockerignore`). An empty `SERVICE_REVISION` is allowed; the ops summary then reports `revision: null` |
 | Base | `python:3.14.8-slim-trixie` and `ghcr.io/astral-sh/uv:0.13.1`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-build --no-dev`) |
 | User | `65532:65532`; runs with a read-only root filesystem, `--cap-drop ALL`, `no-new-privileges` (verified by `scripts/smoke_container.sh`) |
 | Writable paths | `/tmp` tmpfs; `/data` only when explicitly mounted for a SQLite fixture/import. No anonymous image volume |

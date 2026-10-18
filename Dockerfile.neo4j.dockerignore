@@ -1,8 +1,0 @@
-# This separate recipe receives only its public configuration, never app .env files.
-*
-!Dockerfile.neo4j
-!docker/
-!docker/neo4j/
-!docker/neo4j/neo4j.conf
-!LICENSE
-!NOTICE.md

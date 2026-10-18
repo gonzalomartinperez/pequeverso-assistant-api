@@ -22,7 +22,7 @@ cleanup() {
 trap cleanup EXIT
 
 if [[ $# -eq 0 ]]; then
-  docker build -q --build-arg SERVICE_REVISION="$(git rev-parse HEAD)" -t "$IMAGE" . >/dev/null
+  docker build -q -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION="$(git rev-parse HEAD)" -t "$IMAGE" . >/dev/null
 fi
 
 start() {
