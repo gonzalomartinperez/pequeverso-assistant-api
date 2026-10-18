@@ -299,6 +299,18 @@
       "expect": {
         "replaced": false
       }
+    },
+    {
+      "id": "unrelated-uncertainty-cannot-authorize-checkout-policy",
+      "output": {
+        "answer": "No puedo confirmar el precio y los productos deben comprarse por separado.",
+        "references": [],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "replaced": true
+      }
     }
   ]
 }

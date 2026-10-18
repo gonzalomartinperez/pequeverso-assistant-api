@@ -32,6 +32,10 @@ CATALOG = CatalogParser(frozenset({'pequeverso.com', 'consumer.hotmart.com', 're
         'Puedes pagar ambos productos en un único pago.',
         'Both products cost US$14.99 in a single payment.',
         'No puedo confirmarlo, pero las compras se pagan por separado.',
+        'No puedo confirmar el precio y los productos deben comprarse por separado.',
+        'I cannot confirm the price and both products must be purchased separately.',
+        'No puedo agregar productos al carrito y los productos deben comprarse por separado.',
+        'I cannot add products to your cart and the products must be purchased separately.',
     ],
 )
 def test_unpublished_checkout_grouping_is_replaced_before_streaming(text: str) -> None:
@@ -51,6 +55,8 @@ def test_unpublished_checkout_grouping_is_replaced_before_streaming(text: str) -
         'I cannot add both products to your cart or buy them for you.',
         'No puedo confirmar si las compras se realizan por separado.',
         'I do not know whether the products can be purchased together.',
+        'No tengo información sobre si las compras se realizan por separado.',
+        'It is unknown whether the products can be purchased together.',
         'El pago se hace en la página segura de Hotmart.',
         'El kit se paga en un único pago.',
         'The kit costs US$14.99 in a single payment.',

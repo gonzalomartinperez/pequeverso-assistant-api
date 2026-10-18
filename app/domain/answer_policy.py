@@ -149,8 +149,15 @@ _CHECKOUT_MULTIPLE_PRODUCTS = re.compile(
     r'\b(?:ambos|ambas|dos|varios|varias|productos|compras|both|two|multiple|products|purchases)\b'
 )
 _CHECKOUT_IMPLICIT_SALE = re.compile(r'\b(?:vend\w*|sold|sell|selling)\b')
+# A qualifier must concern the grouping proposition, not an unrelated price or action.
 _CHECKOUT_UNCERTAIN = re.compile(
-    r"\b(?:no (?:puedo|podemos) confirmar|no (?:se|sabemos) si|no (?:tengo|hay) (?:informacion|confirmacion)|cannot confirm|can't confirm|do not know|don't know|not confirmed|unknown)\b"
+    r"\b(?:no (?:puedo|podemos) confirmar|no (?:se|sabemos)|cannot confirm|can't confirm|do not know|don't know|not confirmed|unknown)\s+(?:si|que|whether|if|that)\b"
+    r'|\bno (?:tengo|hay) (?:informacion|confirmacion)\s+(?:(?:sobre|de|acerca de)\s+)?(?:si|que)\b'
+)
+_CHECKOUT_COORDINATE_CLAUSE = re.compile(
+    r'\b(?:y|and)\s+(?=(?:(?:los|las|el|la|the|both|ambos|ambas|cada|each|two|dos)\s+)?'
+    + _CHECKOUT_SUBJECT.pattern
+    + ')'
 )
 _CHECKOUT_SELF_REFUSAL = re.compile(
     r"^(?:no (?:puedo|podemos)|i (?:cannot|can't)|we (?:cannot|can't))\s+(?:agregar|anadir|combinar|comprar|gestionar|add|combine|buy|manage)\b"
@@ -158,7 +165,9 @@ _CHECKOUT_SELF_REFUSAL = re.compile(
 
 
 def _checkout_claims(text: str) -> frozenset[str]:
-    clauses = re.split(r'[!?;\n]|[.](?!\d)|\b(?:pero|but|however|porque|because)\b', fold(text))
+    # An independent coordinated product assertion cannot inherit a prior refusal.
+    separated = _CHECKOUT_COORDINATE_CLAUSE.sub(';', fold(text))
+    clauses = re.split(r'[!?;\n]|[.](?!\d)|\b(?:pero|but|however|porque|because)\b', separated)
     return frozenset(
         clause
         for raw in clauses
