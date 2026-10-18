@@ -65,6 +65,13 @@ totals, daily rows, countries, observation interval and grid. Calendar bounds ar
 weeks start ISO Monday, actual month/leap/year transitions apply, and the current window is partial.
 Daily rows contain observed days only; absence does not prove historical collection coverage.
 
+`generated_at` is the snapshot's logical receipt watermark: the later of the captured request
+clock and the latest matching receipt inside the selected window. This admits a concurrent
+committed event or an already recorded event after a clock rollback without changing calendar
+bounds, counts or observation timestamps. Historical/empty reports retain the request clock.
+Observations outside the selected window remain invalid; this is not a database-read completion
+time or a promise that every concurrent event was included.
+
 Report fields and synthetic example are committed in `contracts/product-analytics.schema.json`
 and `contracts/examples/product-analytics.json`. The example wrapper `fixture/scope/report` is
 metadata; GET returns only the inner report. Counts represent `received_events_only`; first/last
