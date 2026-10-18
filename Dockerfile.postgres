@@ -1,6 +1,6 @@
 # Public knowledge and private API state use separate schemas/roles; not backoffice IAM.
 # Official PG18.6 linux/amd64 manifest verified from the current registry index on2026-10-17.
-FROM postgres:18.6-trixie@sha256:885953109528ad3dfc90362b1a6f50a78620b5315be19f187753d267e484dc5b
+FROM postgres:18.6-trixie@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
 USER root
 # Signed PGDG extension package; no compiler, source builds or extra vector service.
 # Explicit Debian security fixes retain XML support; open libxml2 findings remain deploy gates.
