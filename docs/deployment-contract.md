@@ -223,11 +223,12 @@ to fixtures, historical recovery and explicit import sources.
 
 ## Browser and origin assumptions (native storefront assistant)
 
-The storefront (`https://pequeverso.com`, static export on its current hosting) renders the
-assistant natively and calls this API **cross-origin** at the API's own HTTPS origin
+The storefront (`https://pequeverso.com`, Hostinger Node.js standalone; static export remains an
+alternative build) renders the assistant natively and calls this API **cross-origin** at the
+API's own HTTPS origin
 (proposed `https://assistant.pequeverso.com`, pending owner approval and DNS). There is no
-iframe and no same-origin `/api` on the storefront: its static hosting has no verified proxy
-capability, and the VPS proxy belongs to vps-ops.
+iframe and no same-origin `/api` proxy on the storefront: that proxy capability has not been
+verified, and the VPS proxy belongs to vps-ops.
 
 - **CORS:** exact `ALLOWED_ORIGINS` (`https://pequeverso.com`), `Access-Control-Allow-Credentials:
   true`, methods `GET, POST, DELETE`, request headers `Content-Type, X-CSRF-Token,
