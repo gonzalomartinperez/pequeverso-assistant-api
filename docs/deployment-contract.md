@@ -73,6 +73,31 @@ starts a socket-only temporary server during initialization; that server must no
 service readiness. A ready PostgreSQL listener does not prove migrations, capability roles,
 active knowledge or API readiness; verify those separately.
 
+### PostgreSQL Alpine candidate and persistence
+
+The candidate `infra/docker/postgres/Dockerfile` uses PostgreSQL18.6 on Alpine3.24 and builds
+pgvector0.8.7 in a separate stage from a checksummed upstream archive. The final image retains
+XML/ICU, the official entrypoint and SIGINT stop behavior, project/extension notices, the five
+logging privacy settings and the TCP-only health check. Its declared OS identity is `70:70`;
+the earlier Debian image used `999:999`. Runtime capability groups and their four independent
+INHERIT LOGIN memberships are unchanged. A numeric OS UID is not a PostgreSQL SQL role.
+
+Use new project-owned volumes mounted at `/var/lib/postgresql`; PostgreSQL18 stores its data
+under `/var/lib/postgresql/18/docker`. Do not attach existing Debian data to this candidate,
+override its UID, recursively change ownership or assume a physical backup is portable across
+glibc/musl and collation versions. Migration requires a separately authorized logical dump and
+restore into a new isolated target, explicit roles/grants, rebuilt indexes and comparison of
+complete public/private rows, retained unknown spend, locale-sensitive queries and readiness.
+Keep the original volume and backups intact until that procedure is independently accepted.
+
+The fixture tools accept only the exact declared pairs `70:70` (Alpine candidate) and `999:999`
+(historical Debian), rejecting root, missing or other identities before resource creation.
+They derive the socket tmpfs owner from that validated pair; they never repair an existing
+volume. Alpine3.24 main is supported until2028-06-01; this is not a claimed LTS designation.
+[Candidate evidence and remaining gates](verification/postgres-alpine-2026-10-18.md) distinguish
+source review from exact-image, restore, scan and deployment acceptance. No deployment or
+security waiver follows from changing the base image.
+
 ## Private operations API
 
 `GET /internal/v1/ops/summary` (schema `contracts/ops.schema.json`, example
