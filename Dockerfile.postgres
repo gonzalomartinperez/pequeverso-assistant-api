@@ -23,6 +23,6 @@ USER 999:999
 ARG SERVICE_REVISION=
 LABEL org.opencontainers.image.source="https://github.com/gonzalomartinperez/pequeverso-assistant-api"
 LABEL org.opencontainers.image.revision=${SERVICE_REVISION}
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD ["pg_isready", "-q"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD ["pg_isready", "-q", "-h", "127.0.0.1"]
 # Preserve operational errors without private row details, bind values or failing SQL.
 CMD ["postgres", "-c", "log_error_verbosity=terse", "-c", "log_parameter_max_length=0", "-c", "log_parameter_max_length_on_error=0", "-c", "log_statement=none", "-c", "log_min_error_statement=panic"]
