@@ -62,6 +62,7 @@ def _spanish_answer(store: dict[str, Any], turn: dict[str, Any]) -> dict[str, An
             p['id'],
             p.get('kind', 'core'),
             tuple(r['id'].rsplit('/', 1)[-1] for r in p['resources']),
+            format_text=p.get('format', ''),
         )
     ]
     if len(selected) > 1:
