@@ -46,7 +46,8 @@ Run the focused checks, then the normal repository quality commands:
 ```sh
 uv run pytest -q tests/test_ci_profile.py tests/test_dependabot_policy.py tests/test_container_layout.py
 ```
- The CI profile tests exercise the actual aggregate shell with green,
+
+The CI profile tests exercise the actual aggregate shell with green,
 failed, skipped, cancelled, pending, empty and missing results; they also protect
 job identities, dependencies, events, trust boundaries and substantive commands.
 Real database/container validation requires the hosted workflow or an explicitly
