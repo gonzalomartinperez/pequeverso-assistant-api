@@ -55,6 +55,7 @@ def test_session_create_restore_and_cookie_flags(tmp_path: Path) -> None:
 def test_production_cookie_uses_host_prefix_and_secure(tmp_path: Path) -> None:
     overrides = {
         'environment': 'production',
+        'assistant_enabled': False,
         'ai_provider': 'openai',
         'allow_paid_ai': True,
         'openai_api_key': 'sk-test',

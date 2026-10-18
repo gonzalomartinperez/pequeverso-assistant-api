@@ -86,10 +86,18 @@ def test_affiliate_cannot_inherit_core_price_or_guarantee(answer: str) -> None:
     assert Notice.ANSWER_REPLACED in result.details.notices
 
 
-def test_published_seven_day_window_and_disclosure_are_supported() -> None:
+@pytest.mark.parametrize('provider_includes_disclosure', [False, True])
+def test_published_seven_day_window_and_disclosure_are_supported(
+    provider_includes_disclosure: bool,
+) -> None:
+    product = CATALOG.product(AFFILIATE)
+    assert product is not None and product.disclosure
+    answer = 'La Guía de Alimentación para Bebés tiene 7 días de garantía.'
+    if provider_includes_disclosure:
+        answer = f'{answer}\n\n{product.disclosure}'
     result = finalize(
         Draft(
-            'La Guía de Alimentación para Bebés tiene 7 días de garantía.',
+            answer,
             (DraftReference('product', AFFILIATE),),
             (),
             (),
@@ -101,7 +109,7 @@ def test_published_seven_day_window_and_disclosure_are_supported() -> None:
     assert result.details.notices == ()
     assert result.details.products[0].kind == 'affiliate'
     assert result.details.products[0].price is None
-    assert result.details.products[0].disclosure in result.content
+    assert result.content.count(product.disclosure) == 1
 
 
 @pytest.mark.parametrize(
@@ -191,7 +199,8 @@ def test_named_recommendation_cannot_silently_drop_affiliate_disclosure(long_ans
         assert Notice.ANSWER_REPLACED in result.details.notices
     else:
         p = CATALOG.product(AFFILIATE)
-        assert p is not None and p.disclosure in result.content
+        assert p is not None and p.disclosure is not None
+        assert p.disclosure in result.content
 
 
 @pytest.mark.parametrize(

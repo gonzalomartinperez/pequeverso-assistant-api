@@ -1,38 +1,19 @@
 {
-  "created_on": "2026-10-17",
-  "kind": "First-party documentation context diagram; not deployment evidence",
-  "source_commit": "ce17289b3e5b0be6f9235609c65b5b5f7c907df2",
-  "branch_base_commit": "754a625fc35f72758010be13d853a0410f95a8db",
-  "renderer": {
-    "mermaid": "12.2.0",
-    "distribution_cli": "12.0.0",
-    "execution": "Local browser bundle, not CLI subprocess or GitHub native render",
-    "playwright": "1.64.1",
-    "chromium": "156.0.8078.4",
-    "security": "strict; htmlLabels false; no network"
-  },
-  "runtime_dependencies_added": false,
-  "production_assistant": "disabled",
-  "files": [
-    {
-      "file": "system-light.svg",
-      "bytes": 36222,
-      "sha256": "e2c0271a6251d09f60da55fd20d876a141005169ab9619bc2bd3bd9368cfc058"
-    },
-    {
-      "file": "system-light.mmd",
-      "bytes": 2355,
-      "sha256": "8913aaa7d7636c6c55969128d1c149ef6856eb4f0ee523940cbbf55427ead796"
-    },
-    {
-      "file": "system-dark.svg",
-      "bytes": 36306,
-      "sha256": "09ad1a98451f661919b727ac0126fc3458c5b7a4fcb26b9fbcd8046de0e8e37b"
-    },
-    {
-      "file": "system-dark.mmd",
-      "bytes": 2355,
-      "sha256": "f3899b955476e600bfcca9a7ee4d31d722f16cb83844d3065852724fc6f7929b"
-    }
-  ]
+  "format": "authored native SVG; Mermaid files preserve semantic relationships, not pixel layout",
+  "size": [
+    1040,
+    800
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "review": "Implementing agent inspected light/dark at 1040 and 390 px and rechecked final arrow placement. Independent RAG agent approved both final 1040x800 PNGs and SVG trust boundaries in review of 1f0292e. Agent review, not human review; narrow readers use adjacent prose/full-size links.",
+  "source": "GraphRAG application profile; no production deployment or activation claim",
+  "sha256": {
+    "system-light.svg": "74f24513a1f5696afb2a4cddaad75046075b37e7b599c5ac41f22b0b83b2fb1d",
+    "system-dark.mmd": "ea7d32fe2f76df256c2c2d9779b601933b68fb399577d888ed4de89b43185f47",
+    "system-dark.svg": "e2cc1e60640e0ba5306fc0be42d0ae1f9128f1606246da3b0a04ec55cadb2f01",
+    "system-light.mmd": "ea7d32fe2f76df256c2c2d9779b601933b68fb399577d888ed4de89b43185f47"
+  }
 }

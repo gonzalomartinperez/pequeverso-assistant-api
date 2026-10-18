@@ -32,6 +32,12 @@ THIRD_PARTY: dict[str, set[str]] = {
         'prometheus_client',
         'requests',
         'starlette',
+        'psycopg',
+        'psycopg_pool',
+        'neo4j',
+        'langgraph',
+        'langchain_core',
+        'langsmith',
     },
     'presentation': {'fastapi', 'starlette', 'pydantic'},
     'bootstrap': {'fastapi', 'openai', 'pydantic', 'pydantic_settings'},
@@ -73,9 +79,9 @@ def test_layers_depend_inwards_only() -> None:
     assert violations == []
 
 
-def test_sql_stays_in_the_sqlite_adapter() -> None:
+def test_sql_stays_in_storage_adapters() -> None:
     for path in APP.rglob('*.py'):
-        if path.is_relative_to(APP / 'adapters' / 'sqlite'):
+        if any(path.is_relative_to(APP / 'adapters' / name) for name in ('sqlite', 'postgres')):
             continue
         assert not any(name.split('.')[0] == 'sqlite3' for name in _imports(path)), path
         statements = re.compile(
@@ -162,7 +168,7 @@ def test_sql_and_driver_cannot_bypass_the_adapter_gate(
     path.write_text(statement + '\n')
     monkeypatch.setitem(globals(), 'APP', root)
     with pytest.raises(AssertionError):
-        test_sql_stays_in_the_sqlite_adapter()
+        test_sql_stays_in_storage_adapters()
 
 
 def test_ordinary_prose_is_not_treated_as_sql(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -171,7 +177,7 @@ def test_ordinary_prose_is_not_treated_as_sql(tmp_path: Path, monkeypatch: pytes
     path.parent.mkdir(parents=True)
     path.write_text('"""Topic words select evidence, never create product facts."""\n')
     monkeypatch.setitem(globals(), 'APP', root)
-    test_sql_stays_in_the_sqlite_adapter()
+    test_sql_stays_in_storage_adapters()
 
 
 def test_a_folder_named_sqlite_is_not_a_storage_boundary(
@@ -183,4 +189,144 @@ def test_a_folder_named_sqlite_is_not_a_storage_boundary(
     path.write_text('import sqlite3\n')
     monkeypatch.setitem(globals(), 'APP', root)
     with pytest.raises(AssertionError):
-        test_sql_stays_in_the_sqlite_adapter()
+        test_sql_stays_in_storage_adapters()
+
+
+def test_external_runtime_sdks_stay_in_exact_adapters() -> None:
+    boundaries = {
+        'sqlite3': 'sqlite',
+        'psycopg': 'postgres',
+        'psycopg_pool': 'postgres',
+        'neo4j': 'neo4j',
+        'langgraph': 'graph',
+        'langchain_core': 'graph',
+        'langsmith': 'graph',
+    }
+    for path in APP.rglob('*.py'):
+        for name in _imports(path):
+            root = name.split('.')[0]
+            if root in boundaries:
+                if root == 'sqlite3' and path == APP / 'adapters' / 'postgres' / 'import_sqlite.py':
+                    # Explicit offline, read-only legacy import; not a runtime PG driver.
+                    continue
+                assert path.is_relative_to(APP / 'adapters' / boundaries[root]), (path, root)
+
+
+def test_cypher_stays_in_neo4j_adapter() -> None:
+    statements = re.compile(
+        r'^\s*(?:MATCH\s*\(|OPTIONAL\s+MATCH\b|MERGE\s*\(|UNWIND\s+\$|'
+        r'CREATE\s+CONSTRAINT\b|DETACH\s+DELETE\b)',
+        re.IGNORECASE | re.MULTILINE,
+    )
+    for path in APP.rglob('*.py'):
+        if path.is_relative_to(APP / 'adapters' / 'neo4j'):
+            continue
+        for node in ast.walk(ast.parse(path.read_text())):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                assert not statements.search(node.value), path
+
+
+@pytest.mark.parametrize(
+    ('module', 'placement'),
+    [
+        ('psycopg', 'adapters/neo4j'),
+        ('sqlite3', 'adapters/postgres'),
+        ('psycopg_pool', 'application'),
+        ('neo4j', 'adapters/postgres'),
+        ('langgraph', 'application'),
+        ('langchain_core', 'ai'),
+        ('langsmith', 'bootstrap'),
+    ],
+)
+def test_storage_and_graph_sdks_cannot_hide_in_other_outer_folders(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, module: str, placement: str
+) -> None:
+    root = tmp_path / 'app'
+    path = root / placement / 'example.py'
+    path.parent.mkdir(parents=True)
+    path.write_text(f'from {module} import client as sdk\n')
+    monkeypatch.setitem(globals(), 'APP', root)
+    with pytest.raises(AssertionError):
+        test_external_runtime_sdks_stay_in_exact_adapters()
+
+
+@pytest.mark.parametrize('placement', ['application', 'ai', 'adapters/postgres', 'bootstrap'])
+def test_cypher_cannot_hide_outside_its_adapter(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, placement: str
+) -> None:
+    root = tmp_path / 'app'
+    path = root / placement / 'example.py'
+    path.parent.mkdir(parents=True)
+    path.write_text('QUERY = "MATCH (n:PublicEntity) RETURN n"\n')
+    monkeypatch.setitem(globals(), 'APP', root)
+    with pytest.raises(AssertionError):
+        test_cypher_stays_in_neo4j_adapter()
+
+
+@pytest.mark.parametrize('placement', ['adapters/neo4j', 'adapters/graph', 'application/postgres'])
+def test_postgres_folder_name_cannot_bypass_sql_boundary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, placement: str
+) -> None:
+    root = tmp_path / 'app'
+    path = root / placement / 'example.py'
+    path.parent.mkdir(parents=True)
+    path.write_text('QUERY = "SELECT * FROM public_chunks"\n')
+    monkeypatch.setitem(globals(), 'APP', root)
+    with pytest.raises(AssertionError):
+        test_sql_stays_in_storage_adapters()
+
+
+def test_application_import_graph_is_acyclic() -> None:
+    modules = {
+        '.'.join(('app', *path.relative_to(APP).with_suffix('').parts)).removesuffix('.__init__'): path
+        for path in APP.rglob('*.py')
+    }
+    edges: dict[str, set[str]] = {}
+    for module, path in modules.items():
+        edges[module] = set()
+        for name in _imports(path):
+            target = name
+            while target and target not in modules:
+                target = target.rpartition('.')[0]
+            if target and target != module:
+                edges[module].add(target)
+    visited: set[str] = set()
+    active: list[str] = []
+
+    def visit(module: str) -> None:
+        assert module not in active, f'import cycle: {" -> ".join([*active, module])}'
+        if module in visited:
+            return
+        active.append(module)
+        for dependency in sorted(edges[module]):
+            visit(dependency)
+        active.pop()
+        visited.add(module)
+
+    for module in sorted(modules):
+        visit(module)
+
+
+def test_transitive_same_layer_cycles_are_rejected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = tmp_path / 'app'
+    folder = root / 'application'
+    folder.mkdir(parents=True)
+    (folder / 'first.py').write_text('from .second import run\n')
+    (folder / 'second.py').write_text('from .third import run\n')
+    (folder / 'third.py').write_text('from .first import run\n')
+    monkeypatch.setitem(globals(), 'APP', root)
+    with pytest.raises(AssertionError, match='import cycle'):
+        test_application_import_graph_is_acyclic()
+
+
+@pytest.mark.parametrize('placement', ['application', 'adapters/graph', 'adapters/postgres/nested'])
+def test_legacy_import_filename_cannot_open_other_sqlite_driver_boundaries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, placement: str
+) -> None:
+    root = tmp_path / 'app'
+    path = root / placement / 'import_sqlite.py'
+    path.parent.mkdir(parents=True)
+    path.write_text('import sqlite3\n')
+    monkeypatch.setitem(globals(), 'APP', root)
+    with pytest.raises(AssertionError):
+        test_external_runtime_sdks_stay_in_exact_adapters()

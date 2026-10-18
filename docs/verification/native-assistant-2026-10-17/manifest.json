@@ -1,0 +1,44 @@
+{
+  "captured_on": "2026-10-17",
+  "provider": "fixture",
+  "paid_calls": 0,
+  "production_assistant": "disabled",
+  "ui_source_commit": "61ca8b0b66f6b8f5ecbb563d741acdab0d079e2c",
+  "verified_pr_head": "39063e480097173aeeeb0e20738c8cabb61b38ae",
+  "merged_pr": 113,
+  "api_fixture_commit": "8ba99fe0846e238109cd58a90eeff8ffe79c5789",
+  "build_metadata_base": "1eb6d76f7a48af0d6d477cf3d0d5872dfcca21f7",
+  "provenance_note": "Local enabled unpublished export built before committing these UI blobs; build metadata records its actual base. No metadata was relabeled. Panel details are native element screenshots; no bitmap edits or stitching.",
+  "renderer": "Playwright 1.63.0 / Chromium 153.0.8010.12",
+  "visual_review": "Implementing agent and independent root agent inspected original PNGs; agent review, not human review.",
+  "files": [
+    {
+      "file": "desktop-welcome.png",
+      "sha256": "6d5b053168aa5edff8765dba8a8384dcdaab2d581e4a6fcff5333f3aa51ef3fb",
+      "width": 816,
+      "height": 1120,
+      "bytes": 99551
+    },
+    {
+      "file": "desktop-answer-sources.png",
+      "sha256": "5327adac569921cd1e29a2598848f5adbed79e8ddf1136bf606aa9663968a5b8",
+      "width": 816,
+      "height": 1120,
+      "bytes": 116283
+    },
+    {
+      "file": "mobile-conversation.png",
+      "sha256": "de8abfe6e0d1f4da2a8572f048876d06629c9016c70f2faf85ffd25147bf6468",
+      "width": 1082,
+      "height": 2202,
+      "bytes": 297406
+    },
+    {
+      "file": "desktop-expanded.png",
+      "sha256": "62d2a5d17a18193eba9ba21b1e11d29693e3d55daf1e333a981cd54019ae742b",
+      "width": 1440,
+      "height": 1000,
+      "bytes": 266355
+    }
+  ]
+}
