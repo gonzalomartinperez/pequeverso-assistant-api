@@ -62,20 +62,50 @@ def _imports(path: Path) -> list[str]:
     return names
 
 
+def _module_layer(path: Path) -> str | None:
+    """Classify every module; only two reviewed root-package exceptions exist."""
+    relative = path.relative_to(APP)
+    if relative == Path('__init__.py'):
+        body = ast.parse(path.read_text()).body
+        assert all(
+            isinstance(node, ast.Pass)
+            or (
+                isinstance(node, ast.Expr)
+                and isinstance(node.value, ast.Constant)
+                and isinstance(node.value.value, str)
+            )
+            for node in body
+        ), f'root package initializer {relative} must remain inert'
+        return None
+    if relative == Path('main.py'):
+        expected = ast.parse('from app.bootstrap.container import create_app\napp = create_app()\n')
+        assert ast.dump(ast.parse(path.read_text())) == ast.dump(expected), (
+            f'root entrypoint {relative} must only expose the bootstrap application'
+        )
+        return 'bootstrap'
+    assert len(relative.parts) > 1 and relative.parts[0] in ALLOWED, (
+        f'unclassified application module: {relative}'
+    )
+    return relative.parts[0]
+
+
 def test_layers_depend_inwards_only() -> None:
     violations: list[str] = []
-    for layer, allowed in ALLOWED.items():
-        for path in (APP / layer).rglob('*.py'):
-            for name in _imports(path):
-                root = name.split('.')[0]
-                if root == '__future__' or root in STDLIB:
-                    continue
-                if root == 'app':
-                    target = name.split('.')[1] if '.' in name else '__bare_app__'
-                    if target not in allowed:
-                        violations.append(f'{path.relative_to(APP)} imports app.{target}')
-                elif root not in THIRD_PARTY[layer]:
-                    violations.append(f'{path.relative_to(APP)} imports {root}')
+    for path in APP.rglob('*.py'):
+        layer = _module_layer(path)
+        if layer is None:
+            continue
+        allowed = ALLOWED[layer]
+        for name in _imports(path):
+            root = name.split('.')[0]
+            if root == '__future__' or root in STDLIB:
+                continue
+            if root == 'app':
+                target = name.split('.')[1] if '.' in name else '__bare_app__'
+                if target not in allowed:
+                    violations.append(f'{path.relative_to(APP)} imports app.{target}')
+            elif root not in THIRD_PARTY[layer]:
+                violations.append(f'{path.relative_to(APP)} imports {root}')
     assert violations == []
 
 
