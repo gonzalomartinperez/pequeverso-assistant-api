@@ -132,6 +132,54 @@ def fold(text: str) -> str:
     return ''.join(char for char in decomposed if not unicodedata.combining(char))
 
 
+# Bounded checkout-grouping claims, not general entailment. Product destinations do not
+# establish whether merchants require separate purchases or permit a shared checkout.
+_CHECKOUT_SUBJECT = re.compile(
+    r'\b(?:compras?|productos?|pedidos?|pagos?|carritos?|purchases?|products?|orders?|payments?|carts?|checkout|bonos?|bonuses)\b'
+)
+_CHECKOUT_PREDICATE = re.compile(
+    r'\b(?:realiza\w*|completa\w*|compr\w*|pag\w*|vend\w*|requiere\w*|debes?|puede\w*|purchase\w*|buy|bought|paid|pay|sold|sell|requires?|must|can|cannot|share)\b'
+)
+_CHECKOUT_GROUPING = re.compile(
+    r'\b(?:aparte|por separado|separad[oa]s?|separately|separate|individualmente|individually|one at a time|uno a uno|junt[oa]s?|together|combina\w*|combin\w*|single checkout|un (?:solo|unico) (?:pago|carrito)|same (?:cart|checkout))\b'
+)
+_CHECKOUT_IMPLICIT_SALE = re.compile(r'\b(?:vend\w*|sold|sell|selling)\b')
+_CHECKOUT_UNCERTAIN = re.compile(
+    r"\b(?:no (?:puedo|podemos) confirmar|no (?:se|sabemos) si|no (?:tengo|hay) (?:informacion|confirmacion)|cannot confirm|can't confirm|do not know|don't know|not confirmed|unknown)\b"
+)
+_CHECKOUT_SELF_REFUSAL = re.compile(
+    r"^(?:no (?:puedo|podemos)|i (?:cannot|can't)|we (?:cannot|can't))\s+(?:agregar|anadir|combinar|comprar|gestionar|add|combine|buy|manage)\b"
+)
+
+
+def _checkout_claims(text: str) -> frozenset[str]:
+    clauses = re.split(r'[.!?;\n]|\b(?:pero|but|however|porque|because)\b', fold(text))
+    return frozenset(
+        clause
+        for raw in clauses
+        if (clause := ' '.join(raw.strip(' ,:').split()))
+        and (_CHECKOUT_SUBJECT.search(clause) or _CHECKOUT_IMPLICIT_SALE.search(clause))
+        and _CHECKOUT_PREDICATE.search(clause)
+        and _CHECKOUT_GROUPING.search(clause)
+        and not _CHECKOUT_UNCERTAIN.search(clause)
+        and not _CHECKOUT_SELF_REFUSAL.search(clause)
+    )
+
+
+def unsupported_checkout_policy(text: str, policies: tuple[str, ...]) -> bool:
+    """Require published wording for detected grouping assertions, including prohibitions.
+
+    An explicit uncertainty or assistant action refusal is not a merchant restriction.
+    Exact authoritative clauses preserve negation; a related URL or opposite claim cannot
+    authorize a new checkout condition. This recognizes finite forms, not all paraphrases.
+    """
+    claims = _checkout_claims(text)
+    if not claims:
+        return False
+    supported = frozenset(claim for policy in policies for claim in _checkout_claims(policy))
+    return not claims.issubset(supported)
+
+
 def _url_key(candidate: str) -> str | None:
     """Compare exact authorized paths, queries and fragments, never a host wildcard.
 

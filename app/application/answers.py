@@ -9,7 +9,13 @@ from dataclasses import dataclass, replace
 from urllib.parse import urlsplit
 
 from app.application.ports import Draft
-from app.domain.answer_policy import AnswerRules, Violation, check_answer, fold
+from app.domain.answer_policy import (
+    AnswerRules,
+    Violation,
+    check_answer,
+    fold,
+    unsupported_checkout_policy,
+)
 from app.domain.catalog import (
     ActiveCatalog,
     Catalog,
@@ -241,6 +247,8 @@ def check_content(
                 violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
     # Merchant policy authority never depends on optional external evidence availability.
     for candidate in (raw_content, content):
+        if unsupported_checkout_policy(candidate, tuple(d.text for d in catalog.documents)):
+            violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
         if unsupported_platform_policy(candidate, tuple(d.text for d in catalog.documents)):
             violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
         if unsupported_page_claim(candidate, catalog):

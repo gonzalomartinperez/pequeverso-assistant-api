@@ -263,6 +263,42 @@
         "products": [],
         "replaced": true
       }
+    },
+    {
+      "id": "unpublished-checkout-grouping",
+      "output": {
+        "answer": "All products must be bought in separate checkouts.",
+        "references": [],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "replaced": true
+      }
+    },
+    {
+      "id": "unsupported-separate-bonus-sale",
+      "output": {
+        "answer": "Los bonos solo se venden junto al material principal.",
+        "references": [],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "replaced": true
+      }
+    },
+    {
+      "id": "published-bonus-inclusion",
+      "output": {
+        "answer": "Los bonos no se pagan aparte.",
+        "references": [],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "replaced": false
+      }
     }
   ]
 }
