@@ -24,7 +24,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from dotenv import dotenv_values
 from fastapi.testclient import TestClient
 
-from app.adapters.fixture_provider import FixtureProvider
+from app.adapters.providers.fixture_provider import FixtureProvider
 from app.bootstrap.container import create_app
 from app.domain.catalog import PriceStatus
 from scripts import evaluate_conversations as conv

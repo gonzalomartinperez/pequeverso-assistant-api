@@ -47,7 +47,10 @@ updates:
       prefix: ci(deps)
 
   - package-ecosystem: docker
-    directory: /
+    directories:
+      - /infra/docker/app
+      - /infra/docker/postgres
+      - /infra/docker/neo4j
     target-branch: develop
     schedule:
       interval: weekly

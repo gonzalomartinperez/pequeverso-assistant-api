@@ -53,7 +53,7 @@ No mass movement of models or new abstraction framework is required by these sta
 ## Reproducibility, support and CI
 
 - `uv sync --frozen` installs the reviewed dependency graph. `uv.lock`, pinned tool versions and
-  Dockerfile image digests are authoritative; do not silently refresh locks during verification.
+  Image digests in `infra/docker/<service>/Dockerfile` are authoritative; do not silently refresh locks during verification.
 - Prefer an officially supported LTS line where that project publishes one. Python is a maintained
   stable release without an LTS label; PostgreSQL has a major-version support policy. Do not label
   every tool, library, container or Grafana release LTS. See [runtime baseline](runtime-baseline.md)

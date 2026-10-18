@@ -29,7 +29,7 @@ sys.path.insert(0, str(ROOT))
 from openai import AsyncOpenAI
 from pydantic import SecretStr
 
-from app.adapters.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
+from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
 from app.application.knowledge_ports import EmbeddingAccounting
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import ProviderResource, SystemClock

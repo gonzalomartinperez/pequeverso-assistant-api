@@ -27,7 +27,7 @@ def test_license_scope_and_distribution_notices_are_preserved() -> None:
     assert '[MIT License](LICENSE)' in readme
     assert '[NOTICE.md](NOTICE.md)' in readme
     assert 'no license is granted' not in readme
-    dockerfile = (ROOT / 'Dockerfile').read_text()
+    dockerfile = (ROOT / 'infra/docker/app/Dockerfile').read_text()
     assert 'COPY LICENSE NOTICE.md ./' in dockerfile
     context = (ROOT / '.dockerignore').read_text().splitlines()
     assert '!LICENSE' in context
@@ -36,10 +36,10 @@ def test_license_scope_and_distribution_notices_are_preserved() -> None:
 
 def test_project_database_recipes_carry_software_notices_without_overriding_vendor_licenses() -> None:
     for name, uid in (('postgres', 999), ('neo4j', 7474)):
-        recipe = (ROOT / f'Dockerfile.{name}').read_text()
+        recipe = (ROOT / 'infra/docker' / name / 'Dockerfile').read_text()
         assert (
             f'COPY --chown={uid}:{uid} LICENSE NOTICE.md /usr/share/licenses/pequeverso-assistant-api/'
             in recipe
         )
-    graph_context = (ROOT / 'Dockerfile.neo4j.dockerignore').read_text().splitlines()
+    graph_context = (ROOT / 'infra/docker/neo4j/Dockerfile.dockerignore').read_text().splitlines()
     assert '!LICENSE' in graph_context and '!NOTICE.md' in graph_context

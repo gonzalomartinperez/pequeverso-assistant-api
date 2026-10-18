@@ -16,7 +16,7 @@ below retain their historical source/image identities and are not acceptance of 
 
 | Item | Value |
 |---|---|
-| Build | `docker build --build-arg SERVICE_REVISION=<sha> -t pequeverso-assistant-api:<sha> .` from a clean checkout of an exact commit (context allowlisted by `.dockerignore`). An empty `SERVICE_REVISION` is allowed; the ops summary then reports `revision: null` |
+| Build | `docker build -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION=<sha> -t pequeverso-assistant-api:<sha> .` from a clean checkout of an exact commit (context allowlisted by `.dockerignore`). An empty `SERVICE_REVISION` is allowed; the ops summary then reports `revision: null` |
 | Base | `python:3.14.8-slim-trixie` and `ghcr.io/astral-sh/uv:0.13.1`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-build --no-dev`) |
 | User | `65532:65532`; runs with a read-only root filesystem, `--cap-drop ALL`, `no-new-privileges` (verified by `scripts/smoke_container.sh`) |
 | Writable paths | `/tmp` tmpfs; `/data` only when explicitly mounted for a SQLite fixture/import. No anonymous image volume |
@@ -167,17 +167,22 @@ The following SQLite recipes apply only to the historical/fixture profile:
 
 ## Rollout and rollback
 
-- **Deploy:** pull the image by digest, then start it. Readiness goes green once the migrations are
-  applied and the bundled catalog is loaded (a few seconds).
-- **Rollback:** redeploy the previous image digest on the same volume only after checking
-  the schema. The current schema is migration 002. An image built before 002 can read the
-  additive columns and tables, but **not** messages stored with the new `language_unsupported`
-  notice, so it would fail to load those sessions. Rolling back across 002 therefore needs one
-  of: restoring the pre-deploy backup, or deleting conversations first
-  (`DELETE FROM sessions;`, which removes only short-lived chats; the ledger and metrics stay).
-  The old image also does not record run metrics, and its ledger rows keep status `pending`
-  until the newer image starts again, which maps them back to `settled`/`unreported`. Take a
-  backup before every deploy that adds a migration.
+The production PostgreSQL/GraphRAG profile uses the explicit jobs in
+[knowledge operations](knowledge-operations.md), not SQLite startup migrations.
+
+- **Deploy:** stop the previous API writer and confirm its ownership connection is released.
+  Run the reviewed explicit PostgreSQL migration job with its separate migration identity.
+  Stage/verify the approved public catalog and matching PostgreSQL/Neo4j projection through
+  the indexing procedure before activation; paid indexing requires its own authorization.
+  Start one API instance with runtime-only capabilities. Readiness requires private storage,
+  singleton ownership and matching active knowledge; a running database or image is insufficient.
+  HTTP startup does no PostgreSQL DDL, paid indexing or automatic projection repair.
+- **Rollback:** verify the previous image's PostgreSQL schema, catalog/parser/embedding and
+  stored-message compatibility before selecting its digest. A legacy SQLite image cannot read
+  production PostgreSQL state. Stop writers first and preserve intervening conversations and
+  confirmed/estimated/unknown spend. Restoring a pre-deploy database over later writes or
+  deleting conversations is not a generic rollback procedure. An incompatible recovery needs
+  a separately reviewed reconciliation plan, verified backups and the API disabled until safe.
 - **Graceful stop:** Uvicorn first allows15 s for connections, then cancels unfinished
   response tasks. Application shutdown subsequently cancels admission, drains retained
   response/run cleanup for up to10 s and closes owned persistence resources afterwards. Interrupted runs persist
@@ -189,13 +194,41 @@ The following SQLite recipes apply only to the historical/fixture profile:
 - **Kill switch:** `ASSISTANT_ENABLED=false` or stopping the container. The native storefront
   assistant shows "unavailable" and the store keeps selling.
 
+### Explicit SQLite import: database commit and receipt recovery
+
+The import's PostgreSQL transaction reconciles counts and canonical hashes and records
+`assistant_private.sqlite_imports` before committing. The CLI then creates a new private receipt
+with `O_EXCL` and writes it. PostgreSQL commit and filesystem receipt creation are separate:
+receipt-path collisions, permissions, disk errors or an interruption can leave a committed import
+without a complete receipt. CLI exit1 alone does **not** prove a database rollback.
+
+Before the job, stop source and target writers, preserve the closed SQLite snapshot and backup,
+and choose a fresh receipt path in a private writable directory. After a failure, keep writers
+stopped and inspect the import marker/source hash and target state with the import/operator
+identity before retrying. With the identical snapshot and unchanged target, rerunning the same
+import to a **new** receipt path verifies canonical rows/counts and returns `already_imported=true`
+without reinserting data. Advisory/table locks serialize imports and exclude the live API owner.
+If the target has changed since import, idempotent replay refuses it; preserve those changes and
+reconcile manually. Never clear tables, reset spend or restore over later writes merely to obtain
+a receipt. No atomic commit spanning PostgreSQL and the receipt file, or crash-durable receipt,
+is implied.
+
+### Historical SQLite schema002 rollback
+
+The former SQLite-only profile migrated at startup. Its migration002 added metrics and the
+`language_unsupported` message notice; older readers cannot load every newer stored message.
+That history requires its own reader/backup compatibility check and is not the PostgreSQL
+migration version or production rollout procedure. The retained SQLite recipes below apply only
+to fixtures, historical recovery and explicit import sources.
+
 ## Browser and origin assumptions (native storefront assistant)
 
-The storefront (`https://pequeverso.com`, static export on its current hosting) renders the
-assistant natively and calls this API **cross-origin** at the API's own HTTPS origin
+The storefront (`https://pequeverso.com`, Hostinger Node.js standalone; static export remains an
+alternative build) renders the assistant natively and calls this API **cross-origin** at the
+API's own HTTPS origin
 (proposed `https://assistant.pequeverso.com`, pending owner approval and DNS). There is no
-iframe and no same-origin `/api` on the storefront: its static hosting has no verified proxy
-capability, and the VPS proxy belongs to vps-ops.
+iframe and no same-origin `/api` proxy on the storefront: that proxy capability has not been
+verified, and the VPS proxy belongs to vps-ops.
 
 - **CORS:** exact `ALLOWED_ORIGINS` (`https://pequeverso.com`), `Access-Control-Allow-Credentials:
   true`, methods `GET, POST, DELETE`, request headers `Content-Type, X-CSRF-Token,

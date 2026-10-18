@@ -128,6 +128,22 @@ evidence actually sent in that generation. The [post-tool report](docs/verificat
 preserves the original halted run separately from subsequent fixes and revalidation; completion
 and agent review are distinct from semantic correctness and human acceptance.
 
+## Container recipes
+
+Recipes live under `infra/docker/`; build each with the repository root as context:
+
+```bash
+docker build -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION="$(git rev-parse HEAD)" .
+docker build -f infra/docker/postgres/Dockerfile --build-arg SERVICE_REVISION="$(git rev-parse HEAD)" .
+docker build -f infra/docker/neo4j/Dockerfile .
+```
+
+The app uses root `.dockerignore`. PostgreSQL's adjacent deny-by-default filter admits only
+software notices; Neo4j's filter also admits its colocated public configuration. No application,
+local evidence or secret files enter either database context. No local Compose is implemented;
+production composition and publication remain vps-ops responsibilities. These are build commands,
+not authorization to deploy, publish images or activate the storefront assistant.
+
 ## Quick start (clean checkout, no credentials)
 
 ```
@@ -205,10 +221,10 @@ or customer conversations.
 
 Shared runtime/version acceptance: [runtime baseline](docs/runtime-baseline.md).
 
-### Affiliate product coverage (2026-10-17)
+### Affiliate product coverage (2026-10-18)
 
 The catalog now includes Grafismo Fonético and the separate third-party **Guía de Alimentación
-para Bebés**, exported from storefront main `bddd36f45b319571f52029dfe4d6b3283cd71287`. The
+para Bebés**, exported from storefront main `fd2f150fe2e08955b3817c3b18ff14dea920d74e`. The
 course has no authorized published price, PDFs or page counts: those remain null. Its published
 seven-day guarantee and affiliate disclosure stay product-scoped; the kit policy cannot transfer
 to the course. Revision1.5 adds optional card kind/format/disclosure fields, with core defaults

@@ -201,11 +201,17 @@ def test_external_runtime_sdks_stay_in_exact_adapters() -> None:
         'langgraph': 'graph',
         'langchain_core': 'graph',
         'langsmith': 'graph',
+        'openai': 'providers',
+        'opentelemetry': 'observability',
+        'prometheus_client': 'observability',
     }
     for path in APP.rglob('*.py'):
         for name in _imports(path):
             root = name.split('.')[0]
             if root in boundaries:
+                if root == 'openai' and path.is_relative_to(APP / 'bootstrap'):
+                    # Bootstrap owns construction and transport, providers own SDK adaptation.
+                    continue
                 if root == 'sqlite3' and path == APP / 'adapters' / 'postgres' / 'import_sqlite.py':
                     # Explicit offline, read-only legacy import; not a runtime PG driver.
                     continue
@@ -330,3 +336,47 @@ def test_legacy_import_filename_cannot_open_other_sqlite_driver_boundaries(
     monkeypatch.setitem(globals(), 'APP', root)
     with pytest.raises(AssertionError):
         test_external_runtime_sdks_stay_in_exact_adapters()
+
+
+@pytest.mark.parametrize(
+    ('statement', 'placement'),
+    [
+        ('import openai as sdk', 'adapters/graph'),
+        ('from openai.types import response as sdk', 'adapters/postgres'),
+        ('from openai import AsyncOpenAI', 'ai'),
+        ('from opentelemetry import trace as telemetry', 'bootstrap'),
+        ('import opentelemetry.sdk.trace as telemetry', 'adapters/providers'),
+        ('from prometheus_client import Counter', 'adapters/graph'),
+        ('import prometheus_client as metrics', 'application/observability'),
+    ],
+)
+def test_provider_and_telemetry_sdks_cannot_hide_in_other_folders(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, statement: str, placement: str
+) -> None:
+    root = tmp_path / 'app'
+    path = root / placement / 'example.py'
+    path.parent.mkdir(parents=True)
+    path.write_text(statement + '\n')
+    monkeypatch.setitem(globals(), 'APP', root)
+    with pytest.raises(AssertionError):
+        test_external_runtime_sdks_stay_in_exact_adapters()
+
+
+@pytest.mark.parametrize(
+    ('statement', 'placement'),
+    [
+        ('from openai import AsyncOpenAI', 'bootstrap'),
+        ('import openai.types as sdk', 'adapters/providers'),
+        ('from opentelemetry import trace', 'adapters/observability'),
+        ('import prometheus_client', 'adapters/observability'),
+    ],
+)
+def test_provider_and_telemetry_sdks_remain_allowed_in_their_capability(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, statement: str, placement: str
+) -> None:
+    root = tmp_path / 'app'
+    path = root / placement / 'example.py'
+    path.parent.mkdir(parents=True)
+    path.write_text(statement + '\n')
+    monkeypatch.setitem(globals(), 'APP', root)
+    test_external_runtime_sdks_stay_in_exact_adapters()

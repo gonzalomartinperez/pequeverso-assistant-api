@@ -22,7 +22,7 @@ import httpx2 as httpx
 import openai
 from openai import AsyncOpenAI
 
-from app.adapters.openai_provider import OpenAIResponsesProvider
+from app.adapters.providers.openai_provider import OpenAIResponsesProvider
 from app.ai.provider import ModelChunk, ModelRequest, UsageChunk
 from app.application.knowledge_ports import EmbeddingAccounting
 from app.domain.errors import FailureCode, RejectedError

@@ -1,9 +1,10 @@
 import asyncio
 import json
-from datetime import UTC, datetime
+from datetime import datetime
 
 import pytest
 
+from app.bootstrap import knowledge_evaluation
 from app.bootstrap.knowledge_evaluation import (
     FixtureConnections,
     fixture_corpus,
@@ -70,7 +71,22 @@ def test_exception_boundary_never_prints_driver_messages_or_connection_values(ca
 
 def test_fixture_clock_preserves_export_time_instead_of_claiming_new_live_freshness() -> None:
     corpus = fixture_corpus()
-    assert corpus.verified_at == datetime(2026, 10, 17, 15, 13, 29, tzinfo=UTC)
+    snapshot = json.loads((knowledge_evaluation.ROOT / 'catalog/catalog.v1.json').read_bytes())
+    assert corpus.verified_at == datetime.fromisoformat(snapshot['generated_at'])
+
+
+@pytest.mark.parametrize('exported_at', ['2001-02-03T04:05:06+00:00', '2024-07-08T09:10:11+00:00'])
+def test_fixture_clock_follows_each_snapshot_without_replacing_its_export_time(
+    exported_at, tmp_path, monkeypatch
+) -> None:
+    snapshot = json.loads((knowledge_evaluation.ROOT / 'catalog/catalog.v1.json').read_bytes())
+    snapshot['generated_at'] = exported_at
+    catalog_dir = tmp_path / 'catalog'
+    catalog_dir.mkdir()
+    (catalog_dir / 'catalog.v1.json').write_text(json.dumps(snapshot))
+    monkeypatch.setattr(knowledge_evaluation, 'ROOT', tmp_path)
+
+    assert fixture_corpus().verified_at == datetime.fromisoformat(exported_at)
 
 
 def test_restore_readiness_only_polls_existing_projection_and_closes_its_driver(monkeypatch) -> None:

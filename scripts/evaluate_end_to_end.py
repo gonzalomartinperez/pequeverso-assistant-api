@@ -32,7 +32,7 @@ import uvicorn
 from dotenv import dotenv_values
 from pydantic import SecretStr
 
-from app.adapters.fixture_provider import FixtureProvider
+from app.adapters.providers.fixture_provider import FixtureProvider
 from app.ai.evidence import passages, rank
 from app.ai.provider import ModelChunk, ModelRequest
 from app.application.knowledge_ports import EmbeddingAccounting
@@ -375,14 +375,19 @@ def evaluate(
             )
         )
         thread = threading.Thread(target=server.run, kwargs={'sockets': [reservation]}, daemon=True)
-        thread.start()
-        deadline = time.monotonic() + 10
-        while not server.started:
-            if not thread.is_alive() or time.monotonic() > deadline:
-                raise RuntimeError('evaluation server did not start')
-            time.sleep(0.01)
-        logging.getLogger().setLevel(logging.WARNING)
+        thread_started = False
+        startup_complete = False
+        evaluation_error: BaseException | None = None
         try:
+            thread.start()
+            thread_started = True
+            deadline = time.monotonic() + 10
+            while not server.started:
+                if not thread.is_alive() or time.monotonic() > deadline:
+                    raise RuntimeError('evaluation server did not start')
+                time.sleep(0.01)
+            startup_complete = True
+            logging.getLogger().setLevel(logging.WARNING)
             for case in manifest['cases']:
                 if not preflight():
                     break
@@ -660,20 +665,31 @@ def evaluate(
             if envelope and (not isolated or bad_csrf != 403 or bad_origin != 403):
                 envelope.stop('authorization_isolation_gate_failure')
                 preflight()
-        except BaseException as error:  # noqa: BLE001 -- retain partial artifacts, expose type only
+        except BaseException as error:  # Retain private partial artifacts; report only the type.
+            evaluation_error = error
             stop_reason = (
                 'interrupted' if isinstance(error, (KeyboardInterrupt, SystemExit)) else type(error).__name__
             )
             if envelope:
                 envelope.stop(stop_reason)
+            if not startup_complete:
+                raise
         finally:
-            checkpoint(destination / 'answers.json', rows)
-            server.should_exit = True
-            thread.join(timeout=20)
-            if thread.is_alive():
-                stop_reason = 'evaluation_server_failed_to_stop'
-                if envelope:
-                    envelope.stop(stop_reason)
+            try:
+                checkpoint(destination / 'answers.json', rows)
+            except BaseException as artifact_error:
+                if evaluation_error is not None and artifact_error.__context__ is None:
+                    raise artifact_error from evaluation_error
+                raise
+            finally:
+                # Artifact or budget-stop failures must not strand the owned daemon.
+                server.should_exit = True
+                if thread_started:
+                    thread.join(timeout=20)
+                    if thread.is_alive():
+                        stop_reason = 'evaluation_server_failed_to_stop'
+                        if envelope:
+                            envelope.stop(stop_reason)
     if graph_settings is None:
         with closing(sqlite3.connect(destination / 'evaluation.sqlite3')) as db:
             ledger = [

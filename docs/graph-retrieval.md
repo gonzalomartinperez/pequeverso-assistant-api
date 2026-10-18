@@ -33,7 +33,7 @@ share Portfolio or private application databases with this projection.
 
 ## Local fixture image and recovery
 
-`Dockerfile.neo4j` pins the registry-verified 5.26.32 Community index
+`infra/docker/neo4j/Dockerfile` pins the registry-verified 5.26.32 Community index
 `sha256:0a6e7aedf54a531f76286032d4365ead65b11cca05e4a15cdf23b8e53d6db02b`.
 It is a **fixture candidate with an open production security blocker**. Existing upstream
 CRITICAL/HIGH findings require a fresh exact-image scan and disposition before deployment;
@@ -52,7 +52,7 @@ The unnecessary Browser/unmanaged-extension modules are excluded. No jar is patc
 or replaced to hide vulnerability findings.
 
 ```bash
-docker buildx build --load --provenance=false -f Dockerfile.neo4j -t pv-neo-fixture .
+docker buildx build --load --provenance=false -f infra/docker/neo4j/Dockerfile -t pv-neo-fixture .
 docker image inspect pv-neo-fixture --format '{{.Id}}'
 uv run python scripts/smoke_knowledge_neo4j.py \
   --image sha256:<exact-local-image-id> \

@@ -19,9 +19,9 @@ reachability alone does not prove that customers currently see that revision.
   Also excluded are seller tax id and address, legal-only mailboxes, and anything not
   customer-facing.
 
-## Current coverage (2026-10-17)
+## Current coverage (2026-10-18)
 
-The snapshot comes from storefront main `bddd36f45b319571f52029dfe4d6b3283cd71287`:
+The snapshot comes from storefront main `fd2f150fe2e08955b3817c3b18ff14dea920d74e`:
 **two products, nine resources, 26 documents and six links**. Grafismo Fonético remains the
 priced core PDF kit. Guía de Alimentación para Bebés is a separately purchased, third-party
 video course for complementary feeding from 6 to 12 months. Affiliate facts come exclusively
@@ -44,9 +44,13 @@ knowledge. Prices remain subject to freshness and null prices cannot borrow the 
 Bounded positive-claim recognizers reject explicit patterns such as curing anemia or preventing allergies/choking; this is not complete semantic verification. The prompt adds medical boundaries, and real-model review remains pending;
 the assistant may describe course topics, not prescribe personal diets or medical treatment.
 
-This increment closes the previously documented affiliate coverage gap; original October13
-reports remain historical and are not relabeled as a new real-model evaluation. No new paid
-calls, vector store, graph database or model-callable transaction tools are introduced.
+The initial affiliate-catalog increment closed the earlier coverage gap without adding a
+vector store or graph database; that architecture decision was subsequently superseded by
+[the production GraphRAG profile](decisions/ADR-0009-versioned-commercial-graphrag.md).
+The October18 catalog refresh changes only the affiliate usage wording to "Primeras comidas
+de tu bebé". Prices, policies, resource counts and links are unchanged. This refresh makes no
+paid calls or indexing changes; historical evaluation and vector manifests keep their actual
+source/hash identities rather than being relabeled as this snapshot.
 
 ## Updating
 

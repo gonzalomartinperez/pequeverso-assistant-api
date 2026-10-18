@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
 
-from app.adapters.fixture_provider import FixtureProvider
+from app.adapters.providers.fixture_provider import FixtureProvider
 from app.application.embedding_budget import SharedEmbeddingAccounting
 from app.application.knowledge_ports import EmbeddingAccounting
 from app.bootstrap import container

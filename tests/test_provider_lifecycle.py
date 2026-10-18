@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from app.adapters import observability
+from app.adapters.observability import telemetry as observability
 from app.adapters.sqlite import database
 from app.bootstrap import container
 from app.domain.errors import FailureCode, RejectedError
