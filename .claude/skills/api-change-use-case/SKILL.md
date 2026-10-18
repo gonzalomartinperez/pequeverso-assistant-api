@@ -1,5 +1,5 @@
 ---
-name: change-assistant-behavior
+name: api-change-use-case
 description: Change prompts, answer rules, evidence or evaluations of the Pequeverso assistant safely. Not for live paid evaluations without the owner's authorization.
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: review-dependency-update
+name: api-review-dependency-update
 description: Review a Dependabot update using the read-only assessment and protected manual merge workflow. Not for merging into main or bypassing checks.
 ---
 

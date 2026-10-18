@@ -29,3 +29,12 @@ reuse, deployment, provider spending or access to private reference data.
 
 Next check: before the release-candidate PR and whenever a new reference PR touches security,
 sessions or budgets.
+
+## Paired skill layout supersession
+
+The earlier rejection of the physical Claude layout above records the decision at that time.
+The owner-authorized paired standard now supersedes that layout choice: six existing API
+procedures live in `.claude/skills/` and per-skill directory links expose the same files in
+`.agents/skills/`. See [agent skills](agent-skills.md). Portfolio API commit
+`33c544dead74e0d30283516b6653b0e0aea84bca` was read as a layout reference; no Portfolio
+business procedures, runtime code or authority were imported.

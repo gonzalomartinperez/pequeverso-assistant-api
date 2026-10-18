@@ -1,5 +1,5 @@
 ---
-name: update-catalog
+name: api-maintain-knowledge
 description: Re-sync the assistant catalog from a pinned Pequeverso storefront commit and review the fact changes. Not for unpublished storefront commits or hand edits.
 ---
 

@@ -10,8 +10,7 @@ branches, merge groups and manual runs. The paired API graph is:
 | static | Static checks | — | Frozen install, Ruff, strict Mypy, full pytest, contract drift, retrieval and fixture conversation evaluations |
 | database | Database tests | static | Own exact PostgreSQL/Neo4j builds; scoped roles, indexing, private state, restore, actual HTTP/SSE and operator/evaluation probes |
 | container | Container verification | static | Own application build and disposable SQLite fixture; readiness, session/stream, origin/auth enforcement, backup/restore, persistence and shutdown |
-| checks | Required checks | all five above | Every prerequisite must be success |
-| legacy-checks | checks | checks | Compatibility bridge: the full Required checks aggregate must be success |
+| checks | checks | all five above | Every prerequisite must be success |
 
 The source baseline is `0422c74aa25644978122232bcaae08fdf8c32310`. Its reported
 1143 offline passes and 40 service-dependent skips are historical inventory, not
@@ -40,7 +39,7 @@ Reference: Portfolio API `923f5d32215203d6a09efd2ef1dec8e49225d4e5` and the priv
 Ops paired-profile contract at `19dcbee`. Product-specific probes remain owned here;
 Portfolio runtime/harness code is not imported.
 
-## Verification and protection transition
+## Verification and protected context
 
 Run the focused checks, then the normal repository quality commands:
 
@@ -54,14 +53,14 @@ job identities, dependencies, events, trust boundaries and substantive commands.
 Real database/container validation requires the hosted workflow or an explicitly
 authorized isolated service lease. CPU-only tests do not prove those checks.
 
-The existing protected context remains `checks`. Its native, temporary compatibility
-job runs even when its prerequisite fails or is skipped, and succeeds only when the
-complete `Required checks` aggregate succeeds. It cannot independently approve a
-candidate. All five substantive jobs and the full aggregate remain unchanged; this
-transitional profile therefore contains seven jobs. No manual status is synthesized,
-and no ruleset or branch protection is changed to integrate it.
+The protected context remains `checks`, now the display name of the real aggregate job
+`checks`. Its five dependencies, `always()` condition and five exact-success assertions
+are unchanged. The temporary seventh compatibility job has been removed with explicit
+owner authorization. No manual status, ruleset change or bypass is involved: all five
+substantive jobs still have to succeed before the protected context passes.
 
-Renaming the protected context or removing this bridge requires separate explicit
-authorization and verification of enforcement. Paired parity and release acceptance
-remain subject to every exact-head hosted check; this source increment authorizes
-no merge, deployment or production activation.
+The shared profile has six job IDs and the same dependency graph as the paired API
+standard. Portfolio's `Required checks` display name is a project compatibility difference;
+Pequeverso retains `checks` to satisfy its existing protected context directly. Display-name
+parity never authorizes protection changes. Exact-head hosted checks remain required before
+an authorized merge; source validation does not authorize deployment or activation.

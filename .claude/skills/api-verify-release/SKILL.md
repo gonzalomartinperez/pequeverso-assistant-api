@@ -1,5 +1,5 @@
 ---
-name: verify-release
+name: api-verify-release
 description: Verify a release candidate of the assistant API end to end without paid calls or deployment. Not an authorization to promote to main or deploy.
 ---
 

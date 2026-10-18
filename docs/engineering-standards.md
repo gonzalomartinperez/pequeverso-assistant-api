@@ -2,7 +2,10 @@
 
 These standards apply to this API and its coordination with the storefront and backoffice.
 Repository-specific `AGENTS.md`, contracts and approval rules remain authoritative. Skills
-provide procedures, never additional authorization.
+provide procedures, never additional authorization. Canonical procedures live once in
+`.claude/skills/`; Codex discovers them through per-skill relative directory links in
+`.agents/skills/`. [Skill maintenance](agent-skills.md) records the six task-specific routes
+and the non-executing validator used by static CI.
 
 ## Review and scope
 

@@ -1,5 +1,5 @@
 ---
-name: release-and-hotfix
+name: api-release-and-hotfix
 description: Release develop into main, or ship an owner-authorized hotfix, within the protected branch flow. Not an authorization to release, hotfix or deploy.
 ---
 

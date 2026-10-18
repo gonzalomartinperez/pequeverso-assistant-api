@@ -46,9 +46,9 @@ their compatibility and historical messages. Read this file, then the doc for yo
 - **Hotfix directly to `main` only with the owner's explicit authorization, given in the current
   conversation for that specific fix.** Never infer it from earlier approvals, never self-approve.
   Flow: `hotfix/<kebab-case>` from `main` → PR into `main` (merge commit) → PR `main` → `develop`
-  (merge commit). Skill: `.agents/skills/release-and-hotfix/SKILL.md`.
+  (merge commit). Skill: `.agents/skills/api-release-and-hotfix/SKILL.md`.
 - Both branches are protected (as in portfolio-assistant-api): PR required, strict required status
-  `checks` (a compatibility bridge to the full `Required checks` aggregate; see `docs/ci.md`),
+  `checks` (the full five-prerequisite aggregate; see `docs/ci.md`),
   no force push or deletion, no bypass. The agent uses the owner's GitHub account, so
   the hotfix authorization is this written rule, not a GitHub setting: never use `--admin`, never
   push to `main`, never change the protection to get a merge through.
@@ -63,5 +63,8 @@ their compatibility and historical messages. Read this file, then the doc for yo
 
 ## Skills
 
-Canonical skills live in `.agents/skills/<name>/SKILL.md`; `.claude/skills/<name>/SKILL.md` are
-thin adapters with identical frontmatter (`tests/test_skills.py`).
+Canonical skills are real directories in `.claude/skills/<name>/`; `.agents/skills/` is a real
+directory containing one relative directory symlink per skill to the same canonical content.
+Automatic/default discovery remains enabled; load only the skill matching the task. See
+`docs/agent-skills.md`. Validate with `python -m scripts.validate_skills`; skills never add
+authority for paid calls, deployment, cross-repository edits or protected-branch mutations.
