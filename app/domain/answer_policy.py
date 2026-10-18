@@ -157,7 +157,7 @@ _CHECKOUT_UNCERTAIN = re.compile(
 _CHECKOUT_COORDINATE_CLAUSE = re.compile(
     r'\b(?:y|and)\s+(?=(?:(?:los|las|el|la|the|both|ambos|ambas|cada|each|two|dos)\s+)?'
     + _CHECKOUT_SUBJECT.pattern
-    + ')'
+    + r'|(?:debes?|deben|puedes?|pueden|tienes que|tienen que|you (?:must|can|cannot|need to))\b)'
 )
 _CHECKOUT_SELF_REFUSAL = re.compile(
     r"^(?:no (?:puedo|podemos)|i (?:cannot|can't)|we (?:cannot|can't))\s+(?:agregar|anadir|combinar|comprar|gestionar|add|combine|buy|manage)\b"

@@ -34,6 +34,8 @@ CATALOG = CatalogParser(frozenset({'pequeverso.com', 'consumer.hotmart.com', 're
         'No puedo confirmarlo, pero las compras se pagan por separado.',
         'No puedo confirmar el precio y los productos deben comprarse por separado.',
         'I cannot confirm the price and both products must be purchased separately.',
+        'No puedo confirmar si ese precio es actual y debes pagar los productos por separado.',
+        'I cannot confirm whether that price is current and you must buy the products separately.',
         'No puedo agregar productos al carrito y los productos deben comprarse por separado.',
         'I cannot add products to your cart and the products must be purchased separately.',
     ],
@@ -53,6 +55,8 @@ def test_unpublished_checkout_grouping_is_replaced_before_streaming(text: str) -
     [
         'No puedo agregar productos a tu carrito ni realizar compras.',
         'I cannot add both products to your cart or buy them for you.',
+        'No puedo agregar productos a tu carrito y comprar los dos productos juntos.',
+        'I cannot add products to your cart and buy both products together.',
         'No puedo confirmar si las compras se realizan por separado.',
         'I do not know whether the products can be purchased together.',
         'No tengo información sobre si las compras se realizan por separado.',
