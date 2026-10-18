@@ -13,7 +13,7 @@ import pytest
 from app.adapters.catalog.knowledge import build_public_corpus
 from app.adapters.catalog_schema import CatalogParser
 from app.adapters.graph.composer import GraphAnswerComposer, GraphPrepared
-from app.adapters.openai_embeddings import FixtureHashEmbeddings
+from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings
 from app.ai.composer import ComposerSettings, GroundedComposer
 from app.application.ports import DraftEvent, GenerationError, Turn
 from app.domain.catalog import ActiveCatalog, DocumentKind, PriceStatus

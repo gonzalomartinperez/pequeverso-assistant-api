@@ -10,7 +10,7 @@ import httpx
 import openai
 import pytest
 
-from app.adapters.openai_provider import OpenAIResponsesProvider
+from app.adapters.providers.openai_provider import OpenAIResponsesProvider
 from app.ai.prompt import OUTPUT_SCHEMA
 from app.ai.provider import ModelInput, ModelRequest, TextChunk, UsageChunk
 from app.domain.errors import FailureCode, RejectedError

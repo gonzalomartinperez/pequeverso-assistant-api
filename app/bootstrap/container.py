@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.adapters.observability import RuntimeTelemetry
+    from app.adapters.observability.telemetry import RuntimeTelemetry
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,13 +24,13 @@ from openai import AsyncOpenAI
 from app.adapters.catalog.knowledge import PARSER_VERSION
 from app.adapters.catalog_schema import CatalogParser
 from app.adapters.catalog_source import FileCatalogSource, HttpCatalogSource
-from app.adapters.fixture_provider import FixtureProvider
 from app.adapters.graph.composer import GraphAnswerComposer
 from app.adapters.official_help import OfficialHelpReader
-from app.adapters.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
-from app.adapters.openai_provider import OpenAIResponsesProvider
 from app.adapters.postgres.database import PostgresDatabase
 from app.adapters.postgres.knowledge import PostgresKnowledgeStore
+from app.adapters.providers.fixture_provider import FixtureProvider
+from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
+from app.adapters.providers.openai_provider import OpenAIResponsesProvider
 from app.ai.composer import ComposerSettings, GroundedComposer
 from app.ai.provider import ModelProvider
 from app.application.catalog import CatalogService
@@ -265,7 +265,7 @@ def create_app(
 
     telemetry: RuntimeTelemetry | None = None
     if settings.observability_enabled:
-        from app.adapters.observability import RuntimeTelemetry
+        from app.adapters.observability.telemetry import RuntimeTelemetry
 
         telemetry = RuntimeTelemetry(
             started_at=clock.now(),
@@ -405,7 +405,7 @@ def create_app(
         max_age=600,
     )
     if telemetry is not None:
-        from app.adapters.observability import TelemetryMiddleware
+        from app.adapters.observability.telemetry import TelemetryMiddleware
 
         # FastAPI includes routers lazily; their top-level entries have no path.
         # Public route contexts enumerate the registered, effective templates.

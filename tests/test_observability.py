@@ -12,7 +12,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from starlette.responses import JSONResponse
 
-from app.adapters.observability import RuntimeTelemetry, TelemetryMiddleware
+from app.adapters.observability.telemetry import RuntimeTelemetry, TelemetryMiddleware
 from app.application.operations import RunWindow
 from app.bootstrap.config import Settings
 from app.bootstrap.container import create_app
@@ -535,7 +535,7 @@ def test_framework_does_not_use_ambient_telemetry_or_public_parent(tmp_path, mon
             super().__init__(**kwargs)
             instances.append(self)
 
-    monkeypatch.setattr('app.adapters.observability.RuntimeTelemetry', CapturedTelemetry)
+    monkeypatch.setattr('app.adapters.observability.telemetry.RuntimeTelemetry', CapturedTelemetry)
     try:
         with TestClient(create_app(settings(tmp_path, observability_enabled=enabled))) as client:
             response = client.get(

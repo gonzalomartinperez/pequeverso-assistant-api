@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from app.adapters.catalog_schema import CatalogParser
-from app.adapters.fixture_provider import FixtureProvider
+from app.adapters.providers.fixture_provider import FixtureProvider
 from app.ai.evidence import catalog_payload
 from app.application.answers import answer_rules, finalize
 from app.application.ports import Draft, DraftReference

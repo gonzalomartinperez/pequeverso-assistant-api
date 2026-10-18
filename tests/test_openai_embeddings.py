@@ -9,7 +9,7 @@ import httpx
 import pytest
 from openai import AsyncOpenAI
 
-from app.adapters.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
+from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
 from app.domain.errors import RejectedError
 from app.domain.knowledge import EmbeddingPurpose
 

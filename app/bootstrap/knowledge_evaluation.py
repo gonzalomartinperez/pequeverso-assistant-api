@@ -22,9 +22,9 @@ from app.adapters.catalog.knowledge import PARSER_VERSION, build_public_corpus
 from app.adapters.catalog_schema import CatalogParser
 from app.adapters.neo4j.database import Neo4jDatabase
 from app.adapters.neo4j.public_graph import Neo4jPublicGraph
-from app.adapters.openai_embeddings import FixtureHashEmbeddings
 from app.adapters.postgres.database import PostgresDatabase
 from app.adapters.postgres.knowledge import PostgresKnowledgeStore
+from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings
 from app.application.knowledge import HybridKnowledgeRetrieval
 from app.application.knowledge_evaluation import FixtureKnowledgeEvaluator
 from app.domain.catalog import ActiveCatalog
@@ -275,7 +275,7 @@ def _source_hashes() -> dict[str, str]:
         'app/adapters/neo4j/database.py',
         'app/adapters/postgres/knowledge.py',
         'app/adapters/postgres/database.py',
-        'app/adapters/openai_embeddings.py',
+        'app/adapters/providers/openai_embeddings.py',
         'scripts/evaluate_knowledge_strategies.py',
     )
     return {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest() for path in files}

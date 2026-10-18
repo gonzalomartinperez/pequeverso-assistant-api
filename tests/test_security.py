@@ -101,7 +101,7 @@ def test_owned_unknown_operation_is_reduced_to_safe_metadata() -> None:
 def test_provider_details_are_untrusted_even_with_an_owned_logger() -> None:
     marker = 'SYNTHETIC_PRIVATE_MARKER_NOT_A_KEY'
     record = logging.LogRecord(
-        'app.adapters.openai_provider',
+        'app.adapters.providers.openai_provider',
         logging.WARNING,
         'synthetic',
         1,
@@ -118,7 +118,7 @@ def test_provider_details_are_untrusted_even_with_an_owned_logger() -> None:
 def test_legitimate_telemetry_events_remain_visible(event: str) -> None:
     outcome = 'unavailable' if event == 'telemetry_run_window' else 'failed'
     record = logging.LogRecord(
-        'app.adapters.observability',
+        'app.adapters.observability.telemetry',
         logging.WARNING,
         'synthetic',
         1,

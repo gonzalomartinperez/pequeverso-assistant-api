@@ -9,7 +9,7 @@ import httpx2
 import pytest
 from openai import AsyncOpenAI
 
-from app.adapters.openai_embeddings import OpenAIEmbeddings
+from app.adapters.providers.openai_embeddings import OpenAIEmbeddings
 from app.domain.errors import RejectedError
 from app.domain.knowledge import EmbeddingPurpose
 from scripts.real_eval_budget import Envelope, EvaluationEmbeddingAccounting

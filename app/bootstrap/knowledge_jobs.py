@@ -21,10 +21,10 @@ from app.adapters.catalog.knowledge import PARSER_VERSION, build_public_corpus
 from app.adapters.catalog_schema import CatalogParser
 from app.adapters.neo4j.database import Neo4jDatabase
 from app.adapters.neo4j.public_graph import Neo4jPublicGraph
-from app.adapters.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
 from app.adapters.postgres.database import PostgresDatabase
 from app.adapters.postgres.knowledge import PostgresKnowledgeStore
 from app.adapters.postgres.private_ledger import PostgresLedger
+from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
 from app.application.embedding_budget import SharedEmbeddingAccounting
 from app.application.indexing import KnowledgeIndexer
 from app.application.knowledge_ports import Embeddings

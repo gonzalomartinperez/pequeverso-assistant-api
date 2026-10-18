@@ -32,7 +32,7 @@ import uvicorn
 from dotenv import dotenv_values
 from pydantic import SecretStr
 
-from app.adapters.fixture_provider import FixtureProvider
+from app.adapters.providers.fixture_provider import FixtureProvider
 from app.ai.evidence import passages, rank
 from app.ai.provider import ModelChunk, ModelRequest
 from app.application.knowledge_ports import EmbeddingAccounting

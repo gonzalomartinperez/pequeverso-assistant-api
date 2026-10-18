@@ -15,9 +15,9 @@ import pytest
 from psycopg.conninfo import conninfo_to_dict
 
 from app.adapters.catalog_schema import CatalogParser
-from app.adapters.openai_embeddings import FixtureHashEmbeddings
 from app.adapters.postgres.database import PostgresDatabase
 from app.adapters.postgres.knowledge import PostgresKnowledgeStore
+from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings
 from app.domain.knowledge import (
     ChunkKind,
     EmbeddingPurpose,

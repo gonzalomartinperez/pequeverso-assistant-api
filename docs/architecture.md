@@ -43,7 +43,15 @@ backoffice server (bearer token, private network) ──/internal/v1/ops──�
 
 `tests/test_architecture.py` checks declared imports with Python AST, including relative imports
 and package aliases. SQL stays inside `adapters/sqlite` or `adapters/postgres`; Cypher/Neo4j
-stay in `adapters/neo4j`, graph SDKs in `adapters/graph`. Only the explicit offline import
+stay in `adapters/neo4j`, graph SDKs in `adapters/graph`. Model and embedding implementations
+share `adapters/providers`; OpenAI SDK imports stay there or in bootstrap construction.
+The concrete observability capability lives in `adapters/observability/telemetry.py`;
+OpenTelemetry and Prometheus imports stay inside that package. The package contains the real
+implementation and its normal package exports, rather than empty layer directories.
+Provider consumers import the concrete modules in `adapters/providers`; the former flat provider
+modules are removed after migrating all repository consumers. The observability package exports
+the same classes and functions as its telemetry module without duplicating implementation.
+Only the explicit offline import
 adapter may read SQLite from the PostgreSQL adapter directory. Same-layer dependency cycles
 and misplaced drivers have negative regression cases. These
 exercise the actual layer gate. This is a static boundary check, not proof of arbitrary runtime
