@@ -25,6 +25,10 @@ independent.
   shared accounting before dispatch, conservative treatment of unknown costs and no automatic
   generation retries. The native storefront assistant remains disabled pending authorized
   backend deployment and verification.
+- Bounded public-information provenance answers, with an immediate clarification when the
+  product is ambiguous. The local policy preserves authorization, rate limits, redaction and
+  persisted history without dispatching a generation. Affiliate prompt guidance requests the
+  canonical disclosure once; server-side disclosure and commercial validation remain enforced.
 - Reproducible hardened application and database image recipes, health/readiness checks,
   graceful streaming shutdown, persistence and restore procedures. Deployment, shared server
   infrastructure and production acceptance remain the responsibility of vps-ops.
@@ -44,5 +48,7 @@ are not real-model quality evidence. Open deployment gates and operator steps re
 [knowledge operations](docs/knowledge-operations.md) and
 [the vps-ops handoff](docs/handoffs/vps-ops.md).
 
-This metadata update changes no application behavior, catalog facts, dependency versions,
-wire contracts, image recipes or activation settings.
+The version-number update itself changes no application behavior, catalog facts, dependency
+versions, wire contracts, image recipes or activation settings. The separately reviewed
+provenance and prompt changes above require their own behavioral verification; source metadata
+and deterministic fixtures do not establish real-model quality.
