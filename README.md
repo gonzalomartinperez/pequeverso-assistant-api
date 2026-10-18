@@ -56,9 +56,14 @@ These actual local captures use Store `755d541` and API `2f22f24` with an isolat
 **fixture provider**. They show the Spanish interface, not real-model output or a deployed VPS.
 The production assistant remains **OFF**; the enabled fixture export must never be published.
 
-| Desktop conversation and sources | Mobile conversation and composer |
+| Desktop welcome · native panel | Desktop answer and sources · native panel |
 | :---: | :---: |
-| [<img src="docs/verification/native-assistant-2026-10-18/03-Desktop-Conversacion.png" height="340" alt="Actual desktop fixture conversation with the guarantee answer and disclosed sources.">](docs/verification/native-assistant-2026-10-18/03-Desktop-Conversacion.png) | [<img src="docs/verification/native-assistant-2026-10-18/06-Mobile-Conversacion.png" height="340" alt="Actual mobile fixture conversation, scrollable product detail and fixed composer.">](docs/verification/native-assistant-2026-10-18/06-Mobile-Conversacion.png) |
+| [<img src="docs/verification/assistant/2026-10-18/01-Desktop-Panel-Bienvenida.png" width="408" height="560" alt="Native desktop fixture panel with welcome, suggested questions and composer.">](docs/verification/assistant/2026-10-18/01-Desktop-Panel-Bienvenida.png) | [<img src="docs/verification/assistant/2026-10-18/02-Desktop-Panel-Conversacion.png" width="408" height="560" alt="Native desktop fixture guarantee answer with two expanded sources.">](docs/verification/assistant/2026-10-18/02-Desktop-Panel-Conversacion.png) |
+
+<p align="center"><a href="docs/verification/assistant/2026-10-18/03-Mobile-Panel-Conversacion.png"><img src="docs/verification/assistant/2026-10-18/03-Mobile-Panel-Conversacion.png" width="360" alt="Native mobile fixture answer, sources, scrollable product card and fixed composer."></a></p>
+
+[Panel closeups and exact provenance](docs/verification/assistant/2026-10-18/README.md)
+show the original 408 × 560 desktop panels and mobile capture at a readable display width.
 
 [All seven original captures and provenance](docs/verification/native-assistant-2026-10-18/README.md)
 cover launcher, welcome, conversation, waiting, mobile and expanded states.
