@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -159,8 +160,9 @@ def test_configuration_rejects_unsafe_fixture_targets(tmp_path: Path, problem: s
         graph_runner.graph_configuration(path)
 
 
+@pytest.mark.parametrize('audit', [None, 'malformed', 'a' * 64])
 def test_default_graph_cli_ignores_key_and_budget_arguments(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, audit: str | None
 ) -> None:
     manifest = tmp_path / 'matrix.json'
     manifest.write_text(json.dumps({'cases': [{'id': 'fixture', 'turns': [{'question': 'Hola'}]}]}))
@@ -207,6 +209,8 @@ def test_default_graph_cli_ignores_key_and_budget_arguments(
             str(tmp_path / 'MUST-NOT-TOUCH'),
         ],
     )
+    if audit is not None:
+        monkeypatch.setattr('sys.argv', [*sys.argv, '--authorized-envelope-sha256', audit])
     assert graph_runner.main() == 0
     assert not (tmp_path / 'MUST-NOT-TOUCH').exists()
     assert json.loads((output / 'index-accounting.json').read_text())['fixture_only'] is True
@@ -388,3 +392,78 @@ def test_graph_index_failure_after_known_usage_persists_stop_and_receipt(
     assert receipt['result'] is None and receipt['envelope'] == envelope.snapshot()
     with evaluation_run_ownership(budget), pytest.raises(RejectedError):
         envelope.admit_new_run()
+
+
+@pytest.mark.parametrize('audit', ['malformed', 'a' * 64])
+def test_default_http_cli_ignores_audit_and_private_arguments_for_full_225_fixture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    audit: str,
+) -> None:
+    from scripts import evaluate_end_to_end as runner
+
+    parent = {
+        'cases': [{'id': f'fixture-{i}', 'turns': [{'question': 'Synthetic case'}]} for i in range(225)]
+    }
+    manifest = tmp_path / 'full225.json'
+    manifest.write_text(json.dumps(parent))
+    output = tmp_path / 'output'
+
+    def forbidden(*args: object, **kwargs: object) -> Any:
+        raise AssertionError('fixture must never load a private ledger/key or construct SDK')
+
+    monkeypatch.setattr(runner, 'load_live_provider', forbidden)
+    monkeypatch.setattr('scripts.real_eval_budget.Envelope.open_authorized', forbidden)
+
+    def evaluate(body: dict[str, Any], *args: object, **kwargs: Any) -> dict[str, Any]:
+        assert len(body['cases']) == 225 and kwargs['bounded'] is None
+        return {'stop_reason': None}
+
+    monkeypatch.setattr(runner, 'evaluate', evaluate)
+    monkeypatch.setattr(
+        'sys.argv',
+        [
+            'eval',
+            '--manifest',
+            str(manifest),
+            '--output-dir',
+            str(output),
+            '--source-revision',
+            'b' * 40,
+            '--key-file',
+            str(tmp_path / 'MUST-NOT-READ'),
+            '--budget-state',
+            str(tmp_path / 'MUST-NOT-TOUCH'),
+            '--authorized-envelope-sha256',
+            audit,
+        ],
+    )
+    runner.main()
+    assert not (tmp_path / 'MUST-NOT-TOUCH').exists()
+    assert json.loads((output / 'manifest.json').read_text()) == parent
+
+
+def test_full_225_selection_still_requires_frozen_parent_and_selector_proof() -> None:
+    parent = {
+        'official_help_enabled': True,
+        'cases': [{'id': f'fixture-{i}', 'turns': [{'question': 'Synthetic case'}]} for i in range(225)],
+    }
+    raw = json.dumps(parent).encode()
+    parent_hash = hashlib.sha256(raw).hexdigest()
+    canonical = {'phase': graph_runner.PHASE, 'parent_manifest_sha256': parent_hash, 'cases': parent['cases']}
+    selector = hashlib.sha256(
+        json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
+    ).hexdigest()
+    plan = {
+        'recommended_full_manifest': {'sha256': parent_hash},
+        'proposed_subset_not_execution_authorization': {
+            'case_ids_in_order': [c['id'] for c in parent['cases']],
+            'canonical_selector_sha256': selector,
+        },
+    }
+    selected = graph_runner.selected_manifest(parent, parent_hash, plan)
+    assert selected['query_count'] == 225 and selected['counts']['unexecuted_parent_queries'] == 0
+    assert selected['official_help_enabled'] is True and selected['cases'] == parent['cases']
+    parent['cases'][0]['turns'][0]['question'] = 'Changed'
+    with pytest.raises(ValueError, match='changed'):
+        graph_runner.selected_manifest(parent, parent_hash, plan)

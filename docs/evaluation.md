@@ -91,6 +91,66 @@ uv run python scripts/run_bounded_real_eval.py --live --phase holdout \
   `PROMPT_VERSION`), then rerun. Commit the report with the model name and date.
 - Before launch, also run 3–5 manual chats through the native storefront assistant against an isolated staging deployment.
 
+## Explicit audited extension of one existing evaluation ledger (2026-10-18)
+
+The owner separately authorized **1100 attempts and USD 6 accumulated**, retaining every prior
+attempt/cost and the project's USD 10 monthly limit. This does not change the default fresh
+ledger (400 attempts/USD 1), application budgets, billing controls, provider, model, medium
+reasoning, zero SDK retries, or storefront activation. Existing 650/USD 1 ledgers still reopen
+with their exact legacy arguments. Neither a constructor nor a CLI cap option can create a
+fresh 1100/USD 6 allowance.
+
+Only `scripts/extend_evaluation_envelope.py` performs the fixed 650/USD 1→1100/USD 6 transition.
+It runs offline, with the existing stable ownership lock and a SQLite immediate transaction,
+against an existing external mode 600 ledger in an owned mode 700 directory. All original
+`attempts`, `status`, `gate_resolutions`, `limits` and `attempt_limits` rows remain intact;
+the original monetary ceiling 1e6 and 650-attempt CHECK/metadata are not rewritten. One new
+append-only audit record supplies the effective limits only through an explicit audit-SHA
+opener. Reopen and every reservation verify its hash and the entire original historical prefix;
+stale objects fail closed. The audit records old/new ceilings, exact accounting snapshot,
+owner-reference/evidence hash, code revision, frozen-manifest hash and time. These hashes are
+provenance/integrity evidence, **not a signature or automatic permission from the owner**.
+
+Root is the operator. This procedure does not read a key or call any provider:
+
+```bash
+umask 077
+# First: stop all evaluation owners, make a consistent private SQLite backup, verify its restore.
+# Use the SAME existing budget path. Never delete it, copy only its main file while WAL is live,
+# reset counts, or create a new allowance to bypass a rejection.
+uv run python scripts/extend_evaluation_envelope.py inspect \
+  --budget-state /private/existing-budget.sqlite3 > /private/expected-snapshot.json
+uv run python scripts/extend_evaluation_envelope.py extend-1100-6-usd \
+  --budget-state /private/existing-budget.sqlite3 \
+  --expected-snapshot /private/expected-snapshot.json \
+  --authorization-ref owner-approval-2026-10-18 \
+  --authorization-sha256 "$AUTHORIZATION_RECORD_SHA256" \
+  --source-revision "$REVIEWED_CODE_REVISION" \
+  --manifest-sha256 "$FROZEN_MANIFEST_SHA256"
+```
+
+The exact expected snapshot must match counts, spend and complete historical-row hash at the
+transaction boundary, with zero pending usage and no unresolved stop. Budget overflow, a
+changed snapshot, unknown settlement, wrong legacy ceilings, repeat migration and concurrent
+owner are rejected. A pre-commit error rolls back the audit too. Do not automatically clear a
+stop, settle/refund unknown usage, repeat the migration, or lower the ceiling. Backup/restore
+and operator authorization remain separately verified actions; this code does not prove them.
+
+`Envelope.open_authorized(..., audit_sha256=...)` requires that existing record. The two socket
+CLIs accept **only** the explicit `--authorized-envelope-sha256` receipt for this path; their
+legacy `--max-attempts` range remains 1–650. An audited open uses its persisted 1100/USD 6 limits,
+not new numeric CLI caps. Fixture mode ignores private key/budget/audit arguments (including
+malformed audit strings), does not read them and never constructs a provider SDK.
+
+The current proposed 225-turn phase binds the separately frozen parent manifest
+`cb9dad6697e79c6f8e1fa549b57e4abcf64a5fc55be1511244772dab64a575ce` and a canonical selector
+containing all 209 case ids in order. Selecting the whole parent still needs the same unchanged
+parent/questions/order/rubric proof; it is not a bypass of the Graph CLI's mandatory live
+selection plan. The phase explicitly enables only the three server-owned approved Hotmart
+procedure sources. It adds no model tools, hosted web search or production activation.
+No live result or completed migration is claimed by these source changes. A fixture selector
+regression and an external exact-parent proof are distinct from executing 225 real queries.
+
 ## Evaluation corpus (`evals/corpus/`)
 
 One file per intent family: product contents, age fit, comparison of resources, printing and
@@ -235,10 +295,10 @@ uv run python scripts/evaluate_end_to_end.py --live \
   --output-dir /absolute/private/new-live-baseline
 ```
 
-The environment file must be a regular, non-symlink mode600 file outside the repository,
+The environment file must be a regular, non-symlink mode 600 file outside the repository,
 with `OPENAI_API_KEY`, `OPENAI_MODEL=gpt-6-luna` and `OPENAI_REASONING_EFFORT=medium`.
-The shared budget directory must be mode700; existing budget files must be mode600.
-`Envelope` and `BoundedProvider` enforce the shared immutable USD1 envelope, USD0.011
+The shared budget directory must be mode 700; existing budget files must be mode 600.
+`Envelope` and `BoundedProvider` enforce the shared immutable USD 1 envelope, USD0.011
 reservations, conservative usage settlement, unknown-cost retention, Standard tier, no
 SDK/adapter retry, no proxy trust and no fallback. The default remains 400 dispatched attempts.
 The socket CLI accepts an explicit `--max-attempts` integer up to 650; it must match the
@@ -247,7 +307,7 @@ owner separately authorized 650 accumulated attempts for the post-tool evaluatio
 migration retained the original 282 attempts, USD0.376257 conservative accounting and zero
 unknown-cost attempts. Reuse that same ledger across phases, with the explicitly authorized
 cap; never reset counts or costs, create a bypass ledger or expand authorization automatically.
-The USD10 project monthly authorization is separate from this stricter envelope.
+The USD 10 project monthly authorization is separate from this stricter envelope.
 
 All generations still enter through real loopback HTTP/SSE with session, Origin, CSRF,
 idempotency, grounding, persistence and history checks. Provider overrides are isolated
@@ -321,8 +381,8 @@ frozen real-model development matrix. The earlier 303-query evidence predates it
 The subsequent 74-request phase and final seven targeted regressions are documented in the
 [post-tool report](verification/post-tools-2026-10-13.md), including semantic findings and the
 limited introductory external excerpts actually sent. These phases are not independent holdouts.
-The initial 400-attempt/USD1 envelope retained 282 prior attempts; the owner explicitly authorized
-650 accumulated attempts on 2026-10-13 without changing the USD1 cap. No count reset or bypass
+The initial 400-attempt/USD 1 envelope retained 282 prior attempts; the owner explicitly authorized
+650 accumulated attempts on 2026-10-13 without changing the USD 1 cap. No count reset or bypass
 ledger is allowed. Public article reads are not paid model evaluations, and fixture runs cannot
 certify model tone, conversion or semantic citation support.
 

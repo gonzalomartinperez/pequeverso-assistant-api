@@ -237,9 +237,21 @@ def ask(
 
 
 def load_live_provider(
-    key_file: Path, budget_state: Path, *, max_attempts: int = MAX_ATTEMPTS
+    key_file: Path,
+    budget_state: Path,
+    *,
+    max_attempts: int = MAX_ATTEMPTS,
+    authorized_envelope_sha256: str | None = None,
 ) -> BoundedProvider:
     """Only explicit live mode calls this; validate the shared cap before reading the key."""
+    if authorized_envelope_sha256 is not None and (
+        max_attempts != MAX_ATTEMPTS
+        or len(authorized_envelope_sha256) != 64
+        or any(c not in '0123456789abcdef' for c in authorized_envelope_sha256)
+    ):
+        raise ValueError('authorized envelope requires its exact audit SHA256 and default legacy argument')
+    if authorized_envelope_sha256 is not None and not budget_state.is_file():
+        raise ValueError('authorized extension requires the existing shared evaluation budget')
     if type(max_attempts) is not int or not 1 <= max_attempts <= 650:
         raise ValueError('evaluation attempt cap must be an integer from 1 to 650')
     if max_attempts > MAX_ATTEMPTS and not budget_state.is_file():
@@ -258,7 +270,11 @@ def load_live_provider(
         raise ValueError('shared budget directory must be private mode700')
     # Persisted-cap mismatch fails before any credential read. Extending the owner-approved
     # existing run must not accidentally create a fresh allowance through a mistyped path.
-    envelope = Envelope(budget_state, max_attempts=max_attempts)
+    envelope = (
+        Envelope(budget_state, max_attempts=max_attempts)
+        if authorized_envelope_sha256 is None
+        else Envelope.open_authorized(budget_state, audit_sha256=authorized_envelope_sha256)
+    )
     envelope.admit_new_run()
     if max_attempts > MAX_ATTEMPTS and envelope.snapshot()['attempts'] == 0:
         raise ValueError('extended attempt cap requires an already-used shared evaluation budget')
@@ -760,6 +776,7 @@ def main() -> None:
     parser.add_argument('--key-file', type=Path)
     parser.add_argument('--budget-state', type=Path)
     parser.add_argument('--max-attempts', type=int, default=MAX_ATTEMPTS)
+    parser.add_argument('--authorized-envelope-sha256')
     parser.add_argument('--manifest', type=Path, default=ROOT / 'evals/end_to_end.json')
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--source-revision', required=True)
@@ -782,7 +799,15 @@ def main() -> None:
     with ownership:
         bounded = None
         if args.live:
-            bounded = load_live_provider(args.key_file, args.budget_state, max_attempts=args.max_attempts)
+            if args.authorized_envelope_sha256 is None:
+                bounded = load_live_provider(args.key_file, args.budget_state, max_attempts=args.max_attempts)
+            else:
+                bounded = load_live_provider(
+                    args.key_file,
+                    args.budget_state,
+                    max_attempts=args.max_attempts,
+                    authorized_envelope_sha256=args.authorized_envelope_sha256,
+                )
         destination.mkdir(parents=True, mode=0o700)
         os.chmod(destination, 0o700)
         for name in ('httpx', 'httpx2', 'httpcore', 'httpcore2', 'openai'):
