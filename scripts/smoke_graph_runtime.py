@@ -29,6 +29,8 @@ from urllib.parse import quote, urlsplit
 import psycopg
 from psycopg import sql
 
+ROOT = Path(__file__).resolve().parents[1]
+
 GROUPS = {
     'private': 'pequeverso_private_runtime',
     'knowledge': 'pequeverso_knowledge_runtime',
@@ -142,8 +144,10 @@ def owned_services(pg_image: str, neo_image: str, output: Path, source: Path) ->
                     '--tmpfs',
                     '/tmp:rw,nosuid,noexec,size=16m',  # noqa: S108 - Container tmpfs, not host storage.
                     '--tmpfs',
-                    '/var/run/postgresql:rw,nosuid,noexec,'
-                    f'uid={postgres_uid},gid={postgres_gid},mode=3775,size=16m',
+                    (
+                        '/var/run/postgresql:rw,nosuid,noexec,'
+                        f'uid={postgres_uid},gid={postgres_gid},mode=3775,size=16m'
+                    ),
                     '--mount',
                     f'type=volume,src={pg_volume},dst=/var/lib/postgresql',
                     '--env-file',

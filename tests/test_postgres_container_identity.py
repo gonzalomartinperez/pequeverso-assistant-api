@@ -42,8 +42,13 @@ class PostgresSmokeIdentityTests(unittest.TestCase):
                 FAKE_DOCKER_CALLS=str(calls),
                 FAKE_POSTGRES_USER_JSON=json.dumps(identity),
             )
-            completed = subprocess.run(
-                ['bash', str(ROOT / 'scripts/smoke_knowledge_postgres.sh'), IMAGE, str(private / 'receipt')],
+            completed = subprocess.run(  # noqa: S603 - Fixed repository fixture command; no shell.
+                [
+                    '/bin/bash',
+                    str(ROOT / 'scripts/smoke_knowledge_postgres.sh'),
+                    IMAGE,
+                    str(private / 'receipt'),
+                ],
                 cwd=ROOT,
                 env=environment,
                 capture_output=True,
@@ -81,7 +86,22 @@ class PostgresIdentityBoundaryTests(unittest.TestCase):
 
         for valid in ('70:70', '999:999'):
             assert postgres_fixture_identity(valid) == valid
-        for invalid in (None, 70, True, {}, [], '', 'root', '0:0', '70', '70:0', '0:70', '070:070', '70:70\n', '65532:65532'):
+        for invalid in (
+            None,
+            70,
+            True,
+            {},
+            [],
+            '',
+            'root',
+            '0:0',
+            '70',
+            '70:0',
+            '0:70',
+            '070:070',
+            '70:70\n',
+            '65532:65532',
+        ):
             try:
                 postgres_fixture_identity(invalid)
             except ValueError:
@@ -90,7 +110,7 @@ class PostgresIdentityBoundaryTests(unittest.TestCase):
 
     def test_cli_bounds_input_and_does_not_echo_rejected_metadata(self) -> None:
         for value in ('0:0', '70:70 --privileged', 'PRIVATE_CANARY_' + 'x' * 300):
-            result = subprocess.run(
+            result = subprocess.run(  # noqa: S603 - Fixed repository fixture command; no shell.
                 [sys.executable, str(ROOT / 'scripts/postgres_fixture_identity.py')],
                 input=json.dumps(value),
                 capture_output=True,
@@ -122,7 +142,11 @@ class GraphPostgresIdentityTests(unittest.TestCase):
                 output.mkdir()
                 calls: list[list[str]] = []
 
-                def docker(arguments: list[str]) -> str:
+                def docker(
+                    arguments: list[str],
+                    calls: list[list[str]] = calls,
+                    identity: object = identity,
+                ) -> str:
                     calls.append(arguments)
                     if '.Config.User' in ' '.join(arguments):
                         return json.dumps(identity)
@@ -149,13 +173,34 @@ class GraphPostgresIdentityTests(unittest.TestCase):
                     command = commands[0]
                     assert command[command.index('--user') + 1] == identity
                     uid, gid = identity.split(':')
-                    assert f'/var/run/postgresql:rw,nosuid,noexec,uid={uid},gid={gid},mode=3775,size=16m' in command
+                    assert (
+                        f'/var/run/postgresql:rw,nosuid,noexec,uid={uid},gid={gid},mode=3775,size=16m'
+                        in command
+                    )
                     assert '--read-only' in command
                     assert 'no-new-privileges:true' in command
                 else:
                     assert commands == []
-                    assert not any(args[:2] in (['network', 'create'], ['volume', 'create']) for args in calls)
+                    assert not any(
+                        args[:2] in (['network', 'create'], ['volume', 'create']) for args in calls
+                    )
 
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class GraphCliIdentityTests(unittest.TestCase):
+    def test_graph_harness_help_constructs_parser_without_docker(self) -> None:
+        with tempfile.TemporaryDirectory(prefix='pv-graph-help-') as temporary:
+            result = subprocess.run(  # noqa: S603 - Fixed repository fixture command; no shell.
+                [sys.executable, str(ROOT / 'scripts/smoke_graph_runtime.py'), '--help'],
+                env={**os.environ, 'PATH': temporary},
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+        assert result.returncode == 0, result.stderr
+        assert '--postgres-image' in result.stdout
+        assert '--source-dir' in result.stdout
