@@ -228,8 +228,11 @@ Shared runtime/version acceptance: [runtime baseline](docs/runtime-baseline.md).
 ### Affiliate product coverage (2026-10-18)
 
 The catalog now includes Grafismo Fonético and the separate third-party **Guía de Alimentación
-para Bebés**, exported from storefront main `fd2f150fe2e08955b3817c3b18ff14dea920d74e`. The
-course has no authorized published price, PDFs or page counts: those remain null. Its published
+para Bebés**, exported from published storefront main
+`7dde2968783c809205bd6ba16ec4a4661b936ca0` at `2026-10-18T23:13:02+00:00`
+(catalog SHA256 `54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b`).
+The course overview attributes six modules and four bonuses to its producer description.
+The course has no authorized published price, PDFs or page counts: those remain null. Its published
 seven-day guarantee and affiliate disclosure stay product-scoped; the kit policy cannot transfer
 to the course. Revision1.5 adds optional card kind/format/disclosure fields, with core defaults
 for historical messages. See [catalog](docs/catalog.md) and [contract](docs/api-contract.md).
@@ -238,6 +241,12 @@ real-model quality, a functioning affiliate redirect or readiness of an undeploy
 
 The [dated real-model evaluation](docs/verification/real-evaluation-2026-10-18.md) records the
 complete229-turn application run, agent semantic review, preserved defects and usage estimates.
+That historical run used its recorded earlier catalog and prompt; it is not a real-model
+validation of the current `2026-10-18.4` prompt. The current internal document table retains
+every ID, kind, full title, complete text and product scope while saving repeated field names;
+the 24KB input limit and public wire contracts remain unchanged. Post-adjustment model
+verification is a separate gate, and a full new evaluation requires its own remaining
+authorized attempt budget.
 The [exact-image PostgreSQL report](docs/verification/postgres-alpine-2026-10-18.md) distinguishes
 the patched local engine from historical images and retains API/Neo4j deployment blockers.
 Neither report authorizes production activation.
