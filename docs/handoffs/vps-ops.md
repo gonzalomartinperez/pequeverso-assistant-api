@@ -149,8 +149,9 @@ public-proxy acceptance test.
 Origins are exact, credentials allowed: `ALLOWED_ORIGINS=["https://pequeverso.com"]` (the
 owner-confirmed apex; www redirects). Forward OPTIONS without adding proxy CORS headers.
 Host-only `__Host-pv_assistant` cookie: Secure, HttpOnly, SameSite=Lax, no Domain. Mutations
-require allowlisted Origin and per-session CSRF; sensitive responses are no-store. Configure
-trusted proxy peer CIDRs explicitly; application uvicorn proxy headers stay off.
+require allowlisted Origin and per-session CSRF; sensitive responses are no-store. vps-ops configures
+proxy ingress access controls; application Uvicorn proxy headers stay off. API country
+attribution accepts only explicitly configured exact socket peers, as described below.
 
 Optional product analytics collection/read and the independent backoffice read flag default
 OFF; country receipt also defaults OFF/unknown. Production classification is independent of

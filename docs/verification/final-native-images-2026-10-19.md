@@ -111,8 +111,10 @@ fixture, not a restore of migration006. **Migration006 restore remains pending.*
 Neo server effective usage-reporting assertions and driver retry/telemetry configuration are
 distinct evidence scopes; source flags alone are not proof of an executing server setting.
 
-The native API→PG→BO pair V17 remains FAIL on body-completion timing; V18 diagnosis is pending.
-No pair PASS, new gallery, live OAuth, external TLS/proxy, VPS capacity or activation is inferred.
+Native API→PG→BO pairs V17 and V18 failed the browser response-completion check; their
+original failures are preserved. These image receipts establish no paired-browser acceptance,
+new gallery, live OAuth, external TLS/proxy, VPS capacity or activation. Subsequent integration
+evidence must identify its own immutable sources and actual result.
 Optional [analytics and country trust](../product-analytics.md) remain OFF by default, with
 independent operator edge proof required. Published frontend assistant builds stay OFF.
 
