@@ -1,11 +1,12 @@
 # Handoff to vps-ops: Pequeverso applications
 
-Current application profile: **2026-10-17, GraphRAG candidate**. This replaces the earlier
+Current application profile: **2026-10-19, GraphRAG candidate**. This replaces the earlier
 SQLite production handoff. Dated image measurements and legacy SQLite recovery procedures
 remain in [the deployment contract](../deployment-contract.md) and Git history; they are
 not current production topology or approval. No images are published and no API/backoffice
 service is deployed by this work. vps-ops owns Coolify, proxy, DNS, secrets, infrastructure
-allocation, monitored backups and deployment. The storefront assistant remains disabled.
+allocation, monitored backups and deployment. The storefront assistant remains disabled. The [October19 native image handoff](../verification/final-native-images-2026-10-19.md)
+identifies exact local images, retained findings and outstanding acceptance work.
 
 ## Current topology and project isolation
 
@@ -54,7 +55,7 @@ is implemented here, and production composition remains owned by vps-ops/Coolify
 - API: port **8000/tcp**, UID/GID **65532**, read-only root, cap-drop ALL, no-new-privileges,
   bounded `/tmp` tmpfs, rotated container logs. `APPLICATION_STORAGE=postgres` together with
   `KNOWLEDGE_BACKEND=graphrag`; no production SQLite mount. Runtime code owns no host resources.
-- API PostgreSQL: port **5432/tcp**, UID/GID **999**, persistent mount
+- API PostgreSQL: port **5432/tcp**, UID/GID **70:70** (current Alpine image; historical Debian used999:999), persistent mount
   **`/var/lib/postgresql`** (PostgreSQL 18 layout), bounded writable `/var/run/postgresql`
   and `/tmp` tmpfs. Use the project `infra/docker/postgres/Dockerfile` exact image and privacy logging CMD;
   do not replace it with a less restrictive command. No public database port.
@@ -151,6 +152,13 @@ Host-only `__Host-pv_assistant` cookie: Secure, HttpOnly, SameSite=Lax, no Domai
 require allowlisted Origin and per-session CSRF; sensitive responses are no-store. Configure
 trusted proxy peer CIDRs explicitly; application uvicorn proxy headers stay off.
 
+Optional product analytics collection/read and the independent backoffice read flag default
+OFF; country receipt also defaults OFF/unknown. Production classification is independent of
+assistant enablement. Before any opt-in, follow the [analytics contract and required edge
+proof](../product-analytics.md): CF-only origin access, exact trusted peers, overwritten headers
+and spoof/bypass rejection must be demonstrated by vps-ops. Configuration and a local fixture
+do not establish deployed edge provenance. Migration006 restore remains a separate pending gate.
+
 ## Secrets, budgets and activation
 
 All secrets are injected privately by vps-ops/Coolify, never build args, browser code, URLs,
@@ -171,9 +179,10 @@ wheels for **PyYAML 6.0.3, uuid-utils 0.17.1 and zstandard 0.25.0**. This is not
 The project budget is USD10/month with configured daily cutoff, atomic worst-case reservations
 and safety margin. Index/query embeddings and generation share it; unknown spend stays
 reserved. These are conservative application estimates, not provider invoices or an assumed
-account-level hard cap. The separate local evaluation cap remains USD1/650 attempts with
-historical counters preserved; no new 200+ semantic evaluation is claimed within its remaining
-108 requests. See [dated evidence and remaining security/model gates](../verification/graphrag-2026-10-17.md).
+account-level hard cap. Local evaluations use a separately owner-authorized append-only envelope; historical
+USD1/650-attempt receipts are dated evidence, not the current evaluation allowance or a
+production spending authorization. Keep their original counters and
+[source-specific scope](../verification/graphrag-2026-10-17.md).
 
 Storefront activation requires a separate owner-approved rebuild after VPS acceptance:
 `NEXT_PUBLIC_ASSISTANT_ENABLED` stays absent/false now, with no launcher, runtime or API traffic.
