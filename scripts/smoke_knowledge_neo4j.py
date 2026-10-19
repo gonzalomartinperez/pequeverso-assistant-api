@@ -17,6 +17,7 @@ from pathlib import Path
 from time import monotonic
 
 from neo4j import GraphDatabase, Query
+from neo4j.exceptions import ClientError
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -162,8 +163,17 @@ class GraphFixture:
                 ]
             )
             if state == 'running healthy':
-                self.assert_usage_reporting_disabled()
-                return monotonic() - started
+                if monotonic() - started >= 120:
+                    break
+                try:
+                    self.assert_usage_reporting_disabled()
+                except ClientError as error:
+                    if error.code != 'Neo.ClientError.Transaction.TransactionTimedOutClientConfiguration':
+                        raise
+                    # A healthy Bolt listener can precede cold system-database readiness.
+                    # Re-observe this read-only setting within the same startup budget.
+                else:
+                    return monotonic() - started
             if state.startswith('exited'):
                 raise RuntimeError('fixture server exited; inspect private logs')
             # Readiness polling observes service state, never retries a paid generation.

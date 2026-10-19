@@ -55,6 +55,17 @@ value; the original smoke and restored-volume startup both check it. The owned H
 helper reuses the same admission method. This adds effective-configuration proof for future
 exact-image smoke runs; source review alone does not establish any existing image's runtime value.
 
+During the same 120-second startup window, Docker health alone does not admit the fixture:
+the first cold `system` read can raise the typed Neo4j `ClientError` with code
+`Neo.ClientError.Transaction.TransactionTimedOutClientConfiguration`. Only that exact error
+means not ready yet; the existing readiness loop may issue a fresh read-only `SHOW SETTINGS`
+check. Every query retains its three-second timeout and disabled SDK retries/telemetry.
+Admission still requires the exact `false` row. Other errors and enabled/malformed settings
+fail immediately. The 120-second window is checked before each new setting probe; an already
+in-flight driver call can finish after it, so the existing outer setup watchdog remains the
+wall-clock bound. This is bounded service readiness polling, never a generation retry or a
+query-timeout increase; prior startup failures remain failed evidence.
+
 The owned application driver and the smoke's settings-query driver explicitly set both
 `disable_auto_commit_retries=True` and `telemetry_disabled=True`. With the locked Python driver
 6.4.1, a zero `max_transaction_retry_time` alone does not disable the separate implicit-transaction
