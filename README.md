@@ -132,6 +132,9 @@ evidence actually sent in that generation. The [post-tool report](docs/verificat
 preserves the original halted run separately from subsequent fixes and revalidation; completion
 and agent review are distinct from semantic correctness and human acceptance.
 
+[Final native image handoff · October19](docs/verification/final-native-images-2026-10-19.md)
+records exact local API/backoffice images, smoke scopes, SBOMs, complete findings and pending gates.
+
 ## Container recipes
 
 Recipes live under `infra/docker/`; build each with the repository root as context:
