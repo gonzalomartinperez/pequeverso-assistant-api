@@ -460,3 +460,29 @@ transaction appends a `gate_resolutions` row linked to the new owner-evidence ha
 manifest, then seals the second audit prefix including that resolution and its status rowid.
 Both additions roll back together on failure; original status/accounting/audit rows stay intact.
 This grants no extra dollars and performs no automatic request or retry.
+
+## Third audited event: 2100 attempts, the same USD 6
+
+The owner's separate 2026-10-19 approval permits accumulated 2100 attempts with the same USD 6
+and monthlyUSD 10 limits. Source implementation does not perform a migration or make calls.
+The fixed offline `inspect-final-format` / `extend-2100-6-usd` actions require the exact second
+audit SHA, current private snapshot and new owner/source/manifest provenance. Root alone operates
+on the existing ledger after all users stop. The third event requires zero pending usage and no
+active stop; it cannot clear even an attempt-limit stop. Unknown usage and failed phases remain
+blocking, with every original row and earlier audit preserved.
+
+A separate append-only version 3 audit records only the1600→2100 transition. It seals the entire
+existing accounting/status/resolution prefix and both prior event bytes. No limits, CHECK
+constraints, costs, attempts, statuses or prior events are updated. Opening the latest SHA
+rechecks all three linked events under each reservation transaction; stale objects and previous
+hashes fail closed. Constructors keep the original 400/USD 1 defaults and 650 ceiling. Changed
+caps, missing/repeated/out-of-order events, altered history/snapshots, active owners, pending
+usage and any active stop are rejected. A precommit failure rolls back the entire new event.
+
+Use `inspect-final-format --budget-state ... --previous-audit-sha256 ...` for the exact private
+snapshot, then `extend-2100-6-usd` with that same hash and existing provenance arguments. Retain
+the latest audit SHA for the existing live opener; do not change numeric CLI legacy limits.
+Owner approval, operator proof, current accounting and a fresh resource GO are separate gates.
+The closed 245-turn proposal requires at most 504 new SDK attempts including all index/query
+embeddings and generations. It is not a retry allowance or promise of completion under USD 6;
+unknown usage, money, attempt and deadline gates still stop before a new request.

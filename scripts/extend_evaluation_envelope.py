@@ -16,8 +16,10 @@ sys.path.insert(0, str(ROOT))
 
 from scripts.real_eval_budget import (
     extend_evaluation_envelope,
+    extend_evaluation_final_format,
     extend_evaluation_followup,
     inspect_extension_candidate,
+    inspect_final_format_candidate,
     inspect_followup_candidate,
 )
 
@@ -25,7 +27,15 @@ from scripts.real_eval_budget import (
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        'action', choices=('inspect', 'extend-1100-6-usd', 'inspect-followup', 'extend-1600-6-usd')
+        'action',
+        choices=(
+            'inspect',
+            'extend-1100-6-usd',
+            'inspect-followup',
+            'extend-1600-6-usd',
+            'inspect-final-format',
+            'extend-2100-6-usd',
+        ),
     )
     parser.add_argument('--budget-state', type=Path, required=True)
     parser.add_argument('--expected-snapshot', type=Path)
@@ -39,14 +49,20 @@ def main() -> None:
     if args.action == 'inspect':
         print(json.dumps(inspect_extension_candidate(args.budget_state), sort_keys=True))
         return
-    if args.action in ('inspect-followup', 'extend-1600-6-usd') and args.previous_audit_sha256 is None:
+    if (
+        args.action in ('inspect-followup', 'extend-1600-6-usd', 'inspect-final-format', 'extend-2100-6-usd')
+        and args.previous_audit_sha256 is None
+    ):
         parser.error('followup requires the exact previous audit SHA256')
-    if args.action == 'inspect-followup':
+    if args.action in ('inspect-followup', 'inspect-final-format'):
+        inspect = (
+            inspect_final_format_candidate
+            if args.action == 'inspect-final-format'
+            else inspect_followup_candidate
+        )
         print(
             json.dumps(
-                inspect_followup_candidate(
-                    args.budget_state, previous_audit_sha256=args.previous_audit_sha256
-                ),
+                inspect(args.budget_state, previous_audit_sha256=args.previous_audit_sha256),
                 sort_keys=True,
             )
         )
@@ -65,8 +81,15 @@ def main() -> None:
     ):
         parser.error('extension requires the exact snapshot and all owner/source/manifest provenance')
     migrate = extend_evaluation_followup if args.action == 'extend-1600-6-usd' else extend_evaluation_envelope
+    if args.action == 'extend-2100-6-usd':
+        migrate = extend_evaluation_final_format
+    new_max_attempts = (
+        2100 if args.action == 'extend-2100-6-usd' else 1600 if args.action == 'extend-1600-6-usd' else 1100
+    )
     previous = (
-        {'previous_audit_sha256': args.previous_audit_sha256} if args.action == 'extend-1600-6-usd' else {}
+        {'previous_audit_sha256': args.previous_audit_sha256}
+        if args.action in ('extend-1600-6-usd', 'extend-2100-6-usd')
+        else {}
     )
     digest = migrate(
         args.budget_state,
@@ -78,9 +101,7 @@ def main() -> None:
         **previous,
     )
     print(
-        json.dumps(
-            {'audit_sha256': digest, 'new_max_attempts': 1600 if previous else 1100, 'new_cap_micro': 6000000}
-        )
+        json.dumps({'audit_sha256': digest, 'new_max_attempts': new_max_attempts, 'new_cap_micro': 6000000})
     )
 
 
