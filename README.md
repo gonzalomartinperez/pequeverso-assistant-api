@@ -241,12 +241,14 @@ real-model quality, a functioning affiliate redirect or readiness of an undeploy
 
 The [dated real-model evaluation](docs/verification/real-evaluation-2026-10-18.md) records the
 complete229-turn application run, agent semantic review, preserved defects and usage estimates.
-That historical run used its recorded earlier catalog and prompt; it is not a real-model
-validation of the current `2026-10-18.4` prompt. The current internal document table retains
+That historical run used its recorded earlier catalog and prompt. The subsequent
+[245-turn real application evaluation and20-turn targeted revalidation](docs/verification/real-evaluation-2026-10-19.md)
+record the current prompt cohort, four corrected commercial/reference defects, retained
+original findings, real transport/history checks and conservative accounting. Review was by
+agents, not humans or a blind holdout. The current internal document table retains
 every ID, kind, full title, complete text and product scope while saving repeated field names;
-the 24KB input limit and public wire contracts remain unchanged. Post-adjustment model
-verification is a separate gate, and a full new evaluation requires its own remaining
-authorized attempt budget.
+the 24KB input limit and public wire contracts remain unchanged. Any further paid evaluation
+needs explicit authorization within the remaining original audited budget.
 The [exact-image PostgreSQL report](docs/verification/postgres-alpine-2026-10-18.md) distinguishes
 the patched local engine from historical images and retains the complete API/Neo4j findings.
 The [current security handoff](docs/security.md#dependency-and-image-findings-in-the-deployment-handoff)
