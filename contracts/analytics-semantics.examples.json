@@ -1,0 +1,213 @@
+{
+  "fixture": true,
+  "scope": "offline_pequeverso_analytics_semantics",
+  "schema_version": 1,
+  "periods": [
+    {
+      "instant": "2026-10-18T00:00:00+00:00",
+      "period": "day",
+      "offset": 0,
+      "start": "2026-10-18",
+      "end": "2026-10-19",
+      "partial": true
+    },
+    {
+      "instant": "2026-10-18T00:00:00+00:00",
+      "period": "day",
+      "offset": 1,
+      "start": "2026-10-17",
+      "end": "2026-10-18",
+      "partial": false
+    },
+    {
+      "instant": "2027-01-01T13:00:00+00:00",
+      "period": "week",
+      "offset": 0,
+      "start": "2026-12-28",
+      "end": "2027-01-04",
+      "partial": true
+    },
+    {
+      "instant": "2027-01-04T00:00:00+00:00",
+      "period": "week",
+      "offset": 1,
+      "start": "2026-12-28",
+      "end": "2027-01-04",
+      "partial": false
+    },
+    {
+      "instant": "2028-03-01T00:00:00+00:00",
+      "period": "month",
+      "offset": 1,
+      "start": "2028-02-01",
+      "end": "2028-03-01",
+      "partial": false
+    },
+    {
+      "instant": "2027-01-31T23:59:59+00:00",
+      "period": "month",
+      "offset": 2,
+      "start": "2026-11-01",
+      "end": "2026-12-01",
+      "partial": false
+    },
+    {
+      "instant": "2027-01-01T00:00:00+00:00",
+      "period": "month",
+      "offset": 1,
+      "start": "2026-12-01",
+      "end": "2027-01-01",
+      "partial": false
+    },
+    {
+      "instant": "2026-12-31T21:00:00-04:00",
+      "period": "day",
+      "offset": 0,
+      "start": "2027-01-01",
+      "end": "2027-01-02",
+      "partial": true
+    }
+  ],
+  "country_cases": [
+    {
+      "name": "verified-header",
+      "headers": [
+        "AR"
+      ],
+      "enabled": true,
+      "peer": "172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "AR"
+    },
+    {
+      "name": "off-by-default",
+      "headers": [
+        "AR"
+      ],
+      "enabled": false,
+      "peer": "172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "untrusted-peer",
+      "headers": [
+        "AR"
+      ],
+      "enabled": true,
+      "peer": "203.0.113.7",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "missing-peer",
+      "headers": [
+        "AR"
+      ],
+      "enabled": true,
+      "peer": null,
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "non-ip-peer",
+      "headers": [
+        "AR"
+      ],
+      "enabled": true,
+      "peer": "testclient",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "mapped-peer",
+      "headers": [
+        "AR"
+      ],
+      "enabled": true,
+      "peer": "::ffff:172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "AR"
+    },
+    {
+      "name": "missing-header",
+      "headers": [],
+      "enabled": true,
+      "peer": "172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "multiple-headers",
+      "headers": [
+        "AR",
+        "US"
+      ],
+      "enabled": true,
+      "peer": "172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "identical-duplicates",
+      "headers": [
+        "AR",
+        "AR"
+      ],
+      "enabled": true,
+      "peer": "172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "cf-unknown",
+      "headers": [
+        "XX"
+      ],
+      "enabled": true,
+      "peer": "172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "cf-tor",
+      "headers": [
+        "T1"
+      ],
+      "enabled": true,
+      "peer": "172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "unknown-code",
+      "headers": [
+        "ZZ"
+      ],
+      "enabled": true,
+      "peer": "172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "combined-header",
+      "headers": [
+        "AR,US"
+      ],
+      "enabled": true,
+      "peer": "172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    },
+    {
+      "name": "lowercase-header",
+      "headers": [
+        "ar"
+      ],
+      "enabled": true,
+      "peer": "172.20.0.5",
+      "trusted_peers": "172.20.0.5",
+      "expected": "unknown"
+    }
+  ]
+}

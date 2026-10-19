@@ -136,7 +136,14 @@ def create_app(
     analytics: AnalyticsService | None = None
     if settings.product_analytics_enabled:
         assert isinstance(db, PostgresDatabase)
-        analytics = AnalyticsService(PostgresProductAnalytics(db), synthetic=True)
+        synthetic = settings.environment != 'production'
+        analytics = AnalyticsService(
+            PostgresProductAnalytics(db, synthetic=synthetic),
+            synthetic=synthetic,
+            country_collection='trusted_proxy_header'
+            if settings.product_analytics_country_enabled
+            else 'disabled',
+        )
     stores_rate = persistence.rates
     sessions_store = persistence.sessions
     messages = persistence.messages
@@ -409,6 +416,8 @@ def create_app(
         build_analytics_router(
             analytics,
             enabled=settings.product_analytics_enabled,
+            country_enabled=settings.product_analytics_country_enabled,
+            country_proxy_ips=settings.product_analytics_country_proxy_ips,
             token_digest=analytics_digest,
             origins=tuple(settings.allowed_origins),
             clock=clock,

@@ -18,7 +18,11 @@ from psycopg import sql
 from psycopg.conninfo import conninfo_to_dict, make_conninfo
 
 from app.adapters.postgres.database import PostgresDatabase
-from app.adapters.postgres.product_analytics import MIGRATION, PostgresProductAnalytics
+from app.adapters.postgres.product_analytics import (
+    CLASSIFICATION_MIGRATION,
+    MIGRATION,
+    PostgresProductAnalytics,
+)
 from app.application.product_analytics import AnalyticsService, QuotaExceededError
 from app.domain.product_analytics import Selection
 from app.presentation.product_analytics import EventIn, ReportOut
@@ -119,7 +123,7 @@ async def stores() -> AsyncIterator[tuple[PostgresDatabase, PostgresDatabase, Po
             assert row['member'] and row['identity'] != owner['owner']
         async with admin.pool.connection() as connection:
             await connection.execute(
-                'TRUNCATE assistant_private.analytics_dedupe,assistant_private.analytics_quotas,assistant_private.analytics_daily'
+                'TRUNCATE assistant_private.analytics_dedupe,assistant_private.analytics_quotas,assistant_private.analytics_daily,assistant_private.analytics_daily_v2'
             )
         async with runtime.runtime_ownership():
             yield admin, runtime, PostgresProductAnalytics(runtime)
@@ -219,5 +223,93 @@ def test_real_filters_expiry_and_day_quota_rollback() -> None:
                 assert row and row['count'] == 2
             # A replay outside the explicitly bounded 24h dedupe horizon is a new received event.
             assert await repo.ingest(first, NOW + timedelta(hours=24))
+
+    asyncio.run(run())
+
+
+def test_real_classification_isolation_preserves_global_dedupe_and_concurrent_quota() -> None:
+    async def run() -> None:
+        async with stores() as (_, runtime, fixture):
+            production = PostgresProductAnalytics(runtime, synthetic=False)
+            first = EventIn.model_validate(event()).event()
+            assert await fixture.ingest(first, NOW)
+            assert await production.ingest(first, NOW) is False
+            values = [EventIn.model_validate(event()).event(country='AR') for _ in range(60)]
+            semaphore = asyncio.Semaphore(8)
+
+            async def ingest(index: int) -> bool:
+                async with semaphore:
+                    repository = production if index % 2 else fixture
+                    return await repository.ingest(values[index], NOW)
+
+            results = await asyncio.gather(*(ingest(i) for i in range(60)), return_exceptions=True)
+            assert sum(result is True for result in results) == 59
+            assert sum(isinstance(result, QuotaExceededError) for result in results) == 1
+            reports = [
+                ReportOut.model_validate(
+                    await AnalyticsService(repository, synthetic=synthetic).report(NOW, Selection())
+                )
+                for repository, synthetic in ((fixture, True), (production, False))
+            ]
+            assert reports[0].synthetic is True and reports[1].synthetic is False
+            assert sum(report.totals.public_clicks for report in reports) == 60
+            assert reports[1].totals.public_clicks in (29, 30)
+            assert [(row.code, row.count) for row in reports[1].countries] == [
+                ('AR', reports[1].totals.public_clicks)
+            ]
+
+    asyncio.run(run())
+
+
+def test_real_v2_marker_grants_and_one_time_backfill_do_not_relabel_or_resurrect() -> None:
+    async def run() -> None:
+        async with stores() as (admin, runtime, repo):
+            checksum = hashlib.sha256(CLASSIFICATION_MIGRATION.read_bytes()).hexdigest()
+            async with runtime.pool.connection() as connection:
+                with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                    async with connection.transaction():
+                        await connection.execute(
+                            "UPDATE assistant_private.analytics_schema_v2 SET checksum=repeat('a',64)"
+                        )
+            async with admin.pool.connection() as connection:
+                permissions = await (
+                    await connection.execute(
+                        "SELECT has_table_privilege('pequeverso_knowledge_runtime','assistant_private.analytics_daily_v2','SELECT') AS knowledge,has_table_privilege('pequeverso_embedding_accounting','assistant_private.analytics_daily_v2','SELECT') AS accounting"
+                    )
+                ).fetchone()
+                assert permissions and not permissions['knowledge'] and not permissions['accounting']
+                await connection.execute(
+                    "INSERT INTO assistant_private.analytics_daily(day,route,section_id,viewport_bucket,event_name,cell_x,cell_y,count,first_received,last_received) VALUES(%s,'/','hero','desktop','public_click',0,0,3,%s,%s)",
+                    (NOW.replace(hour=0, minute=0, second=0, microsecond=0), NOW, NOW),
+                )
+                # Emulate the real pre006 state only inside this explicitly isolated fixture.
+                await connection.execute('DELETE FROM assistant_private.analytics_schema_v2')
+                await connection.execute('DROP TABLE assistant_private.analytics_schema_v2')
+            await admin.migrate()
+            synthetic = ReportOut.model_validate(
+                await AnalyticsService(repo, synthetic=True).report(NOW, Selection())
+            )
+            production = PostgresProductAnalytics(runtime, synthetic=False)
+            assert synthetic.totals.public_clicks == 3
+            assert [(row.code, row.count) for row in synthetic.countries] == [('unknown', 3)]
+            assert not await production.rows(NOW - timedelta(days=1), NOW + timedelta(days=1), Selection())
+            async with admin.pool.connection() as connection:
+                await connection.execute('DELETE FROM assistant_private.analytics_daily_v2')
+            await admin.migrate()
+            assert not await repo.rows(NOW - timedelta(days=1), NOW + timedelta(days=1), Selection())
+            async with admin.pool.connection() as connection:
+                await connection.execute(
+                    "UPDATE assistant_private.analytics_schema_v2 SET checksum=repeat('a',64)"
+                )
+            try:
+                assert not await repo.ready()
+                with pytest.raises(RuntimeError, match='checksum mismatch'):
+                    await admin.migrate()
+            finally:
+                async with admin.pool.connection() as connection:
+                    await connection.execute(
+                        'UPDATE assistant_private.analytics_schema_v2 SET checksum=%s', (checksum,)
+                    )
+            assert await repo.ready()
 
     asyncio.run(run())

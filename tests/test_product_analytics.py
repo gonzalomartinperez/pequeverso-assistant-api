@@ -148,8 +148,8 @@ async def _empty_does_not_fabricate_coverage_and_small_country_not_iso() -> None
     'change',
     [
         {'totals': {'page_views': 999, 'section_views': 3, 'public_clicks': 4}},
-        {'synthetic': False},
-        {'country_collection': 'trusted_proxy_header'},
+        {'synthetic': 'false'},
+        {'country_collection': 'unverified'},
         {'end': NOW},
         {'generated_at': NOW.replace(tzinfo=None)},
         {'first_observed_at': NOW - timedelta(days=2)},

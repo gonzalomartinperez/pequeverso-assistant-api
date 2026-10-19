@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Literal, Protocol
 
 from app.domain.product_analytics import Event, Selection, window
 
@@ -23,6 +23,7 @@ class Bucket:
     count: int
     first: datetime
     last: datetime
+    country: str = 'unknown'
 
 
 class AnalyticsRepository(Protocol):
@@ -32,9 +33,16 @@ class AnalyticsRepository(Protocol):
 
 
 class AnalyticsService:
-    def __init__(self, repository: AnalyticsRepository, *, synthetic: bool) -> None:
+    def __init__(
+        self,
+        repository: AnalyticsRepository,
+        *,
+        synthetic: bool,
+        country_collection: Literal['disabled', 'trusted_proxy_header'] = 'disabled',
+    ) -> None:
         self.repository = repository
         self.synthetic = synthetic
+        self.country_collection = country_collection
 
     async def ingest(self, event: Event, now: datetime) -> bool:
         return await self.repository.ingest(event, now)
@@ -52,9 +60,11 @@ class AnalyticsService:
         totals = dict.fromkeys(names.values(), 0)
         daily: dict[str, dict[str, int]] = {}
         cells: dict[tuple[int, int], int] = defaultdict(int)
+        countries: dict[str, int] = defaultdict(int)
         for row in rows:
             key = names[row.name]
             totals[key] += row.count
+            countries[row.country] += row.count
             day = row.day.astimezone(UTC).date().isoformat()
             daily.setdefault(day, dict.fromkeys(names.values(), 0))[key] += row.count
             if row.name == 'public_click':
@@ -66,9 +76,9 @@ class AnalyticsService:
             else []
         )
         visible_count = sum(cell['count'] for cell in visible)
-        total = sum(totals.values())
         return {
             'synthetic': self.synthetic,
+            'country_collection': self.country_collection,
             'generated_at': generated_at,
             'selection': {
                 'period': selection.period,
@@ -85,7 +95,14 @@ class AnalyticsService:
             'last_observed_at': last_observed,
             'totals': totals,
             'daily': [{'day': day, **counts} for day, counts in sorted(daily.items())],
-            'countries': [{'code': 'unknown' if total >= 3 else 'withheld', 'count': total}] if total else [],
+            'countries': [
+                {'code': code, 'count': count} for code, count in sorted(countries.items()) if count >= 3
+            ]
+            + (
+                [{'code': 'withheld', 'count': sum(count for count in countries.values() if count < 3)}]
+                if any(count < 3 for count in countries.values())
+                else []
+            ),
             'grid': {
                 'available': available,
                 'visible_clicks': visible_count,

@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     # App-owned observability, disabled until explicitly configured by infrastructure.
     product_analytics_enabled: bool = False
     product_analytics_country_enabled: bool = False
+    product_analytics_country_proxy_ips: str = Field(default='', max_length=1024)
     observability_enabled: bool = False
     telemetry_otlp_endpoint: str | None = None
     telemetry_trace_sampling_ratio: float = Field(default=0.1, ge=0, le=1)
@@ -113,6 +114,28 @@ class Settings(BaseSettings):
     ops_read_token: SecretStr | None = None
     # Source revision baked into the image (build arg), shown to operators.
     service_revision: str | None = Field(default=None, pattern=r'^[0-9a-f]{7,40}$')
+
+    @field_validator('product_analytics_country_proxy_ips')
+    @classmethod
+    def exact_country_proxy_ips(cls, value: str) -> str:
+        if not value:
+            return ''
+        addresses = set()
+        for item in value.split(','):
+            try:
+                address = ipaddress.ip_address(item.strip())
+            except ValueError:
+                raise ValueError('country requires exact proxy IP addresses') from None
+            if getattr(address, 'scope_id', None):
+                raise ValueError('invalid country proxy IP address')
+            if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
+                address = address.ipv4_mapped
+            if address.is_unspecified or address.is_multicast:
+                raise ValueError('invalid country proxy IP address')
+            addresses.add(str(address))
+        if len(addresses) > 16:
+            raise ValueError('too many country proxy IP addresses')
+        return ','.join(sorted(addresses))
 
     @field_validator(
         'service_revision',
@@ -198,14 +221,10 @@ class Settings(BaseSettings):
                 and (self.application_storage != 'postgres' or self.knowledge_backend != 'graphrag')
             ):
                 raise ValueError('production answers require PostgreSQL application storage and GraphRAG')
-        if self.product_analytics_country_enabled:
-            raise ValueError('product analytics country collection is not implemented')
-        if self.product_analytics_enabled and (
-            self.environment == 'production'
-            or self.ai_provider != 'fixture'
-            or self.application_storage != 'postgres'
-        ):
-            raise ValueError('product analytics is local PostgreSQL fixture-only')
+        if self.product_analytics_country_enabled and not self.product_analytics_country_proxy_ips:
+            raise ValueError('country attribution requires exact trusted proxy IP addresses')
+        if self.product_analytics_enabled and self.application_storage != 'postgres':
+            raise ValueError('product analytics requires PostgreSQL application storage')
         if self.application_storage == 'postgres' and self.postgres_private_dsn is None:
             raise ValueError('PostgreSQL application storage requires POSTGRES_PRIVATE_DSN')
         if self.knowledge_backend == 'graphrag' and not (

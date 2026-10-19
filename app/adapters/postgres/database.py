@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from psycopg import AsyncConnection
+from psycopg import AsyncConnection, sql
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
@@ -98,23 +98,36 @@ class PostgresDatabase:
                 '004_accounting_policy.sql',
             ):
                 await connection.execute(Path(__file__).with_name(name).read_text())
-            analytics = Path(__file__).with_name('005_product_analytics.sql').read_bytes()
-            checksum = hashlib.sha256(analytics).hexdigest()
-            exists = await (
-                await connection.execute(
-                    "SELECT to_regclass('assistant_private.analytics_schema') AS relation"
-                )
-            ).fetchone()
-            if exists is not None and exists['relation'] is not None:
-                previous = await (
+            for name, marker, version in (
+                ('005_product_analytics.sql', 'analytics_schema', 1),
+                ('006_analytics_classification_country.sql', 'analytics_schema_v2', 2),
+            ):
+                analytics = Path(__file__).with_name(name).read_bytes()
+                checksum = hashlib.sha256(analytics).hexdigest()
+                # Marker identifiers are owned constants, never request/config input.
+                exists = await (
                     await connection.execute(
-                        'SELECT checksum FROM assistant_private.analytics_schema WHERE version=1'
+                        'SELECT to_regclass(%s) AS relation', ('assistant_private.' + marker,)
                     )
                 ).fetchone()
-                if previous is None or previous['checksum'] != checksum:
-                    raise RuntimeError('product analytics migration checksum mismatch')
-            await connection.execute(analytics.decode())
-            await connection.execute(
-                'INSERT INTO assistant_private.analytics_schema(version,checksum) VALUES(1,%s) ON CONFLICT(version) DO NOTHING',
-                (checksum,),
-            )
+                if exists is not None and exists['relation'] is not None:
+                    previous = await (
+                        await connection.execute(
+                            sql.SQL('SELECT checksum FROM {} WHERE version=%s').format(
+                                sql.Identifier('assistant_private', marker)
+                            ),
+                            (version,),
+                        )
+                    ).fetchone()
+                    if previous is None or previous['checksum'] != checksum:
+                        raise RuntimeError('product analytics migration checksum mismatch')
+                    if version == 2:
+                        # Backfill is one-time: never resurrect pruned historical fixture rows.
+                        continue
+                await connection.execute(analytics.decode())
+                await connection.execute(
+                    sql.SQL(
+                        'INSERT INTO {}(version,checksum) VALUES(%s,%s) ON CONFLICT(version) DO NOTHING'
+                    ).format(sql.Identifier('assistant_private', marker)),
+                    (version, checksum),
+                )

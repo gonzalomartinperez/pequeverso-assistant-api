@@ -1,15 +1,34 @@
-# Local product analytics fixture channel · schema1
+# Product analytics opt-in channel · schema1 revision1.1
 
 This independent channel counts received page views, section views and primary-pointer public
 clicks. It is not operational telemetry, assistant quality, unique people, purchases, advertising
 attribution, reading, attention or permission to collect production traffic. No Store collector,
 Meta/CAPI, checkout, advertising consent or existing storefront behavior changes here.
 
-Both API collection/read and BO read default OFF. `PRODUCT_ANALYTICS_ENABLED=true` is accepted only
-with a nonproduction environment, fixture AI provider and existing PostgreSQL application storage.
-There are no model calls in this feature. `PRODUCT_ANALYTICS_COUNTRY_ENABLED=true` is refused;
-country stays unknown and no client country, IP or proxy header is interpreted. The server labels
-every report `synthetic: true`; callers cannot submit that classification.
+Both API collection/read and BO read default OFF. `PRODUCT_ANALYTICS_ENABLED=true` requires
+existing PostgreSQL application storage; analytics classification is independent of AI provider.
+Production configuration can opt in without enabling the assistant or making model calls. All
+existing assistant/provider/GraphRAG security gates remain intact. This source change does not
+enable any deployed collector, ingress, country trust or production service.
+
+The server chooses classification from environment, never public input: production writes and
+reads only `synthetic: false`; all other environments use `synthetic: true`. Persisted namespaces
+keep old fixture events synthetic when configuration changes. An environment label is an operator
+classification, not independent proof that an event originated from a real person or deployment.
+
+The approved direct route is browser → Cloudflare → Traefik → API → PostgreSQL → authenticated BO.
+There is no BFF, PHP, Worker, HMAC or new token. Country defaults OFF. With
+`PRODUCT_ANALYTICS_COUNTRY_ENABLED=true`, `PRODUCT_ANALYTICS_COUNTRY_PROXY_IPS` must list at most16
+exact canonical IP addresses (IPv4-mapped IPv6 normalizes to IPv4; no CIDR, wildcard, hostname,
+scoped, unspecified or multicast address). Only the actual socket peer is matched, never XFF.
+Exactly one uppercase ISO249 `CF-IPCountry` value from that peer is admitted; everything else is
+`unknown`. Neither public JSON, locale nor a caller-supplied forwarded address can select country.
+
+`country_collection: trusted_proxy_header` describes current API configuration, not Cloudflare
+provenance or network proof. Ops must independently prove CF-only origin access, exact trusted
+proxy peers, header overwrite and spoof/bypass rejection before enabling that trust. Otherwise
+leave it disabled/unknown. Historical admitted countries remain in their original namespace and
+may appear after the country flag is disabled; the flag describes new receipt handling.
 
 ## Profile and public input
 
@@ -76,8 +95,19 @@ Report fields and synthetic example are committed in `contracts/product-analytic
 and `contracts/examples/product-analytics.json`. The example wrapper `fixture/scope/report` is
 metadata; GET returns only the inner report. Counts represent `received_events_only`; first/last
 receipt timestamps belong to matching events in the selected window, not invented enabled-at dates.
-Countries sum all three event counts: zero gives an emptylist,1–2 withheld, at least3 unknown;
-there are no actual ISO-country buckets. This does not make small reports anonymous.
+Countries sum all three event counts. Each ISO249 or `unknown` bucket appears only at count≥3;
+all smaller country buckets merge into one `withheld` bucket, whose count may be1,2 or≥3. Zero
+gives an empty list. Codes are unique and ordered (ISO/unknown first, withheld last), at most250
+rows. Unknown and withheld have distinct meanings; these thresholds do not prove anonymity.
+
+Revision1.1 widens the unreleased schema1 channel's existing fields to strict boolean `synthetic`,
+`disabled|trusted_proxy_header` country configuration and ISO249/unknown/withheld countries.
+The existing default synthetic/disabled example remains byte compatible. Consumers must upgrade
+before production-class or country-enabled use; old fixture-only consumers reject those values.
+`contracts/analytics-semantics.examples.json` pins14 socket-country and8 UTC calendar cases.
+The reference semantics are Portfolio API commit `9e0be556d56d83510412cb0e4038a4f11824a788`;
+the shared direct-edge agreement is `a2b3795298de1595487440a88d1068dca9153e64` in that repository.
+These are source references, not evidence of live network enforcement.
 
 A grid is available only for an exact route and section, avoiding blended unrelated surfaces.
 Each visible8×8 cell contains at least3 clicks. `visible_clicks + withheld_clicks + unselected_clicks`
@@ -89,8 +119,14 @@ BO authenticates its current actor before any read and keeps the bearer out of b
 ## PostgreSQL ownership, retention and rollback
 
 Use the existing API private pool/project database, never BO IAM or public knowledge. The explicit
-offline migrator adds `005_product_analytics.sql`; runtime never executes DDL. A feature-specific
-schema marker binds migration1 to SHA256 of these exact migration bytes. Re-running a changed
+offline migrator preserves `005_product_analytics.sql` byte-for-byte and appends
+`006_analytics_classification_country.sql`; runtime never executes DDL. The new v2 daily table
+keys classification and country explicitly. Its one-time backfill copies old005 aggregates only
+into synthetic/unknown, without changing old counts/timestamps or labelling them production.
+Reports select the configured classification in SQL. Existing global dedupe and minute/day quota
+tables remain shared across classifications, so switching modes cannot reset quota or replay IDs.
+Separate feature markers bind migrations1 and2 to SHA256 of their exact bytes. Once the valid
+v2 marker exists, migration006 does not run again or resurrect pruned legacy aggregates. Re-running a changed
 migration or starting analytics against a missing/wrong marker fails closed. This is a new,
 feature-scoped checksum, not a claim that older Peque migrations have a checksum registry.
 
@@ -121,7 +157,10 @@ UUID-named synthetic nonowner LOGIN with only the private capability membership 
 explicit distinct nonowner runtime DSN for that same fixture). It rejects remote/overridden/malformed
 targets before connecting or truncating, closes clients before dropping its own role, and SKIPs
 without the explicit isolated DSN. The existing hosted PostgreSQL test glob executes these cases
-with TEST_KNOWLEDGE_DSN, without a new job, secret or service.
+with TEST_KNOWLEDGE_DSN, without a new job, secret or service. The isolated fixture tests also
+exercise both classification namespaces under concurrent global quotas, exact006 grants/checksum,
+legacy synthetic/unknown backfill and one-time migration behavior. Such cases are not evidence
+of execution unless the real isolated PostgreSQL lease and result are separately recorded.
 Atomic quotas, grants, retention and checksum require that real proof. Logical restore, local
 harness→API→PG→authenticated BO and actual accessible screenshots require fresh resource leases
 and independent review. Default OFF/local source implementation alone is not production parity.

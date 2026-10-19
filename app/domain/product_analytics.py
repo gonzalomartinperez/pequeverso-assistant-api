@@ -27,6 +27,7 @@ class Event:
     viewport: Viewport
     cell_x: int | None = None
     cell_y: int | None = None
+    country: str = 'unknown'
 
 
 @dataclass(frozen=True, slots=True)

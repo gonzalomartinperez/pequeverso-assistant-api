@@ -17,7 +17,9 @@ from starlette.types import Receive, Scope, Send
 
 from app.application.ports import Clock
 from app.application.product_analytics import AnalyticsService, QuotaExceededError
+from app.domain.analytics_country import COUNTRIES
 from app.domain.product_analytics import LAYOUT, PROFILE, PROFILE_SOURCE, Event, Selection, window
+from app.presentation.analytics_country import country_from_edge
 from app.presentation.middleware import BodyLimitMiddleware
 
 PUBLIC_PATH: Final = '/api/v1/analytics/events'
@@ -94,7 +96,7 @@ class EventIn(_Closed):
             raise ValueError('non-click events cannot contain coordinates')
         return self
 
-    def event(self) -> Event:
+    def event(self, *, country: str = 'unknown') -> Event:
         return Event(
             hashlib.sha256(self.event_id.bytes).hexdigest(),
             self.event_name,
@@ -103,6 +105,7 @@ class EventIn(_Closed):
             self.viewport_bucket,
             self.cell_x,
             self.cell_y,
+            country,
         )
 
 
@@ -145,8 +148,16 @@ class Grid(_Closed):
 
 
 class Country(_Closed):
-    code: Literal['unknown', 'withheld']
+    code: str = Field(json_schema_extra={'enum': [*sorted(COUNTRIES), 'unknown', 'withheld']})
     count: int = Field(strict=True, ge=1, le=310000)
+
+    @model_validator(mode='after')
+    def valid_country(self) -> Self:
+        if self.code not in COUNTRIES | {'unknown', 'withheld'}:
+            raise ValueError('unknown country label')
+        if self.code != 'withheld' and self.count < 3:
+            raise ValueError('small country bucket must be withheld')
+        return self
 
 
 class ReportOut(_Closed):
@@ -155,10 +166,10 @@ class ReportOut(_Closed):
     project: Literal['pequeverso'] = 'pequeverso'
     layout_revision: Literal['pequeverso-v1'] = LAYOUT
     profile_source_revision: Literal['88d6d0add414261e5ccf5bd3e2b21285e1a33179'] = PROFILE_SOURCE
-    synthetic: Literal[True]
+    synthetic: bool = Field(strict=True)
     coverage: Literal['received_events_only'] = 'received_events_only'
     timezone: Literal['UTC'] = 'UTC'
-    country_collection: Literal['disabled'] = 'disabled'
+    country_collection: Literal['disabled', 'trusted_proxy_header'] = 'disabled'
     retention_days: Literal[93] = 93
     min_bucket: Literal[3] = 3
     generated_at: datetime
@@ -170,7 +181,7 @@ class ReportOut(_Closed):
     last_observed_at: datetime | None
     totals: Counts
     daily: list[Daily] = Field(max_length=31)
-    countries: list[Country] = Field(max_length=1)
+    countries: list[Country] = Field(max_length=250)
     grid: Grid
 
     @model_validator(mode='after')
@@ -201,8 +212,9 @@ class ReportOut(_Closed):
         total = sum((self.totals.page_views, self.totals.section_views, self.totals.public_clicks))
         if sum(row.count for row in self.countries) != total:
             raise ValueError('country totals do not reconcile')
-        if self.countries and self.countries[0].code != ('unknown' if total >= 3 else 'withheld'):
-            raise ValueError('country suppression mismatch')
+        codes = [row.code for row in self.countries]
+        if codes != sorted(set(codes) - {'withheld'}) + (['withheld'] if 'withheld' in codes else []):
+            raise ValueError('country buckets must be unique and ordered')
         if total == 0:
             if self.first_observed_at is not None or self.last_observed_at is not None:
                 raise ValueError('empty report has no observations')
@@ -245,6 +257,8 @@ def build_router(
     token_digest: bytes | None,
     origins: tuple[str, ...],
     clock: Clock,
+    country_enabled: bool = False,
+    country_proxy_ips: str = '',
 ) -> APIRouter:
     router = APIRouter()
     headers = {'Cache-Control': 'no-store'}
@@ -274,7 +288,11 @@ def build_router(
                         return Response(status_code=413, headers=headers)
                     body.extend(chunk)
                 value = json.loads(body.decode('utf-8'), object_pairs_hook=_unique_object)
-                event = EventIn.model_validate(value).event()
+                event = EventIn.model_validate(value).event(
+                    country=country_from_edge(
+                        request, enabled=country_enabled, trusted_peers=country_proxy_ips
+                    )
+                )
                 if not await service.repository.ready():
                     return Response(status_code=503, headers=headers)
                 await service.ingest(event, clock.now())

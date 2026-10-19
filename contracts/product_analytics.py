@@ -9,6 +9,7 @@ from typing import Any
 
 from app.domain.product_analytics import PROFILE, PROFILE_SOURCE
 from app.presentation.product_analytics import EventIn, ReportOut, SelectionOut
+from contracts.analytics_semantics import SEMANTICS
 
 
 def artifacts() -> dict[str, bytes]:
@@ -36,6 +37,7 @@ def artifacts() -> dict[str, bytes]:
         },
     )
     values: dict[str, Any] = {
+        'analytics-semantics.examples.json': SEMANTICS,
         'site-experience-pequeverso-v1.schema.json': EventIn.model_json_schema(),
         'product-analytics.schema.json': ReportOut.model_json_schema(mode='serialization'),
         'examples/product-analytics.json': {
@@ -44,6 +46,7 @@ def artifacts() -> dict[str, bytes]:
             'report': report.model_dump(mode='json'),
         },
         'product-analytics.source.json': {
+            'contract_revision': '1.1',
             'profile_source_revision': PROFILE_SOURCE,
             'source_repository': 'gonzalomartinperez/pequeverso',
             'layout_revision': 'pequeverso-v1',
@@ -55,6 +58,9 @@ def artifacts() -> dict[str, bytes]:
             'scope': 'committed_profile_reference_not_production_collection_or_deployment',
             'pointer_only_clicks': True,
             'country_collection': 'disabled',
+            'country_collection_modes': ['disabled', 'trusted_proxy_header'],
+            'classification': 'persisted synthetic boolean; production environment only selects false namespace',
+            'country_configuration_is_not_edge_verification': True,
         },
     }
     result = {
