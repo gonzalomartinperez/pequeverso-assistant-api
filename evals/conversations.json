@@ -307,6 +307,24 @@
         ],
         "max_resources": 0
       }
+    },
+    {
+      "id": "unknown-product-price-comparison",
+      "turns": [
+        "¿Los dos productos tienen el mismo precio?",
+        "¿Cuál cuesta menos?"
+      ],
+      "quality": {
+        "must_reference": [
+          "product:grafismo-fonetico",
+          "product:alimentacion-bebe"
+        ],
+        "forbid_any": [
+          "son iguales",
+          "son diferentes",
+          "es más barato"
+        ]
+      }
     }
   ]
 }

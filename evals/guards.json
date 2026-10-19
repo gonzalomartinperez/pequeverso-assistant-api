@@ -311,6 +311,28 @@
       "expect": {
         "replaced": true
       }
+    },
+    {
+      "id": "shared-price-cannot-borrow-core-amount",
+      "output": {
+        "answer": "Grafismo Fonético y Guía de Alimentación para Bebés cuestan US$14,99 ambos.",
+        "references": [
+          {
+            "kind": "product",
+            "id": "grafismo-fonetico"
+          },
+          {
+            "kind": "product",
+            "id": "alimentacion-bebe"
+          }
+        ],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "products": [],
+        "replaced": true
+      }
     }
   ]
 }

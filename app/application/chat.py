@@ -27,6 +27,7 @@ from app.application.answers import (
     answer_rules,
     finalize,
     payment_refusal_text,
+    price_comparison_reply,
     replacement,
 )
 from app.application.catalog_scope import catalog_scope_reply
@@ -625,6 +626,14 @@ class ChatService:
             local_answer = catalog_scope_reply(redacted.text, active.catalog, history, language)
             if local_answer is None:
                 local_answer = provenance_reply(redacted.text, active.catalog, history, language)
+            local_details = AnswerDetails(language=language.value)
+            if local_answer is None:
+                comparison = price_comparison_reply(
+                    redacted.text, active, history, language, active.price_status(now)
+                )
+                if comparison is not None:
+                    local_answer = comparison.content
+                    local_details = comparison.details
             if local_answer is not None:
                 notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
                 user_message = Message(
@@ -636,7 +645,7 @@ class ChatService:
                     Role.ASSISTANT,
                     local_answer,
                     now,
-                    AnswerDetails(language=language.value),
+                    local_details,
                 )
                 await self.messages.append(session.id, answer)
                 await self.runs.finish(run_id, RunState.COMPLETED, answer.id)

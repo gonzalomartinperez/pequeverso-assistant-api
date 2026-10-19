@@ -5,10 +5,12 @@ unknown ids are dropped, and an answer that breaks an answer rule is replaced as
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from urllib.parse import urlsplit
 
-from app.application.ports import Draft
+from app.application.ports import Draft, DraftReference
+from app.application.price_comparison import clarification, comparison_products
 from app.domain.answer_policy import (
     AnswerRules,
     Violation,
@@ -29,6 +31,7 @@ from app.domain.conversation import (
     AnswerDetails,
     ImageRef,
     LinkRef,
+    Message,
     Notice,
     PriceRef,
     ProductRef,
@@ -92,6 +95,58 @@ class FinalizedAnswer:
     details: AnswerDetails
     violations: tuple[Violation, ...]
     dropped_references: int
+
+
+def price_comparison_reply(
+    question: str,
+    active: ActiveCatalog,
+    history: Sequence[Message],
+    language: Language,
+    price_status: PriceStatus,
+) -> FinalizedAnswer | None:
+    """Do not generate a relation whose operands lack verified current prices."""
+    products = comparison_products(question, active.catalog, history)
+    if products is None:
+        return None
+    if products and price_status is PriceStatus.VERIFIED and all(p.price is not None for p in products):
+        return None
+    if not products:
+        text = clarification(language)
+    else:
+        missing = tuple(p for p in products if p.price is None)
+        names = ', '.join(f'«{p.name}»' for p in missing)
+        if language is Language.EN:
+            text = (
+                f'I cannot compare their prices: I do not have a published price for {names}.'
+                if missing
+                else 'I cannot compare their prices without currently verified prices.'
+            )
+        else:
+            text = (
+                f'No puedo comparar sus precios: no tengo un precio publicado para {names}.'
+                if missing
+                else 'No puedo comparar sus precios sin precios actuales verificados.'
+            )
+        if price_status is PriceStatus.VERIFIED:
+            for product in products:
+                if product.price is not None:
+                    text += (
+                        f' The reference price for «{product.name}» is {product.price.display}.'
+                        if language is Language.EN
+                        else f' El precio de referencia de «{product.name}» es {product.price.display}.'
+                    )
+        text += (
+            " Check each product's current final price, currency and applicable taxes before paying."
+            if language is Language.EN
+            else ' Revisa el precio final actual, la moneda y los impuestos de cada producto antes de pagar.'
+        )
+    return finalize(
+        Draft(text, tuple(DraftReference(ReferenceKind.PRODUCT, p.id) for p in products), (), ()),
+        active,
+        price_status,
+        answer_rules(active.catalog, price_status, ()),
+        language,
+    )
 
 
 def answer_rules(
