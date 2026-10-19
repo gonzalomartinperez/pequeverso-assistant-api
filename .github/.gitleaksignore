@@ -12,3 +12,8 @@
 # CI39177729761: exclude only these two immutable commit/file/rule/line findings.
 12fadecb425cdd340d5005e790030b389808b28b:docs/verification/assistant/2026-10-18/ROOT-VISUAL-AND-DELIVERY.json:generic-api-key:7
 12fadecb425cdd340d5005e790030b389808b28b:docs/verification/assistant/2026-10-18/manifest.json:generic-api-key:5
+
+# Squash850 preserves the same public backend Git revision in the original screenshot receipts.
+# CI39194783349: only these exact immutable findings; JSON receipt bytes and scan rules unchanged.
+850e78cf84df78f0ea66e2811e92aeb15a6f5d04:docs/verification/assistant/2026-10-18/ROOT-VISUAL-AND-DELIVERY.json:generic-api-key:7
+850e78cf84df78f0ea66e2811e92aeb15a6f5d04:docs/verification/assistant/2026-10-18/manifest.json:generic-api-key:5
