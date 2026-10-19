@@ -132,7 +132,19 @@ profiles remain gates; they do not demonstrate production capacity or external r
    the existing cap. Keep full answers private and publish only reviewed nonsensitive evidence.
 6. Exact hardened images, scans/SBOM, persistence/restore and shutdown checks; independent review,
    protected CI/PRs and final compatible contracts/handoff. The store stays disabled throughout;
-   v1.1.0 tags wait for the complete requested increment, without moving an existing tag.
+   Tags wait for the complete requested increment and the reviewed release procedure below.
+
+### Release coordination amendment — 2026-10-18
+
+The owner subsequently selected **v1.0.0 as the only final tag** for the storefront, API and
+backoffice, superseding this ADR's earlier v1.1.0 plan. This is a source-release label, not
+deployment readiness or assistant activation. Existing GitHub Release pages remain historical.
+Root coordinates tag changes only after the final main revisions and required CI are verified,
+all old refs and reachable objects have independently restored/fsck-verified backups, and the
+actual workflow triggers have been reviewed. The authorized replacement uses compare-and-swap
+deletion of the observed old tag refs followed by ordinary creation/push; no force push,
+branch/protection change or automatic repair of a race. A failed precondition stops the procedure.
+This amendment records the owner's separate decision; the ADR itself grants no authorization.
 
 ## Primary documentation
 

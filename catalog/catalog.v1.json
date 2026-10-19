@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-18T02:40:55+00:00",
+  "generated_at": "2026-10-18T23:13:02+00:00",
   "source": {
     "repository": "gonzalomartinperez/pequeverso",
-    "revision": "fd2f150fe2e08955b3817c3b18ff14dea920d74e"
+    "revision": "7dde2968783c809205bd6ba16ec4a4661b936ca0"
   },
   "site": {
     "name": "Pequeverso",
@@ -193,8 +193,8 @@
       "disclosure": "Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.",
       "guarantee_days": 7,
       "topics": [
-        "Cuándo y cómo empezar la alimentación complementaria.",
-        "Cantidades y frecuencias de las comidas.",
+        "Alimentación complementaria y Baby Led Weaning (BLW).",
+        "Nutrición, cantidades y frecuencias de las comidas.",
         "Un menú para las primeras 4 semanas.",
         "Recetas fáciles para el bebé y toda la familia."
       ],
@@ -439,7 +439,7 @@
       "id": "affiliate.alimentacion-bebe.overview",
       "kind": "faq",
       "title": "¿Qué enseña la Guía de Alimentación para Bebés?",
-      "text": "Curso en video. Alimentación complementaria de 6 a 12 meses. Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.. Cuándo y cómo empezar la alimentación complementaria. Cantidades y frecuencias de las comidas. Un menú para las primeras 4 semanas. Recetas fáciles para el bebé y toda la familia. Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.",
+      "text": "Curso en video. Alimentación complementaria de 6 a 12 meses. Enlace de afiliado: si compras, Pequeverso recibe una comisión; a ti no te cuesta más.. Alimentación complementaria y Baby Led Weaning (BLW). Nutrición, cantidades y frecuencias de las comidas. Un menú para las primeras 4 semanas. Recetas fáciles para el bebé y toda la familia. Según la descripción de su productora, Citlalli Moctezuma: 6 módulos en video (Bienvenida y presentación del programa; Cuándo iniciar la alimentación complementaria; Baby Led Weaning (BLW); Nutrición por grupos de alimentos; Preparaciones sencillas y menú de cuatro semanas; Preguntas frecuentes y recetas) y 4 bonos (Transición al método en tres pasos; Cómo elegir una silla para comer; Utensilios de cocina; Cómo elegir platos y vasos).",
       "url": "https://pequeverso.com/#bebe",
       "product_ids": [
         "alimentacion-bebe"

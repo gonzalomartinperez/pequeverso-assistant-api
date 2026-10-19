@@ -1,0 +1,62 @@
+{
+  "fixture": true,
+  "scope": "local_synthetic_product_analytics",
+  "report": {
+    "schema_version": 1,
+    "project": "pequeverso",
+    "layout_revision": "pequeverso-v1",
+    "profile_source_revision": "88d6d0add414261e5ccf5bd3e2b21285e1a33179",
+    "synthetic": true,
+    "coverage": "received_events_only",
+    "timezone": "UTC",
+    "country_collection": "disabled",
+    "retention_days": 93,
+    "min_bucket": 3,
+    "generated_at": "2026-10-18T12:00:00Z",
+    "selection": {
+      "period": "day",
+      "offset": 0,
+      "route": "/",
+      "section_id": "hero",
+      "viewport_bucket": "all",
+      "locale": "es"
+    },
+    "start": "2026-10-18T00:00:00Z",
+    "end": "2026-10-19T00:00:00Z",
+    "partial": true,
+    "first_observed_at": "2026-10-18T12:00:00Z",
+    "last_observed_at": "2026-10-18T12:00:00Z",
+    "totals": {
+      "page_views": 2,
+      "section_views": 3,
+      "public_clicks": 4
+    },
+    "daily": [
+      {
+        "page_views": 2,
+        "section_views": 3,
+        "public_clicks": 4,
+        "day": "2026-10-18"
+      }
+    ],
+    "countries": [
+      {
+        "code": "unknown",
+        "count": 9
+      }
+    ],
+    "grid": {
+      "available": true,
+      "visible_clicks": 3,
+      "withheld_clicks": 1,
+      "unselected_clicks": 0,
+      "cells": [
+        {
+          "x": 2,
+          "y": 4,
+          "count": 3
+        }
+      ]
+    }
+  }
+}

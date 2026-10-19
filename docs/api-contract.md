@@ -254,3 +254,10 @@ Optional [official platform evidence](official-web-evidence.md) can populate the
 Only a source actually supplied for that turn can resolve. Their scope is general platform
 procedures, not merchant price/policy verification or order access. No wire revision or new
 SSE stage is introduced. Stored citations/history/replays remain immutable after cache expiry.
+
+## Independent local site-analytics fixture contract
+
+The owner-authorized default-OFF channel has its own Peque input profile and private report,
+`schema_version: 1`, documented in [product-analytics.md](product-analytics.md). It does not change
+chat v1, SSE, ops1.2 or telemetry1.0, and its explicit schemas are independent of the existing
+public OpenAPI document. No Store producer or production collection is enabled by these artifacts.

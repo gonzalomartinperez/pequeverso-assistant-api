@@ -33,7 +33,23 @@ def test_manifest_defaults_off_and_accepts_explicit_boolean() -> None:
 
 
 def test_recorder_captures_only_actual_external_payload_and_no_private_prompt() -> None:
-    catalog = {'price_status': 'verified', 'products': [], 'documents': [], 'links': []}
+    catalog = {
+        'price_status': 'verified',
+        'products': [],
+        'documents': {
+            'columns': ['id', 'kind', 'title', 'text', 'product_ids'],
+            'rows': [
+                [
+                    'policy.guarantee',
+                    'policy',
+                    'Guarantee',
+                    'Complete public condition.',
+                    ['grafismo-fonetico'],
+                ]
+            ],
+        },
+        'links': [],
+    }
     actual = [
         {
             'id': 'hotmart:209033897',
@@ -65,6 +81,7 @@ def test_recorder_captures_only_actual_external_payload_and_no_private_prompt() 
 
     asyncio.run(run())
     assert provider.records[0]['official_platform'] == actual
+    assert provider.records[0]['documents'] == ['policy.guarantee']
     serialized = json.dumps(provider.records)
     assert not any(s in serialized for s in ['PRIVATE-INSTRUCTIONS', 'PRIVATE-HISTORY', 'private-session'])
     # The absent-field baseline remains exactly the old evidence-record shape.

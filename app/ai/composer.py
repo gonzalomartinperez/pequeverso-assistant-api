@@ -8,7 +8,7 @@ import re
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field, replace
 
-from app.ai.evidence import catalog_payload, passages, rank
+from app.ai.evidence import catalog_payload, decode_documents, passages, rank
 from app.ai.output import AnswerStreamParser
 from app.ai.prompt import INSTRUCTIONS, OUTPUT_SCHEMA, PROMPT_VERSION
 from app.ai.provider import ModelInput, ModelProvider, ModelRequest, TextChunk, UsageChunk
@@ -238,7 +238,7 @@ class GroundedComposer:
                 if accepted is not None:
                     selected.append(accepted)
             request = self._request(turn, evidence, conversation, tuple(selected))
-        source_ids = frozenset(d['id'] for d in json.loads(evidence)['documents'])
+        source_ids = frozenset(d['id'] for d in decode_documents(json.loads(evidence)['documents']))
         return PreparedRequest(request, tuple(selected), source_ids)
 
     def _request(
@@ -248,12 +248,28 @@ class GroundedComposer:
         conversation: list[dict[str, object]],
         web_evidence: tuple[WebEvidence, ...],
     ) -> ModelRequest:
+        current_ids = mentioned_products(turn.question, turn.active.catalog)
+        previous_ids = next(
+            (
+                frozenset(p.id for p in message.details.products if turn.active.catalog.product(p.id))
+                for message in reversed(turn.history)
+                if message.role is Role.ASSISTANT and message.details.products
+            ),
+            frozenset(),
+        )
+        # These catalog-validated identifiers describe relevance, not a grant of
+        # authority. Navigation never supplies a product referent on its own.
+        reference_hints = {
+            'ids': sorted(current_ids or previous_ids),
+            'basis': 'current_question' if current_ids else 'conversation' if previous_ids else 'unresolved',
+        }
         question = json.dumps(
             {
                 'page': turn.page,
                 'reply_language': turn.language.value,
                 'conversation': conversation,
                 'question': turn.question,
+                'product_reference_hints': reference_hints,
                 **(
                     {'visitor_context': turn.context.payload()}
                     if turn.context and not turn.context.empty

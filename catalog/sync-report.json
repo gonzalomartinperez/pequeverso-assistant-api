@@ -2,13 +2,13 @@
   "schema_version": 1,
   "source": {
     "repository": "gonzalomartinperez/pequeverso",
-    "revision": "fd2f150fe2e08955b3817c3b18ff14dea920d74e",
+    "revision": "7dde2968783c809205bd6ba16ec4a4661b936ca0",
     "published_ref": "origin/main"
   },
-  "previous_revision": "bddd36f45b319571f52029dfe4d6b3283cd71287",
-  "generated_at": "2026-10-18T02:40:55+00:00",
-  "snapshot_sha256": "a8a8e0d8e66ff83b7858d218bb70c9bacf43527ec75164ef1b9fba7c755452dd",
-  "exporter_sha256": "044ef67a167e2b5cb4535305061551e303d0d8f6bd2483c1d594d040c0a6ee29",
+  "previous_revision": "fd2f150fe2e08955b3817c3b18ff14dea920d74e",
+  "generated_at": "2026-10-18T23:13:02+00:00",
+  "snapshot_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "exporter_sha256": "01d09e5cdcbe968253aaab3e5effd04efba0fd8f28b8e88704505faf2055d947",
   "counts": {
     "products": 2,
     "resources": 9,
@@ -27,7 +27,9 @@
     "resources_changed": [],
     "documents_added": [],
     "documents_removed": [],
-    "documents_changed": [],
+    "documents_changed": [
+      "affiliate.alimentacion-bebe.overview"
+    ],
     "links_changed": [],
     "forbidden_terms_changed": false
   }

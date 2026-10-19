@@ -52,22 +52,26 @@ assistant stays **disabled in publishable builds** until the VPS and activation 
 
 ## The native assistant in use
 
-These are genuine local captures of the refined Spanish interface, using an isolated **fixture
-API**. They show layout and interaction, not real-model quality or the deployed VPS. Production
-remains disabled: no launcher, runtime load or assistant API traffic in the publishable build.
+These actual local captures use Store `755d541` and API `2f22f24` with an isolated
+**fixture provider**. They show the Spanish interface, not real-model output or a deployed VPS.
+The production assistant remains **OFF**; the enabled fixture export must never be published.
 
-| Welcome and suggested questions | Answer and disclosed sources |
+| Desktop welcome · native panel | Desktop answer and sources · native panel |
 | :---: | :---: |
-| [![Compact welcome with question chips](docs/verification/native-assistant-2026-10-17/desktop-welcome.png)](docs/verification/native-assistant-2026-10-17/desktop-welcome.png) | [![Complete compact answer and authorized sources](docs/verification/native-assistant-2026-10-17/desktop-answer-sources.png)](docs/verification/native-assistant-2026-10-17/desktop-answer-sources.png) |
-| Mobile conversation and input | Expanded conversation |
-| [![Mobile conversation, product reference and comfortable input](docs/verification/native-assistant-2026-10-17/mobile-conversation.png)](docs/verification/native-assistant-2026-10-17/mobile-conversation.png) | [![Expanded assistant conversation with checked sources](docs/verification/native-assistant-2026-10-17/desktop-expanded.png)](docs/verification/native-assistant-2026-10-17/desktop-expanded.png) |
+| [<img src="docs/verification/assistant/2026-10-18/01-Desktop-Panel-Bienvenida.png" width="408" height="560" alt="Native desktop fixture panel with welcome, suggested questions and composer.">](docs/verification/assistant/2026-10-18/01-Desktop-Panel-Bienvenida.png) | [<img src="docs/verification/assistant/2026-10-18/02-Desktop-Panel-Conversacion.png" width="408" height="560" alt="Native desktop fixture guarantee answer with two expanded sources.">](docs/verification/assistant/2026-10-18/02-Desktop-Panel-Conversacion.png) |
 
-Open each original PNG for full detail. The [capture manifest](docs/verification/native-assistant-2026-10-17/manifest.json)
-retains its actual UI/fixture API revisions; copying these reviewed assets from storefront
-`c9aaa99169f3db16dcea354734aea866f3a86bef` does not relabel them as a later API build.
-The [historical real-model gallery](docs/verification/native-assistant-2026-10-12/README.md)
-separately preserves the earlier GPT-6 Luna medium session, history and completed-request replay.
-Neither gallery establishes the quality of the new semantic retrieval profile or production readiness.
+<p align="center"><a href="docs/verification/assistant/2026-10-18/03-Mobile-Panel-Conversacion.png"><img src="docs/verification/assistant/2026-10-18/03-Mobile-Panel-Conversacion.png" width="360" alt="Native mobile fixture answer, sources, scrollable product card and fixed composer."></a></p>
+
+[Panel closeups and exact provenance](docs/verification/assistant/2026-10-18/README.md)
+show the original 408 × 560 desktop panels and mobile capture at a readable display width.
+
+[All seven original captures and provenance](docs/verification/native-assistant-2026-10-18/README.md)
+cover launcher, welcome, conversation, waiting, mobile and expanded states.
+The [dated API evidence report](docs/verification/api-evidence-2026-10-18.md) separates these UI
+fixtures from actual PostgreSQL restore/CI evidence and remaining deployment/model gates.
+The [October17 fixture gallery](docs/verification/native-assistant-2026-10-17/README.md) and
+[October12 real-model gallery](docs/verification/native-assistant-2026-10-12/README.md) retain their
+original sources; none is relabeled as a later run or production acceptance.
 
 ## System at a glance
 
@@ -128,6 +132,9 @@ evidence actually sent in that generation. The [post-tool report](docs/verificat
 preserves the original halted run separately from subsequent fixes and revalidation; completion
 and agent review are distinct from semantic correctness and human acceptance.
 
+[Final native image handoff · October19](docs/verification/final-native-images-2026-10-19.md)
+records exact local API/backoffice images, smoke scopes, SBOMs, complete findings and pending gates.
+
 ## Container recipes
 
 Recipes live under `infra/docker/`; build each with the repository root as context:
@@ -186,7 +193,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 | Dependency updates and manual review | `docs/dependency-updates.md` |
 | Reference adoption (portfolio-assistant-api) | `docs/reference-adoption.md` |
 | Storefront transition, vps-ops handoff, open business questions | `docs/handoffs/storefront-transition.md`, `docs/handoffs/vps-ops.md`, `docs/business-questions.md` |
-| Agent instructions and skills | `AGENTS.md`, `.agents/skills/` |
+| Agent instructions and skills | `AGENTS.md`, [paired skill discovery](docs/agent-skills.md), `.claude/skills/` canonical and `.agents/skills/` links |
 
 ## Verification and operational limits
 
@@ -224,13 +231,34 @@ Shared runtime/version acceptance: [runtime baseline](docs/runtime-baseline.md).
 ### Affiliate product coverage (2026-10-18)
 
 The catalog now includes Grafismo Fonético and the separate third-party **Guía de Alimentación
-para Bebés**, exported from storefront main `fd2f150fe2e08955b3817c3b18ff14dea920d74e`. The
-course has no authorized published price, PDFs or page counts: those remain null. Its published
+para Bebés**, exported from published storefront main
+`7dde2968783c809205bd6ba16ec4a4661b936ca0` at `2026-10-18T23:13:02+00:00`
+(catalog SHA256 `54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b`).
+The course overview attributes six modules and four bonuses to its producer description.
+The course has no authorized published price, PDFs or page counts: those remain null. Its published
 seven-day guarantee and affiliate disclosure stay product-scoped; the kit policy cannot transfer
 to the course. Revision1.5 adds optional card kind/format/disclosure fields, with core defaults
 for historical messages. See [catalog](docs/catalog.md) and [contract](docs/api-contract.md).
 Fixture tests prove transport, grounded metadata, history and replay; they do not establish
 real-model quality, a functioning affiliate redirect or readiness of an undeployed VPS.
+
+The [dated real-model evaluation](docs/verification/real-evaluation-2026-10-18.md) records the
+complete229-turn application run, agent semantic review, preserved defects and usage estimates.
+That historical run used its recorded earlier catalog and prompt. The subsequent
+[245-turn real application evaluation and20-turn targeted revalidation](docs/verification/real-evaluation-2026-10-19.md)
+record the current prompt cohort, four corrected commercial/reference defects, retained
+original findings, real transport/history checks and conservative accounting. Review was by
+agents, not humans or a blind holdout. The current internal document table retains
+every ID, kind, full title, complete text and product scope while saving repeated field names;
+the 24KB input limit and public wire contracts remain unchanged. Any further paid evaluation
+needs explicit authorization within the remaining original audited budget.
+The [exact-image PostgreSQL report](docs/verification/postgres-alpine-2026-10-18.md) distinguishes
+the patched local engine from historical images and retains the complete API/Neo4j findings.
+The [current security handoff](docs/security.md#dependency-and-image-findings-in-the-deployment-handoff)
+treats dependency/image CVEs as advisory and nonblocking for future deployment. Historical scan
+results remain unchanged; health, secrets, data and identity checks still apply. The VPS has not
+yet been purchased, and deployment or assistant activation still requires explicit owner direction.
+Neither report authorizes production activation.
 
 ## Software license
 

@@ -114,12 +114,22 @@ body, URL, question or identity is logged. These logs do not add an operations d
 
 Before activation: review the undocumented-source dependency and DNS/egress residual, verify
 approved source URLs render safely, validate this exact image and real VPS proxy/SSE/cookies,
-freeze a post-change 200+ case manifest, verify the approved accumulated 650-attempt / $1
-evaluation-envelope migration (old 282 attempts and costs retained), run
-and review the real model through HTTP/SSE, and keep original results intact. The initial 400-attempt / $1 ledger has 282 used attempts; the owner explicitly authorized
-an accumulated 650-attempt cap on 2026-10-13, keeping the same $1 cap. Root owns the audited
-migration; never reset counts/costs or start a bypass ledger. Main merges do not enable this
-capability or the storefront, and are not a deployment.
+freeze a post-change 200+ case manifest and review the exact accumulated evaluation envelope,
+run/review the real model through HTTP/SSE, and keep original results intact. Historical
+2026-10-13 authorization raised the initial 400-attempt/USD 1 ledger (282 then used attempts)
+to 650 attempts while retaining USD 1. That history is preserved.
+
+On 2026-10-18 the owner explicitly authorized 1100 attempts/USD 6 **accumulated**, with the same
+USD 10 monthly project limit and no reset. The current 628 attempts/860869 microUSD/zero pending
+snapshot is Root's operator evidence, not a read performed by this documentation change.
+The [offline audited migration](evaluation.md#explicit-audited-extension-of-one-existing-evaluation-ledger-2026-10-18)
+preserves all legacy rows and 650/USD 1 metadata; constructors/default 400/USD 1 remain unchanged.
+A fresh raised ledger is not allowed. Root alone executes the real migration after review and
+checks; an audit hash records provenance and integrity, not cryptographic owner authorization.
+The separately frozen 225-turn current-catalog phase enables these exact three server-owned
+procedure sources, never hosted web search/function tools or arbitrary URLs. Default
+production/fixture source access remains off. No source change here claims that a real run or
+migration completed; main merges do not activate the capability/storefront or deploy the VPS.
 
 ## Timing boundary
 

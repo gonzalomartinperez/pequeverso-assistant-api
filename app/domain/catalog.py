@@ -172,7 +172,13 @@ class ActiveCatalog:
 
 
 def product_mentioned(
-    text: str, name: str, product_id: str, kind: str, resource_ids: tuple[str, ...] = ()
+    text: str,
+    name: str,
+    product_id: str,
+    kind: str,
+    resource_ids: tuple[str, ...] = (),
+    *,
+    format_text: str = '',
 ) -> bool:
     """Shared bounded alias matching for retrieval and the deterministic fixture."""
     import re
@@ -184,22 +190,35 @@ def product_mentioned(
         )
 
     normalized = normalize(text)
+    normalized_format = normalize(format_text)
+    # A format is a relevance cue only when that format is actually published for
+    # this product. Never infer that all affiliates are courses, or all kits PDFs.
+    format_cue = any(
+        re.search(pattern, normalized_format) and re.search(pattern, normalized)
+        for pattern in (r'\b(?:curso|course)s?\b', r'\bvideos?\b', r'\bpdfs?\b')
+    )
     aliases = (
         normalize(name),
         product_id.replace('-', ' '),
         *(rid.replace('-', ' ') for rid in resource_ids),
     )
-    return any(alias in normalized for alias in aliases) or bool(
-        (
-            kind == 'affiliate'
-            and re.search(
-                r'\b(?:alimentacion|complementaria|bebe|bebes|comidas|recetas|feeding|baby|babies)\b',
-                normalized,
+    return (
+        bool(format_cue)
+        or any(alias in normalized for alias in aliases)
+        or bool(
+            (
+                kind == 'affiliate'
+                and re.search(
+                    r'\b(?:alimentacion|complementaria|bebe|bebes|comidas|menus?|recetas|recipes?|feeding|baby|babies)\b',
+                    normalized,
+                )
             )
-        )
-        or (
-            kind == 'core'
-            and re.search(r'\b(?:grafismo|fonetico|kit|lectura|leer|silabas|reading|phonics)\b', normalized)
+            or (
+                kind == 'core'
+                and re.search(
+                    r'\b(?:grafismo|fonetico|kit|lectura|leer|silabas|reading|phonics)\b', normalized
+                )
+            )
         )
     )
 
@@ -209,5 +228,7 @@ def mentioned_products(text: str, catalog: Catalog) -> frozenset[str]:
     return frozenset(
         p.id
         for p in catalog.products
-        if product_mentioned(text, p.name, p.id, p.kind, tuple(r.id for r in p.resources))
+        if product_mentioned(
+            text, p.name, p.id, p.kind, tuple(r.id for r in p.resources), format_text=p.format
+        )
     )

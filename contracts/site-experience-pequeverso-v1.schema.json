@@ -1,0 +1,198 @@
+{
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "route": {
+            "const": "/"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "section_id": {
+            "enum": [
+              "hero",
+              "leer",
+              "bebe",
+              "preguntas"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "route": {
+            "const": "/grafismo-fonetico/"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "section_id": {
+            "enum": [
+              "hero",
+              "incluye",
+              "metodo",
+              "preguntas"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "cell_x"
+              ]
+            },
+            {
+              "required": [
+                "cell_y"
+              ]
+            }
+          ]
+        }
+      },
+      "if": {
+        "properties": {
+          "event_name": {
+            "const": "public_click"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "cell_x": {
+            "type": "integer"
+          },
+          "cell_y": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cell_x",
+          "cell_y"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "project": {
+      "const": "pequeverso",
+      "title": "Project",
+      "type": "string"
+    },
+    "source": {
+      "const": "site",
+      "title": "Source",
+      "type": "string"
+    },
+    "event_id": {
+      "format": "uuid4",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "event_name": {
+      "enum": [
+        "page_view",
+        "section_view",
+        "public_click"
+      ],
+      "title": "Event Name",
+      "type": "string"
+    },
+    "route": {
+      "enum": [
+        "/",
+        "/grafismo-fonetico/"
+      ],
+      "title": "Route",
+      "type": "string"
+    },
+    "layout_revision": {
+      "const": "pequeverso-v1",
+      "title": "Layout Revision",
+      "type": "string"
+    },
+    "section_id": {
+      "enum": [
+        "hero",
+        "leer",
+        "bebe",
+        "preguntas",
+        "incluye",
+        "metodo"
+      ],
+      "title": "Section Id",
+      "type": "string"
+    },
+    "viewport_bucket": {
+      "enum": [
+        "mobile",
+        "tablet",
+        "desktop"
+      ],
+      "title": "Viewport Bucket",
+      "type": "string"
+    },
+    "locale": {
+      "const": "es",
+      "title": "Locale",
+      "type": "string"
+    },
+    "cell_x": {
+      "anyOf": [
+        {
+          "maximum": 7,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cell X"
+    },
+    "cell_y": {
+      "anyOf": [
+        {
+          "maximum": 7,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cell Y"
+    }
+  },
+  "required": [
+    "schema_version",
+    "project",
+    "source",
+    "event_id",
+    "event_name",
+    "route",
+    "layout_revision",
+    "section_id",
+    "viewport_bucket",
+    "locale"
+  ],
+  "title": "EventIn",
+  "type": "object"
+}

@@ -30,6 +30,7 @@ import psycopg
 from psycopg import sql
 
 ROOT = Path(__file__).resolve().parents[1]
+
 GROUPS = {
     'private': 'pequeverso_private_runtime',
     'knowledge': 'pequeverso_knowledge_runtime',
@@ -62,6 +63,7 @@ def owned_services(pg_image: str, neo_image: str, output: Path, source: Path) ->
         raise ValueError('CI fixtures require exact immutable local image IDs')
     # Reuse the reviewed project Neo4j runtime recipe; do not copy a sibling repository.
     sys.path.insert(0, str(source.resolve()))
+    from scripts.postgres_fixture_identity import postgres_fixture_identity
     from scripts.smoke_knowledge_neo4j import GraphFixture
 
     with tempfile.TemporaryDirectory(prefix='pv-graph-http-', dir=output.parent) as temporary:
@@ -82,7 +84,11 @@ def owned_services(pg_image: str, neo_image: str, output: Path, source: Path) ->
             'security': 'candidate-image CVE gates remain open; fixture use is not acceptance',
         }
         try:
-            docker(['image', 'inspect', pg_image])
+            postgres_user = postgres_fixture_identity(
+                json.loads(docker(['image', 'inspect', '--format', '{{json .Config.User}}', pg_image]))
+            )
+            postgres_uid, postgres_gid = postgres_user.split(':')
+            resource_receipt['postgres_runtime_user'] = postgres_user
             docker(['image', 'inspect', neo_image])
             if any(
                 resource_exists(kind, name)
@@ -121,7 +127,7 @@ def owned_services(pg_image: str, neo_image: str, output: Path, source: Path) ->
                     '--network',
                     neo.network,
                     '--user',
-                    '999:999',
+                    postgres_user,
                     '--read-only',
                     '--cap-drop',
                     'ALL',
@@ -138,7 +144,10 @@ def owned_services(pg_image: str, neo_image: str, output: Path, source: Path) ->
                     '--tmpfs',
                     '/tmp:rw,nosuid,noexec,size=16m',  # noqa: S108 - Container tmpfs, not host storage.
                     '--tmpfs',
-                    '/var/run/postgresql:rw,nosuid,noexec,uid=999,gid=999,mode=3775,size=16m',
+                    (
+                        '/var/run/postgresql:rw,nosuid,noexec,'
+                        f'uid={postgres_uid},gid={postgres_gid},mode=3775,size=16m'
+                    ),
                     '--mount',
                     f'type=volume,src={pg_volume},dst=/var/lib/postgresql',
                     '--env-file',

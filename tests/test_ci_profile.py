@@ -21,8 +21,7 @@ NAMES = {
     'static': 'Static checks',
     'database': 'Database tests',
     'container': 'Container verification',
-    'checks': 'Required checks',
-    'legacy-checks': 'checks',
+    'checks': 'checks',
 }
 NEEDS = {
     'workflows': [],
@@ -31,7 +30,6 @@ NEEDS = {
     'database': ['static'],
     'container': ['static'],
     'checks': ['workflows', 'secrets', 'static', 'database', 'container'],
-    'legacy-checks': ['checks'],
 }
 COMMANDS = {
     'workflows': [],
@@ -40,6 +38,7 @@ COMMANDS = {
         'uv sync --frozen',
         'ruff check',
         'ruff format --check',
+        'python -m scripts.validate_skills',
         'uv run mypy',
         'uv run pytest -q',
         'contracts.export --check',
@@ -82,8 +81,8 @@ def validate(value):
         assert job.get('needs', []) == NEEDS[key]
         assert job['runs-on'] == 'ubuntu-24.04'
         assert not job.get('continue-on-error')
-        assert job.get('if') == ('always()' if key in {'checks', 'legacy-checks'} else None)
-        assert job['permissions'] == ({} if key in {'checks', 'legacy-checks'} else {'contents': 'read'})
+        assert job.get('if') == ('always()' if key == 'checks' else None)
+        assert job['permissions'] == ({} if key == 'checks' else {'contents': 'read'})
         for step in job['steps']:
             assert 'if' not in step
             assert not step.get('continue-on-error')
@@ -96,18 +95,29 @@ def validate(value):
         commands = '\n'.join(step.get('run', '') for step in job['steps'])
         for command in COMMANDS.get(key, []):
             assert command in commands
-        if key not in {'checks', 'legacy-checks'}:
+        if key != 'checks':
             assert 'python3 -m scripts.ci_identity' in commands
+    static_steps = value['jobs']['static']['steps']
+    setup = [step for step in static_steps if step.get('uses', '').startswith('actions/setup-node@')]
+    assert len(setup) == 1
+    assert setup[0]['uses'] == 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
+    assert setup[0]['with'] == {'node-version': '24.22.0', 'package-manager-cache': False}
+    fixture = [
+        step
+        for step in static_steps
+        if step.get('run') == 'timeout 10s node --test tests/fixtures/product-analytics-pointer.test.cjs'
+    ]
+    assert len(fixture) == 1
+    assert static_steps.index(setup[0]) < static_steps.index(fixture[0])
     actions = [step.get('uses', '') for step in value['jobs']['workflows']['steps']]
     assert any(action.startswith('raven-actions/actionlint@') for action in actions)
     assert any(action.startswith('zizmorcore/zizmor-action@') for action in actions)
     assert value['jobs']['secrets']['steps'][0]['with']['fetch-depth'] == 0
-    bridge = value['jobs']['legacy-checks']
-    assert len(bridge['steps']) == 1
-    assert bridge['steps'][0]['env'] == {'REQUIRED_RESULT': '${{ needs.checks.result }}'}
-    assert bridge['steps'][0]['run'].strip() == 'test "$REQUIRED_RESULT" = success'
     gate = value['jobs']['checks']
     assert len(gate['steps']) == 1
+    assert gate['steps'][0]['run'].strip().splitlines() == [
+        f'test "${name.upper()}_RESULT" = success' for name in NEEDS['checks']
+    ]
     assert gate['steps'][0]['env'] == {
         f'{key.upper()}_RESULT': '${{ needs.' + key + '.result }}' for key in NEEDS['checks']
     }
@@ -155,9 +165,8 @@ def test_filtered_privileged_or_missing_work_cannot_pass(mode):
         validate(value)
 
 
-@pytest.mark.parametrize('job_id', ['checks', 'legacy-checks'])
-def test_actual_aggregate_shell_fails_for_every_missing_or_unsuccessful_job(job_id):
-    gate = workflow()['jobs'][job_id]['steps'][0]
+def test_actual_aggregate_shell_fails_for_every_missing_or_unsuccessful_job():
+    gate = workflow()['jobs']['checks']['steps'][0]
     green = {name: 'success' for name in gate['env']}
     clean = {name: value for name, value in os.environ.items() if name not in green}
 
@@ -180,7 +189,7 @@ def test_required_check_name_is_unique_across_workflows():
     for path in (ROOT / '.github/workflows').glob('*.yml'):
         value = yaml.safe_load(path.read_text())
         names.extend(job.get('name', key) for key, job in value['jobs'].items())
-    assert names.count('Required checks') == 1
+    assert names.count('Required checks') == 0
     assert names.count('checks') == 1
     assert len(names) == len(set(names))
 
@@ -237,16 +246,37 @@ def test_image_identity_rejects_unknown_image_and_invalid_digest():
 
 
 @pytest.mark.parametrize('mutation', ['skip', 'wrong_result', 'empty_gate', 'unconditional_success'])
-def test_legacy_bridge_cannot_skip_or_replace_the_full_aggregate(mutation):
+def test_required_aggregate_cannot_skip_or_replace_any_prerequisite(mutation):
     value = workflow()
-    bridge = value['jobs']['legacy-checks']
+    gate = value['jobs']['checks']
     if mutation == 'skip':
-        bridge['if'] = 'success()'
+        gate['if'] = 'success()'
     elif mutation == 'wrong_result':
-        bridge['steps'][0]['env']['REQUIRED_RESULT'] = '${{ needs.static.result }}'
+        gate['steps'][0]['env']['WORKFLOWS_RESULT'] = '${{ needs.static.result }}'
     elif mutation == 'empty_gate':
-        bridge['steps'] = []
+        gate['steps'] = []
     else:
-        bridge['steps'][0]['run'] = 'true'
+        gate['steps'][0]['run'] = 'true'
+    with pytest.raises(AssertionError):
+        validate(value)
+
+
+@pytest.mark.parametrize('mutation', ['missing_setup', 'version', 'unpin', 'missing_test', 'order'])
+def test_pointer_fixture_regression_cannot_be_removed_or_unpinned(mutation):
+    value = workflow()
+    steps = value['jobs']['static']['steps']
+    setup = next(step for step in steps if 'actions/setup-node@' in step.get('uses', ''))
+    fixture = next(step for step in steps if 'node --test' in step.get('run', ''))
+    if mutation == 'missing_setup':
+        steps.remove(setup)
+    elif mutation == 'version':
+        setup['with']['node-version'] = '24'
+    elif mutation == 'unpin':
+        setup['uses'] = 'actions/setup-node@main'
+    elif mutation == 'missing_test':
+        steps.remove(fixture)
+    else:
+        steps.remove(setup)
+        steps.append(setup)
     with pytest.raises(AssertionError):
         validate(value)

@@ -1,0 +1,50 @@
+{
+  "reviewed_at": "2026-10-18T23:23:42.350256+00:00",
+  "scope": "Actual native locator screenshots, fixture only; no image editing, provider calls, build or install",
+  "visual_review": "Root opened all three originals; agent review, not human review",
+  "source": {
+    "store": "755d541a86389703665e65c2b762aacfb6e345ad",
+    "api": "2f22f24b30de7ee6a797d6397bef7422eb8e31cc"
+  },
+  "original_fixture_build_info": {
+    "sha": "755d541a86389703665e65c2b762aacfb6e345ad",
+    "ref": "unknown",
+    "builtAt": "2026-10-18T22:26:39.287Z",
+    "output": "export",
+    "assistant": "enabled"
+  },
+  "actual_FIN": "2026-10-18T23:16:02.841745+00:00",
+  "shots": {
+    "03-Mobile-Panel-Conversacion.png": {
+      "sha256": "1acfd42be2caa6a9ce06473c0ffadf09324231a1011c68b24c7471a0c29414d4",
+      "bytes": 296785,
+      "image_pixels": [
+        1082,
+        2181
+      ]
+    },
+    "02-Desktop-Panel-Conversacion.png": {
+      "sha256": "534138d75d282d56a52ab7e6f01654d6906eab802086c7b12cb3b8c7dc50fa53",
+      "bytes": 48446,
+      "image_pixels": [
+        408,
+        560
+      ]
+    },
+    "01-Desktop-Panel-Bienvenida.png": {
+      "sha256": "3d01016e72b36d75d19068f3ad3df420962b1b6ab3b7ddb999fc4fa2f9c1a4e2",
+      "bytes": 41386,
+      "image_pixels": [
+        408,
+        560
+      ]
+    }
+  },
+  "all_descendants_closed": true,
+  "ports_closed": {
+    "3217": true,
+    "8217": true
+  },
+  "production_assistant": "disabled",
+  "desktop_folder": "Pequeverso-Asistente-Preview/Detalles-Panel"
+}

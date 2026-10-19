@@ -15,6 +15,7 @@ from app.adapters.catalog_schema import CatalogParser
 from app.adapters.graph.composer import GraphAnswerComposer, GraphPrepared
 from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings
 from app.ai.composer import ComposerSettings, GroundedComposer
+from app.ai.evidence import decode_documents
 from app.application.ports import DraftEvent, GenerationError, Turn
 from app.domain.catalog import ActiveCatalog, DocumentKind, PriceStatus
 from app.domain.conversation import AnswerDetails, Message, ProductRef, Role
@@ -115,7 +116,7 @@ def test_followup_comparison_keeps_facts_referents_and_whole_passages_within_24k
         mandatory = {
             doc.id for doc in CATALOG.documents if doc.kind in (DocumentKind.POLICY, DocumentKind.SUPPORT)
         }
-        assert mandatory <= {item['id'] for item in payloads['store_data']['documents']}
+        assert mandatory <= {item['id'] for item in decode_documents(payloads['store_data']['documents'])}
         passages = payloads.get('retrieved_public_data', {}).get('passages', [])
         if product_only:
             assert isinstance(prepared, GraphPrepared) and prepared.catalog_only

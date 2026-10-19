@@ -8,7 +8,7 @@ import pytest
 
 from app.adapters.catalog_schema import CatalogParser
 from app.adapters.providers.fixture_provider import FixtureProvider
-from app.ai.evidence import catalog_payload
+from app.ai.evidence import catalog_payload, decode_documents
 from app.application.answers import answer_rules, finalize
 from app.application.ports import Draft, DraftReference
 from app.domain.catalog import ActiveCatalog, PriceStatus
@@ -52,8 +52,8 @@ def test_affiliate_registry_rejects_fabricated_pdf_and_price(field: str, value: 
 def test_retrieval_scopes_merchant_policy_and_support_to_its_product() -> None:
     data = json.loads(catalog_payload(CATALOG, PriceStatus.VERIFIED, 'alimentación del bebé', 40000))
     assert data['store']['support_email'] is None
-    assert {d['product_ids'][0] for d in data['documents']} == {AFFILIATE}
-    assert not any(d['id'] == 'policy.guarantee' for d in data['documents'])
+    assert {d['product_ids'][0] for d in decode_documents(data['documents'])} == {AFFILIATE}
+    assert not any(d['id'] == 'policy.guarantee' for d in decode_documents(data['documents']))
     assert len(data['products']) == 2
     data = json.loads(
         catalog_payload(
@@ -64,7 +64,7 @@ def test_retrieval_scopes_merchant_policy_and_support_to_its_product() -> None:
         )
     )
     assert {'grafismo-fonetico', AFFILIATE} == {p['id'] for p in data['products']}
-    assert any(d['id'] == 'policy.guarantee' for d in data['documents'])
+    assert any(d['id'] == 'policy.guarantee' for d in decode_documents(data['documents']))
 
 
 @pytest.mark.parametrize(

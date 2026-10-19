@@ -194,17 +194,25 @@ def _product_payload(product: Product, price_status: PriceStatus) -> dict[str, A
     return payload
 
 
-def _documents_payload(documents: Iterable[Document]) -> list[dict[str, Any]]:
-    return [
-        {
-            'id': d.id,
-            'kind': d.kind.value,
-            'title': d.title,
-            'text': d.text,
-            'product_ids': list(d.product_ids),
-        }
-        for d in documents
-    ]
+DOCUMENT_COLUMNS = ('id', 'kind', 'title', 'text', 'product_ids')
+
+
+def _documents_payload(documents: Iterable[Document]) -> dict[str, Any]:
+    """Lossless rows: repeat field names once, retaining every complete document."""
+    return {
+        'columns': list(DOCUMENT_COLUMNS),
+        'rows': [[d.id, d.kind.value, d.title, d.text, list(d.product_ids)] for d in documents],
+    }
+
+
+def decode_documents(table: dict[str, Any]) -> list[dict[str, Any]]:
+    """Read the internal model-facing table without changing canonical catalog documents."""
+    if table.get('columns') != list(DOCUMENT_COLUMNS) or not isinstance(table.get('rows'), list):
+        raise ValueError('invalid document table')
+    rows = table['rows']
+    if any(not isinstance(row, list) or len(row) != len(DOCUMENT_COLUMNS) for row in rows):
+        raise ValueError('invalid document row')
+    return [dict(zip(DOCUMENT_COLUMNS, row, strict=True)) for row in rows]
 
 
 def catalog_payload(

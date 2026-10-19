@@ -45,6 +45,44 @@ direct-memory limit 64MiB and transaction-memory limits are explicit. These are 
 limits, not measured VPS requirements. The private bridge exposes only loopback ports 17689
 and 17479; a bridge is not an outbound firewall.
 
+The owned image configuration already sets `dbms.usage_report.enabled=false`; this is not a
+new opt-out. On every healthy TCP admission, the smoke connects directly to the loopback Bolt
+server's `system` database and executes `SHOW SETTINGS 'dbms.usage_report.enabled' YIELD name,
+value RETURN name, value`. Exactly one row with string value `false` is required, with no driver
+retry and a three-second query timeout. Missing, enabled, malformed or duplicate settings fail
+before projection assertions. The receipt retains each observed setting row, including a failed
+value; the original smoke and restored-volume startup both check it. The owned HTTP fixture
+helper reuses the same admission method. This adds effective-configuration proof for future
+exact-image smoke runs; source review alone does not establish any existing image's runtime value.
+
+During the same 120-second startup window, Docker health alone does not admit the fixture:
+the first cold `system` read can raise the typed Neo4j `ClientError` with code
+`Neo.ClientError.Transaction.TransactionTimedOutClientConfiguration`. Only that exact error
+means not ready yet; the existing readiness loop may issue a fresh read-only `SHOW SETTINGS`
+check. Every query retains its three-second timeout and disabled SDK retries/telemetry.
+Admission still requires the exact `false` row. Other errors and enabled/malformed settings
+fail immediately. The 120-second window is checked before each new setting probe; an already
+in-flight driver call can finish after it, so the existing outer setup watchdog remains the
+wall-clock bound. This is bounded service readiness polling, never a generation retry or a
+query-timeout increase; prior startup failures remain failed evidence.
+
+The owned application driver and the smoke's settings-query driver explicitly set both
+`disable_auto_commit_retries=True` and `telemetry_disabled=True`. With the locked Python driver
+6.4.1, a zero `max_transaction_retry_time` alone does not disable the separate implicit-transaction
+retry introduced in driver6.2: `Session.run()` can retry a server-marked idempotent failure once.
+The explicit flag disables that path as well as retaining the existing zero managed-retry budget;
+query text, transaction deadlines and connection limits are unchanged. Offline regressions run
+the actual SDK loop with a synthetic failed result: one attempt under the owned configuration,
+two under a test-only implicit-retry override despite the zero managed budget. This is not a
+live-network retry test and does not attribute earlier timeouts to retries.
+
+Driver telemetry is separate from the server's existing `dbms.usage_report.enabled=false`.
+Historical smoke/evaluation runs did not establish that driver telemetry was disabled and must
+not be relabeled with this later configuration. The current source opts out explicitly; no
+claim about historical transmission follows from either a missing flag or this source change.
+See [implicit transaction retry behavior](https://neo4j.com/docs/python-manual/current/query-advanced/)
+and [driver telemetry configuration](https://neo4j.com/docs/api/python-driver/current/api.html#telemetry-disabled-ref).
+
 The unchanged vendor JNA jar supplies its matching native library at image-build time. The
 native resource is installed read-only, with its SHA-256 retained; vendor jar/license stay
 intact. The two JNA properties also apply to `neo4j-admin`, allowing `/tmp` to remain noexec.

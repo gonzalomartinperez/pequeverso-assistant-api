@@ -21,7 +21,7 @@ reachability alone does not prove that customers currently see that revision.
 
 ## Current coverage (2026-10-18)
 
-The snapshot comes from storefront main `fd2f150fe2e08955b3817c3b18ff14dea920d74e`:
+The snapshot comes from published storefront main `7dde2968783c809205bd6ba16ec4a4661b936ca0`:
 **two products, nine resources, 26 documents and six links**. Grafismo Fonético remains the
 priced core PDF kit. Guía de Alimentación para Bebés is a separately purchased, third-party
 video course for complementary feeding from 6 to 12 months. Affiliate facts come exclusively
@@ -41,16 +41,19 @@ support promises. Retrieval keeps both product records for comparisons, scopes s
 to explicit product mentions, and uses the latest assistant's structured product references for
 follow-ups. A genuinely ambiguous question is clarified. Conversations are never indexed as
 knowledge. Prices remain subject to freshness and null prices cannot borrow the kit price.
-Bounded positive-claim recognizers reject explicit patterns such as curing anemia or preventing allergies/choking; this is not complete semantic verification. The prompt adds medical boundaries, and real-model review remains pending;
+Bounded positive-claim recognizers reject explicit patterns such as curing anemia or preventing allergies/choking; this is not complete semantic verification. The prompt adds medical boundaries; the dated real-model evaluation and its remaining defects are recorded in [the evaluation report](verification/real-evaluation-2026-10-18.md);
 the assistant may describe course topics, not prescribe personal diets or medical treatment.
 
 The initial affiliate-catalog increment closed the earlier coverage gap without adding a
 vector store or graph database; that architecture decision was subsequently superseded by
 [the production GraphRAG profile](decisions/ADR-0009-versioned-commercial-graphrag.md).
-The October18 catalog refresh changes only the affiliate usage wording to "Primeras comidas
-de tu bebé". Prices, policies, resource counts and links are unchanged. This refresh makes no
-paid calls or indexing changes; historical evaluation and vector manifests keep their actual
-source/hash identities rather than being relabeled as this snapshot.
+The latest October 18 refresh adds the published, attributed six-module/four-bonus course
+overview and updates two affiliate topic labels. Prices, policies, resource counts and links
+are unchanged. Public verification at 23:11 UTC confirmed this exact main in Hostinger
+(standalone, assistant disabled), with Home/Grafismo HTTP 200 and the affiliate route HTTP 307
+to the approved Hotmart host; the external merchant was not followed. Post-deploy run
+39175289480 passed. Export itself makes no paid calls or indexing changes; historical
+evaluations and vector manifests retain their actual source/hash identities.
 
 ## Updating
 
@@ -78,10 +81,41 @@ The script reads the committed storefront revision through `git archive <sha>` i
 directory. No storefront working tree, branch or index is touched. It links the storefront's
 installed `node_modules` read-only, copies this API repository's `tools/catalog/export.ts` into
 the archive, and runs that exporter with Node. Product facts come from the archived storefront
-modules (`src/products`, `config/commerce.ts`, `content/es/**`), never uncommitted storefront
+modules (`src/products` in the legacy layout or `config/products` in the paired layout,
+alongside `config/commerce.ts` and `content/es/**`), never uncommitted storefront
 copy. The exporter itself is reviewed and versioned in the API; its hash is included in the sync
 report. Review the diff (prices, counts, policy text) in a PR like any code change. Tests
 assert that the page counts sum, that the offer never appears, and that every URL is https on an allowlisted host.
+
+The exporter accepts exactly two reviewed source layouts: legacy `src/products/index.ts` with
+`src/lib/media.ts`, or paired `config/products/index.ts` with `src/shared/media/media.ts`.
+Both entry files must exist for exactly one layout. Partial or mixed layouts fail; an import or
+validation failure is never retried against the other layout. This changes physical source
+compatibility only. The publication guard, fact transformation and snapshot provenance stay intact.
+
+An explicit offline integration regression reads pinned actual Store Git archives (production
+`3c8cbc29`, pre-move `88d6d0ad`, published paired `7dde2968`) and checks complete legacy output bytes
+against two frozen SHA-256 goldens from exporter `04ad01a2` (its commit and source hash remain
+provenance in the test, never a runtime Git dependency). The golden invocations use origin
+`https://pequeverso.com` and generation time `2026-10-18T00:00:00Z`, including the JSON trailing
+newline. It compares paired facts after normalizing only generation time and
+source revision, checks attributed six-module/four-bonus evidence, and rejects incomplete/mixed
+layouts and registry import failures. Run with existing dependencies only:
+
+```
+CATALOG_TEST_STOREFRONT=/path/to/pequeverso \
+CATALOG_TEST_NODE_MODULES=/path/to/existing/store/node_modules \
+node --test tools/catalog/export-layout.test.ts
+```
+
+These optional source-compatibility checks require those local Git objects; they do not fetch,
+install, call a provider, run a build or write a catalog snapshot. `CATALOG_TEST_OUTPUT` may name
+an existing external directory to retain exact outputs; existing files must match and are never
+overwritten. Testing a committed unpublished layout grants no synchronization or release authority.
+The paired pin now identifies the accepted, publicly verified Store-main revision. The two
+historical legacy goldens remain fixed; the compatibility test does not relabel those old outputs
+as current production or confer future synchronization authority.
+No historical API task-branch object is required to execute the regression.
 
 ## Freshness policy
 
@@ -126,3 +160,19 @@ and grants no license. The owner has been asked to confirm this use (docs/busine
 The catalog remains the only authority for products, prices and merchant policies. Optional
 [official platform evidence](official-web-evidence.md) explains general buyer procedures only;
 its fetch time cannot refresh catalog price verification or change a merchant guarantee.
+
+
+## Attributed producer detail export
+
+The optional storefront affiliate `details` block supplies neutral module summaries, bonus
+topics and the producer name from owner-supplied producer copy received2026-10-18. The exporter
+adds these to that product's existing `affiliate.<id>.overview` document, keeping the same
+wire schema, document ID and product scope. A storefront revision without `details` retains
+its earlier overview. No deployment variable, external scrape, private evaluation question,
+professional credential or outcome promise is added. The overview explicitly attributes this
+commercial evidence; it does not assert independent credential verification or medical advice.
+
+Only synchronize after the referenced storefront source reaches `main` and its public build
+is checked. A new catalogue changes the exact GraphRAG version/hash and requires reindexing
+public records, targeted retrieval and response checks. Preserve earlier run/catalogue
+identities; a later catalogue must not be presented as the source of an earlier evaluation.

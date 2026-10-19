@@ -4,5 +4,5 @@
   "allowed_files": ["pyproject.toml", "uv.lock"],
   "patch": ["fastapi", "uvicorn", "httpx", "pydantic-settings", "annotated-types", "anyio", "idna", "sniffio", "h11", "click", "typing-extensions", "typing-inspection", "pytest", "ruff", "mypy", "pluggy", "iniconfig", "packaging", "pygments", "mypy-extensions", "pathspec", "librt"],
   "minor": ["pytest", "ruff", "mypy", "pluggy", "iniconfig", "pygments"],
-  "required_checks": ["Required checks"]
+  "required_checks": ["checks"]
 }

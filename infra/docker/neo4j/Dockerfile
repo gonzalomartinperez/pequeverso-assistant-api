@@ -3,9 +3,33 @@
 FROM neo4j:5.26.32-community@sha256:0a6e7aedf54a531f76286032d4365ead65b11cca05e4a15cdf23b8e53d6db02b
 USER root
 # Apply the signed Debian security update without changing the vendor's Java libraries.
-RUN apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update \
-    && apt-get install -y --no-install-recommends liblzma5=5.8.1-1+deb13u2 \
-    && rm -rf /var/lib/apt/lists/*
+# Remove only compiler headers left by the vendor build; reject any wider APT plan.
+# Preserve package metadata and vendor JARs so remaining findings stay visible.
+RUN set -eu; \
+    apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update; \
+    apt-get install -y --no-install-recommends liblzma5=5.8.1-1+deb13u2; \
+    native_arch="$(dpkg --print-architecture)"; \
+    plan="$(LC_ALL=C apt-get --simulate purge libc6-dev linux-libc-dev)"; \
+    printf '%s\n' "$plan"; \
+    printf '%s\n' "$plan" | awk -v arch="$native_arch" ' \
+        $1 == "Inst" || $1 == "Conf" { rejected = 1 } \
+        $1 == "Remv" || $1 == "Purg" { \
+            name = $2; sub(":" arch "$", "", name); \
+            if (name != "libc6-dev" && name != "linux-libc-dev") rejected = 1; \
+            removed[name] = 1; \
+        } \
+        END { exit (rejected || !("libc6-dev" in removed) || !("linux-libc-dev" in removed)) }'; \
+    apt-get purge -y libc6-dev linux-libc-dev; \
+    apt-get check; \
+    audit="$(dpkg --audit)"; \
+    test -z "$audit"; \
+    for package in libc6-dev linux-libc-dev; do \
+        if dpkg-query -W -f '${db:Status-Status}\n' "$package" 2>/dev/null | grep -qx installed; then exit 1; fi; \
+    done; \
+    test ! -e /usr/include/linux; \
+    test ! -e /usr/include/stdlib.h; \
+    test -s /var/lib/dpkg/status; \
+    rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /conf \
     && cp /var/lib/neo4j/conf/* /conf/ \
     && chown -R 7474:7474 /conf \
