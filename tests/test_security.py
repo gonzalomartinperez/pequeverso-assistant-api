@@ -287,3 +287,50 @@ def test_forwarded_for_is_trusted_only_from_configured_proxies() -> None:
     assert client_ip(_request('10.0.0.2', '6.6.6.6, 198.51.100.7, 10.0.0.3'), proxies) == '198.51.100.7'
     assert client_ip(_request('10.0.0.2', 'not-an-ip'), proxies) == '10.0.0.2'
     assert client_ip(_request('10.0.0.2', ', '.join(['1.1.1.1'] * 6)), proxies) == '10.0.0.2'
+
+
+@pytest.mark.parametrize('template', ['/api/v1/analytics/events', '/internal/v1/ops/product-analytics'])
+def test_analytics_log_templates_keep_metrics_without_raw_payload_or_identity(template: str) -> None:
+    marker = 'SYNTHETIC_PRIVATE_ANALYTICS_MARKER'
+    for route in (
+        template,
+        f'{template}?event_id={marker}',
+        f'{template}/{marker}',
+        f'https://private.invalid{template}',
+    ):
+        record = logging.LogRecord(
+            'app.request',
+            logging.INFO,
+            'synthetic',
+            1,
+            json.dumps(
+                {
+                    'operation': 'request',
+                    'method': 'POST',
+                    'route': route,
+                    'status': 204,
+                    'duration_ms': 2,
+                    'event_id': marker,
+                    'session_id': marker,
+                    'visitor_id': marker,
+                    'authorization': marker,
+                    'cookie': marker,
+                    'body': {'raw': marker},
+                    'query': marker,
+                }
+            ),
+            (),
+            None,
+        )
+        output = SafeJsonFormatter().format(record)
+        payload = json.loads(output)
+        assert marker not in output and 'private.invalid' not in output
+        assert payload['status'] == 204 and payload['duration_ms'] == 2
+        if route == template:
+            assert payload['route'] == template
+        else:
+            assert 'route' not in payload
+        assert set(payload) == (
+            {'ts', 'level', 'logger', 'operation', 'method', 'status', 'duration_ms'}
+            | ({'route'} if route == template else set())
+        )

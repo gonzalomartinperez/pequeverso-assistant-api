@@ -5,11 +5,21 @@ unknown ids are dropped, and an answer that breaks an answer rule is replaced as
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from urllib.parse import urlsplit
 
-from app.application.ports import Draft
-from app.domain.answer_policy import AnswerRules, Violation, check_answer, fold
+from app.application.ports import Draft, DraftReference
+from app.application.price_comparison import clarification, comparison_products
+from app.application.reference_clarification import clarification as reference_clarification
+from app.application.reference_clarification import reference_reply
+from app.domain.answer_policy import (
+    AnswerRules,
+    Violation,
+    check_answer,
+    fold,
+    unsupported_checkout_policy,
+)
 from app.domain.catalog import (
     ActiveCatalog,
     Catalog,
@@ -23,6 +33,7 @@ from app.domain.conversation import (
     AnswerDetails,
     ImageRef,
     LinkRef,
+    Message,
     Notice,
     PriceRef,
     ProductRef,
@@ -86,6 +97,117 @@ class FinalizedAnswer:
     details: AnswerDetails
     violations: tuple[Violation, ...]
     dropped_references: int
+
+
+def price_comparison_reply(
+    question: str,
+    active: ActiveCatalog,
+    history: Sequence[Message],
+    language: Language,
+    price_status: PriceStatus,
+) -> FinalizedAnswer | None:
+    """Do not generate a relation whose operands lack verified current prices."""
+    products = comparison_products(question, active.catalog, history)
+    if products is None:
+        return None
+    if products and price_status is PriceStatus.VERIFIED and all(p.price is not None for p in products):
+        return None
+    if not products:
+        text = clarification(language)
+    else:
+        missing = tuple(p for p in products if p.price is None)
+        names = ', '.join(f'«{p.name}»' for p in missing)
+        if language is Language.EN:
+            text = (
+                f'I cannot compare their prices: I do not have a published price for {names}.'
+                if missing
+                else 'I cannot compare their prices without currently verified prices.'
+            )
+        else:
+            text = (
+                f'No puedo comparar sus precios: no tengo un precio publicado para {names}.'
+                if missing
+                else 'No puedo comparar sus precios sin precios actuales verificados.'
+            )
+        if price_status is PriceStatus.VERIFIED:
+            for product in products:
+                if product.price is not None:
+                    text += (
+                        f' The reference price for «{product.name}» is {product.price.display}.'
+                        if language is Language.EN
+                        else f' El precio de referencia de «{product.name}» es {product.price.display}.'
+                    )
+        text += (
+            " Check each product's current final price, currency and applicable taxes before paying."
+            if language is Language.EN
+            else ' Revisa el precio final actual, la moneda y los impuestos de cada producto antes de pagar.'
+        )
+    return finalize(
+        Draft(text, tuple(DraftReference(ReferenceKind.PRODUCT, p.id) for p in products), (), ()),
+        active,
+        price_status,
+        answer_rules(active.catalog, price_status, ()),
+        language,
+    )
+
+
+def reference_clarification_reply(
+    question: str,
+    active: ActiveCatalog,
+    history: Sequence[Message],
+    language: Language,
+    price_status: PriceStatus,
+) -> FinalizedAnswer | None:
+    plan = reference_reply(question, active.catalog, history)
+    if plan is None:
+        return None
+    references: list[DraftReference] = []
+    parts: list[str] = []
+    if plan.product_id is not None:
+        product = active.catalog.product(plan.product_id)
+        if product is None:
+            return None
+        parts.append(
+            f'The published format of «{product.name}» is: {product.format}'
+            if language is Language.EN
+            else f'El formato publicado de «{product.name}» es: {product.format}'
+        )
+        if not parts[-1].endswith(('.', '!', '?')):
+            parts[-1] += '.'
+        if product.pdf_count is None:
+            parts.append(
+                'I do not have confirmation of additional printable or downloadable materials.'
+                if language is Language.EN
+                else 'No tengo confirmación sobre materiales adicionales para imprimir o descargar.'
+            )
+        references.append(DraftReference(ReferenceKind.PRODUCT, product.id))
+    else:
+        for resource_id in plan.resource_ids:
+            resolved = active.catalog.resource(resource_id)
+            if resolved is None:
+                return None
+            _, resource = resolved
+            if resource.pages is not None:
+                parts.append(
+                    f'«{resource.title}»: {resource.pages} pages.'
+                    if language is Language.EN
+                    else f'«{resource.title}»: {resource.pages} páginas.'
+                )
+            else:
+                parts.append(
+                    f'«{resource.title}»: page count unconfirmed.'
+                    if language is Language.EN
+                    else f'«{resource.title}»: cantidad de páginas no confirmada.'
+                )
+            references.append(DraftReference(ReferenceKind.RESOURCE, resource_id))
+        parts.append(reference_clarification(language, guide=plan.guide))
+    return finalize(
+        Draft(' '.join(parts), tuple(references), (), ()),
+        active,
+        price_status,
+        answer_rules(active.catalog, price_status, ()),
+        language,
+    )
 
 
 def answer_rules(
@@ -241,6 +363,8 @@ def check_content(
                 violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
     # Merchant policy authority never depends on optional external evidence availability.
     for candidate in (raw_content, content):
+        if unsupported_checkout_policy(candidate, tuple(d.text for d in catalog.documents)):
+            violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
         if unsupported_platform_policy(candidate, tuple(d.text for d in catalog.documents)):
             violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
         if unsupported_page_claim(candidate, catalog):

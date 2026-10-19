@@ -3,3 +3,12 @@
 # Exact commit/file/rule/line only: later commits at the same location are still scanned.
 03898d88859d52ea9df7c2f28ed95a3f66d87f82:tests/test_observability.py:generic-api-key:17
 82ed7cfa89097c21c7d27a38b5034d136fb35317:tests/test_observability.py:generic-api-key:17
+
+# Historical exporter revision 04ad01a2f7690433d170519ea4581ca5983cd71a, not a credential.
+# CI39169802506 matched the old provenance comment; only this immutable finding is ignored.
+7151adb22f8b17f7c395663ccbfcc249e95931a3:tools/catalog/export-layout.test.ts:generic-api-key:22
+
+# Historical backend Git revision in original local fixture screenshot provenance, not credentials.
+# CI39177729761: exclude only these two immutable commit/file/rule/line findings.
+12fadecb425cdd340d5005e790030b389808b28b:docs/verification/assistant/2026-10-18/ROOT-VISUAL-AND-DELIVERY.json:generic-api-key:7
+12fadecb425cdd340d5005e790030b389808b28b:docs/verification/assistant/2026-10-18/manifest.json:generic-api-key:5

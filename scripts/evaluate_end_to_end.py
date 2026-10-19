@@ -33,13 +33,14 @@ from dotenv import dotenv_values
 from pydantic import SecretStr
 
 from app.adapters.providers.fixture_provider import FixtureProvider
-from app.ai.evidence import passages, rank
+from app.ai.evidence import decode_documents, passages, rank
 from app.ai.provider import ModelChunk, ModelRequest
 from app.application.knowledge_ports import EmbeddingAccounting
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import ProviderResource, create_app
 from app.domain.catalog import PriceStatus
 from app.domain.web_evidence import SOURCES
+from app.presentation.http import Services
 from scripts.evaluate_conversations import CATALOG, _safety
 from scripts.real_eval_budget import (
     ATTEMPT_MICRO,
@@ -104,7 +105,7 @@ class EvidenceProvider:
                 'price_status': payload['price_status'],
                 'products': [p['id'] for p in payload['products']],
                 'resources': [r['id'] for p in payload['products'] for r in p['resources']],
-                'documents': [d['id'] for d in payload['documents']],
+                'documents': [d['id'] for d in decode_documents(payload['documents'])],
                 'links': [link['id'] for link in payload['links']],
                 **official_record,
                 **(
@@ -155,6 +156,24 @@ def safety_with_official_evidence(
             retained.append(citation)
         event['message']['sources'] = retained
     return [*_safety(copied, price_status), *problems]
+
+
+def catalog_price_snapshot(services: Services) -> dict[str, Any]:
+    """Actual app catalog/clock at dispatch; no reply/model inference or async pool access."""
+    active = services.catalog.active
+    now = services.clock.now()
+    return {
+        'status': (active.price_status(now) if active else PriceStatus.UNVERIFIED).value,
+        'catalog_sha256': active.sha256 if active else None,
+        'verified_at': active.verified_at.isoformat() if active else None,
+        'snapshot_at': now.isoformat(),
+        'max_age_seconds': active.max_price_age.total_seconds() if active else None,
+    }
+
+
+def safety_price_status(evidence: list[dict[str, Any]], snapshot: dict[str, Any]) -> PriceStatus:
+    # A dispatched turn keeps the exact status actually sent. Local answers have no provider record.
+    return PriceStatus(evidence[-1]['price_status'] if evidence else snapshot['status'])
 
 
 def observed_language(content: str, notices: list[str], *, spanish_native: bool = False) -> str:
@@ -237,9 +256,21 @@ def ask(
 
 
 def load_live_provider(
-    key_file: Path, budget_state: Path, *, max_attempts: int = MAX_ATTEMPTS
+    key_file: Path,
+    budget_state: Path,
+    *,
+    max_attempts: int = MAX_ATTEMPTS,
+    authorized_envelope_sha256: str | None = None,
 ) -> BoundedProvider:
     """Only explicit live mode calls this; validate the shared cap before reading the key."""
+    if authorized_envelope_sha256 is not None and (
+        max_attempts != MAX_ATTEMPTS
+        or len(authorized_envelope_sha256) != 64
+        or any(c not in '0123456789abcdef' for c in authorized_envelope_sha256)
+    ):
+        raise ValueError('authorized envelope requires its exact audit SHA256 and default legacy argument')
+    if authorized_envelope_sha256 is not None and not budget_state.is_file():
+        raise ValueError('authorized extension requires the existing shared evaluation budget')
     if type(max_attempts) is not int or not 1 <= max_attempts <= 650:
         raise ValueError('evaluation attempt cap must be an integer from 1 to 650')
     if max_attempts > MAX_ATTEMPTS and not budget_state.is_file():
@@ -258,7 +289,11 @@ def load_live_provider(
         raise ValueError('shared budget directory must be private mode700')
     # Persisted-cap mismatch fails before any credential read. Extending the owner-approved
     # existing run must not accidentally create a fresh allowance through a mistyped path.
-    envelope = Envelope(budget_state, max_attempts=max_attempts)
+    envelope = (
+        Envelope(budget_state, max_attempts=max_attempts)
+        if authorized_envelope_sha256 is None
+        else Envelope.open_authorized(budget_state, audit_sha256=authorized_envelope_sha256)
+    )
     envelope.admit_new_run()
     if max_attempts > MAX_ATTEMPTS and envelope.snapshot()['attempts'] == 0:
         raise ValueError('extended attempt cap requires an already-used shared evaluation budget')
@@ -410,6 +445,7 @@ def evaluate(
                         )
                         key = f'matrix-{case["id"]}-{number}'
                         before = len(provider.records)
+                        price_snapshot = catalog_price_snapshot(app.state.services)
                         receipt_start = len(bounded.receipts) if bounded else 0
                         embedding_start = len(embedding_receipts or [])
                         retrieval_start = len(retrieval_receipts or [])
@@ -501,9 +537,7 @@ def evaluate(
                         safety = (
                             safety_with_official_evidence(
                                 result['events'],
-                                PriceStatus(public_evidence[-1]['price_status'])
-                                if public_evidence
-                                else PriceStatus.UNVERIFIED,
+                                safety_price_status(public_evidence, price_snapshot),
                                 public_evidence,
                             )
                             if result['events']
@@ -539,6 +573,13 @@ def evaluate(
                             'reply_policy': 'spanish_native' if spanish_native else 'legacy_bilingual',
                             'observed_language': observed,
                             'evidence': public_evidence,
+                            'price_safety': {
+                                'status': safety_price_status(public_evidence, price_snapshot).value,
+                                'source': 'prepared_evidence'
+                                if public_evidence
+                                else 'active_catalog_snapshot',
+                                'catalog_snapshot': price_snapshot,
+                            },
                             'lexical_top3': [{'id': p.id, 'score': score} for p, score in lexical[:3]],
                             'history_matches': history_matches,
                             'prior_history_preserved': prior_history_preserved,
@@ -760,6 +801,7 @@ def main() -> None:
     parser.add_argument('--key-file', type=Path)
     parser.add_argument('--budget-state', type=Path)
     parser.add_argument('--max-attempts', type=int, default=MAX_ATTEMPTS)
+    parser.add_argument('--authorized-envelope-sha256')
     parser.add_argument('--manifest', type=Path, default=ROOT / 'evals/end_to_end.json')
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--source-revision', required=True)
@@ -782,7 +824,15 @@ def main() -> None:
     with ownership:
         bounded = None
         if args.live:
-            bounded = load_live_provider(args.key_file, args.budget_state, max_attempts=args.max_attempts)
+            if args.authorized_envelope_sha256 is None:
+                bounded = load_live_provider(args.key_file, args.budget_state, max_attempts=args.max_attempts)
+            else:
+                bounded = load_live_provider(
+                    args.key_file,
+                    args.budget_state,
+                    max_attempts=args.max_attempts,
+                    authorized_envelope_sha256=args.authorized_envelope_sha256,
+                )
         destination.mkdir(parents=True, mode=0o700)
         os.chmod(destination, 0o700)
         for name in ('httpx', 'httpx2', 'httpcore', 'httpcore2', 'openai'):

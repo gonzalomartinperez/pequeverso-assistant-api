@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba local sintética de analítica Pequeverso</title>
+<style>body{font:18px system-ui;max-width:50rem;margin:auto;padding:2rem}section{min-height:35vh;border:2px solid #555;padding:1rem;margin:1rem 0}button,input,select{font:inherit}output{display:block;padding:1rem}fieldset{margin:1rem 0}</style>
+<h1>Prueba local sintética · sin datos reales</h1>
+<p>Este documento no es Store ni modifica su consentimiento. Registra sólo eventos de prueba si guardas una elección para este canal. Retirarla no elimina eventos ya recibidos ni copias de respaldo.</p>
+<form id="settings"><label>API local <input id="api" type="url" value="http://127.0.0.1:8000" required></label>
+<label>Ruta sintética <select id="route"><option value="/">Inicio</option><option value="/grafismo-fonetico/">Grafismo</option></select></label></form>
+<fieldset><legend>Elección exclusiva de este canal local</legend><button id="allow" type="button">Guardar aceptación</button> <button id="withdraw" type="button">Retirar y descartar envíos</button></fieldset>
+<output id="status" aria-live="polite"></output>
+<main id="surfaces"></main>
+<script type="module">
+const profile = {"/": ["hero", "leer", "bebe", "preguntas"], "/grafismo-fonetico/": ["hero", "incluye", "metodo", "preguntas"]};
+const key = "pequeverso_local_analytics_choice_v1";
+const status = document.querySelector("#status");
+const route = document.querySelector("#route");
+const api = document.querySelector("#api");
+const root = document.querySelector("#surfaces");
+let allowed = false;
+let generation = 0;
+let visit = 0;
+let views = new Set();
+let exposures = new Set();
+let timers = new Map();
+let requests = new Set();
+let observer = null;
+let received = 0;
+const viewport = () => innerWidth < 768 ? "mobile" : innerWidth < 1024 ? "tablet" : "desktop";
+function note(message) { status.textContent = `${message} Entregas confirmadas: ${received}. Son eventos recibidos, no personas ni compras.`; }
+function saved() { try { return localStorage.getItem(key) === "granted"; } catch { return false; } }
+function cancelDwell() { for (const timer of timers.values()) clearTimeout(timer); timers.clear(); observer?.disconnect(); }
+function cancelAll() { generation++; cancelDwell(); for (const controller of requests) controller.abort(); requests.clear(); }
+function endpoint() {
+  const url = new URL(api.value);
+  if (url.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) || url.username || url.password || url.search || url.hash || url.pathname !== "/") throw new Error("Sólo se admite origen HTTP loopback sin credenciales ni ruta.");
+  return new URL("/api/v1/analytics/events", url).href;
+}
+async function send(name, section, cells = {}) {
+  if (!allowed || !saved() || document.hidden) return;
+  let url; try { url = endpoint(); } catch { note("Configura una API loopback válida."); return; }
+  const controller = new AbortController(); requests.add(controller);
+  const epoch = generation;
+  const body = {schema_version: 1, project: "pequeverso", source: "site", event_id: crypto.randomUUID(), event_name: name, route: route.value, layout_revision: "pequeverso-v1", section_id: section, viewport_bucket: viewport(), locale: "es", ...cells};
+  try {
+    const response = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, credentials: "omit", referrerPolicy: "no-referrer", cache: "no-store", signal: controller.signal, body: JSON.stringify(body)});
+    if (epoch === generation && allowed) { if (response.status === 204) received++; note(response.status === 204 ? "Entrega sintética confirmada." : "Canal no disponible; sin reintento."); }
+  } catch { if (epoch === generation && allowed) note("Entrega cancelada o no disponible; sin reintento."); }
+  finally { requests.delete(controller); }
+}
+function watch() {
+  cancelDwell();
+  if (!allowed || !saved() || document.hidden) return;
+  observer = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      const section = entry.target.dataset.section;
+      const token = `${visit}:${viewport()}:${section}`;
+      if (!entry.isIntersecting || entry.intersectionRatio < 0.5) { clearTimeout(timers.get(token)); timers.delete(token); continue; }
+      if (exposures.has(token) || timers.has(token)) continue;
+      const epoch = generation;
+      timers.set(token, setTimeout(() => { timers.delete(token); if (epoch !== generation || !allowed || document.hidden || !entry.target.isConnected) return; exposures.add(token); send("section_view", section); }, 500));
+    }
+  }, {threshold: [0, 0.5]});
+  root.querySelectorAll("[data-section]").forEach(section => observer.observe(section));
+}
+function start() {
+  if (!allowed || !saved() || document.hidden) return;
+  if (!views.has(visit)) { views.add(visit); send("page_view", "hero"); }
+  watch();
+}
+function render() {
+  cancelAll(); visit++;
+  root.replaceChildren(...profile[route.value].map(id => { const section = document.createElement("section"); section.dataset.section = id; section.textContent = `Superficie pública sintética: ${id}. Puedes pulsar aquí para una celda agregada.`; return section; }));
+  start();
+}
+document.querySelector("#settings").addEventListener("submit", event => event.preventDefault());
+api.addEventListener("change", () => { cancelAll(); if (allowed) note("API cambiada; no se reenvían eventos previos."); });
+route.addEventListener("change", render);
+document.querySelector("#allow").addEventListener("click", () => { try { endpoint(); localStorage.setItem(key, "granted"); allowed = true; note("Aceptación local guardada."); start(); } catch { allowed = false; note("No se pudo guardar una elección o validar API; no se recopila."); } });
+document.querySelector("#withdraw").addEventListener("click", () => { allowed = false; cancelAll(); try { localStorage.setItem(key, "denied"); } catch {} note("Retirado: temporizadores y envíos pendientes cancelados. Lo ya recibido no se revoca."); });
+root.addEventListener("click", event => {
+  if (!(event instanceof PointerEvent) || !event.isTrusted || event.button !== 0 || !event.pointerType) return;
+  const section = event.target.closest("[data-section]"); if (!section || !root.contains(section)) return;
+  const rect = section.getBoundingClientRect(); if (!rect.width || !rect.height) return;
+  send("public_click", section.dataset.section, {cell_x: Math.max(0, Math.min(7, Math.floor((event.clientX - rect.left) / rect.width * 8))), cell_y: Math.max(0, Math.min(7, Math.floor((event.clientY - rect.top) / rect.height * 8)))});
+});
+document.addEventListener("visibilitychange", () => { cancelDwell(); if (!document.hidden) start(); });
+addEventListener("resize", watch);
+addEventListener("pagehide", () => { allowed = false; cancelAll(); });
+allowed = saved(); render(); note(allowed ? "Elección local previamente guardada; sólo este canal." : "Sin aceptación guardada: cero recopilación.");
+</script>
+</html>

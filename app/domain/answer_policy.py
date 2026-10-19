@@ -132,6 +132,72 @@ def fold(text: str) -> str:
     return ''.join(char for char in decomposed if not unicodedata.combining(char))
 
 
+# Bounded checkout-grouping claims, not general entailment. Product destinations do not
+# establish whether merchants require separate purchases or permit a shared checkout.
+_CHECKOUT_SUBJECT = re.compile(
+    r'\b(?:compras?|productos?|pedidos?|pagos?|carritos?|purchases?|products?|orders?|payments?|carts?|checkout|bonos?|bonuses)\b'
+)
+_CHECKOUT_PREDICATE = re.compile(
+    r'\b(?:realiza\w*|completa\w*|compr\w*|pag(?!os?\b)\w*|cuestan?|costs?|vend\w*|requiere\w*|debes?|puede\w*|purchase\w*|buy|bought|paid|pay|sold|sell|requires?|must|can|cannot|share)\b'
+)
+_CHECKOUT_GROUPING = re.compile(
+    r'\b(?:aparte|por separado|separad[oa]s?|separately|separate|individualmente|individually|one at a time|uno a uno|junt[oa]s?|together|combina\w*|combin\w*|single (?:checkout|payment)|un (?:solo|unico) (?:pago|carrito)|same (?:cart|checkout))\b'
+)
+# One payment for a single product is a payment plan, not a multi-product rule.
+_CHECKOUT_SINGLE_PAYMENT = re.compile(r'(?:un (?:solo|unico) pago|single payment)')
+_CHECKOUT_MULTIPLE_PRODUCTS = re.compile(
+    r'\b(?:ambos|ambas|dos|varios|varias|productos|compras|both|two|multiple|products|purchases)\b'
+)
+_CHECKOUT_IMPLICIT_SALE = re.compile(r'\b(?:vend\w*|sold|sell|selling)\b')
+# A qualifier must concern the grouping proposition, not an unrelated price or action.
+_CHECKOUT_UNCERTAIN = re.compile(
+    r"\b(?:no (?:puedo|podemos) confirmar|no (?:se|sabemos)|cannot confirm|can't confirm|do not know|don't know|not confirmed|unknown)\s+(?:si|que|whether|if|that)\b"
+    r'|\bno (?:tengo|hay) (?:informacion|confirmacion)\s+(?:(?:sobre|de|acerca de)\s+)?(?:si|que)\b'
+)
+_CHECKOUT_COORDINATE_CLAUSE = re.compile(
+    r'\b(?:y|and)\s+(?=(?:(?:los|las|el|la|the|both|ambos|ambas|cada|each|two|dos)\s+)?'
+    + _CHECKOUT_SUBJECT.pattern
+    + r'|(?:debes?|deben|puedes?|pueden|tienes que|tienen que|you (?:must|can|cannot|need to))\b)'
+)
+_CHECKOUT_SELF_REFUSAL = re.compile(
+    r"^(?:no (?:puedo|podemos)|i (?:cannot|can't)|we (?:cannot|can't))\s+(?:agregar|anadir|combinar|comprar|gestionar|add|combine|buy|manage)\b"
+)
+
+
+def _checkout_claims(text: str) -> frozenset[str]:
+    # An independent coordinated product assertion cannot inherit a prior refusal.
+    separated = _CHECKOUT_COORDINATE_CLAUSE.sub(';', fold(text))
+    clauses = re.split(r'[!?;\n]|[.](?!\d)|\b(?:pero|but|however|porque|because)\b', separated)
+    return frozenset(
+        clause
+        for raw in clauses
+        if (clause := ' '.join(raw.strip(' ,:').split()))
+        and (_CHECKOUT_SUBJECT.search(clause) or _CHECKOUT_IMPLICIT_SALE.search(clause))
+        and _CHECKOUT_PREDICATE.search(clause)
+        and any(
+            not _CHECKOUT_SINGLE_PAYMENT.fullmatch(match.group())
+            or _CHECKOUT_MULTIPLE_PRODUCTS.search(clause)
+            for match in _CHECKOUT_GROUPING.finditer(clause)
+        )
+        and not _CHECKOUT_UNCERTAIN.search(clause)
+        and not _CHECKOUT_SELF_REFUSAL.search(clause)
+    )
+
+
+def unsupported_checkout_policy(text: str, policies: tuple[str, ...]) -> bool:
+    """Require published wording for detected grouping assertions, including prohibitions.
+
+    An explicit uncertainty or assistant action refusal is not a merchant restriction.
+    Exact authoritative clauses preserve negation; a related URL or opposite claim cannot
+    authorize a new checkout condition. This recognizes finite forms, not all paraphrases.
+    """
+    claims = _checkout_claims(text)
+    if not claims:
+        return False
+    supported = frozenset(claim for policy in policies for claim in _checkout_claims(policy))
+    return not claims.issubset(supported)
+
+
 def _url_key(candidate: str) -> str | None:
     """Compare exact authorized paths, queries and fragments, never a host wildcard.
 

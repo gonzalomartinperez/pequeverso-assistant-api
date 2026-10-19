@@ -1,0 +1,54 @@
+{
+  "contract_revision": "1.1",
+  "profile_source_revision": "88d6d0add414261e5ccf5bd3e2b21285e1a33179",
+  "source_repository": "gonzalomartinperez/pequeverso",
+  "layout_revision": "pequeverso-v1",
+  "routes": {
+    "/": [
+      "hero",
+      "leer",
+      "bebe",
+      "preguntas"
+    ],
+    "/grafismo-fonetico/": [
+      "hero",
+      "incluye",
+      "metodo",
+      "preguntas"
+    ]
+  },
+  "locales": [
+    "es"
+  ],
+  "viewport_widths_css_px": {
+    "mobile": [
+      0,
+      767
+    ],
+    "tablet": [
+      768,
+      1023
+    ],
+    "desktop": [
+      1024,
+      null
+    ]
+  },
+  "public_endpoint": "/api/v1/analytics/events",
+  "private_endpoint": "/internal/v1/ops/product-analytics",
+  "scope": "committed_profile_reference_not_production_collection_or_deployment",
+  "pointer_only_clicks": true,
+  "country_collection": "disabled",
+  "country_collection_modes": [
+    "disabled",
+    "trusted_proxy_header"
+  ],
+  "classification": "persisted synthetic boolean; production environment only selects false namespace",
+  "country_configuration_is_not_edge_verification": true,
+  "artifacts_sha256": {
+    "analytics-semantics.examples.json": "34052250e924003f7b4f060f271d2fbcaa5be847a8de78060cf9925f5b845b92",
+    "site-experience-pequeverso-v1.schema.json": "10264058e6c9b26fd308f51eaa2b9286b352b418e2c625511caf22d0e9c7dcf7",
+    "product-analytics.schema.json": "c0de21b74a1c2c7bcc3015874dc702375f0b9fcca9f66d0007e7ff0912da2713",
+    "examples/product-analytics.json": "3662d1a6ae8e5b34903baa6c57a0d0bec8a350f088eaefc607aeab2fec2e0292"
+  }
+}

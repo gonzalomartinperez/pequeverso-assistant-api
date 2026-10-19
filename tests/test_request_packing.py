@@ -6,6 +6,7 @@ from datetime import timedelta
 
 from app.adapters.catalog_schema import CatalogParser
 from app.ai.composer import ComposerSettings, GroundedComposer
+from app.ai.evidence import decode_documents
 from app.ai.prompt import INSTRUCTIONS, OUTPUT_SCHEMA
 from app.application.answers import answer_rules, finalize
 from app.application.ports import Draft, Turn
@@ -45,7 +46,9 @@ def _composer(limit=24000):
 
 
 def _store(prepared):
-    return json.loads(prepared.request.inputs[0].text.split('\n', 1)[1])
+    store = json.loads(prepared.request.inputs[0].text.split('\n', 1)[1])
+    store['documents'] = decode_documents(store['documents'])
+    return store
 
 
 def _visitor(prepared):

@@ -119,11 +119,13 @@ _ROUTES = frozenset(
         '/health/live',
         '/health/ready',
         '/api/v1/availability',
+        '/api/v1/analytics/events',
         '/api/v1/session',
         '/api/v1/messages',
         '/api/v1/openapi.json',
         '/api/v1/runs/{run_id}/cancel',
         '/internal/v1/ops/summary',
+        '/internal/v1/ops/product-analytics',
         '/internal/v1/ops/telemetry',
         '/internal/v1/ops/metrics',
     }

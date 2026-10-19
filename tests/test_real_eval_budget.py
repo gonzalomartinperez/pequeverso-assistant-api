@@ -567,3 +567,16 @@ def test_default_local_server_ignores_ambient_paid_configuration(
     assert (tmp_path / 'local-ops.env.local').read_text().splitlines()[0] == (
         'LIVE_OPS_URL=http://localhost:18088'
     )
+
+
+def test_default_new_ledger_does_not_gain_audited_extension_metadata(tmp_path: Path) -> None:
+    path = tmp_path / 'default.sqlite3'
+    envelope = Envelope(path)
+    assert envelope.max_attempts == 400 and envelope.cap_micro == 1000000
+    with closing(sqlite3.connect(path)) as db:
+        assert db.execute('SELECT max_attempts FROM attempt_limits').fetchall() == [(400,)]
+        assert db.execute('SELECT cap FROM limits').fetchall() == [(1000000,)]
+        assert (
+            db.execute("SELECT name FROM sqlite_master WHERE name='authorized_envelope_extension'").fetchall()
+            == []
+        )

@@ -35,7 +35,7 @@ def test_license_scope_and_distribution_notices_are_preserved() -> None:
 
 
 def test_project_database_recipes_carry_software_notices_without_overriding_vendor_licenses() -> None:
-    for name, uid in (('postgres', 999), ('neo4j', 7474)):
+    for name, uid in (('postgres', 70), ('neo4j', 7474)):
         recipe = (ROOT / 'infra/docker' / name / 'Dockerfile').read_text()
         assert (
             f'COPY --chown={uid}:{uid} LICENSE NOTICE.md /usr/share/licenses/pequeverso-assistant-api/'

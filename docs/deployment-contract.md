@@ -12,6 +12,19 @@ Read [the operator jobs, capability roles, migration and finite gates](knowledge
 before using this candidate. Main merging is not deployment or activation. All dated measurements
 below retain their historical source/image identities and are not acceptance of the new profile.
 
+## Dependency/image findings and remaining deployment gates
+
+The [current security handoff](security.md#dependency-and-image-findings-in-the-deployment-handoff)
+records owner direction received on 2026-10-19: dependency and image CVEs are advisory and
+nonblocking for future deployment. Preserve every dated scan finding and raw policy result,
+including `policy_pass: false`; do not rewrite historical reports or infer a new clean scan.
+This direction does not change scanners, dependencies, images, CI or runtime controls.
+
+The VPS has not yet been purchased. Its provisioning and explicit owner deployment/activation
+direction remain outstanding. Health/readiness, secrets, database/data preservation, identity,
+application quality and the operator checks in this contract remain gates. A source merge,
+fixture pass, image scan or advisory finding alone authorizes no deployment or public traffic.
+
 ## Image
 
 | Item | Value |
@@ -72,6 +85,31 @@ The PostgreSQL image probes TCP at `127.0.0.1`, not its Unix socket. The officia
 starts a socket-only temporary server during initialization; that server must not satisfy
 service readiness. A ready PostgreSQL listener does not prove migrations, capability roles,
 active knowledge or API readiness; verify those separately.
+
+### PostgreSQL Alpine candidate and persistence
+
+The candidate `infra/docker/postgres/Dockerfile` uses PostgreSQL18.6 on Alpine3.24 and builds
+pgvector0.8.7 in a separate stage from a checksummed upstream archive. The final image retains
+XML/ICU, the official entrypoint and SIGINT stop behavior, project/extension notices, the five
+logging privacy settings and the TCP-only health check. Its declared OS identity is `70:70`;
+the earlier Debian image used `999:999`. Runtime capability groups and their four independent
+INHERIT LOGIN memberships are unchanged. A numeric OS UID is not a PostgreSQL SQL role.
+
+Use new project-owned volumes mounted at `/var/lib/postgresql`; PostgreSQL18 stores its data
+under `/var/lib/postgresql/18/docker`. Do not attach existing Debian data to this candidate,
+override its UID, recursively change ownership or assume a physical backup is portable across
+glibc/musl and collation versions. Migration requires a separately authorized logical dump and
+restore into a new isolated target, explicit roles/grants, rebuilt indexes and comparison of
+complete public/private rows, retained unknown spend, locale-sensitive queries and readiness.
+Keep the original volume and backups intact until that procedure is independently accepted.
+
+The fixture tools accept only the exact declared pairs `70:70` (Alpine candidate) and `999:999`
+(historical Debian), rejecting root, missing or other identities before resource creation.
+They derive the socket tmpfs owner from that validated pair; they never repair an existing
+volume. Alpine3.24 main is supported until2028-06-01; this is not a claimed LTS designation.
+[Candidate evidence and remaining gates](verification/postgres-alpine-2026-10-18.md) distinguish
+source review from exact-image, restore, scan and deployment acceptance. No deployment or
+security waiver follows from changing the base image.
 
 ## Private operations API
 

@@ -53,7 +53,12 @@ from scripts.evaluate_end_to_end import (
     official_help_requested,
     write_private,
 )
-from scripts.real_eval_budget import BoundedProvider, EvaluationEmbeddingAccounting, evaluation_run_ownership
+from scripts.real_eval_budget import (
+    MAX_ATTEMPTS,
+    BoundedProvider,
+    EvaluationEmbeddingAccounting,
+    evaluation_run_ownership,
+)
 
 PHASE = 'proposed-bounded-graph-targeted-development-only'
 
@@ -186,6 +191,7 @@ def main() -> int:
     parser.add_argument('--live', action='store_true')
     parser.add_argument('--key-file', type=Path)
     parser.add_argument('--budget-state', type=Path)
+    parser.add_argument('--authorized-envelope-sha256')
     args = parser.parse_args()
     os.umask(0o077)
     configure_logging()
@@ -204,9 +210,17 @@ def main() -> int:
     ownership = evaluation_run_ownership(args.budget_state) if args.live else nullcontext()
     with ownership:
         # Default fixture mode does not inspect either credential/budget argument, even if present.
-        bounded = (
-            load_live_provider(args.key_file, args.budget_state, max_attempts=650) if args.live else None
-        )
+        bounded = None
+        if args.live:
+            if args.authorized_envelope_sha256 is None:
+                bounded = load_live_provider(args.key_file, args.budget_state, max_attempts=650)
+            else:
+                bounded = load_live_provider(
+                    args.key_file,
+                    args.budget_state,
+                    max_attempts=MAX_ATTEMPTS,
+                    authorized_envelope_sha256=args.authorized_envelope_sha256,
+                )
         destination.mkdir(parents=True, mode=0o700)
         for name in ('httpx', 'httpx2', 'httpcore', 'httpcore2', 'openai'):
             logging.getLogger(name).setLevel(logging.CRITICAL)

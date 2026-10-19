@@ -4,6 +4,13 @@ set -euo pipefail
 image=${1:?exact locally built PostgreSQL image ID required}
 receipt=${2:?external receipt directory required}
 case "$image" in sha256:*) ;; *) echo 'An immutable local image ID is required' >&2; exit 2;; esac
+# Fail closed before creating a network, volume or container. Historical Debian fixtures
+# remain reproducible, while the Alpine candidate must use its actual UID/GID 70.
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+postgres_user=$(docker image inspect --format '{{json .Config.User}}' "$image" \
+  | python3 "$script_dir/postgres_fixture_identity.py")
+postgres_uid=${postgres_user%%:*}
+postgres_gid=${postgres_user##*:}
 mkdir -p "$receipt"
 receipt=$(realpath "$receipt")
 name="pv-api-knowledge-pg-20261017-$$"
@@ -27,11 +34,11 @@ docker network create "$network" >/dev/null
 docker volume create "$volume" >/dev/null
 mapfile -t image_command < <(docker image inspect --format '{{json .Config.Cmd}}' "$image" | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)))')
 if [ "${image_command[0]:-}" != postgres ]; then echo 'PostgreSQL image CMD is missing' >&2; exit 1; fi
-docker run -d --name "$name" --network "$network" --user 999:999 \
+docker run -d --name "$name" --network "$network" --user "$postgres_user" \
   --read-only --cap-drop ALL --security-opt no-new-privileges \
   --memory 384m --cpus 1 --pids-limit 128 --shm-size 64m \
   --tmpfs /tmp:rw,nosuid,noexec,size=16m \
-  --tmpfs /var/run/postgresql:rw,nosuid,noexec,uid=999,gid=999,mode=3775,size=16m \
+  --tmpfs "/var/run/postgresql:rw,nosuid,noexec,uid=$postgres_uid,gid=$postgres_gid,mode=3775,size=16m" \
   --mount "type=volume,source=$volume,target=/var/lib/postgresql" \
   --env-file "$private/postgres.env" -p 127.0.0.1:55439:5432 "$image" \
   "${image_command[@]}" -c shared_buffers=32MB -c max_connections=16 -c work_mem=2MB \

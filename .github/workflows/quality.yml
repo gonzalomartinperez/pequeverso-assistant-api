@@ -1,6 +1,6 @@
 name: Quality
 
-# Exact paired API profile; required-context migration is owned separately.
+# Paired API job IDs; the protected checks context is the full five-job aggregate.
 on:
   pull_request:
     branches: [develop, main]
@@ -99,8 +99,17 @@ jobs:
         run: |
           uv run ruff check --output-format=github .
           uv run ruff format --check .
+      - name: Validate paired skill discovery
+        run: uv run python -m scripts.validate_skills
       - name: Mypy (strict)
         run: uv run mypy
+      - name: Setup Node for local fixture regression
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.0
+          package-manager-cache: false
+      - name: Local analytics pointer fixture regression (no browser or network)
+        run: timeout 10s node --test tests/fixtures/product-analytics-pointer.test.cjs
       - name: Tests
         run: uv run pytest -q
       - name: Contract artifacts are current
@@ -196,7 +205,7 @@ jobs:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
 
   checks:
-    name: Required checks
+    name: checks
     if: always()
     needs: [workflows, secrets, static, database, container]
     runs-on: ubuntu-24.04
@@ -216,17 +225,3 @@ jobs:
           test "$STATIC_RESULT" = success
           test "$DATABASE_RESULT" = success
           test "$CONTAINER_RESULT" = success
-
-  # Compatibility with the existing protected context; no ruleset changes.
-  legacy-checks:
-    name: checks
-    if: always()
-    needs: [checks]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 2
-    permissions: {}
-    steps:
-      - name: Full required aggregate succeeded
-        env:
-          REQUIRED_RESULT: ${{ needs.checks.result }}
-        run: test "$REQUIRED_RESULT" = success

@@ -1,25 +1,28 @@
-# Assistant schemas/roles remain separate from backoffice IAM in its own project database.
-# Official PG18.6 OCI index; linux/amd64 child 8859531 verified on2026-10-18.
-FROM postgres:18.6-trixie@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
-USER root
-# Signed PGDG extension package; no compiler, source builds or extra vector service.
-# Explicit Debian security fixes retain XML support; open libxml2 findings remain deploy gates.
-RUN apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update \
-    && apt-get install -y --no-install-recommends \
-        postgresql-18-pgvector=0.8.7-1.pgdg13+1 \
-        liblzma5=5.8.1-1+deb13u2 xz-utils=5.8.1-1+deb13u2 \
-        libpcre2-8-0=10.46-1~deb13u3 \
-        libperl5.40=5.40.1-6+deb13u1 perl=5.40.1-6+deb13u1 \
-        perl-base=5.40.1-6+deb13u1 perl-modules-5.40=5.40.1-6+deb13u1 \
-        libssl3t64=3.5.7-1~deb13u3 openssl=3.5.7-1~deb13u3 \
-        tzdata=2026c-0+deb13u1 \
-    && apt-get purge -y gpg \
-    && rm -rf /var/lib/apt/lists/* /usr/local/bin/gosu \
-    && command -v sqv \
-    && test "$(id -u postgres)" = 999 && test "$(id -g postgres)" = 999 \
-    && test -f /usr/share/postgresql/18/extension/vector--0.8.7.sql
-COPY --chown=999:999 LICENSE NOTICE.md /usr/share/licenses/pequeverso-assistant-api/
-USER 999:999
+# Common Pequeverso engine; API schemas and backoffice IAM remain separate databases.
+# Official PostgreSQL18.6 Alpine3.24 index; amd64 child d8703cd7 verified2026-10-18.
+FROM postgres:18.6-alpine3.24@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873 AS vector-build
+RUN apk add --no-cache build-base=0.5-r4 clang21=21.1.8-r3 llvm21-dev=21.1.8-r1 \
+    && wget -O /tmp/pgvector.tar.gz https://codeload.github.com/pgvector/pgvector/tar.gz/refs/tags/v0.8.7 \
+    && echo 'cac0b10c360f05b2d521200105ba3697e773d4cd3731f5a915a7e37ebe0bea85  /tmp/pgvector.tar.gz' | sha256sum -c - \
+    && tar -xzf /tmp/pgvector.tar.gz -C /tmp \
+    && cd /tmp/pgvector-0.8.7 \
+    && make -j1 OPTFLAGS="" \
+    && make DESTDIR=/extension install \
+    && mkdir -p /extension/usr/share/doc/pgvector \
+    && cp LICENSE README.md /extension/usr/share/doc/pgvector/ \
+    && apk info -v > /extension/usr/share/doc/pgvector/build-packages.txt
+
+FROM postgres:18.6-alpine3.24@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+# Retain XML/ICU and the official entrypoint; compiler/toolchain files stay in vector-build.
+COPY --from=vector-build /extension/ /
+RUN apk add --no-cache libxml2=2.13.9-r2 nghttp2-libs=1.70.0-r0 zlib=1.3.2-r1 \
+    && rm /usr/local/bin/gosu \
+    && test "$(id -u postgres)" = 70 && test "$(id -g postgres)" = 70 \
+    && test -f /usr/local/share/postgresql/extension/vector--0.8.7.sql \
+    && apk info -v > /usr/share/postgres-runtime-packages.txt
+COPY --chown=70:70 LICENSE NOTICE.md /usr/share/licenses/pequeverso-assistant-api/
+# New volumes only. Existing Debian UID999 data requires an explicit logical restore.
+USER 70:70
 ARG SERVICE_REVISION=
 LABEL org.opencontainers.image.source="https://github.com/gonzalomartinperez/pequeverso-assistant-api"
 LABEL org.opencontainers.image.revision=${SERVICE_REVISION}

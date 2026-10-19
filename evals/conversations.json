@@ -278,6 +278,70 @@
           "el proveedor no recibe tus mensajes"
         ]
       }
+    },
+    {
+      "id": "affiliate-intent-survives-literacy-history",
+      "turns": [
+        "Busco actividades de sílabas para mi hija de cinco años.",
+        "Ahora cambio de tema: ¿el curso de alimentación incluye un menú?"
+      ],
+      "quality": {
+        "must_reference": [
+          "product:alimentacion-bebe"
+        ],
+        "forbid_any": [
+          "414 páginas",
+          "9 PDF",
+          "nueve PDF"
+        ]
+      }
+    },
+    {
+      "id": "affiliate-unknown-price-no-borrowed-amount",
+      "turns": [
+        "¿La guía de alimentación cuesta lo mismo que el kit?"
+      ],
+      "quality": {
+        "must_reference": [
+          "product:alimentacion-bebe"
+        ],
+        "max_resources": 0
+      }
+    },
+    {
+      "id": "unknown-product-price-comparison",
+      "turns": [
+        "¿Los dos productos tienen el mismo precio?",
+        "¿Cuál cuesta menos?"
+      ],
+      "quality": {
+        "must_reference": [
+          "product:grafismo-fonetico",
+          "product:alimentacion-bebe"
+        ],
+        "forbid_any": [
+          "son iguales",
+          "son diferentes",
+          "es más barato"
+        ]
+      }
+    },
+    {
+      "id": "comparison-reference-printing-correction",
+      "turns": [
+        "Compara los dos productos.",
+        "Ese producto, ¿se imprime?",
+        "Me refiero a la guía de alimentación."
+      ],
+      "quality": {
+        "must_reference": [
+          "product:alimentacion-bebe"
+        ],
+        "forbid_any": [
+          "no se puede imprimir",
+          "no es imprimible"
+        ]
+      }
     }
   ]
 }

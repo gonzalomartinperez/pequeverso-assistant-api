@@ -126,7 +126,7 @@ The final receipt contains public revision/count metadata, not prompts, messages
 
 ## Index and activation sequence
 
-1. Follow `.agents/skills/update-catalog/SKILL.md`: export from a pinned storefront commit
+1. Follow `.agents/skills/api-maintain-knowledge/SKILL.md`: export from a pinned storefront commit
    reachable from `origin/main`, review facts and commit the authorized snapshot. Do not hand
    edit commercial data or ingest evaluation questions as knowledge.
 2. Validate the catalog and construct a deterministic revision from its exact body hash,
