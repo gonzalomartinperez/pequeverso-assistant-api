@@ -333,6 +333,26 @@
         "products": [],
         "replaced": true
       }
+    },
+    {
+      "id": "published-video-format-does-not-deny-unknown-printables",
+      "output": {
+        "answer": "Guía de Alimentación para Bebés es un curso en video. No tengo confirmación sobre materiales adicionales para imprimir o descargar.",
+        "references": [
+          {
+            "kind": "product",
+            "id": "alimentacion-bebe"
+          }
+        ],
+        "sources": [],
+        "follow_ups": []
+      },
+      "expect": {
+        "products": [
+          "alimentacion-bebe"
+        ],
+        "replaced": false
+      }
     }
   ]
 }

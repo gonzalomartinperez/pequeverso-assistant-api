@@ -28,6 +28,7 @@ from app.application.answers import (
     finalize,
     payment_refusal_text,
     price_comparison_reply,
+    reference_clarification_reply,
     replacement,
 )
 from app.application.catalog_scope import catalog_scope_reply
@@ -627,6 +628,13 @@ class ChatService:
             if local_answer is None:
                 local_answer = provenance_reply(redacted.text, active.catalog, history, language)
             local_details = AnswerDetails(language=language.value)
+            if local_answer is None:
+                reference_answer = reference_clarification_reply(
+                    redacted.text, active, history, language, active.price_status(now)
+                )
+                if reference_answer is not None:
+                    local_answer = reference_answer.content
+                    local_details = reference_answer.details
             if local_answer is None:
                 comparison = price_comparison_reply(
                     redacted.text, active, history, language, active.price_status(now)

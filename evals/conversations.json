@@ -325,6 +325,23 @@
           "es más barato"
         ]
       }
+    },
+    {
+      "id": "comparison-reference-printing-correction",
+      "turns": [
+        "Compara los dos productos.",
+        "Ese producto, ¿se imprime?",
+        "Me refiero a la guía de alimentación."
+      ],
+      "quality": {
+        "must_reference": [
+          "product:alimentacion-bebe"
+        ],
+        "forbid_any": [
+          "no se puede imprimir",
+          "no es imprimible"
+        ]
+      }
     }
   ]
 }

@@ -11,6 +11,8 @@ from urllib.parse import urlsplit
 
 from app.application.ports import Draft, DraftReference
 from app.application.price_comparison import clarification, comparison_products
+from app.application.reference_clarification import clarification as reference_clarification
+from app.application.reference_clarification import reference_reply
 from app.domain.answer_policy import (
     AnswerRules,
     Violation,
@@ -142,6 +144,65 @@ def price_comparison_reply(
         )
     return finalize(
         Draft(text, tuple(DraftReference(ReferenceKind.PRODUCT, p.id) for p in products), (), ()),
+        active,
+        price_status,
+        answer_rules(active.catalog, price_status, ()),
+        language,
+    )
+
+
+def reference_clarification_reply(
+    question: str,
+    active: ActiveCatalog,
+    history: Sequence[Message],
+    language: Language,
+    price_status: PriceStatus,
+) -> FinalizedAnswer | None:
+    plan = reference_reply(question, active.catalog, history)
+    if plan is None:
+        return None
+    references: list[DraftReference] = []
+    parts: list[str] = []
+    if plan.product_id is not None:
+        product = active.catalog.product(plan.product_id)
+        if product is None:
+            return None
+        parts.append(
+            f'The published format of «{product.name}» is: {product.format}'
+            if language is Language.EN
+            else f'El formato publicado de «{product.name}» es: {product.format}'
+        )
+        if not parts[-1].endswith(('.', '!', '?')):
+            parts[-1] += '.'
+        if product.pdf_count is None:
+            parts.append(
+                'I do not have confirmation of additional printable or downloadable materials.'
+                if language is Language.EN
+                else 'No tengo confirmación sobre materiales adicionales para imprimir o descargar.'
+            )
+        references.append(DraftReference(ReferenceKind.PRODUCT, product.id))
+    else:
+        for resource_id in plan.resource_ids:
+            resolved = active.catalog.resource(resource_id)
+            if resolved is None:
+                return None
+            _, resource = resolved
+            if resource.pages is not None:
+                parts.append(
+                    f'«{resource.title}»: {resource.pages} pages.'
+                    if language is Language.EN
+                    else f'«{resource.title}»: {resource.pages} páginas.'
+                )
+            else:
+                parts.append(
+                    f'«{resource.title}»: page count unconfirmed.'
+                    if language is Language.EN
+                    else f'«{resource.title}»: cantidad de páginas no confirmada.'
+                )
+            references.append(DraftReference(ReferenceKind.RESOURCE, resource_id))
+        parts.append(reference_clarification(language, guide=plan.guide))
+    return finalize(
+        Draft(' '.join(parts), tuple(references), (), ()),
         active,
         price_status,
         answer_rules(active.catalog, price_status, ()),
