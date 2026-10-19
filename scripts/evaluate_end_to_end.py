@@ -40,6 +40,7 @@ from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import ProviderResource, create_app
 from app.domain.catalog import PriceStatus
 from app.domain.web_evidence import SOURCES
+from app.presentation.http import Services
 from scripts.evaluate_conversations import CATALOG, _safety
 from scripts.real_eval_budget import (
     ATTEMPT_MICRO,
@@ -155,6 +156,24 @@ def safety_with_official_evidence(
             retained.append(citation)
         event['message']['sources'] = retained
     return [*_safety(copied, price_status), *problems]
+
+
+def catalog_price_snapshot(services: Services) -> dict[str, Any]:
+    """Actual app catalog/clock at dispatch; no reply/model inference or async pool access."""
+    active = services.catalog.active
+    now = services.clock.now()
+    return {
+        'status': (active.price_status(now) if active else PriceStatus.UNVERIFIED).value,
+        'catalog_sha256': active.sha256 if active else None,
+        'verified_at': active.verified_at.isoformat() if active else None,
+        'snapshot_at': now.isoformat(),
+        'max_age_seconds': active.max_price_age.total_seconds() if active else None,
+    }
+
+
+def safety_price_status(evidence: list[dict[str, Any]], snapshot: dict[str, Any]) -> PriceStatus:
+    # A dispatched turn keeps the exact status actually sent. Local answers have no provider record.
+    return PriceStatus(evidence[-1]['price_status'] if evidence else snapshot['status'])
 
 
 def observed_language(content: str, notices: list[str], *, spanish_native: bool = False) -> str:
@@ -426,6 +445,7 @@ def evaluate(
                         )
                         key = f'matrix-{case["id"]}-{number}'
                         before = len(provider.records)
+                        price_snapshot = catalog_price_snapshot(app.state.services)
                         receipt_start = len(bounded.receipts) if bounded else 0
                         embedding_start = len(embedding_receipts or [])
                         retrieval_start = len(retrieval_receipts or [])
@@ -517,9 +537,7 @@ def evaluate(
                         safety = (
                             safety_with_official_evidence(
                                 result['events'],
-                                PriceStatus(public_evidence[-1]['price_status'])
-                                if public_evidence
-                                else PriceStatus.UNVERIFIED,
+                                safety_price_status(public_evidence, price_snapshot),
                                 public_evidence,
                             )
                             if result['events']
@@ -555,6 +573,13 @@ def evaluate(
                             'reply_policy': 'spanish_native' if spanish_native else 'legacy_bilingual',
                             'observed_language': observed,
                             'evidence': public_evidence,
+                            'price_safety': {
+                                'status': safety_price_status(public_evidence, price_snapshot).value,
+                                'source': 'prepared_evidence'
+                                if public_evidence
+                                else 'active_catalog_snapshot',
+                                'catalog_snapshot': price_snapshot,
+                            },
                             'lexical_top3': [{'id': p.id, 'score': score} for p, score in lexical[:3]],
                             'history_matches': history_matches,
                             'prior_history_preserved': prior_history_preserved,
