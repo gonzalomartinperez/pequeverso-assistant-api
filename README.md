@@ -248,7 +248,11 @@ the 24KB input limit and public wire contracts remain unchanged. Post-adjustment
 verification is a separate gate, and a full new evaluation requires its own remaining
 authorized attempt budget.
 The [exact-image PostgreSQL report](docs/verification/postgres-alpine-2026-10-18.md) distinguishes
-the patched local engine from historical images and retains API/Neo4j deployment blockers.
+the patched local engine from historical images and retains the complete API/Neo4j findings.
+The [current security handoff](docs/security.md#dependency-and-image-findings-in-the-deployment-handoff)
+treats dependency/image CVEs as advisory and nonblocking for future deployment. Historical scan
+results remain unchanged; health, secrets, data and identity checks still apply. The VPS has not
+yet been purchased, and deployment or assistant activation still requires explicit owner direction.
 Neither report authorizes production activation.
 
 ## Software license

@@ -12,6 +12,19 @@ Read [the operator jobs, capability roles, migration and finite gates](knowledge
 before using this candidate. Main merging is not deployment or activation. All dated measurements
 below retain their historical source/image identities and are not acceptance of the new profile.
 
+## Dependency/image findings and remaining deployment gates
+
+The [current security handoff](security.md#dependency-and-image-findings-in-the-deployment-handoff)
+records owner direction received on 2026-10-19: dependency and image CVEs are advisory and
+nonblocking for future deployment. Preserve every dated scan finding and raw policy result,
+including `policy_pass: false`; do not rewrite historical reports or infer a new clean scan.
+This direction does not change scanners, dependencies, images, CI or runtime controls.
+
+The VPS has not yet been purchased. Its provisioning and explicit owner deployment/activation
+direction remain outstanding. Health/readiness, secrets, database/data preservation, identity,
+application quality and the operator checks in this contract remain gates. A source merge,
+fixture pass, image scan or advisory finding alone authorizes no deployment or public traffic.
+
 ## Image
 
 | Item | Value |

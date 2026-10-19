@@ -31,6 +31,23 @@ Before activation, review the [dated real-model evidence and remaining limits](v
 and obtain owner acceptance of commercial quality. A finite agent-reviewed development set,
 a valid source URL or a completed stream does not certify every future answer.
 
+## Dependency and image findings in the deployment handoff
+
+Owner direction relayed on 2026-10-19 treats dependency and image CVEs as **advisory and
+nonblocking for future deployment**; see the
+[canonical owner policy](https://github.com/gonzalomartinperez/vps-ops/blob/dc6b135982d2289ccbc45b0c61abd241e74d9c97/docs/security/vulnerability-policy.md).
+Retain the complete findings, severities, UNKNOWN rows,
+scanner/database timestamps, image identities and SBOM limitations. Historical raw
+`policy_pass: false` results remain false; this direction changes the handoff interpretation,
+not what the scanner found. It is not a vulnerability-free or general security assurance.
+
+Health/readiness, secret protection, data preservation, identity/authentication and application
+quality gates remain required. The VPS has not yet been purchased; provisioning, deployment
+and storefront assistant activation still require explicit owner direction through vps-ops.
+No scanner rule, severity threshold, suppression, CI setting or runtime control changes here.
+The historical scan reports keep their original policy and source context; read this current
+handoff alongside them rather than relabeling their results.
+
 ## Data retention and privacy
 
 - **Stored:** session digest and CSRF token, redacted questions, answers and their validated
