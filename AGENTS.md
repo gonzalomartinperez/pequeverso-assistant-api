@@ -69,11 +69,15 @@ Automatic/default discovery remains enabled; load only the skill matching the ta
 `docs/agent-skills.md`. Validate with `python -m scripts.validate_skills`; skills never add
 authority for paid calls, deployment, cross-repository edits or protected-branch mutations.
 
-## Local product analytics fixture exception
+## Optional product analytics channel
 
-The owner-authorized three-event fixture channel is separate from assistant operations and RAG.
-Follow `docs/product-analytics.md`: default OFF, nonproduction/fixture/PostgreSQL only, country OFF,
-closed Peque public profile, content-free scoped aggregates and private server-only bearer reads.
-No Store collector, advertising/consent changes, identity joins, model calls or production
-collection are authorized by implementing or testing this channel. Preserve existing chat/ops/
-telemetry contracts and migration history. Real PG/BO/browser proof needs its own fresh lease.
+The owner-authorized three-event channel is separate from assistant operations and RAG.
+Follow `docs/product-analytics.md`: collection/read default OFF, PostgreSQL only, a closed Peque
+public profile, content-free scoped aggregates and private server-only bearer reads. Explicit
+production configuration supports production-class aggregates independently of the AI provider;
+persisted namespaces preserve existing synthetic fixtures. Country defaults OFF/unknown.
+Optional trusted-proxy country handling requires exact socket-peer/header validation;
+configuration is not Cloudflare or deployed-edge proof. Implementing or testing this capability
+authorizes no production activation, identity joins, model calls, Store collector, Meta/CAPI or
+checkout changes. Preserve existing chat/ops/telemetry contracts and migration history. Real
+PG/BO/browser checks require a fresh resource lease; deployment needs separate owner authorization.
