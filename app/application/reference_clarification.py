@@ -12,6 +12,7 @@ from app.domain.conversation import Message, Notice, Role
 from app.domain.language import Language
 
 _PRINT = re.compile(r'\b(?:imprim\w*|print\w*|descarg\w*|download\w*)\b')
+_PRINTABLE_PROPERTY = re.compile(_PRINT.pattern + r'|\bpdfs?\b')
 _SINGULAR = re.compile(
     r'\b(?:(?:ese|este|aquel|el) producto|(?:la|esa|esta) guia|(?:this|that|the) (?:product|guide))\b'
 )
@@ -139,7 +140,7 @@ def reference_reply(question: str, catalog: Catalog, history: Sequence[Message])
         local_clarification = _plain(answer) and answer.content in {clarification(lang) for lang in Language}
         if (
             local_clarification
-            and _PRINT.search(fold(history[-2].content))
+            and _PRINTABLE_PROPERTY.search(fold(history[-2].content))
             and len(explicit_products) == 1
             and not explicit_resources
             and _bare_correction_ids(text, catalog) == explicit_products

@@ -193,3 +193,16 @@ def test_explicit_plural_question_does_not_get_singular_clarification(active, qu
 
 def test_conflicting_explicit_format_qualification_keeps_ordinary_flow(active):
     assert reference_reply('¿El PDF del curso se imprime?', active.catalog, options(active)) is None
+
+
+def test_pdf_property_clarification_correction_inherits_only_the_immediate_task(active):
+    history = (
+        Message('u', Role.USER, 'Ese producto, ¿incluye PDF?', FixedClock().now()),
+        Message('a', Role.ASSISTANT, clarification(Language.ES), FixedClock().now()),
+    )
+    result = reference_clarification_reply(
+        'Me refiero a la guía de alimentación.', active, history, Language.ES, PriceStatus.VERIFIED
+    )
+    assert result is not None and 'video' in result.content.lower()
+    assert 'No tengo confirmación' in result.content
+    assert [p.id for p in result.details.products] == ['alimentacion-bebe']

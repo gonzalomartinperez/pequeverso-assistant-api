@@ -22,8 +22,9 @@ def completed(response):
     return next(e['message'] for e in parse_sse(response.text) if e['type'] == 'message.completed')
 
 
+@pytest.mark.parametrize('property_question', ['Ese producto, ¿se imprime?', 'Ese producto, ¿incluye PDF?'])
 def test_comparison_then_printing_clarification_and_correction_are_local(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, property_question: str
 ) -> None:
     provider = ScriptedProvider(
         output=answer_json(
@@ -63,7 +64,7 @@ def test_comparison_then_printing_clarification_and_correction_are_local(
             'Sí, ese producto se imprime.', references=[{'kind': 'product', 'id': 'grafismo-fonetico'}]
         )
         payload = {
-            'content': 'Ese producto, ¿se imprime?',
+            'content': property_question,
             'response_language': 'es',
             'page': 'product',
             'context': {'opened_path': '/grafismo-fonetico/'},
