@@ -10,7 +10,7 @@ dependencies = [
     "httpx>=0.28.1",
     "langchain-core==1.6.12",
     "langgraph==1.2.16",
-    "langsmith==0.14.9",
+    "langsmith==0.14.11",
     "neo4j==6.4.1",
     "psycopg[binary,pool]==3.3.6",
     "psycopg-pool==3.3.3",
