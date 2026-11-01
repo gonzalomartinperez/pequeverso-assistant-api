@@ -2,7 +2,7 @@
 # Pequeverso assistant API. One process, one uvicorn worker (in-process run registry and a single
 # private-runtime ownership lease; see docs/deployment-contract.md). PostgreSQL holds production
 # state; /data is only the explicitly mounted SQLite fixture/import path.
-FROM ghcr.io/astral-sh/uv:0.13.1@sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 AS uv
 
 FROM python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS build
 COPY --from=uv /uv /usr/local/bin/uv
