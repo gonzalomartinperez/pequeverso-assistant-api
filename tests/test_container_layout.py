@@ -123,6 +123,9 @@ def test_dependabot_keeps_all_three_real_recipe_directories_under_manual_weekly_
         '/infra/docker/neo4j',
     }
     assert 'directory' not in update
-    assert update['target-branch'] == 'develop'
-    assert update['schedule']['interval'] == 'weekly'
+    group = config['multi-ecosystem-groups']['weekly-all']
+    assert update['multi-ecosystem-group'] == 'weekly-all'
+    assert group['target-branch'] == 'develop'
+    assert group['schedule']['interval'] == 'weekly'
+    assert group['open-pull-requests-limit'] == 1
     assert update['cooldown']['default-days'] == 7

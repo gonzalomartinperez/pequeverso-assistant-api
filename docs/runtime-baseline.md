@@ -1,6 +1,6 @@
 # GraphRAG runtime profile — 2026-10-17
 
-The current source profile uses Python **3.14.8**, uv **0.13.1**, PostgreSQL **18.6** with
+The current source profile uses Python **3.14.8**, uv **0.13.7**, PostgreSQL **18.6** with
 pgvector **0.8.7**, Neo4j Community **5.26.32** on the 5.26 LTS line, LangGraph **1.2.16**,
 LangChain Core **1.6.12**, LangSmith **0.14.9**, psycopg **3.3.6** / pool **3.3.3** and Neo4j
 driver **6.4.1**. Exact dependency resolution is in `uv.lock`; container bases are digest-pinned.
@@ -41,7 +41,7 @@ baseline/routing/release policy; Coolify remains the sole deployment executor.
 
 The lockfile is authoritative for the complete dependency graph. This dated view does not
 assert that these versions remain the newest forever or that an image has been published.
-Python 3.15.0 is maintained stable, not named LTS; uv 0.13.1 is stable tooling.
+Python 3.15.0 is maintained stable, not named LTS; uv 0.13.7 is stable tooling.
 This historical pre-GraphRAG candidate had no Lingua dependency and used SQLite rather than
 the portfolio retrieval stack; it is superseded by the current production profile above.
 The portfolio remains an immutable implementation reference, not evidence that Pequeverso
@@ -54,8 +54,8 @@ The earlier unavailable-tag observation in the deployment contract is historical
 `sha256:2da676046630d7bf14c6764ae1143dc7fa0377a53f94bf5a642f0b214aca5bce`;
 its Linux amd64 manifest is
 `sha256:a83d68dc3d8f1048ff5628bc6f8c9f859938eb5add44ca947b70105b0383e961`.
-The uv 0.13.1 manifest is
-`sha256:4a1f3666816dafadd20ceb71eac9a7d56d7ef30279f7d64048519ab901ada336`.
+The uv 0.13.7 manifest is
+`sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490`.
 Both digests were verified against public registry metadata on 2026-10-17; metadata alone
 does not prove installation, ABI behavior or application correctness. The complete locked
 Python dependency graph has candidate CP315-compatible wheels on Linux amd64. Frozen install

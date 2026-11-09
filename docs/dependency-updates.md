@@ -1,9 +1,13 @@
 # Dependency updates and manual review
 
-## Current profile — 2026-10-17
+## Current profile — 2026-11-09
 
-Dependabot continues to open version-update PRs into `develop`, weekly for every configured ecosystem, with its existing
-groups and native `rebase-strategy: auto`. Every update requires manual review and a protected
+Dependabot opens one weekly version-update PR into `develop` (multi-ecosystem group `weekly-all`: uv, GitHub
+Actions and the three Docker recipe directories; Monday 09:00 America/Argentina/Buenos_Aires; group-level
+`open-pull-requests-limit: 1`; cooldown 7 days, with semver cooldowns on uv only). The per-ecosystem groups and
+`rebase-strategy` of the 2026-10-17 profile were removed. The review policy below was written for several PRs
+and keeps working unchanged on the single grouped PR (a grouped PR is eligible only if every member
+qualifies; Actions and Docker members always need human review); revisiting it is deferred to M1. Every update requires manual review and a protected
 merge. The read-only policy classifies authenticated metadata and manifest changes; an
 `eligible` result means only a low-risk review candidate. Its `automerge` output is always
 `false`. It cannot approve, enable auto-merge or merge a PR and has no write-scoped job.
