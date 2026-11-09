@@ -1,0 +1,38 @@
+# ruff 0.17.3 --isolated, target py314, line-length 100, ecosystem 10.2 families (E W F I B C4 UP SIM RUF PERF PIE PT PTH TC ASYNC S T20 TRY ARG FAST LOG G DTZ ERA FURB N RET D ANN; ignore E501 TRY003 D203 D213)
+# measured 2026-11-09 on git archive of origin/develop 6912579; no per-file ignores applied
+## app scripts contracts: 1331 findings
+290	D102   	[ ] undocumented-public-method
+234	D101   	[ ] undocumented-public-class
+139	D103   	[ ] undocumented-public-function
+123	TC001  	[ ] typing-only-first-party-import
+ 81	TC003  	[ ] typing-only-standard-library-import
+ 77	E402   	[ ] module-import-not-at-top-of-file
+ 62	D107   	[ ] undocumented-public-init
+ 59	T201   	[ ] print
+ 29	TRY301 	[ ] raise-within-try
+ 27	RUF100 	[*] unused-noqa
+ 23	D205   	[ ] missing-blank-line-after-summary
+ 23	TC002  	[ ] typing-only-third-party-import
+ 21	S101   	[ ] assert
+ 18	ANN401 	[ ] any-type
+ 18	S603   	[ ] subprocess-without-shell-equals-true
+ 14	S607   	[ ] start-process-with-partial-path
+ 14	D105   	[ ] undocumented-magic-method
+ 13	PERF401	[ ] manual-list-comprehension
+ 12	D401   	[ ] non-imperative-mood
+ 11	D104   	[ ] undocumented-public-package
+ 10	D209   	[*] new-line-after-last-paragraph
+  8	I001   	[*] unsorted-imports
+  8	ARG002 	[ ] unused-method-argument
+  5	PTH101 	[ ] os-chmod
+  4	TRY300 	[ ] try-consider-else
+  2	PTH123 	[ ] builtin-open
+  2	D403   	[*] first-word-uncapitalized
+  1	D301   	[ ] escape-sequence-in-docstring
+  1	TC006  	[*] runtime-cast-value
+  1	D100   	[ ] undocumented-public-module
+  1	ARG001 	[ ] unused-function-argument
+Found 1331 errors.
+[*] 48 fixable with `--fix` (287 unsafe fixes available with `--fix --unsafe-fixes`).
+## tests (D ANN excluded, S101 ignored as in ecosystem): 695 findings including ARG001 64 and ARG005 39, which the ecosystem ignores in tests
+## ruff format --check --line-length 100 (double quotes default): 204 files would be reformatted, 21 already formatted

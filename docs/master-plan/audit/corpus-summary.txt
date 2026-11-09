@@ -1,0 +1,5 @@
+# fixture-mode corpus run, catalog revision 7dde2968783c809205bd6ba16ec4a4661b936ca0, 288 cases
+pipeline overall: {"cases": 288, "gate_failures": 0, "language_mismatches": 0, "behavior_flags": 218}
+retrieval overall: {"cases": 190, "recall_at_3": 0.689, "mrr": 0.603}
+retrieval by_language: {"en": {"cases": 6, "recall_at_3": 0.167, "mrr": 0.167}, "es": {"cases": 184, "recall_at_3": 0.707, "mrr": 0.618}, "unsupported": {"cases": 0, "recall_at_3": null, "mrr": null}}
+behaviour flag kinds (fixture provider; not model quality): grounding 158, decline-without-support-route 32, no_info-without-support-route 28, invented_policy manual-review skips 9

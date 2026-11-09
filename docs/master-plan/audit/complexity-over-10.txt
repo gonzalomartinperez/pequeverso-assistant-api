@@ -1,0 +1,20 @@
+# ruff C901 (threshold 0 raw dump), functions with complexity > 10; 661 functions total, 19 above 10
+36	app/bootstrap/container.py:119	create_app
+29	app/bootstrap/config.py:154	fail_closed
+29	app/application/chat.py:552	start
+21	app/application/answers.py:431	finalize
+20	app/presentation/product_analytics.py:253	build_router
+17	app/presentation/product_analytics.py:188	consistent
+17	app/application/chat.py:183	events
+17	app/ai/composer.py:138	prepare
+16	app/domain/page_claims.py:63	unsupported_page_claim
+15	app/application/knowledge.py:86	retrieve
+14	app/domain/answer_policy.py:243	check_answer
+13	app/application/answers.py:331	check_content
+12	app/bootstrap/container.py:321	lifespan
+12	app/application/catalog_scope.py:49	catalog_scope_reply
+12	app/adapters/catalog/knowledge.py:27	build_public_corpus
+11	app/presentation/product_analytics.py:267	ingest
+11	app/application/indexing.py:32	index
+11	app/adapters/providers/openai_provider.py:124	stream
+11	app/adapters/neo4j/public_graph.py:166	candidates
