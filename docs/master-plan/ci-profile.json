@@ -1,0 +1,82 @@
+{
+  "$comment": "Draft for docs/master-plan/ci-profile.json, moved to .github/ci-profile.json at M1. Validated by tests/test_ci_profile.py: every tracked path must match at least one group, unknown paths run everything (fail closed).",
+  "version": 1,
+  "repo": "pequeverso-assistant-api",
+  "ecosystem": "v1",
+  "gate_job": "ci-gate",
+  "fail_closed": true,
+  "groups": {
+    "docs": ["**/*.md", "docs/**", "LICENSE", "NOTICE.md", ".github/ISSUE_TEMPLATE/**", ".github/PULL_REQUEST_TEMPLATE.md", ".github/CODEOWNERS", ".agents/skills/**", ".claude/skills/**"],
+    "code": ["app/**", "tests/**", "scripts/**", "evals/**", "tools/**", "catalog/**", "migrations/**", "ratchets/**", "pyproject.toml", "uv.lock", ".python-version", ".importlinter", ".env.example", ".gitignore", ".dockerignore"],
+    "contract": ["contracts/**"],
+    "assistant-quality": [
+      "app/ai/**",
+      "app/domain/answer_policy.py",
+      "app/domain/page_claims.py",
+      "app/domain/language.py",
+      "app/domain/redaction.py",
+      "app/application/answers.py",
+      "app/application/chat.py",
+      "app/application/knowledge.py",
+      "app/application/catalog*.py",
+      "catalog/**",
+      "evals/**",
+      "scripts/evaluate_*.py",
+      "tests/test_evaluations.py"
+    ],
+    "container": ["infra/docker/**", "pyproject.toml", "uv.lock", "migrations/**", "catalog/**", "scripts/smoke_*.sh", "scripts/container_fixture_probe.py"],
+    "monitoring": ["deploy/monitoring/**"],
+    "workflow": [".github/**"]
+  },
+  "profiles": {
+    "docs": {
+      "when": {"only_groups": ["docs"]},
+      "run": ["markdownlint", "lychee", "skills-validate", "readme-headings", "secret-scan"],
+      "skip": ["unit", "database", "container", "contract", "assistant-quality", "mutation"],
+      "budget_p50_minutes": 2
+    },
+    "code": {
+      "when": {"default": true},
+      "run": ["static", "unit", "database-if-affected", "contract-if-affected", "container-if-affected", "mutation-incremental", "secret-scan", "security"],
+      "skip": ["unaffected suites"],
+      "budget_p50_minutes": 5,
+      "budget_p95_minutes": 10
+    },
+    "contract": {
+      "when": {"any_group": ["contract"]},
+      "run": ["code", "oasdiff", "schemathesis-short", "consumer-compile"],
+      "requires_label_for_breaking": "contract-major",
+      "budget_p50_minutes": 7
+    },
+    "assistant-quality": {
+      "when": {"any_group": ["assistant-quality"]},
+      "run": ["code", "golden-replay-100", "red-team-pack", "full-set-fixture-vs-baseline"],
+      "skip": ["live-run"],
+      "budget_p50_minutes": 8
+    },
+    "workflow": {
+      "when": {"any_group": ["workflow"]},
+      "run": ["actionlint", "zizmor", "sha-pin-policy", "dry-run-reusable-workflow"],
+      "budget_p50_minutes": 3
+    },
+    "deps-weekly": {
+      "when": {"head_ref_glob": "dependabot/**"},
+      "run": ["code", "dependency-review", "licence-check", "sbom-diff", "lockfile-lint", "image-rebuild-and-scan"],
+      "budget_p50_minutes": 8
+    },
+    "release": {
+      "when": {"base_ref": "main", "head_ref": "develop"},
+      "run": ["code", "full-mutation-or-last-nightly-24h", "schemathesis-long", "load-short", "image-build-sbom-provenance-verify", "changelog-check", "golden-live-report-present"],
+      "budget_p50_minutes": 25
+    },
+    "hotfix": {
+      "when": {"head_ref_glob": "hotfix/**", "base_ref": "main", "label": "owner-authorized-hotfix"},
+      "run": ["code", "image-build-sbom-provenance-verify"],
+      "post": ["open-back-merge-pr-to-develop"],
+      "budget_p50_minutes": 10
+    }
+  },
+  "nightly": ["mutation-full", "flake-detector", "hypothesis-1000", "schemathesis-500", "locust-sse", "zap-baseline", "osv-and-grype-on-digests", "scorecard-json-ratchet", "scorecard-ossf"],
+  "weekly": ["deps-weekly-guard", "link-check-all-docs", "standards-drift", "ci-duration-report", "mutation-full-scoped"],
+  "daily": ["osv-scanner", "compromised-actions-watch"]
+}

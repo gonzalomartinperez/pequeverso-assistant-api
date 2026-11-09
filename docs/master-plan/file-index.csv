@@ -1,0 +1,413 @@
+path,layer,kind,lines,target_path,target_layer,action,reason
+.agents/skills/api-change-contract,harness,skill,1,.claude/skills/api-change-contract,harness,move,symlink direction inverted with the canonical move
+.agents/skills/api-change-use-case,harness,skill,1,.claude/skills/api-change-use-case,harness,move,symlink direction inverted with the canonical move
+.agents/skills/api-maintain-knowledge,harness,skill,1,.claude/skills/api-maintain-knowledge,harness,move,symlink direction inverted with the canonical move
+.agents/skills/api-release-and-hotfix,harness,skill,1,.claude/skills/api-release-and-hotfix,harness,move,symlink direction inverted with the canonical move
+.agents/skills/api-review-dependency-update,harness,skill,1,.claude/skills/api-review-weekly-dependencies,harness,move,symlink follows the renamed skill
+.agents/skills/api-verify-release,harness,skill,1,.claude/skills/api-verify-release,harness,move,symlink direction inverted with the canonical move
+.claude/skills/api-change-contract/SKILL.md,harness,skill,26,.agents/skills/api-change-contract/SKILL.md,harness,move,"ecosystem 15.1: canonical in .agents/skills, relative symlink from .claude/skills (currently inverted)"
+.claude/skills/api-change-use-case/SKILL.md,harness,skill,32,.agents/skills/api-change-use-case/SKILL.md,harness,move,"ecosystem 15.1: canonical in .agents/skills, relative symlink from .claude/skills (currently inverted)"
+.claude/skills/api-maintain-knowledge/SKILL.md,harness,skill,23,.agents/skills/api-maintain-knowledge/SKILL.md,harness,move,"ecosystem 15.1: canonical in .agents/skills, relative symlink from .claude/skills (currently inverted)"
+.claude/skills/api-release-and-hotfix/SKILL.md,harness,skill,45,.agents/skills/api-release-and-hotfix/SKILL.md,harness,move,"ecosystem 15.1: canonical in .agents/skills, relative symlink from .claude/skills (currently inverted)"
+.claude/skills/api-review-dependency-update/SKILL.md,harness,skill,24,.agents/skills/api-review-weekly-dependencies/SKILL.md,harness,rewrite,review of the single weekly PR; renamed because the eligibility assessment is retired (PVA-D9)
+.claude/skills/api-verify-release/SKILL.md,harness,skill,23,.agents/skills/api-verify-release/SKILL.md,harness,move,"ecosystem 15.1: canonical in .agents/skills, relative symlink from .claude/skills (currently inverted)"
+.dockerignore,root,config,11,.dockerignore,root,keep,mandatory by ecosystem 8.2
+.env.example,root,config,62,.env.example,root,edit,"generated env schema check (names, required, secret flag)"
+.github/.gitleaksignore,ci,config,19,.github/.gitleaksignore,ci,keep,reviewed fingerprints; each entry needs issue and expiry
+.github/dependabot-policy.json,ci,config,8,-,ci,delete,allowlist for the retired classifier
+.github/dependabot.yml,ci,config,61,.github/dependabot.yml,ci,rewrite,"multi-ecosystem group weekly Monday 09:00 ART, develop, uv + github-actions + docker, patterns *, open PR limit 1"
+.github/gitleaks.toml,ci,config,17,.github/gitleaks.toml,ci,edit,align with engineering-standards template
+.github/scripts/secret-scan.sh,ci,script,30,.github/scripts/secret-scan.sh,ci,keep,full-history gitleaks wrapper; kept until the shared security workflow reproduces it (zero commits scanned fails)
+.github/workflows/dependency-policy.yml,ci,workflow,47,.github/workflows/deps-weekly-guard.yml,ci,rewrite,pull_request_target policy workflow removed; replaced by the shared weekly guard (no PR-head trust)
+.github/workflows/quality.yml,ci,workflow,227,.github/workflows/ci.yml,ci,rewrite,"one ci.yml: classify job, shared reusable workflows, ci-gate (renamed from checks via ruleset script), profiles per ecosystem 6.0"
+.gitignore,root,config,15,.gitignore,root,edit,"add evals run outputs, mutants/, .hypothesis/, coverage files"
+.python-version,root,config,1,.python-version,root,keep,3.14.8 matches ecosystem Python 3.14.x
+AGENTS.md,root,doc,83,AGENTS.md,root,edit,"fix branch wording (integration develop, main releases only), commands equal CI, skills path, link master plan"
+CHANGELOG.md,root,doc,57,CHANGELOG.md,root,edit,release-please takes over from 1.0.0; keep history
+CLAUDE.md,root,doc,1,CLAUDE.md,root,keep,imports AGENTS.md
+LICENSE,root,doc,21,LICENSE,root,keep,"MIT, owner-authorised for software only"
+NOTICE.md,root,doc,42,NOTICE.md,root,keep,scope and reserved material
+README.md,root,doc,268,README.md,root,rewrite,ecosystem README template; 13 badges to 3; galleries to docs/; no volatile facts (docs-and-community.md)
+app/__init__.py,bootstrap-root,source,0,app/__init__.py,bootstrap-root,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/__init__.py,adapters,source,0,app/adapters/__init__.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/catalog/__init__.py,adapters,source,0,app/adapters/catalog/__init__.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/catalog/knowledge.py,adapters,source,190,app/adapters/catalog/knowledge.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/catalog_schema.py,adapters,source,258,app/adapters/catalog_schema.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/catalog_source.py,adapters,source,65,app/adapters/catalog_source.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/graph/__init__.py,adapters,source,1,app/adapters/graph/__init__.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/graph/composer.py,adapters,source,207,app/adapters/graph/composer.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/graph/local_evaluation.py,adapters,source,108,app/adapters/graph/local_evaluation.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/neo4j/__init__.py,adapters,source,0,app/adapters/neo4j/__init__.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/neo4j/database.py,adapters,source,53,app/adapters/neo4j/database.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/neo4j/public_graph.py,adapters,source,248,app/adapters/neo4j/public_graph.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/observability/__init__.py,adapters,source,14,app/adapters/observability/__init__.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/observability/telemetry.py,adapters,source,426,app/adapters/observability/telemetry.py,adapters,edit,inject Clock port (2 datetime.now calls); gen_ai attributes centralised in one module
+app/adapters/official_help.py,adapters,source,194,app/adapters/official_help.py,adapters,edit,"inject Clock port instead of datetime.now default (DTZ/clock rule, finding P2)"
+app/adapters/postgres/001_knowledge.sql,adapters,sql,50,app/adapters/postgres/001_knowledge.sql,adapters,keep,"forward-only migration; expand/contract; migration test (up, forward) in database job"
+app/adapters/postgres/002_roles.sql,adapters,sql,19,app/adapters/postgres/002_roles.sql,adapters,keep,"forward-only migration; expand/contract; migration test (up, forward) in database job"
+app/adapters/postgres/003_private.sql,adapters,sql,115,app/adapters/postgres/003_private.sql,adapters,keep,"forward-only migration; expand/contract; migration test (up, forward) in database job"
+app/adapters/postgres/004_accounting_policy.sql,adapters,sql,22,app/adapters/postgres/004_accounting_policy.sql,adapters,keep,"forward-only migration; expand/contract; migration test (up, forward) in database job"
+app/adapters/postgres/005_product_analytics.sql,adapters,sql,38,app/adapters/postgres/005_product_analytics.sql,adapters,keep,"forward-only migration; expand/contract; migration test (up, forward) in database job"
+app/adapters/postgres/006_analytics_classification_country.sql,adapters,sql,34,app/adapters/postgres/006_analytics_classification_country.sql,adapters,keep,"forward-only migration; expand/contract; migration test (up, forward) in database job"
+app/adapters/postgres/__init__.py,adapters,source,1,app/adapters/postgres/__init__.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/postgres/database.py,adapters,source,133,app/adapters/postgres/database.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/postgres/import_sqlite.py,adapters,source,307,app/adapters/postgres/import_sqlite.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/postgres/knowledge.py,adapters,source,653,app/adapters/postgres/knowledge.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/postgres/private_ledger.py,adapters,source,125,app/adapters/postgres/private_ledger.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/postgres/private_operations.py,adapters,source,220,app/adapters/postgres/private_operations.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/postgres/private_stores.py,adapters,source,226,app/adapters/postgres/private_stores.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/postgres/product_analytics.py,adapters,source,147,app/adapters/postgres/product_analytics.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/providers/__init__.py,adapters,source,1,app/adapters/providers/__init__.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/providers/fixture_provider.py,adapters,source,163,app/adapters/providers/fixture_provider.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/providers/openai_embeddings.py,adapters,source,107,app/adapters/providers/openai_embeddings.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/providers/openai_provider.py,adapters,source,157,app/adapters/providers/openai_provider.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/sqlite/__init__.py,adapters,source,0,app/adapters/sqlite/__init__.py,adapters,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/adapters/sqlite/catalog_repository.py,adapters,source,78,app/adapters/sqlite/catalog_repository.py,adapters,keep,fixture profile; retirement tracked by PVA-D12
+app/adapters/sqlite/database.py,adapters,source,102,app/adapters/sqlite/database.py,adapters,keep,fixture/default credential-free profile (AGENTS.md); retirement tracked by PVA-D12
+app/adapters/sqlite/ledger.py,adapters,source,130,app/adapters/sqlite/ledger.py,adapters,keep,fixture/default credential-free profile (AGENTS.md); retirement tracked by PVA-D12
+app/adapters/sqlite/operations.py,adapters,source,193,app/adapters/sqlite/operations.py,adapters,keep,fixture/default credential-free profile (AGENTS.md); retirement tracked by PVA-D12
+app/adapters/sqlite/stores.py,adapters,source,225,app/adapters/sqlite/stores.py,adapters,keep,fixture/default credential-free profile (AGENTS.md); retirement tracked by PVA-D12
+app/ai/__init__.py,ai,source,0,app/ai/__init__.py,ai,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/ai/composer.py,ai,source,322,app/ai/composer.py,ai,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/ai/evidence.py,ai,source,267,app/ai/evidence.py,ai,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/ai/output.py,ai,source,112,app/ai/output.py,ai,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/ai/prompt.py,ai,source,137,app/ai/prompt.py (+ app/ai/prompt.lock.json),ai,edit,"formalize PROMPT_VERSION: content hash lock, bump test, prompt changelog (assistant-quality.md section 9)"
+app/ai/provider.py,ai,source,65,app/ai/provider.py,ai,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/__init__.py,application,source,0,app/application/__init__.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/answers.py,application,source,555,app/application/answers.py,application,edit,finalize complexity 21 and check_content 13: extract rule stages; behaviour pinned by golden set and mutation scope
+app/application/catalog.py,application,source,86,app/application/catalog.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/catalog_diff.py,application,source,115,app/application/catalog_diff.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/catalog_scope.py,application,source,83,app/application/catalog_scope.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/chat.py,application,source,826,app/application/chat.py (+chat_steps.py),application,split,start (29) and events (17) become named steps behind characterisation tests and golden cassettes; no behaviour change
+app/application/embedding_budget.py,application,source,63,app/application/embedding_budget.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/indexing.py,application,source,84,app/application/indexing.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/knowledge.py,application,source,249,app/application/knowledge.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/knowledge_evaluation.py,application,source,161,app/application/knowledge_evaluation.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/knowledge_ports.py,application,source,84,app/application/knowledge_ports.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/operations.py,application,source,285,app/application/operations.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/ports.py,application,source,255,app/application/ports.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/price_comparison.py,application,source,139,app/application/price_comparison.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/product_analytics.py,application,source,113,app/application/product_analytics.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/provenance.py,application,source,211,app/application/provenance.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/reference_clarification.py,application,source,166,app/application/reference_clarification.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/runs.py,application,source,77,app/application/runs.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/sessions.py,application,source,96,app/application/sessions.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/starters.py,application,source,64,app/application/starters.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/application/telemetry.py,application,source,44,app/application/telemetry.py,application,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/bootstrap/__init__.py,bootstrap,source,0,app/bootstrap/__init__.py,bootstrap,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/bootstrap/config.py,bootstrap,source,262,app/bootstrap/config.py,bootstrap,edit,fail_closed complexity 29: table-driven validators; requires-python and settings docs generated into env schema (ecosystem 8.5)
+app/bootstrap/container.py,bootstrap,source,457,"app/bootstrap/container.py (+wiring.py, lifespan.py, routes.py)",bootstrap,split,"create_app has cyclomatic complexity 36; split into wiring, lifespan and route installation, each <= 10 (PVA-D4)"
+app/bootstrap/evaluation_index.py,bootstrap,source,138,app/bootstrap/evaluation_index.py,bootstrap,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/bootstrap/import_database.py,bootstrap,source,50,app/bootstrap/import_database.py,bootstrap,keep,0% local coverage: one-shot offline import; covered by database job; reassess after SQLite retirement decision (PVA-D12)
+app/bootstrap/knowledge_evaluation.py,bootstrap,source,281,app/bootstrap/knowledge_evaluation.py,bootstrap,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/bootstrap/knowledge_jobs.py,bootstrap,source,195,app/bootstrap/knowledge_jobs.py,bootstrap,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/bootstrap/logging.py,bootstrap,source,224,app/bootstrap/logging.py,bootstrap,edit,"keep allowlist JSON formatter; LOG_STREAM selector (stderr for CLIs), silence httpx/httpcore INFO, aggregate external events (noisy stdout finding P2)"
+app/bootstrap/persistence.py,bootstrap,source,93,app/bootstrap/persistence.py,bootstrap,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/bootstrap/provider_transport.py,bootstrap,source,30,app/bootstrap/provider_transport.py,bootstrap,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/domain/__init__.py,domain,source,0,app/domain/__init__.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/analytics_country.py,domain,source,260,app/domain/analytics_country.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/answer_policy.py,domain,source,308,app/domain/answer_policy.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/budget.py,domain,source,107,app/domain/budget.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/catalog.py,domain,source,234,app/domain/catalog.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/conversation.py,domain,source,120,app/domain/conversation.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/errors.py,domain,source,44,app/domain/errors.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/knowledge.py,domain,source,223,app/domain/knowledge.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/language.py,domain,source,489,app/domain/language.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/page_claims.py,domain,source,132,app/domain/page_claims.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/product_analytics.py,domain,source,71,app/domain/product_analytics.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/redaction.py,domain,source,49,app/domain/redaction.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/visitor_context.py,domain,source,62,app/domain/visitor_context.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/domain/web_evidence.py,domain,source,167,app/domain/web_evidence.py,domain,keep,core layer; in mutation scope (mutmut) and Hypothesis targets where listed in testing.md
+app/main.py,bootstrap-root,source,3,app/main.py,bootstrap,keep,0% covered by design (ASGI entry); covered by container smoke; excluded from coverage with comment
+app/presentation/__init__.py,presentation,source,0,app/presentation/__init__.py,presentation,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/presentation/analytics_country.py,presentation,source,22,app/presentation/analytics_country.py,presentation,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/presentation/events.py,presentation,source,73,app/presentation/events.py,presentation,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/presentation/http.py,presentation,source,313,app/presentation/http.py,presentation,edit,"add /healthz and /readyz aliases (version, schema_version) next to /health/live and /health/ready; expand/contract with vps-ops"
+app/presentation/middleware.py,presentation,source,192,app/presentation/middleware.py,presentation,edit,request id already generated; add propagation test and log field; keep error envelope (PVA-D6)
+app/presentation/operations.py,presentation,source,267,app/presentation/operations.py,presentation,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/presentation/product_analytics.py,presentation,source,353,app/presentation/product_analytics.py,presentation,edit,build_router 20 and consistent 17: extract handlers and validators
+app/presentation/schemas.py,presentation,source,242,app/presentation/schemas.py,presentation,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/presentation/streaming.py,presentation,source,176,app/presentation/streaming.py,presentation,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+app/presentation/telemetry.py,presentation,source,104,app/presentation/telemetry.py,presentation,keep,"covered by architecture guard; ratchets apply (complexity <= 10, dead code)"
+catalog/catalog.v1.json,data,data,526,catalog/catalog.v1.json,data,keep,generated by sync_catalog.py from a pinned storefront commit; never hand edited
+catalog/sync-report.json,data,data,36,catalog/sync-report.json,data,keep,generated by sync_catalog.py from a pinned storefront commit; never hand edited
+contracts/__init__.py,contracts,source,0,contracts/__init__.py,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/analytics-semantics.examples.json,contracts,contract,213,contracts/analytics-semantics.examples.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/analytics_semantics.py,contracts,source,187,contracts/analytics_semantics.py,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/errors.json,contracts,contract,130,contracts/examples/errors.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/ops.summary.json,contracts,contract,183,contracts/examples/ops.summary.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/ops.telemetry.json,contracts,contract,44,contracts/examples/ops.telemetry.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/product-analytics.json,contracts,contract,62,contracts/examples/product-analytics.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/session.created.json,contracts,contract,22,contracts/examples/session.created.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/stream.affiliate.sse,contracts,contract,24,contracts/examples/stream.affiliate.sse,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/stream.answer-replaced.sse,contracts,contract,24,contracts/examples/stream.answer-replaced.sse,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/stream.cancelled.sse,contracts,contract,8,contracts/examples/stream.cancelled.sse,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/stream.english.sse,contracts,contract,24,contracts/examples/stream.english.sse,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/stream.failed.sse,contracts,contract,12,contracts/examples/stream.failed.sse,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/stream.language-unsupported.sse,contracts,contract,24,contracts/examples/stream.language-unsupported.sse,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/stream.payment-data-refused.sse,contracts,contract,16,contracts/examples/stream.payment-data-refused.sse,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/stream.price-unverified.sse,contracts,contract,24,contracts/examples/stream.price-unverified.sse,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/stream.recommendation.sse,contracts,contract,24,contracts/examples/stream.recommendation.sse,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/examples/stream.unknown-policy.sse,contracts,contract,24,contracts/examples/stream.unknown-policy.sse,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/export.py,contracts,source,425,contracts/export.py,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/manifest.json,contracts,contract,30,contracts/manifest.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/openapi.json,contracts,contract,1212,contracts/openapi.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/ops.schema.json,contracts,contract,779,contracts/ops.schema.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/ops.telemetry.schema.json,contracts,contract,332,contracts/ops.telemetry.schema.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/product-analytics.schema.json,contracts,contract,642,contracts/product-analytics.schema.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/product-analytics.source.json,contracts,contract,54,contracts/product-analytics.source.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/product_analytics.py,contracts,source,79,contracts/product_analytics.py,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/site-experience-pequeverso-v1.schema.json,contracts,contract,198,contracts/site-experience-pequeverso-v1.schema.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+contracts/sse.schema.json,contracts,contract,684,contracts/sse.schema.json,contracts,keep,generated by contracts.export; oasdiff breaking check; do not hand edit
+deploy/monitoring/alerts.yml,ops-config,config,33,deploy/monitoring/alerts.yml,ops-config,keep,application-owned monitoring artefacts; promtool check in CI; vps-ops owns collectors
+deploy/monitoring/grafana-api-runtime.json,ops-config,config,302,deploy/monitoring/grafana-api-runtime.json,ops-config,keep,application-owned monitoring artefacts; promtool check in CI; vps-ops owns collectors
+deploy/monitoring/prometheus-scrape.example.yml,ops-config,config,12,deploy/monitoring/prometheus-scrape.example.yml,ops-config,keep,application-owned monitoring artefacts; promtool check in CI; vps-ops owns collectors
+docs/agent-skills.md,docs,doc,50,docs/reference/agent-skills.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/api-contract.md,docs,doc,263,docs/reference/api-contract.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/architecture.md,docs-diagram,doc,204,docs/explanation/architecture.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/architecture/README.md,docs-diagram,doc,16,docs/architecture/README.md,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/architecture/manifest.json,docs-diagram,diagram,19,docs/architecture/manifest.json,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/architecture/request-flow.mmd,docs-diagram,diagram,21,docs/architecture/request-flow.mmd,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/architecture/system-dark.mmd,docs-diagram,diagram,10,docs/architecture/system-dark.mmd,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/architecture/system-dark.svg,docs-diagram,diagram,50,docs/architecture/system-dark.svg,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/architecture/system-light.mmd,docs-diagram,diagram,10,docs/architecture/system-light.mmd,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/architecture/system-light.svg,docs-diagram,diagram,50,docs/architecture/system-light.svg,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/business-questions.md,docs,doc,12,docs/explanation/business-questions.md,docs,move,open owner questions with defaults; owner-only decisions list links here
+docs/catalog.md,docs,doc,178,docs/reference/catalog.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/ci.md,docs,doc,66,docs/reference/ci.md,docs,rewrite,describes the five-job aggregate named checks; rewrite for profiles and ci-gate
+docs/decisions/ADR-0001-modular-monolith-sqlite.md,docs-adr,doc,17,docs/decisions/ADR-0001-modular-monolith-sqlite.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
+docs/decisions/ADR-0002-grounding-without-embeddings.md,docs-adr,doc,18,docs/decisions/ADR-0002-grounding-without-embeddings.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
+docs/decisions/ADR-0003-structured-streaming-and-final-validation.md,docs-adr,doc,27,docs/decisions/ADR-0003-structured-streaming-and-final-validation.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
+docs/decisions/ADR-0004-languages-and-reasoning-effort.md,docs-adr,doc,57,docs/decisions/ADR-0004-languages-and-reasoning-effort.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
+docs/decisions/ADR-0005-operations-data-without-new-infrastructure.md,docs-adr,doc,38,docs/decisions/ADR-0005-operations-data-without-new-infrastructure.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
+docs/decisions/ADR-0006-native-spanish-compatible-policy.md,docs-adr,doc,37,docs/decisions/ADR-0006-native-spanish-compatible-policy.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
+docs/decisions/ADR-0007-optional-private-observability.md,docs-adr,doc,44,docs/decisions/ADR-0007-optional-private-observability.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
+docs/decisions/ADR-0008-bounded-official-platform-evidence.md,docs-adr,doc,24,docs/decisions/ADR-0008-bounded-official-platform-evidence.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
+docs/decisions/ADR-0009-versioned-commercial-graphrag.md,docs-adr,doc,163,docs/decisions/ADR-0009-versioned-commercial-graphrag.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
+docs/dependency-updates.md,docs,doc,72,docs/how-to/dependency-updates.md,docs,rewrite,describes the retired classifier; rewrite for the weekly single PR and the vulnerability SLA
+docs/deployment-contract.md,docs,doc,649,docs/reference/deployment-contract.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/engineering-standards.md,docs,doc,92,CONTRIBUTING.md,docs,merge,review standard and four-session ownership fold into CONTRIBUTING.md and AGENTS.md; ecosystem.md is the standard; file deleted after merge
+docs/evaluation.md,docs,doc,488,docs/reference/evaluation.md,docs,rewrite,"counts are stale (23 retrieval, 24 conversation, 22 guard cases vs 20/19/14 stated); numbers generated from reports (no volatile facts)"
+docs/execution-plan.md,docs,doc,19,docs/archive/execution-plan-2026-09.md,docs,move,historical status table; superseded by docs/master-plan/roadmap.md
+docs/graph-retrieval.md,docs,doc,139,docs/explanation/graph-retrieval.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/handoffs/backoffice.md,docs,doc,35,docs/reference/handoffs/backoffice.md,docs,move,cross-repo contract handoff; reference
+docs/handoffs/storefront-transition.md,docs,doc,46,docs/reference/handoffs/storefront-transition.md,docs,move,cross-repo contract handoff; reference
+docs/handoffs/vps-ops.md,docs,doc,195,docs/reference/handoffs/vps-ops.md,docs,move,195-line handoff; trim volatile measurements in the move PR; reference
+docs/knowledge-operations.md,docs,doc,197,docs/how-to/knowledge-operations.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/observability/README.md,docs,doc,90,docs/reference/observability.md,docs,move,one file does not need a folder
+docs/official-web-evidence.md,docs,doc,160,docs/explanation/official-web-evidence.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/product-analytics.md,docs,doc,166,docs/reference/product-analytics.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/reference-adoption.md,docs,doc,40,docs/explanation/reference-adoption.md,docs,move,provenance record of ideas adapted from portfolio-assistant-api (licence evidence); keep
+docs/runtime-baseline.md,docs,doc,90,docs/reference/runtime-baseline.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/security.md,docs,doc,104,docs/explanation/security.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/verification/api-evidence-2026-10-18.json,docs-evidence,doc,61,docs/verification/api-evidence-2026-10-18.json,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/api-evidence-2026-10-18.md,docs-evidence,doc,80,docs/verification/api-evidence-2026-10-18.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/assistant/2026-10-18/01-Desktop-Panel-Bienvenida.png,docs-evidence,binary,155,docs/verification/assistant/2026-10-18/01-Desktop-Panel-Bienvenida.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/assistant/2026-10-18/02-Desktop-Panel-Conversacion.png,docs-evidence,binary,161,docs/verification/assistant/2026-10-18/02-Desktop-Panel-Conversacion.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/assistant/2026-10-18/03-Mobile-Panel-Conversacion.png,docs-evidence,binary,1218,docs/verification/assistant/2026-10-18/03-Mobile-Panel-Conversacion.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/assistant/2026-10-18/README.md,docs-evidence,doc,34,docs/verification/assistant/2026-10-18/README.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/assistant/2026-10-18/ROOT-VISUAL-AND-DELIVERY.json,docs-evidence,doc,50,docs/verification/assistant/2026-10-18/ROOT-VISUAL-AND-DELIVERY.json,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/assistant/2026-10-18/manifest.json,docs-evidence,doc,46,docs/verification/assistant/2026-10-18/manifest.json,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/final-native-images-2026-10-19.md,docs-evidence,doc,124,docs/verification/final-native-images-2026-10-19.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/fixture-eval.json,docs-evidence,doc,220,docs/verification/fixture-eval.json,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/graphrag-2026-10-17.md,docs-evidence,doc,226,docs/verification/graphrag-2026-10-17.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-12/README.md,docs-evidence,doc,95,docs/verification/native-assistant-2026-10-12/README.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-12/fixture-desktop-error.png,docs-evidence,binary,419,docs/verification/native-assistant-2026-10-12/fixture-desktop-error.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-12/fixture-desktop-streaming.png,docs-evidence,binary,232,docs/verification/native-assistant-2026-10-12/fixture-desktop-streaming.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-12/fixture-desktop-welcome.png,docs-evidence,binary,354,docs/verification/native-assistant-2026-10-12/fixture-desktop-welcome.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-12/fixture-mobile-product.png,docs-evidence,binary,674,docs/verification/native-assistant-2026-10-12/fixture-mobile-product.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-12/manifest.json,docs-evidence,doc,125,docs/verification/native-assistant-2026-10-12/manifest.json,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-12/real-desktop-answer.png,docs-evidence,binary,511,docs/verification/native-assistant-2026-10-12/real-desktop-answer.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-12/real-desktop-context.png,docs-evidence,binary,4112,docs/verification/native-assistant-2026-10-12/real-desktop-context.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-12/real-desktop-sources.png,docs-evidence,binary,376,docs/verification/native-assistant-2026-10-12/real-desktop-sources.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-17/README.md,docs-evidence,doc,58,docs/verification/native-assistant-2026-10-17/README.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-17/desktop-answer-sources.png,docs-evidence,binary,449,docs/verification/native-assistant-2026-10-17/desktop-answer-sources.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-17/desktop-expanded.png,docs-evidence,binary,871,docs/verification/native-assistant-2026-10-17/desktop-expanded.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-17/desktop-welcome.png,docs-evidence,binary,327,docs/verification/native-assistant-2026-10-17/desktop-welcome.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-17/manifest.json,docs-evidence,doc,44,docs/verification/native-assistant-2026-10-17/manifest.json,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-17/mobile-conversation.png,docs-evidence,binary,1327,docs/verification/native-assistant-2026-10-17/mobile-conversation.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-18/01-Desktop-Boton.png,docs-evidence,binary,1709,docs/verification/native-assistant-2026-10-18/01-Desktop-Boton.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-18/02-Desktop-Bienvenida.png,docs-evidence,binary,1323,docs/verification/native-assistant-2026-10-18/02-Desktop-Bienvenida.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-18/03-Desktop-Conversacion.png,docs-evidence,binary,1436,docs/verification/native-assistant-2026-10-18/03-Desktop-Conversacion.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-18/04-Desktop-Espera.png,docs-evidence,binary,1319,docs/verification/native-assistant-2026-10-18/04-Desktop-Espera.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-18/05-Mobile-Bienvenida.png,docs-evidence,binary,777,docs/verification/native-assistant-2026-10-18/05-Mobile-Bienvenida.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-18/06-Mobile-Conversacion.png,docs-evidence,binary,1307,docs/verification/native-assistant-2026-10-18/06-Mobile-Conversacion.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-18/07-Desktop-Conversacion-Ampliada.png,docs-evidence,binary,840,docs/verification/native-assistant-2026-10-18/07-Desktop-Conversacion-Ampliada.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-18/README.md,docs-evidence,doc,32,docs/verification/native-assistant-2026-10-18/README.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/native-assistant-2026-10-18/manifest.json,docs-evidence,doc,46,docs/verification/native-assistant-2026-10-18/manifest.json,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/post-tools-2026-10-13.md,docs-evidence,doc,195,docs/verification/post-tools-2026-10-13.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/postgres-alpine-2026-10-18.md,docs-evidence,doc,171,docs/verification/postgres-alpine-2026-10-18.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/real-evaluation-2026-10-18.md,docs-evidence,doc,118,docs/verification/real-evaluation-2026-10-18.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/real-evaluation-2026-10-19.md,docs-evidence,doc,105,docs/verification/real-evaluation-2026-10-19.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/real-model-2026-10-12.md,docs-evidence,doc,144,docs/verification/real-model-2026-10-12.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+docs/verification/runtime-cohort-2026-10-17.md,docs-evidence,doc,166,docs/verification/runtime-cohort-2026-10-17.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
+evals/conversations.json,evals,eval-data,347,evals/archive/conversations.json,evals,move,"24 live scenarios: best ones promoted to golden items, file retired after promotion"
+evals/corpus/age-fit.json,evals,eval-data,22,evals/full/age-fit.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/ambiguous.json,evals,eval-data,18,evals/full/ambiguous.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/commercial-rules.json,evals,eval-data,29,evals/full/commercial-rules.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/comparison-resources.json,evals,eval-data,24,evals/full/comparison-resources.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/delivery-and-access.json,evals,eval-data,22,evals/full/delivery-and-access.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/follow-ups.json,evals,eval-data,20,evals/full/follow-ups.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/injection.json,evals,eval-data,20,evals/full/injection.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/language.json,evals,eval-data,28,evals/full/language.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/out-of-scope.json,evals,eval-data,20,evals/full/out-of-scope.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/price-and-currency.json,evals,eval-data,22,evals/full/price-and-currency.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/printing-and-format.json,evals,eval-data,22,evals/full/printing-and-format.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/product-contents.json,evals,eval-data,27,evals/full/product-contents.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/purchase-process.json,evals,eval-data,20,evals/full/purchase-process.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/refunds-guarantee-withdrawal.json,evals,eval-data,22,evals/full/refunds-guarantee-withdrawal.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/stale-data.json,evals,eval-data,16,evals/full/stale-data.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/support.json,evals,eval-data,18,evals/full/support.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/typos-and-slang.json,evals,eval-data,24,evals/full/typos-and-slang.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/corpus/usage-and-start.json,evals,eval-data,22,evals/full/usage-and-start.jsonl,evals,convert,"full set v2: JSONL schema, qrels audited, weak families extended (assistant-quality.md section 6)"
+evals/end_to_end.json,evals,eval-data,3812,evals/end_to_end.json,evals,keep,frozen manifest bound by SHA-256 in docs/verification real-run records; must not move or change
+evals/end_to_end_final_quality_revalidation.json,evals,eval-data,213,evals/end_to_end_final_quality_revalidation.json,evals,keep,frozen manifest bound by SHA-256 in docs/verification real-run records; must not move or change
+evals/end_to_end_postfix.json,evals,eval-data,4018,evals/end_to_end_postfix.json,evals,keep,frozen manifest bound by SHA-256 in docs/verification real-run records; must not move or change
+evals/end_to_end_spanish_native_revalidation.json,evals,eval-data,807,evals/end_to_end_spanish_native_revalidation.json,evals,keep,frozen manifest bound by SHA-256 in docs/verification real-run records; must not move or change
+evals/guards.json,evals,eval-data,358,evals/red-team/guards.json,evals,move,22 scripted misbehaving outputs become the seed of the PR red-team pack (target 40-60)
+evals/knowledge/strategies-203.v1.json,evals,eval-data,4069,evals/knowledge/strategies-203.v1.json,evals,keep,"frozen 203-case strategy manifest (130 KB), hash-bound"
+evals/knowledge/strategies.v1.json,evals,eval-data,180,evals/knowledge/strategies.v1.json,evals,keep,strategy-comparison fixture used by the knowledge strategy evaluator
+evals/reports/corpus-fixture.json,evals,eval-data,3719,evals/full/baseline/corpus-fixture.json,evals,move,"becomes the committed baseline report (ratchet input), regenerated by the full-set job"
+evals/retrieval.json,evals,eval-data,152,evals/retrieval/retrieval-smoke.json,evals,move,23-case smoke becomes qrels for ranx; docs claimed 20 cases (stale)
+infra/docker/app/Dockerfile,container,dockerfile,45,infra/docker/app/Dockerfile,container,edit,"canonical Dockerfile (ci-cd.md section 8): OCI labels, SOURCE_DATE_EPOCH, uv --locked --no-editable, drop liblzma pin once base has fix, cache id renamed"
+infra/docker/neo4j/Dockerfile,container,dockerfile,57,infra/docker/neo4j/Dockerfile,container,keep,"digest-pinned; bumped by the weekly PR; hadolint, dockle, container-structure-test in CI"
+infra/docker/neo4j/Dockerfile.dockerignore,container,dockerfile,11,infra/docker/neo4j/Dockerfile.dockerignore,container,keep,"digest-pinned; bumped by the weekly PR; hadolint, dockle, container-structure-test in CI"
+infra/docker/neo4j/neo4j.conf,container,config,25,infra/docker/neo4j/neo4j.conf,container,keep,"digest-pinned; bumped by the weekly PR; hadolint, dockle, container-structure-test in CI"
+infra/docker/postgres/Dockerfile,container,dockerfile,31,infra/docker/postgres/Dockerfile,container,keep,"digest-pinned; bumped by the weekly PR; hadolint, dockle, container-structure-test in CI"
+infra/docker/postgres/Dockerfile.dockerignore,container,dockerfile,4,infra/docker/postgres/Dockerfile.dockerignore,container,keep,"digest-pinned; bumped by the weekly PR; hadolint, dockle, container-structure-test in CI"
+migrations/001_initial.sql,data,sql,74,migrations/001_initial.sql,data,keep,legacy SQLite fixture migrations; retirement tracked by PVA-D12
+migrations/002_ledger_states_and_run_metrics.sql,data,sql,28,migrations/002_ledger_states_and_run_metrics.sql,data,keep,legacy SQLite fixture migrations; retirement tracked by PVA-D12
+pyproject.toml,root,config,67,pyproject.toml,root,edit,"ruff families and line length 100, coverage config, requires-python >=3.14, dependency groups (dev, eval, mutation), import-linter, vulture"
+scripts/__init__.py,scripts,script,1,scripts/__init__.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/ci_identity.py,scripts,script,81,scripts/ci_identity.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/container_fixture_probe.py,scripts,script,102,scripts/container_fixture_probe.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/dependabot_policy.py,scripts,script,379,-,scripts,delete,read-only eligibility classifier is moot under one weekly PR merged manually by the owner (PVA-D9)
+scripts/evaluate_conversations.py,scripts,script,318,scripts/evaluate_conversations.py,scripts,edit,scenarios absorbed into golden set; keep as live quality smoke until retired
+scripts/evaluate_corpus.py,scripts,script,543,scripts/evaluate_corpus.py,scripts,edit,"read v2 JSONL schema; shared graders; ranx metrics; JSON to stdout only, logs to stderr"
+scripts/evaluate_end_to_end.py,scripts,script,852,scripts/evaluate_end_to_end.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/evaluate_graph_end_to_end.py,scripts,script,324,scripts/evaluate_graph_end_to_end.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/evaluate_knowledge_strategies.py,scripts,script,38,scripts/evaluate_knowledge_strategies.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/evaluate_retrieval.py,scripts,script,66,scripts/evaluate_retrieval.py,scripts,edit,"ranx recall@3/5/10, nDCG, MRR, paired significance vs baseline"
+scripts/extend_evaluation_envelope.py,scripts,script,109,scripts/extend_evaluation_envelope.py,scripts,keep,one-time audited ledger transition for owner-held private ledgers; retire after the owner closes the 2026-10 ledgers (PVA-D12)
+scripts/import_sqlite_to_postgres.py,scripts,script,8,scripts/import_sqlite_to_postgres.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/index_public_knowledge.py,scripts,script,8,scripts/index_public_knowledge.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/migrate_postgres.py,scripts,script,8,scripts/migrate_postgres.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/postgres_fixture_identity.py,scripts,script,30,scripts/postgres_fixture_identity.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/real_eval_budget.py,scripts,script,1300,scripts/real_eval_budget.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/resume_end_to_end.py,scripts,script,148,scripts/resume_end_to_end.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/revalidate_end_to_end.py,scripts,script,128,scripts/revalidate_end_to_end.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/run_bounded_real_eval.py,scripts,script,193,scripts/run_bounded_real_eval.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/serve_bounded_real_eval.py,scripts,script,89,scripts/serve_bounded_real_eval.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/smoke_container.sh,scripts,script,126,scripts/smoke_container.sh,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/smoke_graph_runtime.py,scripts,script,581,scripts/smoke_graph_runtime.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/smoke_knowledge_neo4j.py,scripts,script,350,scripts/smoke_knowledge_neo4j.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/smoke_knowledge_postgres.sh,scripts,script,121,scripts/smoke_knowledge_postgres.sh,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/sync_catalog.py,scripts,script,155,scripts/sync_catalog.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+scripts/validate_skills.py,scripts,script,195,scripts/validate_skills.py,scripts,keep,eval or ops CLI; typed under mypy strict; logs to stderr when emitting JSON
+tests/__init__.py,tests,test,0,tests/__init__.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/fixtures/product-analytics-pointer.test.cjs,tests,test-js,28,tests/js/product-analytics-pointer.test.mts,tests,convert,ecosystem 10.1: no .cjs; Node type stripping runs .mts; reformat the 28 dense lines
+tests/fixtures/product-analytics.html,tests,fixture,93,tests/js/fixtures/product-analytics.html,tests,move,sits beside the only test that reads it
+tests/postgres_restore_fixture.py,tests,test,55,tests/postgres_restore_fixture.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/support.py,tests,test,168,tests/support.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_adapter_compatibility.py,tests,test,67,tests/test_adapter_compatibility.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_affiliate.py,tests,test,327,tests/test_affiliate.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_analytics_country.py,tests,test,86,tests/test_analytics_country.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_analytics_migration.py,tests,test,83,tests/test_analytics_migration.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_analytics_production_profile.py,tests,test,151,tests/test_analytics_production_profile.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_answers.py,tests,test,245,tests/test_answers.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_api.py,tests,test,327,tests/test_api.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_architecture.py,tests,test,412,tests/test_architecture.py (+ .importlinter),tests,edit,layer and third-party rules move to import-linter contracts; AST keeps banned-call and SQL/Cypher location rules; negative fixtures kept
+tests/test_architecture_coverage.py,tests,test,89,tests/test_architecture_coverage.py,tests,edit,negative fixtures extended to import-linter contracts
+tests/test_budget_concurrency.py,tests,test,102,tests/test_budget_concurrency.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_catalog.py,tests,test,210,tests/test_catalog.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_catalog_diff.py,tests,test,44,tests/test_catalog_diff.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_catalog_policy_guard.py,tests,test,87,tests/test_catalog_policy_guard.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_catalog_scope.py,tests,test,116,tests/test_catalog_scope.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_catalog_scope_http.py,tests,test,185,tests/test_catalog_scope_http.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_checkout_policy.py,tests,test,168,tests/test_checkout_policy.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_ci_profile.py,tests,test,282,tests/test_ci_profile.py,tests,rewrite,asserts ci-profile.json covers every tracked path and the ci-gate fail-closed semantics (ecosystem 6.0)
+tests/test_container_layout.py,tests,test,128,tests/test_container_layout.py,tests,edit,"extend with container-structure-test assertions (user, labels, no pip, read-only rootfs)"
+tests/test_contract.py,tests,test,70,tests/test_contract.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_dependabot_policy.py,tests,test,316,-,tests,delete,policy script is retired with the single weekly PR rule (PVA-D9); replaced by tests/test_dependabot_config.py
+tests/test_domain.py,tests,test,215,tests/test_domain.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_embedding_budget.py,tests,test,110,tests/test_embedding_budget.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_end_to_end_evaluation.py,tests,test,107,tests/test_end_to_end_evaluation.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_evaluation_embedding_accounting.py,tests,test,265,tests/test_evaluation_embedding_accounting.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_evaluation_envelope_extension.py,tests,test,294,tests/test_evaluation_envelope_extension.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_evaluation_final_format_envelope.py,tests,test,348,tests/test_evaluation_final_format_envelope.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_evaluation_followup_envelope.py,tests,test,387,tests/test_evaluation_followup_envelope.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_evaluation_server_cleanup.py,tests,test,154,tests/test_evaluation_server_cleanup.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_evaluations.py,tests,test,95,tests/test_evaluations.py,tests,edit,floors move to ratchet files; golden and full-set gates added; KNOWN_LANGUAGE_MISSES removed once fixed
+tests/test_evaluator_local_price_status.py,tests,test,117,tests/test_evaluator_local_price_status.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_evidence_encoding.py,tests,test,52,tests/test_evidence_encoding.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_final_evaluation_semantics.py,tests,test,79,tests/test_final_evaluation_semantics.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_graph_composer.py,tests,test,372,tests/test_graph_composer.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_graph_context_packing.py,tests,test,168,tests/test_graph_context_packing.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_graph_evaluation_live_services.py,tests,test,251,tests/test_graph_evaluation_live_services.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_graph_evaluation_wiring.py,tests,test,469,tests/test_graph_evaluation_wiring.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_graph_http_live_services.py,tests,test,402,tests/test_graph_http_live_services.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_graph_runtime_harness.py,tests,test,63,tests/test_graph_runtime_harness.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_hybrid_knowledge.py,tests,test,252,tests/test_hybrid_knowledge.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_knowledge_configuration.py,tests,test,58,tests/test_knowledge_configuration.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_knowledge_evaluation_boundary.py,tests,test,137,tests/test_knowledge_evaluation_boundary.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_knowledge_indexing.py,tests,test,384,tests/test_knowledge_indexing.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_knowledge_jobs.py,tests,test,67,tests/test_knowledge_jobs.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_knowledge_seed_ranking.py,tests,test,32,tests/test_knowledge_seed_ranking.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_knowledge_strategy_evaluation.py,tests,test,58,tests/test_knowledge_strategy_evaluation.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_knowledge_values.py,tests,test,144,tests/test_knowledge_values.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_known_interruption_ack.py,tests,test,215,tests/test_known_interruption_ack.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_language.py,tests,test,137,tests/test_language.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_license.py,tests,test,45,tests/test_license.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_live_end_to_end_evaluation.py,tests,test,376,tests/test_live_end_to_end_evaluation.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_local_graph_evaluation.py,tests,test,60,tests/test_local_graph_evaluation.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_neo4j_candidate_diversity.py,tests,test,53,tests/test_neo4j_candidate_diversity.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_neo4j_database.py,tests,test,140,tests/test_neo4j_database.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_neo4j_public_graph.py,tests,test,212,tests/test_neo4j_public_graph.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_neo4j_public_graph_live_service.py,tests,test,123,tests/test_neo4j_public_graph_live_service.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_neo4j_smoke_effective_config.py,tests,test,256,tests/test_neo4j_smoke_effective_config.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_observability.py,tests,test,563,tests/test_observability.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_official_help.py,tests,test,511,tests/test_official_help.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_official_help_evaluator.py,tests,test,174,tests/test_official_help_evaluator.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_openai_embeddings.py,tests,test,208,tests/test_openai_embeddings.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_openai_provider.py,tests,test,249,tests/test_openai_provider.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_operations.py,tests,test,232,tests/test_operations.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_output_parser.py,tests,test,52,tests/test_output_parser.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_page_claims.py,tests,test,67,tests/test_page_claims.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_postgres_container_identity.py,tests,test,206,tests/test_postgres_container_identity.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_postgres_import.py,tests,test,197,tests/test_postgres_import.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_postgres_indexer_role.py,tests,test,57,tests/test_postgres_indexer_role.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_postgres_knowledge.py,tests,test,450,tests/test_postgres_knowledge.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_postgres_natural_search.py,tests,test,49,tests/test_postgres_natural_search.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_postgres_private.py,tests,test,419,tests/test_postgres_private.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_postgres_product_analytics.py,tests,test,315,tests/test_postgres_product_analytics.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_price_comparison.py,tests,test,174,tests/test_price_comparison.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_price_comparison_http.py,tests,test,259,tests/test_price_comparison_http.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_product_analytics.py,tests,test,215,tests/test_product_analytics.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_product_analytics_clock.py,tests,test,160,tests/test_product_analytics_clock.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_product_analytics_http.py,tests,test,386,tests/test_product_analytics_http.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_product_referent_hints.py,tests,test,129,tests/test_product_referent_hints.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_prompt_post32.py,tests,test,54,tests/test_prompt_contract.py,tests,move,"rename: the file name encodes a past incident id, not behaviour; add prompt hash lock test"
+tests/test_provenance.py,tests,test,280,tests/test_provenance.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_provenance_http.py,tests,test,390,tests/test_provenance_http.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_provider_citation_markers.py,tests,test,102,tests/test_provider_citation_markers.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_provider_lifecycle.py,tests,test,214,tests/test_provider_lifecycle.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_provider_transport.py,tests,test,152,tests/test_provider_transport.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_public_corpus.py,tests,test,120,tests/test_public_corpus.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_real_eval_budget.py,tests,test,582,tests/test_real_eval_budget.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_reference_clarification.py,tests,test,208,tests/test_reference_clarification.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_reference_clarification_http.py,tests,test,142,tests/test_reference_clarification_http.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_request_packing.py,tests,test,192,tests/test_request_packing.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_resume_end_to_end.py,tests,test,201,tests/test_resume_end_to_end.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_revalidate_end_to_end.py,tests,test,230,tests/test_revalidate_end_to_end.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_runtime_cohort.py,tests,test,304,tests/test_runtime_cohort.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_runtime_shutdown.py,tests,test,138,tests/test_runtime_shutdown.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_security.py,tests,test,336,tests/test_security.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_skills.py,tests,test,173,tests/test_skills.py,tests,edit,new canonical skills location and activation-eval presence
+tests/test_spanish_native.py,tests,test,219,tests/test_spanish_native.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_streaming.py,tests,test,363,tests/test_streaming.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_telemetry_http_routes.py,tests,test,133,tests/test_telemetry_http_routes.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_validated_stream.py,tests,test,398,tests/test_validated_stream.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tests/test_visitor_context.py,tests,test,147,tests/test_visitor_context.py,tests,keep,"keep; random order, xdist-safe check at M1; diff coverage applies"
+tools/catalog/export-layout.test.ts,tools,source-ts,112,tools/catalog/export-layout.test.ts,tools,keep,TypeScript; run by Node type stripping in CI tools job
+tools/catalog/export.ts,tools,source-ts,249,tools/catalog/export.ts,tools,keep,TypeScript already; imports storefront modules inside an isolated archive so it cannot be typed here; exception recorded in standards.md
+uv.lock,root,config,1358,uv.lock,root,edit,certifi 2026.10.18 (P0) via the first weekly PR; regenerate only through uv

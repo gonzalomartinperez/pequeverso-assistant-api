@@ -1,0 +1,25 @@
+# pytest --cov=app --cov-branch, local run without PostgreSQL/Neo4j services (45 tests skipped), 1698 passed
+{
+ "num_statements": 7212,
+ "covered_lines": 6279,
+ "percent_covered": 84.95231758704813,
+ "num_branches": 1806,
+ "covered_branches": 1382,
+ "percent_branches_covered": 76.52270210409745
+}
+# lowest files (percent covered, statements)
+0.0	37	app/bootstrap/import_database.py
+0.0	2	app/main.py
+15.6	244	app/adapters/postgres/knowledge.py
+18.5	140	app/adapters/postgres/import_sqlite.py
+24.6	55	app/adapters/postgres/product_analytics.py
+29.8	74	app/adapters/postgres/private_operations.py
+34.4	53	app/adapters/postgres/private_ledger.py
+38.0	82	app/adapters/postgres/private_stores.py
+46.1	79	app/bootstrap/evaluation_index.py
+54.2	133	app/bootstrap/knowledge_jobs.py
+54.4	167	app/bootstrap/knowledge_evaluation.py
+58.8	65	app/adapters/postgres/database.py
+81.0	89	app/ai/evidence.py
+84.1	32	app/application/starters.py
+84.9	222	app/bootstrap/container.py
