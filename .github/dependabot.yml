@@ -1,48 +1,37 @@
-# Routine version updates target develop. Security updates target the default branch (main) and
-# always get manual review. The workflow provides read-only assessment, never a merge writer; see
-# docs/dependency-updates.md. Cooldowns do not delay security updates.
+# One weekly Dependabot PR for every ecosystem (multi-ecosystem group `weekly-all`), Monday 09:00 ART,
+# targeting develop. Security-update PRs are disabled in the repository settings; alerts stay on and
+# criticals ride the weekly PR. See docs/dependency-updates.md. Every merge remains manual.
 version: 2
-updates:
-  - package-ecosystem: uv
-    directory: /
-    target-branch: develop
+multi-ecosystem-groups:
+  weekly-all:
     schedule:
       interval: weekly
       day: monday
-      time: "06:00"
+      time: "09:00"
       timezone: America/Argentina/Buenos_Aires
-    open-pull-requests-limit: 5
-    rebase-strategy: auto
+    target-branch: develop
+    open-pull-requests-limit: 1
+    labels: [dependencies]
+updates:
+  - package-ecosystem: uv
+    directory: /
+    multi-ecosystem-group: weekly-all
+    patterns: ["*"]
     cooldown:
       default-days: 7
-      semver-patch-days: 7
+      semver-major-days: 14
       semver-minor-days: 7
-      semver-major-days: 30
-    groups:
-      # Same-risk groups only: a grouped PR is eligible only if every member qualifies.
-      dev-tools:
-        dependency-type: development
-        update-types: [minor, patch]
-      runtime-patches:
-        dependency-type: production
-        update-types: [patch]
-    labels: [dependencies]
+      semver-patch-days: 3
     commit-message:
       prefix: build(deps)
       prefix-development: build(deps-dev)
 
   - package-ecosystem: github-actions
     directory: /
-    target-branch: develop
-    schedule:
-      interval: weekly
-      day: monday
+    multi-ecosystem-group: weekly-all
+    patterns: ["*"]
     cooldown:
       default-days: 7
-    groups:
-      actions:
-        patterns: ["*"]
-    labels: [dependencies, github-actions]
     commit-message:
       prefix: ci(deps)
 
@@ -51,11 +40,9 @@ updates:
       - /infra/docker/app
       - /infra/docker/postgres
       - /infra/docker/neo4j
-    target-branch: develop
-    schedule:
-      interval: weekly
+    multi-ecosystem-group: weekly-all
+    patterns: ["*"]
     cooldown:
       default-days: 7
-    labels: [dependencies, docker]
     commit-message:
       prefix: build(docker)
