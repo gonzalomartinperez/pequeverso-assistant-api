@@ -36,6 +36,7 @@ from app.adapters.providers.fixture_provider import FixtureProvider
 from app.ai.evidence import decode_documents, passages, rank
 from app.ai.provider import ModelChunk, ModelRequest
 from app.application.knowledge_ports import EmbeddingAccounting
+from app.application.ports import Clock
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import ProviderResource, create_app
 from app.domain.catalog import PriceStatus
@@ -332,6 +333,7 @@ def evaluate(
     graph_spend: Callable[[], Any] | None = None,
     embedding_receipts: list[dict[str, Any]] | None = None,
     retrieval_receipts: list[dict[str, Any]] | None = None,
+    clock: Clock | None = None,
 ) -> dict[str, Any]:
     use_official_help = official_help_requested(manifest)
     spanish_native = manifest.get('reply_policy') == 'spanish_native'
@@ -398,7 +400,9 @@ def evaluate(
                 'graph evaluation requires explicit bounded composition and aggregate accounting'
             )
         app = create_app(
-            settings, provider_factory=lambda conf, accounting: graph_factory(provider, conf, accounting)
+            settings,
+            provider_factory=lambda conf, accounting: graph_factory(provider, conf, accounting),
+            clock=clock,
         )
     with socket.socket() as reservation:
         reservation.bind(('127.0.0.1', 0))
