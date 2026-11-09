@@ -512,6 +512,14 @@ def main() -> int:
                 check=False,
             )
         result = tested.returncode
+        if result:
+            # Node ids and counts only: pytest's summary lines carry no DSNs, bodies or SQL.
+            summary = [
+                line
+                for line in (output / 'http-tests.log').read_text(errors='replace').splitlines()
+                if line.startswith(('FAILED ', 'ERROR ')) or ' passed' in line or ' failed' in line
+            ]
+            print('Real-service pytest exit', result, *summary[-8:], sep='\n  ')
         xml = (output / 'http-tests.xml').read_bytes()
         if len(xml) > 1_048_576:
             raise ValueError('own pytest XML exceeds fixture report bounds')
