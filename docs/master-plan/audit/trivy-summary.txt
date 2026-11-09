@@ -1,0 +1,6 @@
+# Trivy scan of the fixture image (Debian 13.7 base) 2026-11-09; image tag "fixture-final" (revision 29cf277)
+by class and severity: {('os-pkgs', 'HIGH'): 51, ('lang-pkgs', 'CRITICAL'): 1}
+findings with a fixed version available: 5 of 52
+lang-pkgs:
+  GHSA-6q48-6c7w-9gw2 certifi 2026.7.22 -> fixed 2026.10.18 CRITICAL
+os-pkgs by package: bsdutils=4, libblkid1=4, liblastlog2-2=4, libmount1=4, libsmartcols1=4, libuuid1=4, login=4, mount=4, util-linux=4, libsqlite3-0=3, zlib1g=2, apt=1, libacl1=1, libapt-pkg7.0=1, libncursesw6=1, libsystemd0=1, libtinfo6=1, libudev1=1, ncurses-base=1, ncurses-bin=1, perl-base=1, certifi=1

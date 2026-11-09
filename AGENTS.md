@@ -81,3 +81,11 @@ configuration is not Cloudflare or deployed-edge proof. Implementing or testing 
 authorizes no production activation, identity joins, model calls, Store collector, Meta/CAPI or
 checkout changes. Preserve existing chat/ops/telemetry contracts and migration history. Real
 PG/BO/browser checks require a fresh resource lease; deployment needs separate owner authorization.
+
+## Master plan (2026-11)
+
+The excellence refactor is planned in [`docs/master-plan/`](docs/master-plan/README.md). Before
+acting on anything it covers, read
+[`docs/master-plan/owner-decisions.md`](docs/master-plan/owner-decisions.md) (binding owner
+decisions) and, to continue the work from any session,
+[`docs/master-plan/RESUME.md`](docs/master-plan/RESUME.md).
