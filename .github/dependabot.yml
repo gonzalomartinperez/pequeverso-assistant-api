@@ -12,6 +12,8 @@ multi-ecosystem-groups:
     target-branch: develop
     open-pull-requests-limit: 1
     labels: [dependencies]
+    commit-message:
+      prefix: build(deps)
 updates:
   - package-ecosystem: uv
     directory: /
@@ -22,9 +24,6 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 3
-    commit-message:
-      prefix: build(deps)
-      prefix-development: build(deps-dev)
 
   - package-ecosystem: github-actions
     directory: /
@@ -32,8 +31,6 @@ updates:
     patterns: ["*"]
     cooldown:
       default-days: 7
-    commit-message:
-      prefix: ci(deps)
 
   - package-ecosystem: docker
     directories:
@@ -44,5 +41,3 @@ updates:
     patterns: ["*"]
     cooldown:
       default-days: 7
-    commit-message:
-      prefix: build(docker)
