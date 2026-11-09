@@ -181,6 +181,8 @@ def test_index_query_generation_share_envelope_through_real_http_and_replay(
         ),
         embedding_receipts=receipts,
         retrieval_receipts=retrievals,
+        # Prices expire after 168h on the wall clock; pin the app to the snapshot's fixed time.
+        clock=clock,
     )
     assert summary['stop_reason'] is None and summary['queries'] == 1
     assert summary['history_mismatches'] == 0 and summary['structural_flagged_queries'] == 0
