@@ -101,7 +101,7 @@ C4Context
 
 | # | Decision (date 2026-11-09) | Consequence | Source |
 |---|---|---|---|
-| O1 | Weekly single Dependabot PR; security-update PRs disabled, alerts on, daily job notifies; a critical vulnerability may wait for the weekly PR | Section 5 | `shared/dependabot-rule.md`, [05] |
+| O1 | Weekly single Dependabot PR; security-update PRs disabled, alerts on, daily job records silently, weekly summary notifies (OD-75); a critical vulnerability may wait for the weekly PR | Section 5 | `shared/dependabot-rule.md`, [05] |
 | O2 | Pragmatism: ONE golden set per assistant (40-80 items), 100% gate; existing corpora (288 and 330 cases) distilled, rest archived; no hundreds-of-cases suites or parallel datasets | Section 12 | `owner-decisions.md`, [03] |
 | O3 | Rigor where it reduces real risk; no ceremony | All sections; "ceremony" flagged explicitly | `owner-decisions.md` |
 | O4 | Tailwind 4 + owned CVA primitives in all four web apps; the portfolio backoffice moves off CSS Modules | Section 13; replaces the research suggestion of Base UI/shadcn as dependency | owner; [06], [01] |
@@ -261,7 +261,7 @@ Runs Monday 10:30 ART and on Dependabot PR events. Asserts at most one open Depe
 
 ### 5.5 Daily vulnerability job and SLA
 
-No PR is opened by the job; it notifies (issue labelled `vuln`, owner mention) and records the finding.
+No PR is opened by the job; it records the finding by updating one pinned tracking issue per repo (labelled `vuln`) without mentioning anyone. Only the Monday run posts the grouped weekly summary that notifies the owner (OD-75: at most one dependency/vulnerability email per week per repo).
 
 | Job | Tool | Cadence |
 |---|---|---|

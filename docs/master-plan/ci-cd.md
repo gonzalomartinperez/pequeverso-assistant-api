@@ -111,7 +111,7 @@ Retirement: `dependency-policy.yml`, `scripts/dependabot_policy.py`, `.github/de
 | 4 base-OS findings with a fix | base image | High, fixable: 30 days | picked by the weekly digest bump; the hand-pinned `liblzma5=5.8.1-1+deb13u2` line is removed as soon as the base digest contains it (CI check: apt line must still be needed) |
 | Owner note of 2026-10-19 (image CVEs advisory, non-blocking for deployment) | policy conflict | ecosystem SLA is stricter | ADR-0016 records that the ecosystem SLA governs; the note is superseded (owner confirms, PVA-D9) |
 
-Daily `osv-scanner` job and Dependabot alerts notify through an issue labelled `vuln`; no PR is opened by the job. Weekly Grype on the digests in `releases/production.lock` (owned by `vps-ops`) once images exist.
+Daily `osv-scanner` job and Dependabot alerts are recorded silently in one tracking issue labelled `vuln`, with a grouped Monday summary that notifies (OD-75); no PR is opened by the job. Weekly Grype on the digests in `releases/production.lock` (owned by `vps-ops`) once images exist.
 
 ## 7. Security hardening and supply chain
 

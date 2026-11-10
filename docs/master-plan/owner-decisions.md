@@ -65,7 +65,7 @@ The owner delegated every open decision of the nine plans, the ecosystem standar
 |---|---|
 | OD-20 | Exactly one dependency PR per repo per week containing all ecosystems; Monday 09:00 America/Argentina/Buenos_Aires; targets `develop` (main-only repos: `main`); must be green; owner merges manually; never N PRs for N dependencies. |
 | OD-21 | If last week's PR is unmerged, it is updated or superseded, never duplicated; at most one dependency PR open per repo. |
-| OD-22 | Dependabot security-update PRs disabled; alerts on; a daily job notifies; critical fixes ride the weekly PR (owner accepts the up-to-a-week wait). |
+| OD-22 | Dependabot security-update PRs disabled; alerts on; a daily job records findings silently and the Monday summary notifies (OD-75); critical fixes ride the weekly PR (owner accepts the up-to-a-week wait). |
 
 ## Assistants (portfolio-assistant-api, pequeverso-assistant-api)
 
@@ -114,3 +114,4 @@ The owner delegated every open decision of the nine plans, the ecosystem standar
 | OD-72 | CI is dynamic per PR type (profiles) with one fail-closed `ci-gate`, standardized and optimized across repos. |
 | OD-73 | Every test type that guards a real risk is adopted (catalog in the ecosystem standard §11.0), including unit, integration, contract, E2E, visual, accessibility, performance, mutation, property-based, load, security and data tests. |
 | OD-74 | Never `pkill -f`; kill processes only by verified PID. |
+| OD-75 | Email noise budget (owner, 2026-11-10): at most one dependency/vulnerability email per week per repo, everything grouped. Dependabot opens one grouped PR per week (OD-22). Dependabot alert emails use GitHub's weekly digest (owner account setting), never per-alert email. The daily vulnerability job and `deps-weekly-guard` never mention the owner and never open a new issue per finding: they update one pinned tracking issue per repo silently; only the Monday run posts the weekly summary that notifies. Actions emails: failed workflows only. Supersedes any older text in this folder saying a daily job or alerts notify per finding. |
