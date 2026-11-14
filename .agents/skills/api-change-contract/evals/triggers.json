@@ -1,0 +1,27 @@
+{
+  "skill": "api-change-contract",
+  "status": "stub",
+  "protocol": "docs/agent-skills.md#activation-evals",
+  "queries": [
+    {
+      "query": "add a field to the session response",
+      "should_trigger": true,
+      "split": "train"
+    },
+    {
+      "query": "rename a private helper",
+      "should_trigger": false,
+      "split": "train"
+    },
+    {
+      "query": "make the SSE event schema accept a new optional notice code",
+      "should_trigger": true,
+      "split": "validation"
+    },
+    {
+      "query": "fix a typo in a code comment",
+      "should_trigger": false,
+      "split": "validation"
+    }
+  ]
+}

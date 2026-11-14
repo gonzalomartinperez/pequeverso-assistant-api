@@ -193,7 +193,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 | Dependency updates and manual review | `docs/dependency-updates.md` |
 | Reference adoption (portfolio-assistant-api) | `docs/reference-adoption.md` |
 | Storefront transition, vps-ops handoff, open business questions | `docs/handoffs/storefront-transition.md`, `docs/handoffs/vps-ops.md`, `docs/business-questions.md` |
-| Agent instructions and skills | `AGENTS.md`, [paired skill discovery](docs/agent-skills.md), `.claude/skills/` canonical and `.agents/skills/` links |
+| Agent instructions and skills | `AGENTS.md`, [paired skill discovery](docs/agent-skills.md), `.agents/skills/` canonical and `.claude/skills/` per-skill links |
 
 ## Verification and operational limits
 

@@ -1,0 +1,27 @@
+{
+  "skill": "api-verify-release",
+  "status": "stub",
+  "protocol": "docs/agent-skills.md#activation-evals",
+  "queries": [
+    {
+      "query": "verify the release candidate end to end",
+      "should_trigger": true,
+      "split": "train"
+    },
+    {
+      "query": "add a field to the session response",
+      "should_trigger": false,
+      "split": "train"
+    },
+    {
+      "query": "run the pre-release checks without paid calls",
+      "should_trigger": true,
+      "split": "validation"
+    },
+    {
+      "query": "merge a Dependabot update",
+      "should_trigger": false,
+      "split": "validation"
+    }
+  ]
+}

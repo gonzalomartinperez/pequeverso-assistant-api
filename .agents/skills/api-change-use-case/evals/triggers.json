@@ -1,0 +1,27 @@
+{
+  "skill": "api-change-use-case",
+  "status": "stub",
+  "protocol": "docs/agent-skills.md#activation-evals",
+  "queries": [
+    {
+      "query": "tighten the answer rules so prices are never invented",
+      "should_trigger": true,
+      "split": "train"
+    },
+    {
+      "query": "bump a dependency in the lockfile",
+      "should_trigger": false,
+      "split": "train"
+    },
+    {
+      "query": "add a guard case for an unsupported claim in the evaluations",
+      "should_trigger": true,
+      "split": "validation"
+    },
+    {
+      "query": "change the container health check",
+      "should_trigger": false,
+      "split": "validation"
+    }
+  ]
+}
