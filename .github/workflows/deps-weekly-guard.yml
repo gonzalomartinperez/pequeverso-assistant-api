@@ -14,7 +14,7 @@ permissions: {}
 jobs:
   guard:
     if: github.event_name != 'pull_request' || github.actor == 'dependabot[bot]'
-    uses: gonzalomartinperez/engineering-standards/.github/workflows/deps-weekly-guard.yml@ENGINEERING_STANDARDS_SHA # v1.0.0
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/deps-weekly-guard.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
     permissions:
       contents: read
       pull-requests: write
