@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "description": "SSE load baseline (PVA-M2.12): 12 streams for 900 s, fixture provider, GitHub ubuntu-24.04 runner. The nightly fails above baseline x 1.2 (never above the harness limits 1.5 s and 0.5 s). Values only fall.",
+  "source": "nightly run 43626778325 (2026-11-14): ttfe p95 0.247 s, gap p95 0.076 s, 17737 completed runs, 0 errors, RSS growth 3.4%",
+  "ttfe_p95_seconds": 0.25,
+  "gap_p95_seconds": 0.08
+}

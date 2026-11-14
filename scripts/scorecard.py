@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from collections.abc import Callable
@@ -59,10 +60,14 @@ def _ratchet(name: str) -> dict[str, Any] | None:
 
 
 def _read(path: Path | None) -> dict[str, Any] | None:
+    """Return a JSON report, or None when absent or unreadable (main fails on requested ones)."""
     if path is None or not path.is_file():
         return None
-    data: dict[str, Any] = json.loads(path.read_text(encoding="utf-8"))
-    return data
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError, UnicodeDecodeError:
+        return None
+    return data if isinstance(data, dict) else None
 
 
 # --- measurements (each returns metrics; a missing input yields `unmeasured`) ----------------------
@@ -76,12 +81,13 @@ def static_metrics() -> list[Metric]:
     complexity = _ratchet("complexity.json")
     functions = complexity_ratchet.findings()
     contracts = subprocess.run(
-        [sys.executable, "-m", "importlinter.cli", "--no-cache"],
+        [str(Path(sys.executable).parent / "lint-imports"), "--no-cache"],
         cwd=ROOT,
         capture_output=True,
         text=True,
         check=False,
     )
+    broken = re.search(r"Contracts: \d+ kept, (\d+) broken", contracts.stdout)
     return [
         Metric(
             "ruff_legacy_findings",
@@ -110,7 +116,7 @@ def static_metrics() -> list[Metric]:
         Metric(
             "import_contracts_broken",
             "D1",
-            0.0 if contracts.returncode == 0 else 1.0,
+            None if broken is None else float(broken[1]),
             0.0,
             "max",
             "lint-imports",
@@ -141,11 +147,13 @@ def coverage_metrics(report: dict[str, Any] | None) -> list[Metric]:
 def golden_metrics(report: dict[str, Any] | None) -> list[Metric]:
     """Golden replay: 100% of the items in `ratchets/golden.json` must pass."""
     golden = _ratchet("golden.json")
-    items = passed = None
+    items = passed = unused = None
     if report is not None:
         items = float(report["overall"]["items"])
         passed = 100.0 * report["overall"]["passed"] / max(1, report["overall"]["items"])
+        unused = float(len(report.get("unused_cassettes", [])))
     return [
+        Metric("golden_unused_cassettes", "P3", unused, 0.0, "max", "evals/runner.py"),
         Metric(
             "golden_items",
             "P3",
@@ -165,23 +173,32 @@ def golden_metrics(report: dict[str, Any] | None) -> list[Metric]:
     ]
 
 
+# Absolute harness limits (tests/load/sse_load.py), the ceiling until ratchets/perf.json records a
+# measured baseline (then the baseline plus a 20% budget, never above these limits).
+LOAD_LIMITS = {"ttfe_p95_seconds": 1.5, "gap_p95_seconds": 0.5}
+
+
 def load_metrics(report: dict[str, Any] | None) -> list[Metric]:
-    """SSE load (fixture provider): latencies against `ratchets/perf.json` (20% regression budget)."""
-    perf = _ratchet("perf.json")
-    if report is None:
-        values: dict[str, float | None] = {"ttfe_p95_seconds": None, "gap_p95_seconds": None}
-        error = None
-    else:
+    """SSE load (fixture provider): latencies, error rate and the harness's own threshold checks."""
+    perf = _ratchet("perf.json") or {}
+    values: dict[str, float | None] = dict.fromkeys(LOAD_LIMITS)
+    error = failed = None
+    if report is not None:
         values = {
             "ttfe_p95_seconds": report["ttfe_seconds"]["p95"],
             "gap_p95_seconds": report["gap_seconds"]["p95"],
         }
         error = 100.0 * float(report["error_rate"])
+        # observations, premature closes and RSS growth: any False check counts.
+        failed = float(sum(value is False for value in report.get("checks", {}).values()))
+    source = "tests/load/sse_load.py"
     metrics = []
     for name, value in values.items():
-        base = None if perf is None or name not in perf else float(perf[name]) * 1.2
-        metrics.append(Metric(name, "D6", value, base, "max", "tests/load/sse_load.py"))
-    metrics.append(Metric("load_error_percent", "D6", error, 0.5, "max", "tests/load/sse_load.py"))
+        limit = LOAD_LIMITS[name]
+        base = min(limit, float(perf[name]) * 1.2) if name in perf else limit
+        metrics.append(Metric(name, "D6", value, base, "max", source))
+    metrics.append(Metric("load_error_percent", "D6", error, 0.5, "max", source))
+    metrics.append(Metric("load_checks_failed", "D6", failed, 0.0, "max", source))
     return metrics
 
 
@@ -264,6 +281,19 @@ def _revision() -> str:
 
 
 Collector = Callable[[], list[Metric]]
+# Metrics that must be measured when their input group is requested (mutation is read from the
+# committed ratchet and may legitimately be unmeasured until PVA-M2.9 records a baseline).
+GROUPS = {
+    "coverage": ("static_branch_coverage_percent",),
+    "golden": ("golden_items", "golden_pass_percent", "golden_unused_cassettes"),
+    "load": ("ttfe_p95_seconds", "gap_p95_seconds", "load_error_percent", "load_checks_failed"),
+    "static": (
+        "ruff_legacy_findings",
+        "functions_above_complexity_10",
+        "max_function_complexity",
+        "import_contracts_broken",
+    ),
+}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -285,9 +315,23 @@ def main(argv: list[str] | None = None) -> int:
         *([] if args.skip_static else retrieval_metrics()),
     ]
     document = build(metrics, _revision(), args.generated_at)
-    # An input that was requested but not produced (a crashed step) fails: never a silent pass.
+    # A requested input that was not produced or is unusable (a crashed step, no branch data, no
+    # completed run) fails, as does an unmeasured static metric: never a silent pass.
+    requested = {
+        "coverage": args.coverage is not None,
+        "golden": args.golden is not None,
+        "load": args.load is not None,
+        "static": not args.skip_static,
+    }
     missing = [
         str(path) for path in (args.coverage, args.golden, args.load) if path and not path.is_file()
+    ]
+    missing += [
+        f"{name} (unmeasured)"
+        for group, names in GROUPS.items()
+        if requested[group]
+        for name in names
+        if name in document["metrics"] and document["metrics"][name]["status"] == "unmeasured"
     ]
     document["missing_inputs"] = missing
     args.out.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")

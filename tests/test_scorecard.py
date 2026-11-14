@@ -14,9 +14,9 @@ if TYPE_CHECKING:
     import pytest
 
 GOLDEN_OK = {"overall": {"items": 60, "passed": 60}}
-LOAD = {
-    "ttfe_seconds": {"p95": 0.9},
-    "gap_seconds": {"p95": 0.2},
+LOAD = {  # the 2026-11-14 nightly measurement, within the committed perf baseline
+    "ttfe_seconds": {"p95": 0.247},
+    "gap_seconds": {"p95": 0.076},
     "error_rate": 0.0,
 }
 
@@ -91,8 +91,10 @@ def test_load_metrics_use_a_twenty_percent_budget(monkeypatch: pytest.MonkeyPatc
         scorecard, "_ratchet", lambda name: {"ttfe_p95_seconds": 1.0, "gap_p95_seconds": 0.1}
     )
     by_name = {m.name: m for m in scorecard.load_metrics(LOAD)}
-    assert by_name["ttfe_p95_seconds"].status == "ok"  # 0.9 <= 1.2
-    assert by_name["gap_p95_seconds"].status == "regressed"  # 0.2 > 0.12
+    assert by_name["ttfe_p95_seconds"].status == "ok"  # 0.247 <= 1.2
+    assert by_name["gap_p95_seconds"].status == "ok"  # 0.076 <= 0.12
+    slow = {**LOAD, "gap_seconds": {"p95": 0.2}}
+    assert scorecard.load_metrics(slow)[1].status == "regressed"  # 0.2 > 0.12
     assert by_name["load_error_percent"].status == "ok"
 
 
@@ -148,4 +150,46 @@ def test_a_requested_input_that_was_not_produced_fails(tmp_path: Path) -> None:
     missing = tmp_path / "sse-load.json"
     argv = ["--skip-static", "--golden", str(golden), "--load", str(missing), "--out", str(out)]
     assert scorecard.main(argv) == 1
-    assert json.loads(out.read_text(encoding="utf-8"))["missing_inputs"] == [str(missing)]
+    assert json.loads(out.read_text(encoding="utf-8"))["missing_inputs"][0] == str(missing)
+
+
+def test_an_unusable_requested_input_fails(tmp_path: Path) -> None:
+    lost = tmp_path / "coverage.json"
+    lost.write_text(json.dumps({"files": {}, "totals": {"num_branches": 0}}), encoding="utf-8")
+    code, document = run(tmp_path, GOLDEN_OK, "--coverage", str(lost))
+    assert code == 1
+    assert "static_branch_coverage_percent (unmeasured)" in document["missing_inputs"]
+    garbage = tmp_path / "golden-bad.json"
+    garbage.write_text("", encoding="utf-8")
+    out = tmp_path / "out.json"
+    assert scorecard.main(["--skip-static", "--golden", str(garbage), "--out", str(out)]) == 1
+
+
+def test_load_fails_on_a_harness_check_or_no_completed_run() -> None:
+    failing = {**LOAD, "checks": {"observations": True, "rss_growth": False}}
+    by_name = {m.name: m for m in scorecard.load_metrics(failing)}
+    assert by_name["load_checks_failed"].status == "regressed"
+    assert by_name["ttfe_p95_seconds"].baseline <= scorecard.LOAD_LIMITS["ttfe_p95_seconds"]
+    dead = {**LOAD, "ttfe_seconds": {"p95": None}, "gap_seconds": {"p95": None}}
+    assert {m.status for m in scorecard.load_metrics(dead)[:2]} == {"unmeasured"}
+
+
+def test_import_contracts_are_parsed_from_lint_imports(monkeypatch: pytest.MonkeyPatch) -> None:
+    import subprocess
+
+    real = subprocess.run
+
+    def fake(stdout: str):
+        def run(command, *args, **kwargs):
+            if str(command[0]).endswith("lint-imports"):
+                return subprocess.CompletedProcess(command, 1, stdout=stdout, stderr="")
+            return real(command, *args, **kwargs)
+
+        return run
+
+    monkeypatch.setattr(scorecard.subprocess, "run", fake("Contracts: 9 kept, 1 broken."))
+    by_name = {m.name: m for m in scorecard.static_metrics()}
+    assert by_name["import_contracts_broken"].status == "regressed"
+    monkeypatch.setattr(scorecard.subprocess, "run", fake(""))
+    by_name = {m.name: m for m in scorecard.static_metrics()}
+    assert by_name["import_contracts_broken"].status == "unmeasured"

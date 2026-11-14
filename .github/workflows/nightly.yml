@@ -63,7 +63,7 @@ jobs:
       - name: SSE load, 12 streams for 15 minutes (fixture provider)
         run: |
           uv run --frozen python -m tests.load.sse_load --streams 12 --duration 900 --report "$RUNNER_TEMP/sse-load.json" \
-            || echo "::warning title=load::a load threshold was missed; see sse-load.json"
+            || echo "::warning title=load::a load threshold was missed; the scorecard fails on it"
       - name: Scorecard (fails on any regression against ratchets/)
         run: |
           uv run --frozen python -m scripts.scorecard \
