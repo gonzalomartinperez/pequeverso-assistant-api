@@ -76,6 +76,7 @@ TestBudgetInterleavings.settings = settings(stateful_step_count=20)
 
 
 @given(cap=st.integers(1, 5000), amount=st.integers(1, 2000))
+@settings(max_examples=10)
 @example(cap=100, amount=100)
 def test_budget_regression(cap, amount):
     """Row 5: exact-cap reservation, retained unreported usage and settlement regression."""

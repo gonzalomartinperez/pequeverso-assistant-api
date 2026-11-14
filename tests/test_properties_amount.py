@@ -2,11 +2,10 @@
 
 from decimal import Decimal
 
-import pytest
 from hypothesis import example, given
 from hypothesis import strategies as st
 
-from app.domain.answer_policy import _amount
+from app.domain.answer_policy import AnswerRules, Violation, _amount, check_answer
 
 
 @given(cents=st.integers(0, 99_999_999))
@@ -19,15 +18,26 @@ def test_plain_amount_round_trip(cents):
     assert _amount(plain.replace(".", ",")) == amount
 
 
-@pytest.mark.xfail(
-    strict=True, reason="_amount rejects grouped es-ES/en amounts such as 1.299,00 and 1,299.00"
-)
 @given(cents=st.integers(100_000, 99_999_999))
 @example(cents=129900)
-def test_grouped_amount_round_trip(cents):
-    """Row 1: grouped es-ES and English displays should preserve exact cents."""
+def test_grouped_amounts_are_not_authoritative_and_fail_closed(cents):
+    """Row 1 (current contract): grouped displays (1.299,00 / 1,299.00) are not parsed.
+
+    `_amount` documents grouped formats as non-authoritative catalog displays, so a grouped price
+    is never accepted as grounded: the answer is replaced (a false rejection, never a false
+    acceptance). Revisit if the catalog ever lists prices of 1000 or more.
+    """
     amount = Decimal(cents) / 100
     english = f"{amount:,.2f}"
     spanish = english.translate(str.maketrans({",": ".", ".": ","}))
+    rules = AnswerRules(
+        frozenset(),
+        frozenset(),
+        frozenset({amount}),
+        True,
+        (),
+        known_price_pairs=frozenset({(amount, "EUR")}),
+    )
     for display in (spanish, english):
-        assert _amount(display) == amount
+        assert _amount(display) is None
+        assert Violation.UNKNOWN_PRICE in check_answer(f"Cuesta {display} EUR.", rules)

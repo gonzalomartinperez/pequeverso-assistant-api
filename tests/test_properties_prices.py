@@ -27,3 +27,20 @@ def test_unknown_price_pair_is_rejected(cents, currency, prefix, suffix):
     assert Violation.UNKNOWN_PRICE in check_answer(
         f"{prefix} {amount:.2f} {currency} {suffix}", rules
     )
+
+
+@given(cents=st.integers(1, 99_999_999), currency=st.sampled_from(["USD", "EUR", "ARS", "MXN"]))
+@example(cents=1499, currency="USD")
+def test_listed_price_pair_is_accepted_and_unknown_amount_rejected(cents, currency):
+    """Row 2 positive control: the listed pair passes; the same currency with another amount fails."""
+    amount = Decimal(cents) / 100
+    rules = AnswerRules(
+        frozenset(),
+        frozenset(),
+        frozenset({amount}),
+        True,
+        (),
+        known_price_pairs=frozenset({(amount, currency)}),
+    )
+    assert Violation.UNKNOWN_PRICE not in check_answer(f"Cuesta {amount:.2f} {currency}.", rules)
+    assert Violation.UNKNOWN_PRICE in check_answer(f"Cuesta {amount + 1:.2f} {currency}.", rules)

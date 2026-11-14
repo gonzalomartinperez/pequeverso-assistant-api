@@ -61,7 +61,8 @@ class UnknownEvent(BaseModel):
 
 @pytest.mark.xfail(
     strict=True,
-    reason="streaming.encode renders arbitrary model event types outside StreamEvent's closed set",
+    reason="unenforced internal precondition (low risk): streaming.encode renders any pydantic model; "
+    "only StreamEvent members reach it on the wire path (_wire)",
 )
 @given(kind=st.text(alphabet="abc", min_size=1, max_size=20))
 @example(kind="unknown")

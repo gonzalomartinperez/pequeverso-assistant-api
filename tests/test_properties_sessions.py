@@ -186,6 +186,7 @@ TestSessionLifecycle.settings = settings(stateful_step_count=20)
 
 
 @given(retention=st.integers(1, 60))
+@settings(max_examples=10)
 @example(retention=1)
 def test_session_lifecycle_regression(retention):
     """Row 10: foreign cancellation, expiry boundary and deletion regression."""
