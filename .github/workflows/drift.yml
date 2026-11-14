@@ -1,0 +1,17 @@
+# Standards drift check (ecosystem 16): byte-matched files and standards.lock against
+# engineering-standards. Runs on every PR (cheap, no build); not part of the required gate yet.
+name: drift
+
+on:
+  schedule:
+    - cron: "0 12 * * 1"   # Monday 09:00 ART, next to the weekly dependency PR
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  drift:
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/drift.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    permissions:
+      contents: read

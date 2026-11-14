@@ -1,0 +1,58 @@
+{
+  "standards": {
+    "repository": "gonzalomartinperez/engineering-standards",
+    "tag": "v1.0.0",
+    "commit": "1f33be46bcb95f42f550f74608bc679cae5575ad"
+  },
+  "flow": "release",
+  "files": [
+    {
+      "path": "SECURITY.md",
+      "template": "templates/community/SECURITY.md"
+    },
+    {
+      "path": "SUPPORT.md",
+      "template": "templates/community/SUPPORT.md"
+    },
+    {
+      "path": "CODE_OF_CONDUCT.md",
+      "template": "templates/community/CODE_OF_CONDUCT.md"
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "template": "templates/github/PULL_REQUEST_TEMPLATE.md"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug.yml",
+      "template": "templates/github/ISSUE_TEMPLATE/bug.yml"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature.yml",
+      "template": "templates/github/ISSUE_TEMPLATE/feature.yml"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "template": "templates/github/ISSUE_TEMPLATE/config.yml"
+    },
+    {
+      "path": "docs/master-plan/ecosystem.md",
+      "template": "standard/ecosystem.md"
+    },
+    {
+      "path": "docs/master-plan/rubrics.md",
+      "template": "standard/rubrics.md"
+    },
+    {
+      "path": ".claude/hooks/guard-bash.py",
+      "template": "harness/hooks/guard-bash.py"
+    },
+    {
+      "path": ".claude/hooks/guard-files.py",
+      "template": "harness/hooks/guard-files.py"
+    }
+  ],
+  "checks": [
+    "dependabot-policy",
+    "workflow-pins"
+  ]
+}

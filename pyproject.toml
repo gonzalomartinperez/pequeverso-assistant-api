@@ -41,6 +41,7 @@ package = false
 
 [tool.ruff]
 line-length = 110
+extend-exclude = [".claude/hooks"]  # byte-matched copies from engineering-standards
 target-version = "py313"
 
 [tool.ruff.lint]

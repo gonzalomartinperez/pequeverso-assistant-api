@@ -105,8 +105,7 @@ malformed or unauthorized registry fields and maps them to domain values. Both f
 sources pass through it. Current evidence does not justify moving those models wholesale into
 domain; another ingestion path would need equivalent validation and parity tests.
 
-See [engineering standards](engineering-standards.md) for review, collaboration ownership and
-reproducibility requirements.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for review and reproducibility requirements.
 
 ## One turn
 

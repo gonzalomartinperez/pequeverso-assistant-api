@@ -40,25 +40,33 @@ their compatibility and historical messages. Read this file, then the doc for yo
 
 ## Workflow
 
-- `main` is the default and release branch; `develop` is the development branch. Work on
-  `type/kebab-case` branches → squash PR into `develop`. A release is a PR `develop` → `main`
-  merged with a **merge commit**, when the owner asks for it (for example "sincronizá main").
+Full guide: [`CONTRIBUTING.md`](CONTRIBUTING.md). To continue the refactor from any session read
+[`docs/master-plan/RESUME.md`](docs/master-plan/RESUME.md).
+
+- Work lands on `develop` through task branches `type/kebab-case` (`feat/`, `fix/`, `chore/`,
+  `docs/`, `deps/`). Open PRs with `--base develop`. `main` receives releases only (promotion at M7,
+  a PR `develop` → `main` with a **merge commit**, when the owner asks for it).
 - **Hotfix directly to `main` only with the owner's explicit authorization, given in the current
   conversation for that specific fix.** Never infer it from earlier approvals, never self-approve.
   Flow: `hotfix/<kebab-case>` from `main` → PR into `main` (merge commit) → PR `main` → `develop`
   (merge commit). Skill: `.agents/skills/api-release-and-hotfix/SKILL.md`.
-- Both branches are protected (as in portfolio-assistant-api): PR required, strict required status
-  `checks` (the full five-prerequisite aggregate; see `docs/ci.md`),
-  no force push or deletion, no bypass. The agent uses the owner's GitHub account, so
-  the hotfix authorization is this written rule, not a GitHub setting: never use `--admin`, never
-  push to `main`, never change the protection to get a merge through.
-  Conventional Commits; the PR body states what was verified and what was not.
+- Both branches are protected: PR required, strict required status `checks` (the full
+  five-prerequisite aggregate; see `docs/ci.md`), becoming `ci-gate` once the owner applies the
+  ruleset; no force push or deletion, no bypass. The agent uses the owner's GitHub account, so the
+  hotfix authorization is this written rule, not a GitHub setting: never use `--admin`, never push
+  to `main`, never change the protection to get a merge through.
+- Merge only with green CI, as a merge commit (never squash):
+  `gh pr checks <n> --watch && gh pr merge <n> --merge --delete-branch`. Never chain with `;`.
+- Conventional Commits; the PR body states what was verified and what was not.
 - The repository is public: never commit secrets, `.env*` files, customer data or real
   conversations (secret scanning and push protection are on).
-- Before a PR: `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest
-  && uv run python -m contracts.export --check`. For image changes, also `scripts/smoke_container.sh`.
+- Before a PR: `just check`, which is exactly
+  `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -n auto && uv run python -m contracts.export --check`
+  (written out because `just` may not be installed). For image changes, also
+  `scripts/smoke_container.sh`.
 - No deploys, DNS or production changes from this repository (vps-ops owns them).
-- Dependabot PRs follow `docs/dependency-updates.md`: one weekly multi-ecosystem PR into `develop`, merged manually by the owner; `deps-weekly-guard` keeps at most one open and never merges.
+- Dependabot opens one weekly multi-ecosystem PR into `develop`; the owner merges it manually.
+  `deps-weekly-guard` keeps at most one open and never merges. Follow `docs/dependency-updates.md`.
   Nothing here authorizes merging anything into `main`.
 
 ## Skills
@@ -72,16 +80,7 @@ authority for paid calls, deployment, cross-repository edits or protected-branch
 
 ## Optional product analytics channel
 
-The owner-authorized three-event channel is separate from assistant operations and RAG.
-Follow `docs/product-analytics.md`: collection/read default OFF, PostgreSQL only, a closed Peque
-public profile, content-free scoped aggregates and private server-only bearer reads. Explicit
-production configuration supports production-class aggregates independently of the AI provider;
-persisted namespaces preserve existing synthetic fixtures. Country defaults OFF/unknown.
-Optional trusted-proxy country handling requires exact socket-peer/header validation;
-configuration is not Cloudflare or deployed-edge proof. Implementing or testing this capability
-authorizes no production activation, identity joins, model calls, Store collector, Meta/CAPI or
-checkout changes. Preserve existing chat/ops/telemetry contracts and migration history. Real
-PG/BO/browser checks require a fresh resource lease; deployment needs separate owner authorization.
+See [`docs/product-analytics.md`](docs/product-analytics.md), including its "Agent rules".
 
 ## Master plan (2026-11)
 

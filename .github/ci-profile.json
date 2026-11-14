@@ -38,7 +38,10 @@
         ".dockerignore",
         "LICENSE",
         "NOTICE.md",
-        "README.md"
+        "README.md",
+        ".claude/hooks/**",
+        "justfile",
+        "standards.lock"
       ],
       "adds": [
         "static",
