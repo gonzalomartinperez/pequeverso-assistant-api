@@ -23,6 +23,17 @@ Load harness: run `uv run python -m tests.load.sse_load --report /tmp/sse-load.j
 
 `just fmt` formats and applies safe lint fixes; `just test` and `just unit` run the full or the unit-only suite. CI runs the same commands; a PR merges only when the required check is green (`checks` today, becoming `ci-gate` with PVA-M1.4). Image changes also run `scripts/smoke_container.sh`.
 
+## Property-based tests
+
+Hypothesis defaults to the deterministic `ci` profile (100 examples); `nightly` runs 1000 examples:
+
+```bash
+HYPOTHESIS_PROFILE=nightly uv run pytest -q tests/test_properties_*.py
+```
+
+Add a shrunk failure as an `@example` regression case before fixing the bug. The local
+Hypothesis example database (`.hypothesis/`) is ignored by Git.
+
 ## Branch flow
 
 - Branch from `develop` as `feat/…`, `fix/…`, `chore/…`, `docs/…` or `deps/…` (`type/kebab-case`) and open the PR with `--base develop`. `main` receives releases only (promotion at M7, a merge commit).
