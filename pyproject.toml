@@ -26,6 +26,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "hypothesis>=6.140",
     "import-linter>=2.5",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
