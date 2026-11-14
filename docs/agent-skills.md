@@ -22,7 +22,7 @@ and `version` (semver). Each skill also has an `evals/triggers.json` activation-
 | `api-review-weekly-dependencies` | Review of the single weekly Dependabot PR; the owner merges | `review-dependency-update` |
 | `api-release-and-hotfix` | Owner-authorized release or specific hotfix procedure | `release-and-hotfix` |
 
-The rename preserves each existing procedure and its limits. It creates no new storage,
+The rename preserves each existing procedure and its limits, except `api-review-weekly-dependencies`, which was rewritten for the single weekly PR (the eligibility assessment is retired). It creates no new storage,
 streaming or deployment capability. Skills never authorize paid calls, budget increases,
 protected-branch mutations, cross-repository edits or deployment. A relevant skill remains
 discoverable even when its mutation step needs explicit current owner authorization.

@@ -33,7 +33,7 @@ def validate_config(cfg: dict[str, Any]) -> None:
     }
     assert group['target-branch'] == 'develop'
     assert group['open-pull-requests-limit'] == 1
-    assert 'commit-message' in group
+    assert group['commit-message'] == {'prefix': 'build(deps)'}
     updates = cfg['updates']
     assert {u['package-ecosystem'] for u in updates} == {'uv', 'github-actions', 'docker'}
     assert len(updates) == 3
@@ -61,7 +61,20 @@ def validate_config(cfg: dict[str, Any]) -> None:
 def validate_guard(workflow: dict[str, Any], group_name: str) -> None:
     # PyYAML parses the bare key `on` as boolean True.
     assert workflow.get('permissions') == {}
+    triggers = workflow[True]
+    assert triggers['schedule'] == [{'cron': '30 13 * * 1'}]
+    assert triggers['pull_request'] == {'types': ['opened', 'reopened', 'synchronize']}
+    assert set(triggers) == {'schedule', 'pull_request', 'workflow_dispatch'}
     guard = workflow['jobs']['guard']
+    assert guard['if'] == "github.event_name != 'pull_request' || github.actor == 'dependabot[bot]'"
+    assert guard['permissions'] == {
+        'contents': 'read',
+        'pull-requests': 'write',
+        'issues': 'write',
+        'checks': 'read',
+    }
+    assert 'secrets' not in guard
+    assert guard['with']['gate-check-name'] == 'checks'
     uses = guard['uses']
     assert uses.startswith(f'{REUSABLE}@')
     assert re.fullmatch(r'[0-9a-f]{40}', uses.split('@', 1)[1]), 'pin the reusable workflow by SHA'
@@ -134,3 +147,19 @@ def test_rejects_unpinned_or_mismatched_guard() -> None:
         validate_guard(bad, GROUP)
     with pytest.raises(AssertionError):
         validate_guard(good, 'other')
+
+
+@pytest.mark.parametrize('mutation', ['widen', 'secrets', 'if', 'cron'])
+def test_rejects_a_broadened_guard(mutation: str) -> None:
+    bad = _load('.github/workflows/deps-weekly-guard.yml')
+    guard = bad['jobs']['guard']
+    if mutation == 'widen':
+        guard['permissions']['contents'] = 'write'
+    elif mutation == 'secrets':
+        guard['secrets'] = 'inherit'
+    elif mutation == 'if':
+        guard['if'] = 'always()'
+    else:
+        bad[True]['schedule'] = [{'cron': '0 0 * * *'}]
+    with pytest.raises(AssertionError):
+        validate_guard(bad, GROUP)

@@ -19,8 +19,9 @@ metadata:
 4. Check out the branch and run `uv sync --locked && uv run pytest -n auto && uv run python -m contracts.export --check`.
    A live check still needs the owner's authorization.
 5. CI must be green, including the container image gates (Grype, SBOM).
-6. The owner merges it into `develop` (OD-20). Agents may push fixes to the same branch only when the
-   PR is labelled `needs-fix`; otherwise comment. Never push to `main`.
+6. The owner merges it into `develop` (OD-20). `needs-fix` marks a red PR; it is not an
+   authorization. Push fixes to the same branch only when the owner asks; otherwise comment.
+   Never push to `main`.
 
 ## Limits
 

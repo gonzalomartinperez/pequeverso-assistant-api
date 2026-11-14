@@ -14,21 +14,26 @@ only because Actions and Docker reject them. `tests/test_dependabot_config.py` p
 
 ## Weekly flow
 
-- The owner merges the PR into `develop` (squash) after green CI, including the container image gates.
+- The owner merges the PR into `develop` (merge commit) after green CI, including the container image gates.
   No bot approves, enables auto-merge or merges. Promotion to `main` stays an owner-requested release.
 - A PR left unmerged is updated or superseded, never duplicated (OD-21): at most one is open.
 - `deps-weekly-guard` (`.github/workflows/deps-weekly-guard.yml`, Monday 10:30 ART and on Dependabot PR
   events) is a thin caller of the shared reusable workflow. It uses the GitHub API only; no PR code is
   checked out or executed and nothing uses `pull_request_target`. It closes an older duplicate with a
-  pointer to the newer, asks Dependabot to rebase, and labels a red PR `needs-fix`. Agents may push
-  fixes to the Dependabot branch only when it carries `needs-fix`. Review with the skill
+  pointer to the newer and, on the Monday run, labels a red PR `needs-fix` and records its state in
+  the tracker issue. Asking Dependabot to rebase is opt-in (`request-rebase`) and off here, because
+  every comment notifies the owner (OD-75). `needs-fix` marks a red PR; it does not authorize an
+  agent to push to the Dependabot branch (only the owner's request does). Review with the skill
   `api-review-weekly-dependencies`.
+- GitHub reads `dependabot.yml` and scheduled workflows from the default branch (`main`). Until this
+  configuration reaches `main` (M7 promotion, or an owner-authorized hotfix), Dependabot keeps the
+  older multi-PR configuration and the Monday guard run does not fire; only PR-event runs work.
 
 ## Vulnerabilities
 
 - Dependabot security-update PRs are off (repository setting); alerts are on and use GitHub's weekly
   digest. Findings ride the weekly PR.
-- A daily osv-scanner job records findings silently in one pinned issue, #123 "Dependency and
+- A daily osv-scanner job (`vuln-daily`, PVA-M1.6) records findings silently in one pinned issue, #123 "Dependency and
   vulnerability tracker" (label `vuln`); only the Monday run posts the weekly summary (OD-75).
 - Urgent fix (KEV, reachable critical, SLA at risk): a normal task-branch PR bumping the single
   dependency, merged by the owner; it does not create a second Dependabot PR. SLA targets:
