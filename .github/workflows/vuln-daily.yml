@@ -1,0 +1,24 @@
+# Daily vulnerability job (ecosystem 5.5 as amended by OD-75). Copy to .github/workflows/vuln-daily.yml.
+name: vuln-daily
+
+on:
+  schedule:
+    - cron: "0 10 * * *"   # daily 07:00 ART; the Monday run also posts the weekly summary
+  workflow_dispatch:
+    inputs:
+      force-summary:
+        description: Post the summary comment now
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  vuln:
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/vuln-daily.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    permissions:
+      contents: read
+      issues: write
+    with:
+      force-summary: ${{ inputs.force-summary == true }}
+      images: ""   # vps-ops: newline-separated image@sha256 references from releases/production.lock
