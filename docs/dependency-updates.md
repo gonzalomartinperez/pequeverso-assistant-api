@@ -1,76 +1,52 @@
-# Dependency updates and manual review
+# Dependency updates
 
-## Current profile — 2026-11-09
+Rule (owner decisions OD-20/21/22/75, ADR-0016): exactly one dependency PR per week, all ecosystems
+together, merged manually by the owner.
 
-Dependabot opens one weekly version-update PR into `develop` (multi-ecosystem group `weekly-all`: uv, GitHub
-Actions and the three Docker recipe directories; Monday 09:00 America/Argentina/Buenos_Aires; group-level
-`open-pull-requests-limit: 1`; cooldown 7 days, with semver cooldowns on uv only). The per-ecosystem groups and
-`rebase-strategy` of the 2026-10-17 profile were removed. The review policy below was written for several PRs
-and keeps working unchanged on the single grouped PR (a grouped PR is eligible only if every member
-qualifies; Actions and Docker members always need human review); revisiting it is deferred to M1. Every update requires manual review and a protected
-merge. The read-only policy classifies authenticated metadata and manifest changes; an
-`eligible` result means only a low-risk review candidate. Its `automerge` output is always
-`false`. It cannot approve, enable auto-merge or merge a PR and has no write-scoped job.
+## Configuration
 
-The previous `gh pr merge --auto` adapter could merge immediately when a PR was already clean
-and green. It therefore did not guarantee “arm native auto-merge only”. That writer was removed;
-no currently open Dependabot PR depended on it at reconciliation. This is the default manual
-profile, not a pause of dependency updates. A future native writer requires a separately
-reviewed contract, exact-head/protection/review verification and a real `GITHUB_TOKEN` proof.
+`.github/dependabot.yml` defines one multi-ecosystem group, `weekly-all`: Monday 09:00
+America/Argentina/Buenos_Aires, `target-branch: develop`, `open-pull-requests-limit: 1`, commit prefix
+`build(deps)`. Group-level keys live only on the group (Dependabot rejects them on entries). Entries
+join with `patterns: ["*"]`: `uv`, `github-actions` and `docker` (`infra/docker/app`, `postgres`,
+`neo4j`). Cooldown is 7 days everywhere; semver cooldowns (major 14, minor 7, patch 3) exist on `uv`
+only because Actions and Docker reject them. `tests/test_dependabot_config.py` pins all of this.
 
-## Review assessment
+## Weekly flow
 
-`scripts/dependabot_policy.py` and `.github/dependabot-policy.json` retain conservative analysis:
+- The owner merges the PR into `develop` (merge commit) after green CI, including the container image gates.
+  No bot approves, enables auto-merge or merges. Promotion to `main` stays an owner-requested release.
+- A PR left unmerged is updated or superseded, never duplicated (OD-21): at most one is open.
+- `deps-weekly-guard` (`.github/workflows/deps-weekly-guard.yml`, Monday 10:30 ART and on Dependabot PR
+  events) is a thin caller of the shared reusable workflow. It uses the GitHub API only; no PR code is
+  checked out or executed and nothing uses `pull_request_target`. It closes an older duplicate with a
+  pointer to the newer and, on the Monday run, labels a red PR `needs-fix` and records its state in
+  the tracker issue. Asking Dependabot to rebase is opt-in (`request-rebase`) and off here, because
+  every comment notifies the owner (OD-75). `needs-fix` marks a red PR; it does not authorize an
+  agent to push to the Dependabot branch (only the owner's request does). Review with the skill
+  `api-review-weekly-dependencies`.
+- GitHub reads `dependabot.yml` and scheduled workflows from the default branch (`main`). Until this
+  configuration reaches `main` (M7 promotion, or an owner-authorized hotfix), Dependabot keeps the
+  older multi-PR configuration and the Monday guard run does not fire; only PR-event runs work.
 
-- Verify authenticated Dependabot login/type/id, same repository, open non-draft PR,
-  expected head SHA and `develop` base. Inspect every verified Dependabot commit.
-- Inspect all changed files and both manifests. Only modifications to `pyproject.toml` and
-  `uv.lock` are candidates; dependency addition/removal, tool configuration or unknown impact
-  requires explicit review. Compare every direct and transitive locked version.
-- The patch/minor allowlists classify impact only. Majors, prereleases, downgrades, unknown
-  versions and sensitive 0.x minors always need explicit review, as do provider SDKs,
-  validation/TLS/session boundaries, Actions and Docker images.
-- Missing, pending or successful checks never authorize a merge. Failed/cancelled checks and
-  unknown/conflicting merge state remain visible rejection reasons. A maintainer waits for
-  current-head required checks, strict branch freshness and any required independent review.
+## Vulnerabilities
 
-Review release notes/changelogs, scope and CI before integrating. Use squash into `develop`;
-release `develop` → `main` uses a merge commit and the owner's release authorization.
-Never use bot approval, a PAT, `--admin`, direct pushes or protection changes to bypass a gate.
+- Dependabot security-update PRs are off (repository setting); alerts are on and use GitHub's weekly
+  digest. Findings ride the weekly PR.
+- A daily osv-scanner job (`vuln-daily`, PVA-M1.6) records findings silently in one pinned issue, #123 "Dependency and
+  vulnerability tracker" (label `vuln`); only the Monday run posts the weekly summary (OD-75).
+- Urgent fix (KEV, reachable critical, SLA at risk): a normal task-branch PR bumping the single
+  dependency, merged by the owner; it does not create a second Dependabot PR. SLA targets:
+  `docs/master-plan/ci-cd.md` and ADR-0016.
 
-## Security updates and rebasing
+## Retired (PVA-D9)
 
-Alerts remain enabled and visible. Dependabot security updates may target default `main`;
-`target-branch: develop` for routine updates does not redirect every security update. A
-maintainer assesses and retargets compatible fixes to `develop` or follows a specifically
-owner-authorized hotfix. Nothing automatically merges into `main` or suppresses an alert.
+The policy workflow, its classifier script, the allowlist and their tests are gone. The eligibility classifier and its `pull_request_target`
+workflow assessed many small PRs for possible auto-merge; with one weekly PR that the owner always
+merges by hand it has no decision left to inform, and removing it also removes the only privileged
+trigger. Previous profiles remain in Git history.
 
-Native auto-rebase remains enabled; request `@dependabot rebase` only when needed. Do not add
-rebase polling/spam, rewrite a bot branch yourself or close an incompatible update without
-recording why it is superseded or blocked. Existing incompatible/sensitive updates stay manual.
+## Operating
 
-## Workflow trust boundary
-
-`pull_request_target` reads the policy from the protected base commit through sparse checkout
-with `persist-credentials: false`. PR code is never checked out, installed or executed.
-The job has only `contents`, `pull-requests` and `checks`: read. No mutation endpoint or merge
-command is used. Normal PR CI runs separately on the PR code with its read-only token.
-Actions stay pinned by immutable SHA. Unit regressions cover unsafe identities, files,
-versions, check states, missing protection and the absence of a privileged merge workflow.
-
-## Operating and rollback
-
-- Review candidates with their exact head SHA, changelog, manifests and CI; merge normally
-  only after all required gates pass. Labels and assessment summaries are not authorization.
-- To pause updates, use an explicit reviewed configuration change; the manual profile itself
-  does not set the PR limit to zero or disable Dependabot.
-- Revert a defective update through a normal PR into `develop`, restoring its previous lock
-  version, and document any `@dependabot ignore this patch version` decision.
-- To restore automation, propose a separate policy change and independent review; do not
-  reintroduce a CLI writer on the assumption that `--auto` cannot perform an immediate merge.
-
-## Historical evidence
-
-The September policy/configuration activation and PR #3 Docker/uv review are historical,
-not proof of an eligible native auto-merge. They remain in Git history. No successful real
-eligible auto-arming path was demonstrated before adopting this manual profile.
+- Pause or revert through a reviewed PR (restore the previous lock version; document any
+  `@dependabot ignore` decision). Never use `--admin`, a PAT, direct pushes or protection changes.

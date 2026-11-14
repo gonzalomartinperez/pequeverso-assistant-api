@@ -15,7 +15,7 @@ SKILL_NAMES = frozenset(
         'api-maintain-knowledge',
         'api-verify-release',
         'api-change-contract',
-        'api-review-dependency-update',
+        'api-review-weekly-dependencies',
         'api-release-and-hotfix',
     }
 )

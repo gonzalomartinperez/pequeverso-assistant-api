@@ -65,10 +65,12 @@ uv run pytest -n auto              # full suite; service tests skip without fixt
 ## Trust and provenance
 
 All jobs use read-only or empty token permissions and SHA-pinned actions. The
-renamed `dependency-policy.yml` / `Dependency policy` continues its trusted-base,
-read-only assessment: manual review/merge remains required. It never executes PR
-code with write privileges. Caches contain dependencies only; uv uses the runtime
-and lockfile inputs. No images, raw logs, conversation evidence or backups are
+`deps-weekly-guard.yml` workflow is a thin caller of the shared reusable workflow in
+`engineering-standards`, pinned by SHA, with `permissions: {}` at the top. It uses the GitHub
+API only: no PR code is checked out or executed, and no workflow uses `pull_request_target`
+(`tests/test_dependabot_config.py` pins this). The owner merges the weekly PR manually.
+Caches contain dependencies only; uv uses the runtime and lockfile inputs. No images, raw logs,
+conversation evidence or backups are
 uploaded. Database and container jobs own separate disposable services; neither
 assumes another runner's database survives.
 
@@ -99,7 +101,7 @@ actions. Nothing is published.
 Run the focused checks, then the normal repository quality commands:
 
 ```sh
-uv run pytest -q tests/test_ci_profile.py tests/test_dependabot_policy.py tests/test_container_layout.py
+uv run pytest -q tests/test_ci_profile.py tests/test_dependabot_config.py tests/test_container_layout.py
 ```
 
 The CI profile tests exercise the actual aggregate shell with green,

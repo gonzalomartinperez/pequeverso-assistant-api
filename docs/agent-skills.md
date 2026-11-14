@@ -19,10 +19,10 @@ and `version` (semver). Each skill also has an `evals/triggers.json` activation-
 | `api-maintain-knowledge` | Catalog export from committed storefront main | `update-catalog` |
 | `api-verify-release` | Candidate verification without paid calls or deployment | `verify-release` |
 | `api-change-contract` | Compatible public HTTP/SSE or private operations contract changes | `change-api-contract` |
-| `api-review-dependency-update` | Read-only dependency assessment and protected manual review | `review-dependency-update` |
+| `api-review-weekly-dependencies` | Review of the single weekly Dependabot PR; the owner merges | `review-dependency-update` |
 | `api-release-and-hotfix` | Owner-authorized release or specific hotfix procedure | `release-and-hotfix` |
 
-The rename preserves each existing procedure and its limits. It creates no new storage,
+The rename preserves each existing procedure and its limits, except `api-review-weekly-dependencies`, which was rewritten for the single weekly PR (the eligibility assessment is retired). It creates no new storage,
 streaming or deployment capability. Skills never authorize paid calls, budget increases,
 protected-branch mutations, cross-repository edits or deployment. A relevant skill remains
 discoverable even when its mutation step needs explicit current owner authorization.
@@ -33,7 +33,7 @@ Run from the repository root:
 
 ```sh
 python -m scripts.validate_skills
-uv run pytest -q tests/test_skills.py tests/test_ci_profile.py tests/test_dependabot_policy.py
+uv run pytest -q tests/test_skills.py tests/test_ci_profile.py tests/test_dependabot_config.py
 ```
 
 The stdlib-only validator checks the exact paired inventory, real canonical directories,

@@ -102,3 +102,22 @@ screenshot provenance documents. Their byte-preserved evidence remains intact. T
 exceptions identify only those original immutable findings; no path-wide or rule-wide
 exception was added. The value was independently verified as a committed Git object, and
 the private-key byte exposure check found no match in the candidate sources or preview files.
+
+## Repository security settings and scheduled scans
+
+| Control | Where | Cadence |
+|---|---|---|
+| CodeQL (python, actions, JavaScript/TypeScript) | GitHub default setup, no workflow file | on PRs and on the default branch |
+| OpenSSF Scorecard | `.github/workflows/scorecard.yml` (copied from engineering-standards, SARIF to code scanning) | weekly and on pushes to `main` |
+| osv-scanner and compromised-action watch | `.github/workflows/vuln-daily.yml` (shared reusable job) | daily; the Monday run posts the one weekly summary |
+| Dependency review, zizmor, actionlint, gitleaks | shared `security` job in CI (PVA-M1.4) | every PR |
+| Image scan (Grype), SBOM, dockle | CI `container` job | every PR that builds the image |
+
+Findings are recorded silently in the single pinned tracker issue (label `vuln`, OD-75); no job opens
+a PR or a second issue. Exceptions carry an issue and an expiry (ADR-0016).
+
+`scripts/check_repo_settings.sh` reads the repository settings with the owner's `gh` session and fails
+when one is off: secret scanning and push protection on, Dependabot security updates off and alerts
+on (OD-22), private vulnerability reporting on, CodeQL default setup configured. It changes nothing;
+turning a setting on is an owner action. State on 2026-11-14: all on except private vulnerability
+reporting (owner input).
