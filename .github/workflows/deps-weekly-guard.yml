@@ -1,0 +1,25 @@
+name: deps-weekly-guard
+
+# Weekly single dependency PR guard (ecosystem 5.3, OD-20/21/22/75). API only: no PR code is
+# checked out or executed. State goes silently into the pinned tracker issue (label `vuln`).
+on:
+  schedule:
+    - cron: "30 13 * * 1" # Monday 10:30 America/Argentina/Buenos_Aires (UTC-3, no DST)
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  guard:
+    if: github.event_name != 'pull_request' || github.actor == 'dependabot[bot]'
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/deps-weekly-guard.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      checks: read
+    with:
+      group-name: weekly-all
+      gate-check-name: checks # becomes ci-gate with PVA-M1.4
