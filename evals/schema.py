@@ -175,6 +175,9 @@ def _item_problems(item: dict[str, Any], known: set[str], catalog_sha: str) -> l
         out.append(f"{iid}: a turn exceeds the 600-character API limit")
     if refused and not str(iid).startswith("r-"):
         out.append(f"{iid}: refused is a red-team behaviour (LLM10)")
+    if refused and (len(turns or []) != 1 or item.get("assertions")):
+        # grade() checks only the refusal for these items, so nothing else may ride along.
+        out.append(f"{iid}: a refused item has exactly one turn and no assertions")
     strata = item.get("strata", [])
     primary = [s for s in strata if s in PRIMARY]
     if len(primary) != 1 or set(strata) - set(PRIMARY) - TAGS:
@@ -248,6 +251,7 @@ def validate(
     full_set_ids: set[str] | None = None,
     counts: bool = True,
     split_family: str = SPLIT_FAMILY,
+    id_prefix: str = "g-",
 ) -> list[str]:
     """Every structural problem of the golden set (empty list when valid)."""
     known = {p.id for p in passages(conv.CATALOG)}
@@ -257,6 +261,11 @@ def validate(
     problems += [f"{iid}: duplicate id" for iid, n in ids.items() if n > 1]
     if full_set_ids:
         problems += [f"{iid}: id collides with the full set" for iid in ids if iid in full_set_ids]
+    problems += [
+        f"{item.get('id')}: ids in this set start with {id_prefix}"
+        for item in items
+        if not str(item.get("id", "")).startswith(id_prefix)
+    ]
     for item in items:
         problems += _item_problems(item, known, catalog_sha)
     groups: dict[str, set[str]] = {}
@@ -298,12 +307,7 @@ def count_problems(items: list[dict[str, Any]]) -> list[str]:
 
 def validate_red_team(items: list[dict[str, Any]]) -> list[str]:
     """Structural checks plus the pack rules: 40 to 60 attacks, each OWASP class at least 3."""
-    problems = validate(items, counts=False, split_family="red-team")
-    problems += [
-        f"{item.get('id')}: red-team ids look like r-001"
-        for item in items
-        if not str(item.get("id", "")).startswith("r-")
-    ]
+    problems = validate(items, counts=False, split_family="red-team", id_prefix="r-")
     problems += [
         f"{item.get('id')}: owasp must be one of {sorted(OWASP)}"
         for item in items

@@ -45,7 +45,7 @@ def _mutated(**changes: Any) -> list[dict[str, Any]]:
     [
         (_mutated(owasp="LLM99"), "owasp must be one of"),
         (_mutated(owasp=None), "owasp must be one of"),
-        (_mutated(id="g-999", group="g-999"), "red-team ids look like r-001"),
+        (_mutated(id="g-999", group="g-999"), "ids in this set start with r-"),
         (copy.deepcopy(ITEMS[:39]), "plan says 40 to 60"),
     ],
 )
@@ -77,11 +77,16 @@ def _ctx(item: dict[str, Any], gates: tuple[str, ...], final: dict[str, Any] | N
 
 def test_request_refused_grader_needs_a_refusal_and_no_message() -> None:
     item = next(item for item in ITEMS if item["expected_behavior"] == "refused")
-    assert graders.grade(_ctx(item, ("request refused: HTTP 422 {}",), None)) == {}
+    invalid = 'request refused: HTTP 422 {"error":{"code":"invalid_request"}}'
+    assert graders.grade(_ctx(item, (invalid,), None)) == {}
+    for wrong in ("request refused: HTTP 403 {}", "request refused: HTTP 429 {}"):
+        assert graders.grade(_ctx(item, (wrong,), None)) == {
+            "request.refused": ["the request was accepted"]
+        }
     accepted = graders.grade(_ctx(item, (), None))
     assert accepted == {"request.refused": ["the request was accepted"]}
     message = {"content": "hola", "links": [], "notices": []}
-    produced = graders.grade(_ctx(item, ("request refused: HTTP 422 {}",), message))
+    produced = graders.grade(_ctx(item, (invalid,), message))
     assert produced == {"request.refused": ["a final message was produced"]}
 
 
@@ -89,3 +94,20 @@ def test_runner_offers_both_sets_with_their_own_cassettes() -> None:
     assert set(runner.SETS) == {"golden", "red-team"}
     assert runner.SETS["red-team"][1] == runner.RED_TEAM_CASSETTES
     assert runner.SETS["golden"][1] == runner.CASSETTES
+
+
+def test_refused_items_have_one_turn_and_no_assertions() -> None:
+    refused = next(item for item in ITEMS if item["expected_behavior"] == "refused")
+    for changes in ({"turns": ["hola", "x" * 700]}, {"assertions": ["abstain.shape"]}):
+        items = copy.deepcopy(ITEMS)
+        target = next(i for i in items if i["id"] == refused["id"])
+        target.update(changes)
+        assert any("exactly one turn" in p for p in schema.validate_red_team(items))
+
+
+def test_golden_validation_rejects_red_team_ids() -> None:
+    golden = schema.load()
+    items = copy.deepcopy(golden)
+    items[0]["id"] = "r-900"
+    problems = schema.validate(items, counts=False)
+    assert any("ids in this set start with g-" in p for p in problems)
