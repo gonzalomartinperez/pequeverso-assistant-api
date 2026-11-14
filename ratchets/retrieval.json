@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "description": "Lexical retrieval over the corpus (fixture lane), committed baseline (PVA-M2.12). Values only rise; PVA-M2.6 adds recall@5 per family and language.",
+  "k": 3,
+  "overall": {
+    "cases": 190,
+    "recall_at_3": 0.689,
+    "mrr": 0.603
+  },
+  "by_family": {
+    "age-fit": {
+      "cases": 14,
+      "recall_at_3": 0.929,
+      "mrr": 0.893
+    },
+    "commercial-rules": {
+      "cases": 3,
+      "recall_at_3": 1.0,
+      "mrr": 1.0
+    },
+    "comparison-resources": {
+      "cases": 16,
+      "recall_at_3": 0.75,
+      "mrr": 0.705
+    },
+    "delivery-and-access": {
+      "cases": 15,
+      "recall_at_3": 0.8,
+      "mrr": 0.633
+    },
+    "follow-ups": {
+      "cases": 9,
+      "recall_at_3": 0.889,
+      "mrr": 0.778
+    },
+    "injection": {
+      "cases": 3,
+      "recall_at_3": 0.667,
+      "mrr": 0.528
+    },
+    "language": {
+      "cases": 12,
+      "recall_at_3": 0.333,
+      "mrr": 0.333
+    },
+    "out-of-scope": {
+      "cases": 2,
+      "recall_at_3": 0.0,
+      "mrr": 0.0
+    },
+    "price-and-currency": {
+      "cases": 12,
+      "recall_at_3": 0.833,
+      "mrr": 0.708
+    },
+    "printing-and-format": {
+      "cases": 13,
+      "recall_at_3": 0.769,
+      "mrr": 0.717
+    },
+    "product-contents": {
+      "cases": 20,
+      "recall_at_3": 0.85,
+      "mrr": 0.768
+    },
+    "purchase-process": {
+      "cases": 7,
+      "recall_at_3": 0.429,
+      "mrr": 0.262
+    },
+    "refunds-guarantee-withdrawal": {
+      "cases": 15,
+      "recall_at_3": 0.8,
+      "mrr": 0.667
+    },
+    "stale-data": {
+      "cases": 5,
+      "recall_at_3": 0.4,
+      "mrr": 0.35
+    },
+    "support": {
+      "cases": 11,
+      "recall_at_3": 0.364,
+      "mrr": 0.303
+    },
+    "typos-and-slang": {
+      "cases": 18,
+      "recall_at_3": 0.556,
+      "mrr": 0.505
+    },
+    "usage-and-start": {
+      "cases": 15,
+      "recall_at_3": 0.6,
+      "mrr": 0.441
+    }
+  },
+  "by_language": {
+    "en": {
+      "cases": 6,
+      "recall_at_3": 0.167,
+      "mrr": 0.167
+    },
+    "es": {
+      "cases": 184,
+      "recall_at_3": 0.707,
+      "mrr": 0.618
+    },
+    "unsupported": {
+      "cases": 0,
+      "recall_at_3": null,
+      "mrr": null
+    }
+  }
+}
