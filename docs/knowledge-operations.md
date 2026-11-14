@@ -83,7 +83,7 @@ See [dated evidence](verification/graphrag-2026-10-17.md) and the backoffice dep
 
 ## Commands from a clean checkout
 
-Use the repository-pinned uv and Python 3.14.10. Python 3.15 is not selected because the frozen
+Use the repository-pinned uv and Python 3.14.8. Python 3.15 is not selected because the frozen
 GraphRAG dependencies do not all publish compatible wheels; no source-build workaround is
 part of the reproducible image.
 
