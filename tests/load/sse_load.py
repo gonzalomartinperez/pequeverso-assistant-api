@@ -275,7 +275,13 @@ async def measure_message(http: httpx.AsyncClient, csrf: str, question: str) -> 
     return result
 
 
-async def visitor(url: str, deadline: float, index: int, measurements: list[Measurement]) -> int:
+async def visitor(
+    url: str,
+    deadline: float,
+    index: int,
+    measurements: list[Measurement],
+    server: subprocess.Popen | None = None,
+) -> int:
     rng = random.Random(index)
     async with httpx.AsyncClient(
         base_url=url,
@@ -292,8 +298,11 @@ async def visitor(url: str, deadline: float, index: int, measurements: list[Meas
         while time.monotonic() < deadline:
             result = await measure_message(http, csrf, rng.choice(QUESTIONS))
             measurements.append(result)
-            # Avoid a tight refusal loop while keeping all visitors active.
-            if result.rejected:
+            # Back off after anything but a completed run (a rejection, an error or a crashed
+            # server) so a failure never turns into a tight loop; stop when the server is gone.
+            if result.terminal != "run.completed":
+                if server is not None and server.poll() is not None:
+                    return 1
                 await asyncio.sleep(min(0.05, max(0, deadline - time.monotonic())))
     return 0
 
@@ -322,7 +331,8 @@ async def wait_ready(process: subprocess.Popen, url: str) -> None:
     async with httpx.AsyncClient(timeout=0.5, trust_env=False) as http:
         while time.monotonic() < deadline and process.poll() is None:
             try:
-                if (await http.get(f"{url}/health/ready")).status_code == 200:
+                ready = (await http.get(f"{url}/health/ready")).status_code == 200
+                if ready and process.poll() is None:  # our child answered, not a stranger
                     return
             except httpx.TransportError:
                 pass
@@ -373,7 +383,7 @@ async def run_load(streams: int, duration: float) -> dict:
                 try:
                     session_errors = await asyncio.gather(
                         *(
-                            visitor(url, started + duration, index, measurements)
+                            visitor(url, started + duration, index, measurements, process)
                             for index in range(streams)
                         )
                     )

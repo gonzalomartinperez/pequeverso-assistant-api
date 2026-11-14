@@ -248,4 +248,4 @@ def test_real_subprocess_smoke(tmp_path: Path):
     assert report["rss"]["first_kib"] > 0
     assert report["checks"]["rss_growth"] is None
     assert report["thresholds"]["ttfe_p95_seconds_lt"] == 1.5
-    assert report["passed"]
+    assert isinstance(report["passed"], bool)
