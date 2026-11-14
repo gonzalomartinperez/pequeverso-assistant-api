@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     import pytest
 
 GOLDEN_OK = {"overall": {"items": 60, "passed": 60}}
-LOAD = {  # the 2026-11-14 nightly measurement, within the committed perf baseline
+LOAD = {  # a 2026-11-14 nightly measurement
     "ttfe_seconds": {"p95": 0.247},
     "gap_seconds": {"p95": 0.076},
     "error_rate": 0.0,
