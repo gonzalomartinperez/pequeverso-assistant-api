@@ -46,6 +46,9 @@ line-length = 100
 # .claude/hooks: byte-matched copies from engineering-standards; docs/master-plan: planning artifacts.
 extend-exclude = [".claude/hooks", "docs/master-plan"]
 target-version = "py314"
+# Run by the CI runner's system python3 (Ubuntu 24.04: 3.12), not the uv venv:
+# keep their syntax 3.12-compatible (tests/test_system_python_scripts.py).
+per-file-target-version = { "scripts/{ci_identity,compare_oci_images,postgres_fixture_identity,container_fixture_probe}.py" = "py312" }
 
 [tool.ruff.lint]
 # Ecosystem 10.2 families (never ALL). docs/master-plan/standards.md section 1.
