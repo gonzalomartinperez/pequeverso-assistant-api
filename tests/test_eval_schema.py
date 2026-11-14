@@ -119,3 +119,7 @@ def test_payment_refusal_needs_its_notice() -> None:
         i for i, it in enumerate(ITEMS) if it["expected_behavior"] == "refuse_payment_data"
     )
     assert any("payment_data_refused" in p for p in _problems(_with(index, notices=[])))
+
+
+def test_clock_offsets_near_the_stale_boundary_are_rejected() -> None:
+    assert any("0 (fresh) or above" in p for p in _problems(_with(0, clock_offset_days=7)))

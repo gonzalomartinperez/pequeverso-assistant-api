@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "ed9ad62e17f74baec2e0fdc0671d3f7eaf0c5041577a40e3c483ebc1b2be5daa",
+  "note": "scripted: authored reference answer (not a real model run)",
+  "output": {
+    "answer": "La Guía de Alimentación para Bebés es un curso en video sobre alimentación complementaria. Es un enlace de afiliado: si compras, Pequeverso recibe una comisión y a ti no te cuesta más.",
+    "references": [
+      {
+        "kind": "product",
+        "id": "alimentacion-bebe"
+      }
+    ],
+    "sources": [
+      "affiliate.alimentacion-bebe.overview"
+    ],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 4259,
+    "output_tokens": 83
+  }
+}

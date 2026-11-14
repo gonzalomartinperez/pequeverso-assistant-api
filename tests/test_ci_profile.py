@@ -66,6 +66,7 @@ COMMANDS = {
         "contracts.export --check",
         "scripts/evaluate_retrieval.py",
         "scripts/evaluate_conversations.py",
+        "python -m evals.runner golden --replay",
     ],
     "database": [
         "infra/docker/postgres/Dockerfile",

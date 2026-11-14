@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "2bc6fc7475e3c87a11434f1519cf2f2db29dc0872024a342f8289d003a3834a1",
+  "note": "scripted: authored reference answer (not a real model run)",
+  "output": {
+    "answer": "Puedes empezar con unos 10 minutos y una sola hoja por día. No es una regla: acorta, repite o pausa según cómo responda tu hijo.",
+    "references": [
+      {
+        "kind": "product",
+        "id": "grafismo-fonetico"
+      }
+    ],
+    "sources": [
+      "faq.grafismo-fonetico.04"
+    ],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5953,
+    "output_tokens": 66
+  }
+}
