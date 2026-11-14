@@ -11,12 +11,13 @@ is distinct from semantic correctness, and agent review is not human review.
 | Retrieval | `uv run python scripts/evaluate_retrieval.py` | Lexical ranking finds the right passage (20 cases, `evals/retrieval.json`) | recall@3 = 0.95, MRR = 0.908 (miss: "correo postal" vs "producto físico") |
 | Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 19 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 19/19 safe |
 | Guards | same command (`evals/guards.json`) | 14 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup, unsupported merchant guarantee/page count/mandatory processing delay) are dropped or replaced server-side | 14/14 |
-| Corpus | `uv run python scripts/evaluate_corpus.py` | 288 hand-written cases in 18 intent families (`evals/corpus/`), retrieval per family/split/language, and every case through the full HTTP/SSE path | Gates: 0/288 pipeline failures; reply language 285/285 as expected (`lang-016` fixed with Portuguese markers). Retrieval recall@3 = 0.70 overall (dev 0.67, holdout 0.77), 0.17 on English questions. Report: `evals/reports/corpus-fixture.json` |
+| Full set | `uv run python scripts/evaluate_corpus.py` | 318 hand-written cases in 18 intent families (`evals/full/*.jsonl`, schema v2: 288 cleaned corpus v1 cases and 30 added in v2), retrieval per family/split/language, and every case through the full HTTP/SSE path | Gates: 0/318 pipeline failures; reply language 0 mismatches (`lang-016` fixed with Portuguese markers). Retrieval (241 scored cases, 77 with an explicit empty list): recall@3 = 0.656, recall@5 = 0.718, nDCG@5 = 0.545, MRR = 0.580; on the 190 cases labelled in v1 it is unchanged (0.689, 0.737, 0.603). Baseline: `evals/full/baseline/corpus-fixture.json`; ratchet: `ratchets/retrieval.json` |
 | Conversations: quality | same command with `--live` | Budget recommendation, low budget honesty, resource comparison, clarification, no-match (fluent reader, app), stale price, follow-up reference, invented discount, injection, unknown shipping and license policy, refused order action, payment data, offer probe, child-data minimization, English visitor | This specific conversations CLI has not been run live. The separate 303-turn socket evaluation is documented below; fixture scores do not measure model quality |
 
 `tests/test_evaluations.py` gates CI on retrieval ≥ 0.9 recall@3, zero safety failures, zero
-guard failures, zero corpus gate failures, the exact set of known reply-language misses and
-the corpus retrieval floors. `docs/verification/fixture-eval.json` holds the latest full fixture report.
+guard failures, zero full-set gate failures, zero reply-language misses and the corpus retrieval floors
+and the per-family and per-language retrieval ratchet (`ratchets/retrieval.json`,
+`scripts/retrieval_ratchet.py`; baseline report in `evals/full/baseline/`). `docs/verification/fixture-eval.json` holds the latest full fixture report.
 
 ## Post-change evaluation scope
 
@@ -154,7 +155,7 @@ procedure sources. It adds no model tools, hosted web search or production activ
 No live result or completed migration is claimed by these source changes. A fixture selector
 regression and an external exact-parent proof are distinct from executing 225 real queries.
 
-## Evaluation corpus (`evals/corpus/`)
+## Full evaluation set (`evals/full/`)
 
 One file per intent family: product contents, age fit, comparison of resources, printing and
 format, usage and how to start, price and currency, purchase process, delivery and access,
@@ -164,21 +165,43 @@ urgency, testimonials, post-purchase offer, order actions, payment data, contact
 stale prices, language (Spanish variants, English, mixed, quoted English, Portuguese, French,
 Italian, German) and typos/slang.
 
-**What a case is.** `id`, `family`, `group` (paraphrases of one question), `split`, `turns`
-(visitor messages; the last one is evaluated) and `expect`: `retrieval` (catalog passages, any of
-which should rank in the top 3; validated against `catalog/catalog.v1.json`), `retrieval_query`
-(`all` joins the turns for follow-ups), `language` (`es`, `en` or `unsupported`), `outcome`
-(`answer`, `clarify`, `no_info`, `decline`, `refuse_payment_data`), `forbid` (behavior tags),
-`forbid_terms`, `notices`/`user_notices` (code-enforced), plus optional `page`, `locale` and
-`clock_offset_days` (stale data).
+**What a case is (schema v2, one JSON object per line).** `id`, `family`, `group` (paraphrases of
+one question), `split`, `locale` (language of the visitor's text: `es`, `en`, `mixed`, `other`),
+`turns` (visitor messages; the last one is evaluated), `gold_evidence_ids` (catalog passages, any
+of which should rank in the top 3 or 5; validated against `catalog/catalog.v1.json`) or, when the
+list is empty, an explicit `abstain_reason` (`out_of_scope`, `not_published`, `clarify`,
+`adversarial`, `sensitive_data`, `conversational`, `transactional`), `retrieval_query` (`all`
+joins the turns for follow-ups), `response_language` (`es`, `en` or `unsupported`),
+`expected_behavior` (`answer`, `clarify`, `no_info`, `decline`, `refuse_payment_data`),
+`forbidden_claims` (behavior tags and `term:` literals), `assertions` (graders of
+`evals/graders.py`, for example `claims.policy`), `notices`/`user_notices` (code-enforced),
+`clock_offset_days` (stale data), `catalog_sha256` (the pinned catalog) and optional `page`,
+`ui_locale` (interface hint sent as `locale`), `client` (`native` sends `response_language: es`)
+and `tags`. The loader is `scripts/evaluate_corpus.py` (`load`, `validate`), reading the files with
+the reader of `evals/schema.py`.
 
 **Rules.** Cases are written by hand with real variation (register, regional Spanish, typos,
 English); none is generated from a template. Paraphrases are evaluation inputs, never knowledge:
 the only facts are the catalog's. The split is deterministic and keeps paraphrase groups
 together, so a holdout question never has a paraphrase in dev: groups, ordered by
 `sha256(family:group)`, join dev when that brings dev closer to 70 % of the family
-(`assign_splits`; `tests/test_evaluations.py` re-derives it). Tune prompts and ranking on `dev`;
+(`assign_splits`; `scripts/evaluate_corpus.py` re-derives it for the corpus v1 cases, whose splits are
+frozen; the v2 additions are split per family by the same rule with a `:v2` salt). Tune prompts and ranking on `dev`;
 read `holdout` only to confirm.
+
+**Baseline and ratchet (PVA-M2.6).** `scripts/retrieval_ratchet.py` writes the committed baseline
+report (`evals/full/baseline/corpus-fixture.json`: counts per family, split, locale and behavior,
+recall@3, recall@5, nDCG@5 and MRR overall, per split, per family and per input language, catalog
+pin, no transcripts) and keeps `ratchets/retrieval.json`; `tests/test_retrieval_ratchet.py` fails
+when any value drops below it, so values only rise (`--update` raises, never lowers). Metrics are
+stdlib (`scripts/evaluate_corpus.py`). Spike on `ranx` 0.3.21 (MIT), CPython 3.14.8: it installs
+(numba 0.68.1 and llvmlite 0.50.0 have 3.14 wheels) and reproduces nDCG@5 (0.545) and MRR (0.579) on
+the full set (its recall@k is the share of gold ids found, not the hit rate used here), but
+it pulls about 35 packages (numba, scipy, pandas, seaborn, matplotlib, pillow, ir_datasets), imports
+in about 50 s and compiles about 90 s on first use on a loaded host, and `pillow` (MIT-CMU) and
+`llvmlite` (Apache-2.0 WITH LLVM-exception) are outside the `allow-licenses` list of the dependency
+review, so it is not adopted; the paired significance test of the plan waits for a measured need.
+The part B retrieval repair (`app/ai/evidence.py`, recall@5 >= 0.85) is a separate change.
 
 **Fixture results are pipeline checks.** The fixture provider answers by lexical match. A
 fixture run proves that the code path (session, streaming, validation, persistence, language
@@ -192,9 +215,9 @@ corpus CLI phases below have not been executed with the real model.
 | Kind | Checks | Meaning in fixture mode |
 |---|---|---|
 | Gates | Stream grammar, catalog-valid references, https allowlisted URLs, answer rules, no price when stale, `payment_data_refused`, `contact_data_redacted` | Code-enforced; must pass in every mode (CI) |
-| Language | `MessageOut.language` equals the expected `es`/`en`, or the `language_unsupported` notice for other languages (mixed-language and payment-refusal cases excluded: 285 checked) | Code-enforced (`app/domain/language.py` decides the reply language), so deterministic. CI asserts the exact set of known misses |
+| Language | `MessageOut.language` equals the expected `es`/`en`, or the `language_unsupported` notice for other languages (mixed-language and payment-refusal cases excluded) | Code-enforced (`app/domain/language.py` decides the reply language), so deterministic. CI asserts there are no accepted misses |
 | Retrieval | Lexical rank of the evaluated turn | Decides whether ranking needs work (ADR-0002) |
-| Behavior | Outcome (clarifying question, support route), grounding (expected passage referenced), forbidden behaviors by string heuristics | **None.** The fixture answers by lexical match; its 111 flags are expected. Meaningful only in a live run, then reviewed by hand. `invented_policy` has no lexical check (manual review) |
+| Behavior | Outcome (clarifying question, support route), grounding (expected passage referenced), forbidden behaviors by string heuristics | **None.** The fixture answers by lexical match; its 111 flags are expected. Meaningful only in a live run, then reviewed by hand. The former manual `invented_policy` tag is now the `claims.policy` assertion (9 cases) |
 
 **Historical findings (fixture, catalog `ae6d237`, API develop `07405d2`; superseded language issue explicitly retained).**
 
@@ -202,7 +225,7 @@ corpus CLI phases below have not been executed with the real model.
   The miss is `lang-016`, "Quanto custa o kit e como faço para comprar?": the detector returns
   `unknown` (the message shares "kit", "como", "para" with Spanish), so the visitor gets a Spanish
   answer instead of the unsupported-language note. This was corrected before the
-  2026-10-10 baseline (`b27d35c`); the current corpus gate expects zero known misses.
+  2026-10-10 baseline (`b27d35c`); the full-set gate expects zero misses.
   Keep this initial observation as history, not as an outstanding defect.
 
 - In this historical baseline the model received the whole catalog, about 10.8K characters.
