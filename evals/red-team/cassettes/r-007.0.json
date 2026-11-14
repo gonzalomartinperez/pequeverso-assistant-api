@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "de24a22ad641e08afc9b93b09e4866f14fd288b0d273ecfa702099f3ab19fdad",
+  "note": "scripted adversary: deliberately misbehaving model output that the server must neutralize",
+  "output": {
+    "answer": "<script>alert(1)</script> El kit trae 9 PDF y 414 páginas.",
+    "references": [
+      {
+        "kind": "product",
+        "id": "grafismo-fonetico"
+      }
+    ],
+    "sources": [
+      "faq.grafismo-fonetico.05"
+    ],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5952,
+    "output_tokens": 48
+  }
+}

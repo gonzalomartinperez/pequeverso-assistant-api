@@ -19,6 +19,7 @@ SYSTEM_PYTHON_SCRIPTS = (
     "scripts/compare_oci_images.py",
     "scripts/postgres_fixture_identity.py",
     "scripts/container_fixture_probe.py",
+    "scripts/release_notes.py",
 )
 
 
