@@ -17,7 +17,7 @@ The source baseline is `0422c74aa25644978122232bcaae08fdf8c32310`. Its reported
 acceptance of this increment. Static still runs the complete suite; service skips
 are not service passes. The database job retains the real store and fixture HTTP/SSE
 commands, including cold indexing/operator jobs and evaluation tests. No runtime,
-Docker recipe, dependency lock or catalog changes accompany this CI migration.
+Docker recipe, dependency lock or catalog changes accompanied that CI migration.
 
 ## Test lanes and parallelism
 
@@ -25,8 +25,9 @@ Docker recipe, dependency lock or catalog changes accompany this CI migration.
 `skipif` on an explicitly isolated PostgreSQL or Neo4j fixture). The `static` job runs the whole
 suite in parallel with `pytest-xdist` (`-n auto`) and in random order with `pytest-randomly`
 (the seed is printed in the header; reproduce with `--randomly-seed=<seed>`, disable with
-`-p no:randomly`). The `database` job keeps a fixed order (`-p no:randomly`) because its tests
-share one isolated store per run.
+`-p no:randomly`). The `database` job keeps a fixed order: its three smoke scripts pass
+`-p no:randomly` to pytest because their tests share one isolated store per run
+(`tests/test_ci_profile.py` pins both settings).
 
 ```sh
 uv run pytest -m unit -n auto      # fast local lane
