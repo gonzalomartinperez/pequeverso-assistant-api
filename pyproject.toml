@@ -70,6 +70,8 @@ ignore = ["E501", "TRY003", "D203", "D213"]
 "tests/**" = ["S101", "ANN", "D", "ARG", "S105", "S106", "S311", "PT018"]
 # S3: scripts are CLIs: print is the output, subprocess calls are fixed lists, sys.path bootstrap.
 "scripts/**" = ["T201", "S603", "S607", "E402"]
+# The evaluation runner is a CLI too: its JSON report goes to stdout.
+"evals/runner.py" = ["T201"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Cookie"]
@@ -80,7 +82,7 @@ quote-style = "double"
 [tool.mypy]
 python_version = "3.14"
 strict = true
-files = ["app", "contracts", "scripts"]
+files = ["app", "contracts", "scripts", "evals"]
 plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]
