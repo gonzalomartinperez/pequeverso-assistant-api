@@ -1,0 +1,27 @@
+{
+  "skill": "api-review-dependency-update",
+  "status": "stub",
+  "protocol": "docs/agent-skills.md#activation-evals",
+  "queries": [
+    {
+      "query": "review this Dependabot pull request sent to manual review",
+      "should_trigger": true,
+      "split": "train"
+    },
+    {
+      "query": "write a new feature test",
+      "should_trigger": false,
+      "split": "train"
+    },
+    {
+      "query": "assess a Dependabot major version bump before merging",
+      "should_trigger": true,
+      "split": "validation"
+    },
+    {
+      "query": "release develop into main",
+      "should_trigger": false,
+      "split": "validation"
+    }
+  ]
+}

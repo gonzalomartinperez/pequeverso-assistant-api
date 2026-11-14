@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import re
+from datetime import date
 from pathlib import Path
 
 SKILL_NAMES = frozenset(
@@ -70,10 +71,21 @@ def frontmatter(text: str) -> tuple[dict[str, str], str]:
         key, value = match.groups()
         require(key not in values, 'Duplicate frontmatter field')
         following: list[str] = []
+        raw_following: list[str] = []
         index += 1
         while index < end and (lines[index].startswith((' ', '\t')) or not lines[index].strip()):
+            raw_following.append(lines[index])
             following.append(lines[index].strip())
             index += 1
+        if key == 'metadata':
+            require(not value, 'Metadata must be an indented block')
+            # YAML forbids tab indentation; real clients would reject what a lenient check accepts.
+            require(
+                all(not line.strip() or re.match(r' +\S', line) for line in raw_following),
+                'Metadata entries must be indented with spaces',
+            )
+            values[key] = '\n'.join(line for line in following if line)
+            continue
         if key not in {'name', 'description'}:
             # Optional metadata is not interpreted or executed by this validator.
             values[key] = value
@@ -87,6 +99,62 @@ def frontmatter(text: str) -> tuple[dict[str, str], str]:
     return values, '\n'.join(lines[end + 1 :]).strip()
 
 
+def metadata_block(raw: str) -> dict[str, str]:
+    entries: dict[str, str] = {}
+    for line in raw.splitlines():
+        match = re.fullmatch(r'([a-z][a-z0-9_-]*):\s*(\S.*)', line)
+        require(match is not None, 'Malformed metadata entry')
+        assert match is not None
+        require(match.group(1) not in entries, 'Duplicate metadata entry')
+        # Values are quoted in SKILL.md so YAML clients read strings, not dates or floats.
+        entries[match.group(1)] = scalar(match.group(2))
+    return entries
+
+
+def validate_metadata(name: str, raw: str | None) -> None:
+    require(raw, name + ': metadata block missing')
+    assert raw is not None
+    entries = metadata_block(raw)
+    require(
+        {'owner', 'last-reviewed', 'version'} <= entries.keys(),
+        name + ': metadata needs owner, last-reviewed and version',
+    )
+    require(entries['owner'].strip(), name + ': metadata owner is empty')
+    reviewed = entries['last-reviewed']
+    require(re.fullmatch(r'\d{4}-\d{2}-\d{2}', reviewed), name + ': last-reviewed must be YYYY-MM-DD')
+    try:
+        date.fromisoformat(reviewed)
+    except ValueError as error:
+        raise SkillValidationError(name + ': last-reviewed is not a real date') from error
+    require(re.fullmatch(r'\d+\.\d+\.\d+', entries['version']), name + ': version must be semver X.Y.Z')
+
+
+def validate_triggers(name: str, folder: Path) -> None:
+    path = folder / 'evals/triggers.json'
+    require(path.is_file() and not path.is_symlink(), name + ': evals/triggers.json is required')
+    try:
+        data = json.loads(path.read_text(encoding='utf-8'))
+    except json.JSONDecodeError as error:
+        raise SkillValidationError(name + ': triggers.json is not valid JSON') from error
+    require(isinstance(data, dict), name + ': triggers.json must be an object')
+    require(data.get('skill') == name, name + ': triggers.json skill does not match directory')
+    queries = data.get('queries')
+    require(isinstance(queries, list) and queries, name + ': triggers.json queries must be non-empty')
+    assert isinstance(queries, list)
+    flags: set[bool] = set()
+    for entry in queries:
+        require(
+            isinstance(entry, dict)
+            and isinstance(entry.get('query'), str)
+            and entry['query'].strip()
+            and isinstance(entry.get('should_trigger'), bool)
+            and entry.get('split') in {'train', 'validation'},
+            name + ': malformed trigger query',
+        )
+        flags.add(entry['should_trigger'])
+    require(flags == {True, False}, name + ': triggers.json needs a positive and a negative query')
+
+
 def inside(path: Path, root: Path) -> Path:
     try:
         resolved = path.resolve(strict=True)
@@ -98,8 +166,8 @@ def inside(path: Path, root: Path) -> Path:
 
 def validate(root: Path) -> list[str]:
     root = root.resolve(strict=True)
-    canonical = root / '.claude/skills'
-    discovery = root / '.agents/skills'
+    canonical = root / '.agents/skills'
+    discovery = root / '.claude/skills'
     require(
         canonical.is_dir()
         and not canonical.is_symlink()
@@ -121,7 +189,7 @@ def validate(root: Path) -> list[str]:
         require(folder.is_dir() and not folder.is_symlink(), name + ': canonical directory must be real')
         require(link.is_symlink(), name + ': discovery must be a directory symlink, never a wrapper copy')
         require(
-            link.readlink().as_posix() == '../../.claude/skills/' + name
+            link.readlink().as_posix() == '../../.agents/skills/' + name
             and inside(link, root) == folder.resolve(),
             name + ': incorrect discovery target',
         )
@@ -133,6 +201,8 @@ def validate(root: Path) -> list[str]:
             metadata['name'] == name and re.fullmatch(r'[a-z0-9-]{1,63}', metadata['name']),
             name + ': name does not match directory',
         )
+        validate_metadata(name, metadata.get('metadata'))
+        validate_triggers(name, folder)
         description = metadata['description']
         require(re.search(r'\bNot (?:for|an authorization)\b', description), name + ': exclusions missing')
         require(description not in descriptions, name + ': duplicate description')

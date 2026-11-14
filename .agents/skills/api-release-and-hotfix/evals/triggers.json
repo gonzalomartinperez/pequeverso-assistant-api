@@ -1,0 +1,27 @@
+{
+  "skill": "api-release-and-hotfix",
+  "status": "stub",
+  "protocol": "docs/agent-skills.md#activation-evals",
+  "queries": [
+    {
+      "query": "promote develop to main",
+      "should_trigger": true,
+      "split": "train"
+    },
+    {
+      "query": "merge this task PR into develop",
+      "should_trigger": false,
+      "split": "train"
+    },
+    {
+      "query": "ship an owner-authorized hotfix to main",
+      "should_trigger": true,
+      "split": "validation"
+    },
+    {
+      "query": "rebase my feature branch on develop",
+      "should_trigger": false,
+      "split": "validation"
+    }
+  ]
+}

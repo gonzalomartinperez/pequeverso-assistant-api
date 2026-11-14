@@ -1,0 +1,27 @@
+{
+  "skill": "api-maintain-knowledge",
+  "status": "stub",
+  "protocol": "docs/agent-skills.md#activation-evals",
+  "queries": [
+    {
+      "query": "re-sync the catalog from a pinned storefront commit",
+      "should_trigger": true,
+      "split": "train"
+    },
+    {
+      "query": "edit the assistant prompt tone",
+      "should_trigger": false,
+      "split": "train"
+    },
+    {
+      "query": "review price changes after a catalog refresh",
+      "should_trigger": true,
+      "split": "validation"
+    },
+    {
+      "query": "add a new HTTP route",
+      "should_trigger": false,
+      "split": "validation"
+    }
+  ]
+}

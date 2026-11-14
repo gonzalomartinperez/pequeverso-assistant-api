@@ -63,8 +63,9 @@ their compatibility and historical messages. Read this file, then the doc for yo
 
 ## Skills
 
-Canonical skills are real directories in `.claude/skills/<name>/`; `.agents/skills/` is a real
-directory containing one relative directory symlink per skill to the same canonical content.
+Canonical skills are real directories in `.agents/skills/<name>/` (Codex reads this root);
+`.claude/skills/` is a real directory containing one relative directory symlink per skill to the
+same canonical content (Claude Code reads this root).
 Automatic/default discovery remains enabled; load only the skill matching the task. See
 `docs/agent-skills.md`. Validate with `python -m scripts.validate_skills`; skills never add
 authority for paid calls, deployment, cross-repository edits or protected-branch mutations.
