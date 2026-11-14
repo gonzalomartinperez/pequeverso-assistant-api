@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "description": "Append-only prompt pins per PROMPT_VERSION (ADR-0017). Add a version, never edit one.",
+  "versions": [
+    {
+      "version": "2026-10-18.4",
+      "instructions_sha256": "7fe69a2036ab495e2292ee5b18fc5d898ec7a53f7fcdcd9a962dc2f31b2d2234",
+      "output_schema_sha256": "c74ebac7b360ea1c66afd595d1e011aa8048fa37ad3f163b8679c6c4bb77d79a",
+      "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e"
+    }
+  ]
+}
