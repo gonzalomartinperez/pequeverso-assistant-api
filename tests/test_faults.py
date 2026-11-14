@@ -3,6 +3,7 @@
 import json
 import sqlite3
 from contextlib import closing
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -14,6 +15,7 @@ from app.domain.errors import FailureCode, RejectedError
 from tests.support import FixedClock, ScriptedProvider, ask, client, open_session
 from tests.test_hybrid_knowledge import setup
 from tests.test_public_corpus import NOW
+from tests.test_sse_conformance import freeze_run_clock
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -39,7 +41,7 @@ def assert_safe(payload):
 
 @pytest.mark.parametrize("fault", ["timeout", "unavailable", "midstream"])
 def test_provider_fault_closes_stream_and_accounts_unknown_spend(
-    tmp_path: Path, fault: str
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fault: str
 ) -> None:
     provider = {
         "timeout": ScriptedProvider(hang=True, usage=None),
@@ -51,22 +53,17 @@ def test_provider_fault_closes_stream_and_accounts_unknown_spend(
         "unavailable": "provider_unavailable",
         "midstream": "generation_failed",
     }[fault]
-    # Only the timeout case needs a short deadline; the others get headroom for slow hosts.
-    deadline = 1.0 if fault == "timeout" else 30.0
-    with client(tmp_path, provider, run_timeout_seconds=deadline) as c:
+    # The timeout case freezes the run clock: preparation cannot expire the deadline, so the
+    # failure is always the in-stream one. A 0.5 s real wait then bounds the hung provider step.
+    if fault == "timeout":
+        freeze_run_clock(monkeypatch)
+    with client(tmp_path, provider, run_timeout_seconds=0.5 if fault == "timeout" else 30.0) as c:
         csrf = open_session(c)
         status, events, error = ask(c, csrf, "Hola")
-        if fault == "timeout" and status == 504:
-            # A deadline reached before the stream starts is the documented HTTP 504 envelope.
-            assert error is not None
-            envelope = error.get("error", error)
-            assert envelope["code"] == "timeout"
-            assert_safe(error)
-        else:
-            assert status == 200 and error is None
-            assert events[-1]["type"] == "run.failed"
-            assert events[-1]["code"] == code and events[-1]["retryable"] is True
-            assert_safe(events)
+        assert status == 200 and error is None
+        assert events[-1]["type"] == "run.failed"
+        assert events[-1]["code"] == code and events[-1]["retryable"] is True
+        assert_safe(events)
         assert provider.closed == 1 and len(provider.calls) == 1
         with closing(sqlite3.connect(tmp_path / "test.sqlite3")) as db:
             assert db.execute("SELECT state FROM runs").fetchone() == ("failed",)
@@ -78,6 +75,27 @@ def test_provider_fault_closes_stream_and_accounts_unknown_spend(
         provider.fail_with, provider.hang = None, False
         if fault != "midstream":
             assert ask(c, csrf, "Hola otra vez")[1][-1]["type"] == "run.completed"
+
+
+def test_deadline_expired_before_the_stream_is_http_504_without_dispatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ticks = iter(range(0, 1_000_000, 1000))
+    # Every clock read advances 1000 s, so the pre-stream check always finds the deadline passed.
+    monkeypatch.setattr(
+        "app.application.chat.time", SimpleNamespace(monotonic=lambda: float(next(ticks)))
+    )
+    provider = ScriptedProvider()
+    with client(tmp_path, provider, run_timeout_seconds=1.0) as c:
+        csrf = open_session(c)
+        status, events, error = ask(c, csrf, "Hola")
+        assert status == 504 and events == []
+        assert error["error"]["code"] == "timeout"
+        assert_safe(error)
+        assert provider.calls == [] and provider.closed == 0
+        with closing(sqlite3.connect(tmp_path / "test.sqlite3")) as db:
+            assert db.execute("SELECT count(*) FROM spend_ledger").fetchone() == (0,)
+        assert len(c.app.state.services.chat.registry) == 0
 
 
 @pytest.mark.parametrize("fault", ["budget", "rate"])

@@ -16,6 +16,12 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 TOKEN = "synthetic-matrix-token-not-a-secret"
+# Every optional, flag-gated route is registered. Product analytics cannot be enabled through
+# create_app offline (it requires PostgreSQL), so its router is exercised separately below.
+FULL = {"ops_read_token": TOKEN, "observability_enabled": True}
+# Routes that are neither HTTP routes nor containers of routes (websocket, raw ASGI mount).
+# Empty on purpose: a new one must be listed here with a security justification.
+RAW_ROUTE_EXCEPTIONS: frozenset[str] = frozenset()
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 # Check applicability is deliberate: session bootstrap cannot require an existing CSRF token;
 # analytics is cookieless, disabled in the default app and validated separately when enabled.
@@ -38,7 +44,10 @@ def inventory(app):
             if getattr(route, "routes", None) is not None:
                 yield from walk(route.routes, path)
             else:
-                for method in getattr(route, "methods", ()):
+                methods = getattr(route, "methods", None)
+                if methods is None:
+                    assert path in RAW_ROUTE_EXCEPTIONS, f"uninventoried route kind: {path}"
+                for method in methods or ():
                     kind = (
                         "internal (bearer)"
                         if path.startswith("/internal/")
@@ -54,9 +63,13 @@ def inventory(app):
 
 
 def test_every_registered_mutation_has_exactly_one_matrix_entry(tmp_path: Path) -> None:
-    app = create_app(settings(tmp_path, ops_read_token=TOKEN))
+    app = create_app(settings(tmp_path, **FULL))
     routes = inventory(app)
-    assert routes
+    assert {path for _, path, kind in routes if kind == "internal (bearer)"} >= {
+        "/internal/v1/ops/telemetry",
+        "/internal/v1/ops/metrics",
+        "/internal/v1/ops/summary",
+    }
     assert {(method, path) for method, path, _ in routes if method in MUTATING} == set(MATRIX)
 
 
@@ -74,6 +87,8 @@ def test_public_mutation_matrix(tmp_path: Path, method: str, path: str, check: s
         with analytics_client(Store()) as c:
             from tests.test_product_analytics_http import HEADERS
 
+            # Positive control: the identical event without the extra field is accepted.
+            assert c.post(path, headers=HEADERS, json=event()).status_code == 204
             assert (
                 c.post(path, headers=HEADERS, json=event(unexpected="forbidden")).status_code == 422
             )
@@ -115,7 +130,7 @@ def test_public_mutation_matrix(tmp_path: Path, method: str, path: str, check: s
 
 @pytest.mark.parametrize("authorization", [None, "Bearer ", "Bearer wrong-token"])
 def test_internal_route_matrix(tmp_path: Path, authorization: str | None) -> None:
-    with client(tmp_path, ops_read_token=TOKEN) as c:
+    with client(tmp_path, **FULL) as c:
         routes = inventory(c.app)
         internal = [(method, path) for method, path, kind in routes if kind == "internal (bearer)"]
         assert internal
@@ -133,6 +148,19 @@ def test_internal_route_matrix(tmp_path: Path, authorization: str | None) -> Non
         )
 
 
+def test_internal_routes_accept_a_valid_token(tmp_path: Path) -> None:
+    valid = {"Authorization": f"Bearer {TOKEN}"}
+    with client(tmp_path, **FULL) as c:
+        internal = [(m, p) for m, p, kind in inventory(c.app) if kind == "internal (bearer)"]
+        for method, path in internal:
+            expected = 404 if path.endswith("product-analytics") else 200
+            assert c.request(method, path, headers=valid).status_code == expected, path
+    with analytics_client(Store()) as c:
+        from tests.test_product_analytics_http import AUTH
+
+        assert c.get("/internal/v1/ops/product-analytics", headers=AUTH).status_code == 200
+
+
 def assert_foreign_active_run_is_indistinguishable_from_unknown(tmp_path: Path) -> None:
     """Keep Alice's actual run active without consuming it or dispatching generation."""
     with client(tmp_path) as alice:
@@ -148,6 +176,7 @@ def assert_foreign_active_run_is_indistinguishable_from_unknown(tmp_path: Path) 
             )
 
         run = alice.portal.call(start)
+        handle = services.chat.registry._runs[run.id]
         try:
             bob = TestClient(alice.app, base_url="http://localhost:8000")
             csrf_b = open_session(bob)
@@ -155,6 +184,8 @@ def assert_foreign_active_run_is_indistinguishable_from_unknown(tmp_path: Path) 
                 bob.post(f"/api/v1/runs/{rid}/cancel", headers=mutation_headers(csrf_b))
                 for rid in (run.id, "unknown")
             ]
+            # Bob's cancel of Alice's real run must be a no-op, not just look like one.
+            assert not handle.cancel.is_set()
             for response in responses:
                 assert response.status_code == 404
                 assert response.json()["error"]["code"] == "run_not_found"
@@ -162,11 +193,14 @@ def assert_foreign_active_run_is_indistinguishable_from_unknown(tmp_path: Path) 
             for error in errors:
                 error.pop("request_id")
             assert errors[0] == errors[1]
+            assert set(responses[0].json()) == set(responses[1].json())
+            assert not handle.cancel.is_set()
             assert (
                 alice.post(
                     f"/api/v1/runs/{run.id}/cancel", headers=mutation_headers(csrf_a)
                 ).status_code
                 == 202
             )
+            assert handle.cancel.is_set()
         finally:
             alice.portal.call(run.aclose)

@@ -1,6 +1,7 @@
 """SSE wire/lifecycle conformance using only in-process HTTP and ASGI disconnects."""
 
 import json
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import pytest
@@ -14,6 +15,16 @@ if TYPE_CHECKING:
 
 EVENTS = TypeAdapter(StreamEvent)
 CLOSED_TYPES = frozenset(EVENTS.json_schema()["discriminator"]["mapping"])
+
+
+def freeze_run_clock(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Freeze the chat service's monotonic clock so preparation can never consume the deadline.
+
+    The pre-stream check and the explicit run deadline both read this clock, so they always see
+    zero elapsed time. The only expiry left is the real ``asyncio.wait`` timeout around the first
+    provider step, which can fire only after ``run.started`` has been committed to the stream.
+    """
+    monkeypatch.setattr("app.application.chat.time", SimpleNamespace(monotonic=lambda: 1000.0))
 
 
 def assert_frames(body: str):
@@ -59,7 +70,10 @@ def test_wire_frames_closed_schemas_terminal_and_idle_heartbeat(tmp_path: Path, 
             assert ": keep-alive\n\n" in response.text[:first_delta]
 
 
-def test_failed_stream_obeys_the_same_framing_and_terminal_rules(tmp_path: Path) -> None:
+def test_failed_stream_obeys_the_same_framing_and_terminal_rules(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    freeze_run_clock(monkeypatch)
     with client(
         tmp_path, ScriptedProvider(hang=True), run_timeout_seconds=0.1, heartbeat_seconds=0.02
     ) as c:
@@ -69,6 +83,7 @@ def test_failed_stream_obeys_the_same_framing_and_terminal_rules(tmp_path: Path)
         )
         assert response.status_code == 200
         events = assert_frames(response.text)
+        assert events[0]["type"] == "run.started"
         assert events[-1]["type"] == "run.failed" and events[-1]["code"] == "timeout"
 
 
