@@ -1,0 +1,24 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "text",
+      "markdown_lite": "Listo, ya tienes la lista.",
+      "claims": []
+    },
+    {
+      "id": "b2",
+      "type": "memory_prompt",
+      "proposed_facts": [
+        {
+          "key": "child_age_band",
+          "value": "4-5"
+        },
+        {
+          "key": "verbosity",
+          "value": "short"
+        }
+      ]
+    }
+  ]
+}

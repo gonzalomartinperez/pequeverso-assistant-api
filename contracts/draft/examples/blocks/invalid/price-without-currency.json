@@ -1,0 +1,28 @@
+{
+  "blocks": [
+    {
+      "id": "b2",
+      "type": "product_card",
+      "product_id": "grafismo-fonetico",
+      "name": "Grafismo Fonético",
+      "summary": "Cuadernillo para practicar trazos y sonidos.",
+      "age_range": "4 a 6 años",
+      "image": {
+        "url": "https://example.com/img/grafismo.webp",
+        "width": 800,
+        "height": 800,
+        "alt": "Portada del cuadernillo"
+      },
+      "price": {
+        "amount": "14.99",
+        "display": "US$14,99",
+        "note": "Precio de referencia en dólares (USD).",
+        "tax_note": "+ impuestos aplicables según el país",
+        "verified_at": "2026-11-10T12:00:00Z"
+      },
+      "url": "https://example.com/productos/grafismo-fonetico",
+      "purchase_url": "https://example.com/productos/grafismo-fonetico#comprar",
+      "disclosure": null
+    }
+  ]
+}

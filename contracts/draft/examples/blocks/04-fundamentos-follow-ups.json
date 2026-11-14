@@ -1,0 +1,45 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "text",
+      "markdown_lite": "La garantía es de 7 días [1].",
+      "claims": []
+    },
+    {
+      "id": "b2",
+      "type": "citation",
+      "title": "Garantía de 7 días",
+      "url": "https://example.com/garantia",
+      "source_type": "doc",
+      "icon_id": "doc",
+      "origin": "first_party",
+      "quote": "Tienes 7 días para pedir el reembolso."
+    },
+    {
+      "id": "b3",
+      "type": "fundamentos",
+      "items": [
+        {
+          "citation_id": "b2",
+          "quote": "Tienes 7 días para pedir el reembolso."
+        }
+      ],
+      "confidence": "high"
+    },
+    {
+      "id": "b4",
+      "type": "follow_ups",
+      "items": [
+        {
+          "id": "f1",
+          "text": "¿Cómo pido el reembolso?"
+        },
+        {
+          "id": "f2",
+          "text": "¿Qué incluye el kit?"
+        }
+      ]
+    }
+  ]
+}

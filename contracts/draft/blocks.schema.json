@@ -1,0 +1,595 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pequeverso.invalid/draft/blocks.schema.json",
+  "title": "Pequeverso message blocks (DRAFT for contract 1.7, not published)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "blocks"
+  ],
+  "properties": {
+    "blocks": {
+      "type": "array",
+      "maxItems": 24,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/text"
+          },
+          {
+            "$ref": "#/$defs/citation"
+          },
+          {
+            "$ref": "#/$defs/product_card"
+          },
+          {
+            "$ref": "#/$defs/resource_card"
+          },
+          {
+            "$ref": "#/$defs/link_chip"
+          },
+          {
+            "$ref": "#/$defs/fundamentos"
+          },
+          {
+            "$ref": "#/$defs/follow_ups"
+          },
+          {
+            "$ref": "#/$defs/notice"
+          },
+          {
+            "$ref": "#/$defs/feedback"
+          },
+          {
+            "$ref": "#/$defs/memory_prompt"
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "plain": {
+      "type": "string",
+      "maxLength": 600,
+      "pattern": "^[^<>]*$"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https://[^\\s<>]+$",
+      "maxLength": 500
+    },
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "markdown_lite",
+        "claims"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$"
+        },
+        "type": {
+          "const": "text"
+        },
+        "markdown_lite": {
+          "$ref": "#/$defs/plain"
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "start",
+              "end",
+              "evidence_ids"
+            ],
+            "properties": {
+              "start": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "end": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "evidence_ids": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "title",
+        "url",
+        "source_type",
+        "icon_id",
+        "origin"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$"
+        },
+        "type": {
+          "const": "citation"
+        },
+        "title": {
+          "$ref": "#/$defs/plain"
+        },
+        "url": {
+          "$ref": "#/$defs/url"
+        },
+        "source_type": {
+          "enum": [
+            "page",
+            "doc",
+            "repo",
+            "code",
+            "product",
+            "official_help",
+            "web"
+          ]
+        },
+        "icon_id": {
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "first_party",
+            "web"
+          ]
+        },
+        "quote": {
+          "$ref": "#/$defs/plain"
+        }
+      }
+    },
+    "product_card": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "product_id",
+        "name",
+        "summary",
+        "age_range",
+        "image",
+        "price",
+        "url",
+        "purchase_url",
+        "disclosure"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$"
+        },
+        "type": {
+          "const": "product_card"
+        },
+        "product_id": {
+          "type": "string"
+        },
+        "name": {
+          "$ref": "#/$defs/plain"
+        },
+        "summary": {
+          "$ref": "#/$defs/plain"
+        },
+        "age_range": {
+          "$ref": "#/$defs/plain"
+        },
+        "image": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "width",
+                "height",
+                "alt"
+              ],
+              "properties": {
+                "url": {
+                  "$ref": "#/$defs/url"
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "alt": {
+                  "$ref": "#/$defs/plain"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "price": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "amount",
+                "currency",
+                "display",
+                "note",
+                "tax_note",
+                "verified_at"
+              ],
+              "properties": {
+                "amount": {
+                  "type": "string",
+                  "pattern": "^[0-9]+\\.[0-9]{2}$"
+                },
+                "currency": {
+                  "const": "USD"
+                },
+                "display": {
+                  "$ref": "#/$defs/plain"
+                },
+                "note": {
+                  "$ref": "#/$defs/plain"
+                },
+                "tax_note": {
+                  "$ref": "#/$defs/plain"
+                },
+                "verified_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "url": {
+          "$ref": "#/$defs/url"
+        },
+        "purchase_url": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/url"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "disclosure": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/plain"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "resource_card": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "resource_id",
+        "title",
+        "pages",
+        "image"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$"
+        },
+        "type": {
+          "const": "resource_card"
+        },
+        "resource_id": {
+          "type": "string"
+        },
+        "title": {
+          "$ref": "#/$defs/plain"
+        },
+        "pages": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "image": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "url",
+                "width",
+                "height",
+                "alt"
+              ],
+              "properties": {
+                "url": {
+                  "$ref": "#/$defs/url"
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "alt": {
+                  "$ref": "#/$defs/plain"
+                }
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "link_chip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "label",
+        "url",
+        "kind",
+        "icon_id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$"
+        },
+        "type": {
+          "const": "link_chip"
+        },
+        "label": {
+          "$ref": "#/$defs/plain"
+        },
+        "url": {
+          "$ref": "#/$defs/url"
+        },
+        "kind": {
+          "enum": [
+            "contact",
+            "cv",
+            "repo",
+            "demo",
+            "support",
+            "help"
+          ]
+        },
+        "icon_id": {
+          "type": "string"
+        }
+      }
+    },
+    "fundamentos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "items",
+        "confidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$"
+        },
+        "type": {
+          "const": "fundamentos"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "citation_id",
+              "quote"
+            ],
+            "properties": {
+              "citation_id": {
+                "type": "string"
+              },
+              "quote": {
+                "$ref": "#/$defs/plain"
+              }
+            }
+          }
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ]
+        }
+      }
+    },
+    "follow_ups": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "items"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$"
+        },
+        "type": {
+          "const": "follow_ups"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "text"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "text": {
+                "$ref": "#/$defs/plain"
+              }
+            }
+          }
+        }
+      }
+    },
+    "notice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "code",
+        "severity",
+        "text_ids"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$"
+        },
+        "type": {
+          "const": "notice"
+        },
+        "code": {
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning"
+          ]
+        },
+        "text_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "feedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "message_id",
+        "reasons"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$"
+        },
+        "type": {
+          "const": "feedback"
+        },
+        "message_id": {
+          "type": "string"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "memory_prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "proposed_facts"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^b[0-9]+$"
+        },
+        "type": {
+          "const": "memory_prompt"
+        },
+        "proposed_facts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "value"
+            ],
+            "properties": {
+              "key": {
+                "enum": [
+                  "audience_role",
+                  "child_age_band",
+                  "interests",
+                  "verbosity"
+                ]
+              },
+              "value": {
+                "type": "string",
+                "maxLength": 40,
+                "pattern": "^[a-z0-9_-]+$"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from app.ai.evidence import passages
-from evals.graders import GRADERS, behavior_tags
+from evals.graders import BLOCK_TYPES, GRADERS, behavior_tags
 from scripts import evaluate_conversations as conv
 from scripts.evaluate_corpus import NOTICES, STALE_AFTER_DAYS, assign_splits
 
@@ -56,9 +56,18 @@ KEYS = frozenset(
         "status_reason",
         "owner",
         "deadline",
+        "expected_blocks",
+        "expected_progress",
+        "memory_fixture",
+        "consent",
     }
 )
-REQUIRED = KEYS - {"judge_rubric_id", "status_reason", "owner", "deadline", "page"}
+# v2 optional keys (assistant-experience.md section 7): validated only when present.
+V2_OPTIONAL = frozenset({"expected_blocks", "expected_progress", "memory_fixture", "consent"})
+REQUIRED = KEYS - V2_OPTIONAL - {"judge_rubric_id", "status_reason", "owner", "deadline", "page"}
+PROGRESS_PHASES = frozenset({"understanding", "reading", "writing", "verifying"})
+# Closed memory schema of Pequeverso (assistant-experience.md section 6.2).
+MEMORY_KEYS = frozenset({"audience_role", "child_age_band", "interests", "verbosity"})
 BEHAVIORS = frozenset({"answer", "clarify", "no_info", "decline", "refuse_payment_data"})
 LANGUAGES = frozenset({"es", "en", "unsupported"})
 LOCALES = frozenset({"es", "en", "mixed"})
@@ -142,9 +151,28 @@ def _type_problems(item: dict[str, Any], iid: str) -> list[str]:
     return out
 
 
+def _v2_problems(item: dict[str, Any], iid: str) -> list[str]:
+    """Check the optional v2 keys: blocks, progress phases, memory fixture and consent."""
+    out: list[str] = []
+    for key, allowed in (("expected_blocks", BLOCK_TYPES), ("expected_progress", PROGRESS_PHASES)):
+        values = item.get(key, [])
+        if not isinstance(values, list) or any(
+            not isinstance(v, str) or v not in allowed for v in values
+        ):
+            out.append(f"{iid}: {key} must be a list of known values")
+    fixture = item.get("memory_fixture", {})
+    if not isinstance(fixture, dict) or not set(fixture) <= MEMORY_KEYS:
+        out.append(f"{iid}: memory_fixture keys must be in the closed memory schema")
+    if "consent" in item and not isinstance(item["consent"], bool):
+        out.append(f"{iid}: consent must be a boolean")
+    if item.get("memory_fixture") and item.get("consent") is not True:
+        out.append(f"{iid}: a memory_fixture needs consent true")
+    return out
+
+
 def _item_problems(item: dict[str, Any], known: set[str], catalog_sha: str) -> list[str]:
     iid = str(item.get("id", "?"))
-    out: list[str] = _type_problems(item, iid)
+    out: list[str] = _type_problems(item, iid) + _v2_problems(item, iid)
     if out:
         return out
     if not _ID.fullmatch(iid):

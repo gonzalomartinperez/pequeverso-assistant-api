@@ -392,6 +392,87 @@ def guarantee_days(ctx: GradeContext) -> list[str]:
     return problems
 
 
+# --- v2 block graders (PVA-M2-X): registered, not in ALWAYS until a golden item uses them --------
+
+# Closed block union and fixed order (assistant-experience.md section 4); an unknown type fails closed.
+BLOCK_ORDER = (
+    "text",
+    "product_card",
+    "resource_card",
+    "citation",
+    "fundamentos",
+    "follow_ups",
+    "link_chip",
+    "notice",
+    "feedback",
+    "memory_prompt",
+)
+BLOCK_TYPES = frozenset(BLOCK_ORDER)
+_MARKUP = re.compile(r"<[a-zA-Z/!]")
+
+
+def _blocks(ctx: GradeContext) -> list[dict[str, Any]]:
+    """Blocks the pipeline observed (`extra["blocks"]`); empty when the run produced none."""
+    return list(ctx.extra.get("blocks", []))
+
+
+@grader("blocks.price")
+def blocks_price(ctx: GradeContext) -> list[str]:
+    """Check a product card's price equals the catalog's verified one, absent when unverified."""
+    products = {product.id: product for product in CATALOG.products}
+    problems: list[str] = []
+    for block in _blocks(ctx):
+        if block.get("type") != "product_card":
+            continue
+        pid = block.get("product_id")
+        price = block.get("price")
+        if pid not in products:
+            problems.append(f"product card {pid!r} is not a catalog product")
+        elif price is None:
+            continue
+        elif ctx.stale:
+            problems.append(f"product card {pid} shows a price while unverified")
+        else:
+            known = products[pid].price
+            if known is None or (price.get("amount"), price.get("display")) != (
+                str(known.amount),
+                known.display,
+            ):
+                problems.append(f"product card {pid} price differs from the catalog")
+    return problems
+
+
+@grader("blocks.closed_union")
+def blocks_closed_union(ctx: GradeContext) -> list[str]:
+    """Known types only, unique ids, the server's fixed order and no markup in any string."""
+    problems: list[str] = []
+    seen: set[str] = set()
+    last = -1
+    for block in _blocks(ctx):
+        kind = block.get("type")
+        if kind not in BLOCK_TYPES:
+            problems.append(f"unknown block type {kind!r}")
+            continue
+        if block.get("id") in seen:
+            problems.append(f"duplicate block id {block.get('id')!r}")
+        seen.add(str(block.get("id")))
+        rank_ = BLOCK_ORDER.index(kind)
+        if rank_ < last:
+            problems.append(f"block {kind} is out of order")
+        last = max(last, rank_)
+        if _MARKUP.search(str(block)):
+            problems.append(f"block {kind} carries markup")
+    return problems
+
+
+@grader("blocks.expected")
+def blocks_expected(ctx: GradeContext) -> list[str]:
+    """Check the item's `expected_blocks` appear, as an ordered subsequence of block types."""
+    wanted = list(ctx.item.get("expected_blocks", []))
+    types = iter(str(block.get("type")) for block in _blocks(ctx))
+    return [f"expected block {kind} missing" for kind in wanted if kind not in types]
+
+
 def _ngrams(text: str, n: int) -> set[tuple[str, ...]]:
     words = re.findall(r"[a-z0-9]+", fold(text))
     return {tuple(words[i : i + n]) for i in range(len(words) - n + 1)}
