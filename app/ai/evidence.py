@@ -15,6 +15,7 @@ import re
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any
 
 from app.domain.answer_policy import fold
@@ -27,82 +28,50 @@ from app.domain.catalog import (
     resource_key,
 )
 
-_WORD = re.compile(r"[a-z0-9ñ]+")
+_WORD = re.compile(r"[a-z0-9]+")
+# Generic Spanish function words (articles, prepositions, pronouns, auxiliaries, interrogatives and
+# conversational filler), accent-free like `fold`. Content words, including money and time words, are
+# never listed here.
 _STOPWORDS = frozenset(
-    [
-        "a",
-        "al",
-        "algo",
-        "como",
-        "con",
-        "cual",
-        "cuales",
-        "de",
-        "del",
-        "el",
-        "ella",
-        "en",
-        "es",
-        "esa",
-        "ese",
-        "eso",
-        "esta",
-        "este",
-        "esto",
-        "hay",
-        "la",
-        "las",
-        "lo",
-        "los",
-        "me",
-        "mi",
-        "mis",
-        "muy",
-        "no",
-        "o",
-        "para",
-        "pero",
-        "por",
-        "que",
-        "quiero",
-        "se",
-        "si",
-        "sin",
-        "son",
-        "su",
-        "sus",
-        "te",
-        "tengo",
-        "tiene",
-        "tu",
-        "un",
-        "una",
-        "uno",
-        "unos",
-        "y",
-        "ya",
-        "yo",
-        "puedo",
-        "puede",
-        "hola",
-        "gracias",
-        "cuanto",
-        "cuanta",
-    ]
+    """
+    a al algo algun alguna algunas algunos ante aqui asi aun aunque cada como con contra cual cuales
+    cuando cuanta cuantas cuanto cuantos de del desde donde e el ella ellas ello ellos en entre
+    era eran eres es esa esas ese eso esos esta estaba estan estar estas este esto estos estoy fue
+    ha han has hasta hay he hola la las le les lo los mas me mi mis muy
+    ni no nos nosotros o os para pero por porfa porque pues que quien quienes se ser
+    si sin sobre son soy su sus tambien te tengo ti tiene tienen tienes tu tus un una uno
+    unas unos usted ustedes vos y ya yo gracias quiero quieres quiere
+    puedo puede puedes pueden podria podrias necesito favor
+    """.split()  # noqa: SIM905 - one readable word block
 )
+_STEM_ES_AFTER = frozenset("rlndzj")
 
 
 def tokens(text: str) -> list[str]:
-    words = _WORD.findall(fold(text))
-    return [_stem(word) for word in words if word not in _STOPWORDS and len(word) > 1]
+    """Folded content terms: accents and case removed, stopwords dropped, plurals folded."""
+    return list(_tokens(text))
+
+
+@lru_cache(maxsize=4096)
+def _tokens(text: str) -> tuple[str, ...]:
+    return tuple(_stem(word) for word in _WORD.findall(fold(text)) if _keep(word))
+
+
+def _keep(word: str) -> bool:
+    return word not in _STOPWORDS and (len(word) > 1 or word.isdigit())
 
 
 def _stem(word: str) -> str:
-    """Tiny Spanish plural folding: 'silabas' → 'silaba', 'sonidos' → 'sonido'."""
-    for suffix in ("es", "s"):
-        if len(word) > 4 and word.endswith(suffix):
-            return word[: -len(suffix)]
-    return word
+    """Spanish plural folding: 'silabas' -> 'silaba', 'lugares' -> 'lugar', 'veces' -> 'vez'."""
+    if len(word) <= 3 or not word.endswith("s") or word.isdigit():
+        return word
+    if len(word) == 4 and word.endswith("es"):  # 'tres', 'mies': not a plural of a 2-letter stem
+        return word
+    if word.endswith("ces"):
+        return word[:-3] + "z"
+    if word.endswith("es") and word[-3] in _STEM_ES_AFTER:
+        return word[:-2]
+    return word if word.endswith(("is", "us", "ss")) else word[:-1]
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,7 +111,7 @@ def passages(catalog: Catalog) -> list[Passage]:
 def rank(query: str, items: Sequence[Passage]) -> list[tuple[Passage, float]]:
     """BM25-style lexical scores, highest first; ties keep catalog order."""
     query_terms = tokens(query)
-    docs = [tokens(item.text) for item in items]
+    docs = [list(_tokens(item.text)) for item in items]
     if not query_terms or not items:
         return [(item, 0.0) for item in items]
     avg_len = sum(len(d) for d in docs) / len(docs) or 1.0

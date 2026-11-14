@@ -416,6 +416,10 @@ def retrieval(cases: list[dict[str, Any]]) -> dict[str, Any]:
         "by_split": group("split", ("dev", "holdout")),
         "by_family": group("family", sorted({r["family"] for r in rows})),
         "by_language": group("language", sorted(FULL_LOCALES)),
+        "per_case": [
+            {k: r[k] for k in ("id", "family", "split", "language", "best_rank", "ndcg_at_5")}
+            for r in rows
+        ],
         "misses": [
             {k: v for k, v in r.items() if k != "ndcg_at_5"}
             for r in rows
