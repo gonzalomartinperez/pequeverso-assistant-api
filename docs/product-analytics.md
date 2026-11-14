@@ -164,3 +164,18 @@ of execution unless the real isolated PostgreSQL lease and result are separately
 Atomic quotas, grants, retention and checksum require that real proof. Logical restore, local
 harness→API→PG→authenticated BO and actual accessible screenshots require fresh resource leases
 and independent review. Default OFF/local source implementation alone is not production parity.
+
+## Agent rules
+
+- This channel is separate from assistant operations and RAG. Collection and read default OFF,
+  PostgreSQL only, a closed Peque public profile, content-free scoped aggregates and private
+  server-only bearer reads.
+- Explicit production configuration supports production-class aggregates independently of the AI
+  provider; persisted namespaces preserve existing synthetic fixtures. Country defaults OFF/unknown.
+- Optional trusted-proxy country handling requires exact socket-peer/header validation; configuration
+  is not Cloudflare or deployed-edge proof.
+- Implementing or testing this capability authorizes no production activation, identity joins, model
+  calls, Store collector, Meta/CAPI or checkout changes. Preserve existing chat/ops/telemetry
+  contracts and migration history.
+- Real PG/BO/browser checks require a fresh resource lease; deployment needs separate owner
+  authorization.

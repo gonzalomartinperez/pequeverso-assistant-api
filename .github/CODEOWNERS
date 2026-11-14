@@ -1,0 +1,22 @@
+# Ownership map (engineering-standards pattern, single maintainer). Later rules win; catch-all first.
+
+*                         @gonzalomartinperez
+
+# Assistant behaviour: evaluations, prompt, catalog and wire contract
+/evals/**                 @gonzalomartinperez
+/app/ai/**                @gonzalomartinperez
+/catalog/**               @gonzalomartinperez
+/contracts/**             @gonzalomartinperez
+
+# Supply chain and automation
+/.github/workflows/**     @gonzalomartinperez
+/.github/CODEOWNERS       @gonzalomartinperez
+/.github/dependabot.yml   @gonzalomartinperez
+/standards.lock           @gonzalomartinperez
+
+# Agent harness and deploy surface
+/AGENTS.md                @gonzalomartinperez
+/CLAUDE.md                @gonzalomartinperez
+/.claude/                 @gonzalomartinperez
+/.agents/                 @gonzalomartinperez
+/infra/                   @gonzalomartinperez

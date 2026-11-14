@@ -42,8 +42,8 @@ development happens on `develop`.
 - Grounded in a catalog exported from the storefront at a pinned commit; every product,
   link and price shown is server-validated.
 - [Architecture and resource ownership](docs/architecture.md) keep SDK/HTTP/storage details outside
-  the use cases. [Engineering standards](docs/engineering-standards.md) define review evidence,
-  four-session ownership, reproducible locks/digests and supported-version policies.
+  the use cases. [Contributing](CONTRIBUTING.md) defines the check command, branch flow, review
+  evidence, reproducible locks/digests and supported-version policies.
 
 The commercial goal is an informed purchase: answer the adult's question, explain the fit and
 offer the authorized next step when relevant. Evidence and budget constraints remain binding;

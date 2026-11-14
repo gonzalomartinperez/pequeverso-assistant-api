@@ -1,0 +1,18 @@
+# Standards drift check (ecosystem 16). Copy to .github/workflows/drift.yml. Runs on every PR (cheap,
+# no build) so an edit to a byte-matched file is caught before merge; add `drift` to ci-gate.needs
+# through a `uses:` job in ci.yml instead if it must block merges.
+name: drift
+
+on:
+  schedule:
+    - cron: "0 12 * * 1"   # Monday 09:00 ART, next to the weekly dependency PR
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  drift:
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/drift.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    permissions:
+      contents: read
