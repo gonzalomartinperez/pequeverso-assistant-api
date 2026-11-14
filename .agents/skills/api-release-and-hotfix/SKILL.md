@@ -1,6 +1,10 @@
 ---
 name: api-release-and-hotfix
 description: Release develop into main, or ship an owner-authorized hotfix, within the protected branch flow. Not an authorization to release, hotfix or deploy.
+metadata:
+  owner: gonzalomartinperez
+  last-reviewed: "2026-11-14"
+  version: "1.0.0"
 ---
 
 # Release and hotfix

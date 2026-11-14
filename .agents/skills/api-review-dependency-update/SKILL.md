@@ -1,6 +1,10 @@
 ---
 name: api-review-dependency-update
 description: Review a Dependabot update using the read-only assessment and protected manual merge workflow. Not for merging into main or bypassing checks.
+metadata:
+  owner: gonzalomartinperez
+  last-reviewed: "2026-11-14"
+  version: "1.0.0"
 ---
 
 # Review a dependency update

@@ -1,6 +1,10 @@
 ---
 name: api-change-contract
 description: Change the v1 HTTP/SSE contract (storefront native assistant) or the private ops contract (backoffice) without breaking either. Not for paid calls, deployment or editing consumer repositories.
+metadata:
+  owner: gonzalomartinperez
+  last-reviewed: "2026-11-14"
+  version: "1.0.0"
 ---
 
 # Change the API contract

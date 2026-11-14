@@ -1,6 +1,10 @@
 ---
 name: api-verify-release
 description: Verify a release candidate of the assistant API end to end without paid calls or deployment. Not an authorization to promote to main or deploy.
+metadata:
+  owner: gonzalomartinperez
+  last-reviewed: "2026-11-14"
+  version: "1.0.0"
 ---
 
 # Verify a release candidate

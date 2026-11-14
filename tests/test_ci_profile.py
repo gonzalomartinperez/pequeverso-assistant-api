@@ -319,3 +319,15 @@ def test_container_gate_pins_are_strict():
     assert set(re.findall(r'--ignore (\S+)', dockle)) == {'CIS-DI-0008', 'DKL-DI-0005'}
     repro = next(step['run'] for step in steps.values() if 'rewrite-timestamp=true' in step.get('run', ''))
     assert '--provenance=false' in repro and '--sbom=false' in repro
+
+
+def test_static_suite_runs_in_parallel_and_service_runs_keep_a_fixed_order():
+    steps = workflow()['jobs']['static']['steps']
+    assert any(step.get('run', '').strip() == 'uv run pytest -q -n auto' for step in steps)
+    for script in (
+        'scripts/smoke_knowledge_postgres.sh',
+        'scripts/smoke_knowledge_neo4j.py',
+        'scripts/smoke_graph_runtime.py',
+    ):
+        text = (ROOT / script).read_text()
+        assert 'no:randomly' in text, script
