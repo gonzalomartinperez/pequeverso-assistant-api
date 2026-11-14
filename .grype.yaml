@@ -1,0 +1,8 @@
+# Vulnerability gate for the built application image (CI job `container`).
+# Fails only on fixable High or Critical findings; unfixed ones are reported, not blocking.
+fail-on-severity: high
+only-fixed: true
+# No ignores. If one ever becomes necessary, each entry must carry: the vulnerability id, a
+# reason, a tracking issue (placeholder "issue: #TBD") and an expiry comment 90 days out
+# ("expires: YYYY-MM-DD"), and must be removed when it expires.
+ignore: []

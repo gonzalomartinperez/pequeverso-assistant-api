@@ -123,9 +123,15 @@ jobs:
     needs: [static]
     name: Container verification
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: read
+    env:
+      IMAGE: pequeverso-assistant-api:smoke
+      DOCKLE_VERSION: 0.4.15
+      DOCKLE_SHA256: 8bfc9183d1d3d67800edb45bea4bb63ddf1d28bec5f89944075a07007d79caad
+      CST_VERSION: 1.22.1
+      CST_SHA256: fa35e89512a8978585f76cf41397956d2e3a30c62c2ad3fb857b1597074d14ca
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -135,10 +141,73 @@ jobs:
         run: python3 -m scripts.ci_identity
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+      - name: Lint the Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: infra/docker/app/Dockerfile
+          config: .hadolint.yaml
       - name: Build exact application candidate (no publication)
-        run: docker build -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION="$GITHUB_SHA" -t pequeverso-assistant-api:smoke .
+        run: docker build -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION="$GITHUB_SHA" -t "$IMAGE" .
       - name: Smoke the owned image and disposable SQLite fixture
         run: scripts/smoke_container.sh pequeverso-assistant-api:smoke
+      - name: Image structure tests (container-structure-test)
+        run: |
+          set -euo pipefail
+          tool="$RUNNER_TEMP/container-structure-test"
+          curl -fsSL -o "$tool" "https://github.com/GoogleContainerTools/container-structure-test/releases/download/v${CST_VERSION}/container-structure-test-linux-amd64"
+          echo "${CST_SHA256}  $tool" | sha256sum -c -
+          chmod +x "$tool"
+          "$tool" test --image "$IMAGE" --config infra/docker/app/structure-test.yaml
+      - name: Image CIS benchmark (dockle)
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/dockle"
+          mkdir -p "$dir"
+          curl -fsSL -o "$dir/dockle.tar.gz" "https://github.com/goodwithtech/dockle/releases/download/v${DOCKLE_VERSION}/dockle_${DOCKLE_VERSION}_Linux-64bit.tar.gz"
+          echo "${DOCKLE_SHA256}  $dir/dockle.tar.gz" | sha256sum -c -
+          tar -xzf "$dir/dockle.tar.gz" -C "$dir" dockle
+          docker save "$IMAGE" -o "$dir/image.tar"
+          # Fail on WARN or FATAL. Accepted: CIS-DI-0008 (setuid/setgid files) is inherited from the
+          # pinned Debian base and cannot be removed without altering it; the runtime is non-root
+          # with no-new-privileges (scripts/smoke_container.sh).
+          "$dir/dockle" --input "$dir/image.tar" --exit-code 1 --exit-level warn --ignore CIS-DI-0008
+      - name: Software bill of materials (Syft, CycloneDX)
+        uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+        with:
+          image: pequeverso-assistant-api:smoke
+          format: cyclonedx-json
+          output-file: sbom-app-cyclonedx.json
+          upload-artifact: false
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-app-cyclonedx
+          path: sbom-app-cyclonedx.json
+          retention-days: 14
+          if-no-files-found: error
+      - name: Vulnerability scan (Grype, fixable High and Critical fail)
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: pequeverso-assistant-api:smoke
+          config: .grype.yaml
+          fail-build: true
+          only-fixed: true
+          severity-cutoff: high
+          output-format: table
+      - name: Reproducibility (same inputs build the same image twice)
+        run: |
+          set -euo pipefail
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          export SOURCE_DATE_EPOCH
+          docker buildx create --name repro --driver docker-container --use >/dev/null
+          for n in 1 2; do
+            docker buildx build -f infra/docker/app/Dockerfile --no-cache \
+              --build-arg SERVICE_REVISION="$GITHUB_SHA" --build-arg SOURCE_DATE_EPOCH \
+              --output "type=oci,dest=$RUNNER_TEMP/repro-$n.tar,rewrite-timestamp=true" .
+            tar -xOf "$RUNNER_TEMP/repro-$n.tar" index.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["manifests"][0]["digest"])' > "$RUNNER_TEMP/digest-$n"
+          done
+          cat "$RUNNER_TEMP/digest-1" "$RUNNER_TEMP/digest-2"
+          cmp "$RUNNER_TEMP/digest-1" "$RUNNER_TEMP/digest-2"
       - name: Record tested image identity
         run: python3 -m scripts.ci_identity --image pequeverso-assistant-api:smoke
         env:

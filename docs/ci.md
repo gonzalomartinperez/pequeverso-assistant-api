@@ -9,7 +9,7 @@ branches, merge groups and manual runs. The paired API graph is:
 | secrets | Secret scan | — | Full-history redacted gitleaks |
 | static | Static checks | — | Frozen install, Ruff, strict Mypy, pinned Node24.22.0 local fixture regression (10s, no browser/network), full pytest, contract drift, retrieval and fixture conversation evaluations |
 | database | Database tests | static | Own exact PostgreSQL/Neo4j builds; scoped roles, indexing, private state, restore, actual HTTP/SSE and operator/evaluation probes |
-| container | Container verification | static | Own application build and disposable SQLite fixture; readiness, session/stream, origin/auth enforcement, backup/restore, persistence and shutdown |
+| container | Container verification | static | Hadolint, own application build and disposable SQLite fixture (readiness, session/stream, origin/auth enforcement, backup/restore, persistence, shutdown), container-structure-test, dockle, CycloneDX SBOM artifact, Grype and a twice-built reproducibility check |
 | checks | checks | all five above | Every prerequisite must be success |
 
 The source baseline is `0422c74aa25644978122232bcaae08fdf8c32310`. Its reported
@@ -38,6 +38,18 @@ preparation, not acceptance or adoption of candidate images.
 Reference: Portfolio API `923f5d32215203d6a09efd2ef1dec8e49225d4e5` and the private
 Ops paired-profile contract at `19dcbee`. Product-specific probes remain owned here;
 Portfolio runtime/harness code is not imported.
+
+## Image gates
+
+The `container` job lints `infra/docker/app/Dockerfile` (`.hadolint.yaml`, warnings fail), runs
+the smoke, then checks the built image: `infra/docker/app/structure-test.yaml` (user, workdir,
+labels, command, no pip, `/data` ownership, LICENSE), dockle CIS-DI (WARN or FATAL fail;
+CIS-DI-0008 is accepted because setuid files come from the pinned base), a Syft CycloneDX SBOM
+uploaded as `sbom-app-cyclonedx` (14 days) and Grype with `.grype.yaml` (only fixable High or
+Critical fail, no ignores). Reproducibility builds twice with `SOURCE_DATE_EPOCH` from the last
+commit and BuildKit `rewrite-timestamp=true`, then compares the OCI manifest digests. dockle and
+container-structure-test are SHA-256 verified release binaries; the other tools are SHA-pinned
+actions. Nothing is published.
 
 ## Verification and protected context
 

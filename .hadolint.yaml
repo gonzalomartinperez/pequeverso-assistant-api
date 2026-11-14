@@ -1,0 +1,7 @@
+# Dockerfile lint gate (CI job `container`). Any warning or error fails the job.
+# No rules are ignored. DL3008 (pin apt versions) is satisfied, not ignored: the one apt line
+# pins liblzma5. Do not add an ignore here without an inline reason.
+failure-threshold: warning
+trustedRegistries:
+  - docker.io
+  - ghcr.io

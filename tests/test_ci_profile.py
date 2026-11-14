@@ -53,7 +53,18 @@ COMMANDS = {
         'scripts.smoke_graph_runtime',
         '--with-index-jobs --with-evaluation-tests',
     ],
-    'container': ['infra/docker/app/Dockerfile', 'scripts/smoke_container.sh pequeverso-assistant-api:smoke'],
+    'container': [
+        'infra/docker/app/Dockerfile',
+        'scripts/smoke_container.sh pequeverso-assistant-api:smoke',
+        'container-structure-test',
+        'infra/docker/app/structure-test.yaml',
+        'sha256sum -c',
+        'dockle',
+        '--exit-level warn',
+        'rewrite-timestamp=true',
+        'SOURCE_DATE_EPOCH',
+        'cmp ',
+    ],
 }
 
 
@@ -88,7 +99,8 @@ def validate(value):
             assert not step.get('continue-on-error')
             if 'uses' in step:
                 assert re.fullmatch(r'[\w./-]+@[a-f0-9]{40}', step['uses'])
-                assert 'upload-artifact' not in step['uses']
+                assert 'upload-artifact' not in step['uses'] or key == 'container'
+                assert 'trivy' not in step['uses']
             if step.get('uses', '').startswith('actions/checkout@'):
                 assert step['with']['persist-credentials'] is False
                 assert 'ref' not in step['with']
@@ -97,6 +109,20 @@ def validate(value):
             assert command in commands
         if key != 'checks':
             assert 'python3 -m scripts.ci_identity' in commands
+    container = value['jobs']['container']
+    assert container['timeout-minutes'] <= 30
+    uses = {step['uses'].split('@')[0]: step for step in container['steps'] if 'uses' in step}
+    assert {'hadolint/hadolint-action', 'anchore/sbom-action', 'anchore/scan-action'} <= uses.keys()
+    assert uses['hadolint/hadolint-action']['with']['config'] == '.hadolint.yaml'
+    assert uses['anchore/sbom-action']['with']['format'] == 'cyclonedx-json'
+    assert uses['anchore/scan-action']['with']['config'] == '.grype.yaml'
+    assert uses['anchore/scan-action']['with']['fail-build'] is True
+    assert uses['anchore/scan-action']['with']['only-fixed'] is True
+    assert uses['anchore/scan-action']['with']['severity-cutoff'] == 'high'
+    upload = uses['actions/upload-artifact']['with']
+    assert upload['name'] == 'sbom-app-cyclonedx'
+    assert upload['retention-days'] == 14
+    assert all('${{' not in step.get('run', '') for step in container['steps'])
     static_steps = value['jobs']['static']['steps']
     setup = [step for step in static_steps if step.get('uses', '').startswith('actions/setup-node@')]
     assert len(setup) == 1

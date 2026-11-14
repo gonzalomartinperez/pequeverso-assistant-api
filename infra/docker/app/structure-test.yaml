@@ -1,0 +1,64 @@
+schemaVersion: "2.0.0"
+metadataTest:
+  user: "65532:65532"
+  workdir: /app
+  exposedPorts: ["8000"]
+  cmd:
+    - uvicorn
+    - app.main:app
+    - --host
+    - 0.0.0.0
+    - --port
+    - "8000"
+    - --workers
+    - "1"
+    - --no-proxy-headers
+    - --no-access-log
+    - --no-server-header
+    - --timeout-graceful-shutdown
+    - "15"
+    - --timeout-keep-alive
+    - "5"
+    - --limit-concurrency
+    - "200"
+  labels:
+    - key: org.opencontainers.image.title
+      value: pequeverso-assistant-api
+    - key: org.opencontainers.image.description
+      value: .+
+      isRegex: true
+    - key: org.opencontainers.image.source
+      value: https://github.com/gonzalomartinperez/pequeverso-assistant-api
+    - key: org.opencontainers.image.documentation
+      value: https://.+
+      isRegex: true
+    - key: org.opencontainers.image.licenses
+      value: MIT
+    - key: org.opencontainers.image.revision
+      value: .*
+      isRegex: true
+fileExistenceTests:
+  - name: license is shipped
+    path: /app/LICENSE
+    shouldExist: true
+  - name: data directory exists
+    path: /data
+    shouldExist: true
+    uid: 65532
+    gid: 65532
+  - name: no global pip
+    path: /usr/local/bin/pip
+    shouldExist: false
+  - name: no global pip3
+    path: /usr/local/bin/pip3
+    shouldExist: false
+  - name: no vendored pip package
+    path: /usr/local/lib/python3.14/site-packages/pip
+    shouldExist: false
+commandTests:
+  - name: pip is not runnable
+    command: python
+    args: ["-c", "import importlib.util,sys; sys.exit(1 if importlib.util.find_spec('pip') else 0)"]
+  - name: application imports
+    command: python
+    args: ["-c", "import app.main"]

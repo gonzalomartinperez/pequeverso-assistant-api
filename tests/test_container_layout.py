@@ -129,3 +129,26 @@ def test_dependabot_keeps_all_three_real_recipe_directories_under_manual_weekly_
     assert group['schedule']['interval'] == 'weekly'
     assert group['open-pull-requests-limit'] == 1
     assert update['cooldown']['default-days'] == 7
+
+
+def test_app_dockerfile_keeps_canonical_reproducible_shape() -> None:
+    text = (ROOT / 'infra/docker/app/Dockerfile').read_text()
+    for expected in (
+        'uv sync --locked --no-editable --no-build --no-dev --no-install-project',
+        'id=pva-uv-py314',
+        'UV_PYTHON_DOWNLOADS=0',
+        'ARG SOURCE_DATE_EPOCH',
+        'org.opencontainers.image.title=',
+        'org.opencontainers.image.source=',
+        'org.opencontainers.image.licenses="MIT"',
+        'org.opencontainers.image.revision="${SERVICE_REVISION}"',
+        'USER 65532:65532',
+        '/health/ready',
+    ):
+        assert expected in text
+    assert 'vps-ops' not in text
+    assert text.index('ARG SERVICE_REVISION') > text.index('COPY LICENSE NOTICE.md')
+    for config in ('.hadolint.yaml', '.grype.yaml', 'infra/docker/app/structure-test.yaml'):
+        assert (ROOT / config).is_file()
+    grype = (ROOT / '.grype.yaml').read_text()
+    assert 'fail-on-severity: high' in grype and 'only-fixed: true' in grype

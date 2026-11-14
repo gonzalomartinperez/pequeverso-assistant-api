@@ -6,10 +6,11 @@ FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b98
 
 FROM python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS build
 COPY --from=uv /uv /usr/local/bin/uv
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_PROJECT_ENVIRONMENT=/opt/venv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,id=vps-ops-uv-python314,target=/root/.cache/uv,sharing=locked uv sync --frozen --no-build --no-dev --no-install-project
+RUN --mount=type=cache,id=pva-uv-py314,target=/root/.cache/uv,sharing=locked \
+    uv sync --locked --no-editable --no-build --no-dev --no-install-project
 
 FROM python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS runtime
 ENV PATH=/opt/venv/bin:$PATH \
@@ -19,7 +20,8 @@ ENV PATH=/opt/venv/bin:$PATH \
 # Signed Debian security patch not yet present in the pinned official base.
 RUN apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update \
     && apt-get install -y --no-install-recommends liblzma5=5.8.1-1+deb13u2 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /var/log/apt /var/log/dpkg.log /var/log/alternatives.log \
+        /var/cache/ldconfig/aux-cache
 WORKDIR /app
 COPY --from=build /opt/venv /opt/venv
 COPY app ./app
@@ -33,8 +35,16 @@ RUN rm -rf /usr/local/lib/python3.14/ensurepip/_bundled \
         /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.14 \
     && mkdir -p /data && chown 65532:65532 /data
 # Keep revision metadata after filesystem layers so a new revision reuses dependencies.
+# SOURCE_DATE_EPOCH is consumed by BuildKit (rewrite-timestamp); declared so it is a documented input.
+ARG SOURCE_DATE_EPOCH
 ARG SERVICE_REVISION=
 ENV SERVICE_REVISION=${SERVICE_REVISION}
+LABEL org.opencontainers.image.title="pequeverso-assistant-api" \
+      org.opencontainers.image.description="Advisory, read-only shopping assistant backend for Pequeverso" \
+      org.opencontainers.image.source="https://github.com/gonzalomartinperez/pequeverso-assistant-api" \
+      org.opencontainers.image.documentation="https://github.com/gonzalomartinperez/pequeverso-assistant-api/tree/main/docs" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.revision="${SERVICE_REVISION}"
 USER 65532:65532
 # No anonymous volume: fixture/import operators mount /data explicitly.
 EXPOSE 8000
