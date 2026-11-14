@@ -253,3 +253,73 @@ def test_grade_runs_invariants_plus_item_assertions() -> None:
         )
     )
     assert set(dirty) == {"variety.neutral", "guarantee.days", "facts.required"}
+
+
+# --- reviewer reproductions (PVA-M2.4 review) -----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("content", "ok"),
+    [
+        ("El reembolso puede tardar hasta 30 días y hasta 90 días en tarjetas.", True),
+        ("El productor tiene hasta 5 días para responder tu solicitud de reembolso.", True),
+        ("El kit tiene 9 PDF y 21 días de práctica; tienes garantía de 7 días.", True),
+        ("Tienes siete días de garantía.", True),
+        ("Tienes treinta días de garantía.", False),
+        ("It has a 30-day guarantee.", False),
+        ("Incluye garantía. Son 30 días.", False),
+    ],
+)
+def test_guarantee_days_ties_the_count_to_the_guarantee(content: str, ok: bool) -> None:
+    assert (run("guarantee.days", ctx(content)) == []) is ok
+
+
+@pytest.mark.parametrize(
+    ("content", "facts", "ok"),
+    [
+        ("Cuesta US$114,99.", ["14,99"], False),
+        ("Tienes 17 días.", ["7 días"], False),
+        ("Tienes 7  días.", ["7 días"], True),
+        ("Son 1.414 páginas.", ["414"], False),
+    ],
+)
+def test_facts_match_whole_words(content: str, facts: list[str], ok: bool) -> None:
+    assert (run("facts.required", ctx(content, it=item(required_facts=facts))) == []) is ok
+
+
+def test_forbidden_tags_ignore_negated_echoes_but_terms_do_not() -> None:
+    it = item(forbidden_claims=["invented_discount", "outcome_promise"])
+    assert run("claims.forbidden", ctx("No tengo ningún cupón del 50%.", it=it)) == []
+    assert run("claims.forbidden", ctx("No puedo prometer que leerá en un mes.", it=it)) == []
+    assert run("claims.forbidden", ctx("Usa este cupón: PEQUE.", it=it)) != []
+    term = item(forbidden_claims=["term:se compra aparte"])
+    assert run("claims.forbidden", ctx("No se compra aparte.", it=term)) != []
+
+
+@pytest.mark.parametrize(
+    ("content", "ok"),
+    [
+        ("No hay envío físico: es un producto digital y el acceso llega a tu correo.", True),
+        ("Puedes revender las hojas; consulta con soporte.", False),
+        ("No encuentro información, pero sí puedes revender las hojas.", False),
+        ("Se puede pagar en una sola cuota.", False),
+    ],
+)
+def test_claims_policy_reviewer_cases(content: str, ok: bool) -> None:
+    assert (run("claims.policy", ctx(content)) == []) is ok
+
+
+def test_variety_catches_voseo_imperatives() -> None:
+    assert run("variety.neutral", ctx("Revisá tu correo y entrá a Hotmart.")) != []
+
+
+def test_decline_accepts_an_emergency_route() -> None:
+    it = item(expected_behavior="decline")
+    assert run("abstain.shape", ctx("Busca ayuda de emergencia ahora mismo.", it=it)) == []
+
+
+def test_live_lane_drops_the_scripted_replacement_notice() -> None:
+    it = item(notices=["answer_replaced"], strata=["adversarial", "scripted-adversary"])
+    live = GradeContext(item=it, final=message("No puedo."), extra={"lane": "live"})
+    assert run("notice.present", live) == []
+    assert run("notice.present", GradeContext(item=it, final=message("No puedo."))) != []

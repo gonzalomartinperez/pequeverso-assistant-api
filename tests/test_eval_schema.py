@@ -60,10 +60,23 @@ def test_every_item_pins_the_bundled_catalog() -> None:
         ({"notices": ["confetti"]}, "unknown notice"),
         ({"provenance": "internet"}, "invalid provenance"),
         ({"catalog_sha256": "0" * 64}, "does not pin the bundled catalog"),
-        ({"clock_offset_days": "10"}, "must be an integer"),
+        ({"clock_offset_days": "10"}, "non-negative integer"),
         ({"status": "quarantined"}, "needs an owner and a deadline"),
         ({"status": "retired"}, "needs a status_reason"),
         ({"split": "holdout" if ITEMS[0]["split"] == "dev" else "dev"}, "group-preserving rule"),
+        ({"strata": None}, "must be a list of strings"),
+        ({"gold_evidence_ids": [["x"]]}, "must be a list of strings"),
+        ({"locale": ["es"]}, "must be a string"),
+        ({"forbidden_claims": [1]}, "must be a list of strings"),
+        ({"required_facts": "414"}, "must be a list of strings"),
+        ({"required_facts": [""]}, "empty alternative"),
+        ({"required_facts": ["414|"]}, "empty alternative"),
+        ({"assertions": []}, "answer items assert facts.required"),
+        ({"clock_offset_days": True}, "non-negative integer"),
+        ({"clock_offset_days": -1}, "non-negative integer"),
+        ({"id": ""}, "id must look like g-001"),
+        ({"id": 5}, "must be a string"),
+        ({"locale": "en"}, "english tag"),
     ],
 )
 def test_malformed_answer_item_is_rejected(changes: dict[str, Any], message: str) -> None:
@@ -99,3 +112,10 @@ def test_loader_rejects_non_object_lines(tmp_path: Path) -> None:
     path.write_text(json.dumps(ITEMS[0], ensure_ascii=False) + "\n\n[1, 2]\n", encoding="utf-8")
     with pytest.raises(TypeError, match="must be a JSON object"):
         schema.load(path)
+
+
+def test_payment_refusal_needs_its_notice() -> None:
+    index = next(
+        i for i, it in enumerate(ITEMS) if it["expected_behavior"] == "refuse_payment_data"
+    )
+    assert any("payment_data_refused" in p for p in _problems(_with(index, notices=[])))

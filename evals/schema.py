@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -63,7 +64,7 @@ LANGUAGES = frozenset({"es", "en", "unsupported"})
 LOCALES = frozenset({"es", "en", "mixed"})
 PAGES = frozenset({None, "home", "product", "support"})
 PRIMARY = ("answerable", "comparison", "abstain", "adversarial", "multi_turn")
-TAGS = frozenset({"typo", "regional", "legacy-client", "english"})
+TAGS = frozenset({"typo", "regional", "legacy-client", "english", "scripted-adversary"})
 PROVENANCE = frozenset({"corpus", "real-run-2026-10", "scenario", "new"})
 STATUSES = frozenset({"active", "quarantined", "retired"})
 
@@ -109,9 +110,45 @@ def load(path: Path = GOLDEN) -> list[dict[str, Any]]:
     return items
 
 
+_ID = re.compile(r"g-\d{3}")
+_STRING_LISTS = (
+    "strata",
+    "turns",
+    "required_facts",
+    "forbidden_claims",
+    "gold_evidence_ids",
+    "assertions",
+    "notices",
+    "user_notices",
+)
+_STRINGS = ("id", "group", "family", "split", "locale", "expected_behavior", "response_language")
+
+
+def _type_problems(item: dict[str, Any], iid: str) -> list[str]:
+    """Shape errors that would make the semantic checks crash or pass vacuously."""
+    out = [
+        f"{iid}: {key} must be a list of strings"
+        for key in _STRING_LISTS
+        if key in item
+        and not (isinstance(item[key], list) and all(isinstance(v, str) for v in item[key]))
+    ]
+    out += [
+        f"{iid}: {key} must be a string"
+        for key in _STRINGS
+        if key in item and not isinstance(item[key], str)
+    ]
+    if item.get("page") is not None and not isinstance(item.get("page"), str):
+        out.append(f"{iid}: page must be a string or null")
+    return out
+
+
 def _item_problems(item: dict[str, Any], known: set[str], catalog_sha: str) -> list[str]:
-    iid = item.get("id", "?")
-    out: list[str] = []
+    iid = str(item.get("id", "?"))
+    out: list[str] = _type_problems(item, iid)
+    if out:
+        return out
+    if not _ID.fullmatch(iid):
+        out.append(f"{iid}: id must look like g-001")
     if missing := REQUIRED - set(item):
         out.append(f"{iid}: missing keys {sorted(missing)}")
     if extra := set(item) - KEYS:
@@ -150,7 +187,18 @@ def _item_problems(item: dict[str, Any], known: set[str], catalog_sha: str) -> l
     facts = item.get("required_facts", [])
     if behavior == "answer" and (not gold or not facts):
         out.append(f"{iid}: an answer item needs gold_evidence_ids and required_facts")
+    for fact in facts:
+        if not fact.strip() or any(not option.strip() for option in fact.split("|")):
+            out.append(f"{iid}: required fact {fact!r} has an empty alternative")
     assertions = item.get("assertions", [])
+    if behavior == "answer" and not {"facts.required", "grounding.gold_referenced"} <= set(
+        assertions
+    ):
+        out.append(f"{iid}: answer items assert facts.required and grounding.gold_referenced")
+    if behavior == "refuse_payment_data" and "payment_data_refused" not in item.get("notices", []):
+        out.append(f"{iid}: refuse_payment_data items expect the payment_data_refused notice")
+    if (item.get("locale") == "en") != ("english" in strata):
+        out.append(f"{iid}: the english tag marks exactly the items with locale en")
     out += [f"{iid}: unknown grader {a!r}" for a in assertions if a not in GRADERS]
     if behavior in {"clarify", "no_info", "decline"} and "abstain.shape" not in assertions:
         out.append(f"{iid}: {behavior} items assert abstain.shape (support route or question)")
@@ -165,8 +213,9 @@ def _item_problems(item: dict[str, Any], known: set[str], catalog_sha: str) -> l
         out.append(f"{iid}: invalid provenance")
     if item.get("catalog_sha256") != catalog_sha:
         out.append(f"{iid}: catalog_sha256 does not pin the bundled catalog (re-verify the item)")
-    if not isinstance(item.get("clock_offset_days"), int):
-        out.append(f"{iid}: clock_offset_days must be an integer")
+    offset = item.get("clock_offset_days")
+    if type(offset) is not int or offset < 0:
+        out.append(f"{iid}: clock_offset_days must be a non-negative integer")
     status = item.get("status")
     if status not in STATUSES:
         out.append(f"{iid}: invalid status")

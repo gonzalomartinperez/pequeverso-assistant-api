@@ -31,6 +31,13 @@ and 18 `holdout`.
   grounding for answers, and the abstention shape for `clarify`, `no_info` and `decline`.
 - The holdout is procedural, not secret (the repository is public). Prompt authors do not read
   holdout failures, and 20% of the items rotate each quarter, keeping the same strata.
+  Splits are recomputed by the rule from the groups; paraphrases and items that share a turn share a
+  group, so they always land in the same split. Rotation re-runs the rule and records the new splits
+  in the PR.
+- `provenance` is `corpus` when a turn is taken verbatim from `evals/corpus`, otherwise `new`.
+- Items tagged `scripted-adversary` replay a deliberately misbehaving model output and expect
+  `answer_replaced`; the live lane drops that one expectation (a model that refuses cleanly is not
+  replaced) and keeps every forbidden claim.
 - 60 of 60 bounds the failure rate at about 5% (rule of three, 95%); it does not prove perfection.
   Reports print that bound per stratum.
 - Status changes: a `quarantined` item needs an owner and a deadline; a `retired` item needs a reason.
