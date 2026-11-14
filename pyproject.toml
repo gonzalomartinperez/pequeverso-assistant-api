@@ -28,6 +28,7 @@ dependencies = [
 dev = [
     "hypothesis>=6.140",
     "import-linter>=2.5",
+    "mutmut>=3.8.1,<3.9",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
     "pytest-randomly>=5",
@@ -47,7 +48,7 @@ package = false
 extend = "ratchets/ruff-legacy.toml"
 line-length = 100
 # .claude/hooks: byte-matched copies from engineering-standards; docs/master-plan: planning artifacts.
-extend-exclude = [".claude/hooks", "docs/master-plan"]
+extend-exclude = [".claude/hooks", "docs/master-plan", "mutants"]
 target-version = "py314"
 # Run by the CI runner's system python3 (Ubuntu 24.04: 3.12), not the uv venv:
 # keep their syntax 3.12-compatible (tests/test_system_python_scripts.py).
@@ -104,3 +105,31 @@ filterwarnings = [
 [tool.vulture]
 paths = ["app", "contracts", "scripts", "ratchets/vulture-whitelist.py"]
 min_confidence = 80
+
+[tool.mutmut]
+# Scoped modules from testing.md section 1 (mutmut 3.8 `source_paths`).
+source_paths = [
+    "app/domain/", # Includes budget.py; listing it twice races mutmut workers.
+    "app/application/answers.py",
+    "app/application/sessions.py",
+    "app/ai/prompt.py",
+    "app/ai/evidence.py",
+    "app/ai/output.py",
+    "app/application/embedding_budget.py",
+]
+# Copy package siblings and fixture assets so imports resolve inside mutants/.
+also_copy = ["app", "catalog", "migrations", "contracts", "evals", "scripts", "docs/reference"]
+process_isolation = "fork"
+pytest_add_cli_args = ["-p", "no:randomly", "-x", "-q"]
+pytest_add_cli_args_test_selection = [
+    "tests/test_domain.py",
+    "tests/test_answers.py",
+    "tests/test_language.py",
+    "tests/test_page_claims.py",
+    "tests/test_budget_concurrency.py",
+    "tests/test_embedding_budget.py",
+    "tests/test_api.py",
+    "tests/test_output_parser.py",
+    "tests/test_evidence_encoding.py",
+    "tests/test_prompt_contract.py",
+]

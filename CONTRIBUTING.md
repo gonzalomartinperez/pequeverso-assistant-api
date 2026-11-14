@@ -34,6 +34,22 @@ HYPOTHESIS_PROFILE=nightly uv run pytest -q tests/test_properties_*.py
 Add a shrunk failure as an `@example` regression case before fixing the bug. The local
 Hypothesis example database (`.hypothesis/`) is ignored by Git.
 
+## Mutation testing
+
+Mutmut 3.8 runs the scoped unit selection in `pyproject.toml` with explicit `fork` isolation
+(on CPython 3.14). Run one module with
+`timeout --kill-after=10s 30m uv run mutmut run --max-children 2 'app.domain.budget.*'`, then
+`uv run python -m scripts.mutation_ratchet --changed app/domain/budget.py`.
+The ratchet reads ignored `mutants/**/*.py.meta` JSON files; missing measured results fail.
+PRs break below 60% on changed scoped modules or below a recorded module score; the weekly
+target is 75%. After measuring improvements, `--write` raises baselines only. Scores count
+killed / (killed + survived + timeout + suspicious); skipped, unchecked, no-test, interrupted
+and type-check-only results are excluded. Equivalent mutants need individual reasons in
+`ratchets/mutation.json` and remain in the raw score. Reduce scope before lowering a threshold.
+CI (`.github/workflows/mutation.yml`) mutates only the changed scoped modules on a PR (30-minute
+budget; `--select` prints the patterns) and the full scope weekly and on pushes to `develop` that
+touch it (90 minutes). A change to the workflow or the ratchet script re-measures the full scope.
+
 ## Branch flow
 
 - Branch from `develop` as `feat/…`, `fix/…`, `chore/…`, `docs/…` or `deps/…` (`type/kebab-case`) and open the PR with `--base develop`. `main` receives releases only (promotion at M7, a merge commit).

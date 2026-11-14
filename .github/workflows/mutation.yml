@@ -1,0 +1,98 @@
+name: mutation
+
+# PVA-M2.9 (testing.md sections 1 and 2): mutmut 3.8 over the scoped modules in pyproject.toml.
+# Pull requests mutate only the changed scoped modules (break 60, or below a recorded module score;
+# 30-minute budget). The weekly run and pushes to develop that touch the scope run the full scope
+# (90-minute budget). A change to this workflow or to scripts/mutation_ratchet.py runs the full
+# scope on the PR, which is how ratchets/mutation.json gets its measured baseline. Scheduled runs
+# read this file from the default branch (`main`, M7). No secrets, no network beyond installation.
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+    paths:
+      - "app/domain/**"
+      - "app/application/answers.py"
+      - "app/application/sessions.py"
+      - "app/application/embedding_budget.py"
+      - "app/ai/prompt.py"
+      - "app/ai/evidence.py"
+      - "app/ai/output.py"
+      - "ratchets/mutation.json"
+      - "scripts/mutation_ratchet.py"
+      - ".github/workflows/mutation.yml"
+  schedule:
+    - cron: "0 8 * * 0" # Sunday 05:00 America/Argentina/Buenos_Aires
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: 0.13.7 # keep equal to ci.yml
+  AI_PROVIDER: fixture
+  ALLOW_PAID_AI: "false"
+  LANGSMITH_TRACING: "false"
+
+jobs:
+  mutation:
+    name: Mutation (mutmut)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 95
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Install (frozen lockfile)
+        run: uv sync --frozen
+      - name: Select the scope
+        id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            git diff --name-only "$BASE_SHA...HEAD" > "$RUNNER_TEMP/changed.txt"
+            # shellcheck disable=SC2046
+            patterns=$(uv run python -m scripts.mutation_ratchet --select --changed $(cat "$RUNNER_TEMP/changed.txt"))
+          else
+            : > "$RUNNER_TEMP/changed.txt"
+            patterns="*"
+          fi
+          echo "patterns=$patterns" >> "$GITHUB_OUTPUT"
+          echo "mutation scope: ${patterns:-none}"
+      - name: Run mutmut (PR budget 30 minutes, full scope 90)
+        if: steps.scope.outputs.patterns != ''
+        env:
+          PATTERNS: ${{ steps.scope.outputs.patterns }}
+        run: |
+          if [ "$PATTERNS" = "*" ]; then budget=90m; set --; else budget=30m; read -ra args <<< "$PATTERNS"; set -- "${args[@]}"; fi
+          timeout --kill-after=30s "$budget" uv run mutmut run --max-children 4 "$@"
+      - name: Ratchet
+        if: steps.scope.outputs.patterns != ''
+        run: |
+          # shellcheck disable=SC2046
+          uv run python -m scripts.mutation_ratchet --changed $(cat "$RUNNER_TEMP/changed.txt")
+      - name: Upload mutation metadata
+        if: ${{ !cancelled() && steps.scope.outputs.patterns != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-results
+          path: |
+            mutants/**/*.py.meta
+            mutants/mutmut-stats.json
+          retention-days: 30
+          if-no-files-found: warn

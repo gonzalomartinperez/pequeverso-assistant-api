@@ -14,3 +14,4 @@ __pycache__/
 /reports/
 /test-results/
 node_modules/
+mutants/
