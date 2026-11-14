@@ -58,7 +58,7 @@ def _database_filters(root: Path) -> None:
 
 
 def test_real_build_consumers_select_owned_recipes_and_repository_context() -> None:
-    paths = ('.github/workflows/quality.yml', 'scripts/smoke_container.sh')
+    paths = ('.github/workflows/ci.yml', 'scripts/smoke_container.sh')
     commands = [
         line.strip()
         for path in paths

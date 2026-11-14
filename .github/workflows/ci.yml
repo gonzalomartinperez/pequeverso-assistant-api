@@ -1,20 +1,23 @@
-name: Quality
+name: ci
 
-# Paired API job IDs; the protected checks context is the full five-job aggregate.
+# Entry point on the engineering-standards E1 template (ecosystem 6.0/6.1). `classify` reads
+# .github/ci-profile.json and selects the jobs; `ci-gate` is the single fail-closed aggregate.
+# `checks` is a temporary alias of `ci-gate` for the current ruleset (remove after PVA-D11).
 on:
   pull_request:
     branches: [develop, main]
-    types: [opened, synchronize, reopened, edited, ready_for_review]
+    types: [opened, synchronize, reopened, labeled, unlabeled, edited, ready_for_review]
   push:
     branches: [develop, main]
-  workflow_dispatch:
   merge_group:
+  workflow_dispatch:
 
 permissions: {}
 
 concurrency:
-  group: quality-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # PRs: one run per ref, newer pushes cancel older runs. Other events: one group per commit.
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   UV_VERSION: 0.13.7 # keep equal to the uv image in infra/docker/app/Dockerfile
@@ -23,7 +26,34 @@ env:
   LANGSMITH_TRACING: "false"
 
 jobs:
+  classify:
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/classify.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    permissions:
+      contents: read
+      pull-requests: read
+
+  docs:
+    needs: classify
+    if: contains(fromJSON(needs.classify.outputs.jobs), 'docs')
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/docs.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    permissions:
+      contents: read
+    with:
+      readme-check: false # true once README.md follows the ecosystem template
+
+  security:
+    needs: classify
+    if: contains(fromJSON(needs.classify.outputs.jobs), 'security')
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/security.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    permissions:
+      contents: read
+      pull-requests: read
+    with:
+      dependency-review: true # public repository
+
   workflows:
+    needs: classify
+    if: contains(fromJSON(needs.classify.outputs.jobs), 'workflows')
     name: Workflow validation
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -52,6 +82,8 @@ jobs:
           min-severity: low
 
   secrets:
+    needs: classify
+    if: contains(fromJSON(needs.classify.outputs.jobs), 'secrets')
     name: Secret scan
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -71,6 +103,8 @@ jobs:
         run: .github/scripts/secret-scan.sh
 
   static:
+    needs: classify
+    if: contains(fromJSON(needs.classify.outputs.jobs), 'static')
     name: Static checks
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -120,7 +154,8 @@ jobs:
         run: uv run python scripts/evaluate_conversations.py
 
   container:
-    needs: [static]
+    needs: [classify, static]
+    if: ${{ !cancelled() && !failure() && needs.static.result == 'success' && contains(fromJSON(needs.classify.outputs.jobs), 'container') }}
     name: Container verification
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -217,7 +252,8 @@ jobs:
 
 
   database:
-    needs: [static]
+    needs: [classify, static]
+    if: ${{ !cancelled() && !failure() && needs.static.result == 'success' && contains(fromJSON(needs.classify.outputs.jobs), 'database') }}
     name: Database tests
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -275,24 +311,31 @@ jobs:
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
 
-  checks:
-    name: checks
+  ci-gate:
     if: always()
-    needs: [workflows, secrets, static, database, container]
+    needs: [classify, docs, security, workflows, secrets, static, database, container]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     permissions: {}
     steps:
-      - name: All required jobs succeeded
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+      - uses: gonzalomartinperez/engineering-standards/actions/ci-gate@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+        with:
+          needs: ${{ toJSON(needs) }}
+          expected: ${{ needs.classify.outputs.jobs }}
+
+  # Temporary alias: the current ruleset still requires the context `checks`.
+  checks:
+    name: checks
+    if: always()
+    needs: [ci-gate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: ci-gate succeeded
         env:
-          WORKFLOWS_RESULT: ${{ needs.workflows.result }}
-          SECRETS_RESULT: ${{ needs.secrets.result }}
-          STATIC_RESULT: ${{ needs.static.result }}
-          DATABASE_RESULT: ${{ needs.database.result }}
-          CONTAINER_RESULT: ${{ needs.container.result }}
-        run: |
-          test "$WORKFLOWS_RESULT" = success
-          test "$SECRETS_RESULT" = success
-          test "$STATIC_RESULT" = success
-          test "$DATABASE_RESULT" = success
-          test "$CONTAINER_RESULT" = success
+          CI_GATE_RESULT: ${{ needs.ci-gate.result }}
+        run: test "$CI_GATE_RESULT" = success

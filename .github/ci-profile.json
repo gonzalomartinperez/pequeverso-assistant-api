@@ -1,0 +1,73 @@
+{
+  "$schema": "https://github.com/gonzalomartinperez/engineering-standards/blob/1f33be46bcb95f42f550f74608bc679cae5575ad/schemas/ci-profile.schema.json",
+  "$comment": "Live CI profile map read by classify (ecosystem 6.0). Fail closed: a changed file outside every profile, or a change to this file, runs everything. Job ids are the jobs of .github/workflows/ci.yml. docs/master-plan/ci-profile.json is the plan history.",
+  "version": 1,
+  "profiles": {
+    "docs": {
+      "paths": ["**/*.md", "docs/**", "LICENSE"],
+      "adds": ["docs", "secrets"],
+      "budgetP50Minutes": 2
+    },
+    "code": {
+      "paths": [
+        "app/**", "tests/**", "scripts/**", "evals/**", "tools/**", "catalog/**", "migrations/**",
+        "ratchets/**", "deploy/monitoring/**", ".agents/skills/**", ".claude/skills/**",
+        "pyproject.toml", "uv.lock", ".python-version", ".importlinter", ".env.example",
+        ".gitignore", ".dockerignore"
+      ],
+      "adds": ["static", "secrets", "security"],
+      "budgetP50Minutes": 5,
+      "budgetP95Minutes": 10
+    },
+    "contract": {
+      "paths": ["contracts/**"],
+      "adds": ["static", "secrets", "security"],
+      "budgetP50Minutes": 7
+    },
+    "assistant-quality": {
+      "paths": [
+        "app/ai/**", "app/domain/answer_policy.py", "app/domain/page_claims.py", "app/domain/language.py",
+        "app/domain/redaction.py", "app/application/answers.py", "app/application/chat.py",
+        "app/application/knowledge.py", "app/application/catalog*.py", "catalog/**", "evals/**",
+        "scripts/evaluate_*.py", "tests/test_evaluations.py"
+      ],
+      "adds": ["static", "secrets", "security"],
+      "budgetP50Minutes": 8
+    },
+    "container": {
+      "paths": [
+        "infra/docker/**", "pyproject.toml", "uv.lock", "migrations/**", "catalog/**",
+        "scripts/smoke_*.sh", "scripts/container_fixture_probe.py", ".dockerignore", ".grype.yaml",
+        ".hadolint.yaml"
+      ],
+      "adds": ["static", "container", "database", "secrets", "security"],
+      "budgetP50Minutes": 20,
+      "budgetP95Minutes": 30
+    },
+    "database": {
+      "paths": [
+        "app/adapters/postgres/**", "app/adapters/neo4j/**", "migrations/**", "infra/docker/postgres/**",
+        "infra/docker/neo4j/**", "scripts/smoke_*", "pyproject.toml", "uv.lock"
+      ],
+      "adds": ["static", "database"],
+      "budgetP50Minutes": 15,
+      "budgetP95Minutes": 30
+    },
+    "workflow": {
+      "paths": [".github/**"],
+      "adds": ["workflows", "security", "static", "secrets"],
+      "budgetP50Minutes": 3
+    },
+    "deps-weekly": {
+      "trigger": "branch dependabot/** or label deps-weekly",
+      "adds": ["all-profiles"],
+      "budgetP50Minutes": 8
+    },
+    "release": {
+      "trigger": "develop into main, or label release",
+      "adds": ["all-profiles"],
+      "budgetP50Minutes": 25
+    }
+  },
+  "required": "ci-gate"
+}

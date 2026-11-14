@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -23,14 +24,29 @@ NAMES = {
     'container': 'Container verification',
     'checks': 'checks',
 }
+REUSABLE = ('classify', 'docs', 'security')
+GATED = ('docs', 'security', 'workflows', 'secrets', 'static', 'database', 'container')
 NEEDS = {
-    'workflows': [],
-    'secrets': [],
-    'static': [],
-    'database': ['static'],
-    'container': ['static'],
-    'checks': ['workflows', 'secrets', 'static', 'database', 'container'],
+    'workflows': ['classify'],
+    'secrets': ['classify'],
+    'static': ['classify'],
+    'database': ['classify', 'static'],
+    'container': ['classify', 'static'],
+    'checks': ['ci-gate'],
 }
+STANDARDS = 'gonzalomartinperez/engineering-standards/'
+SELECTED = "contains(fromJSON(needs.classify.outputs.jobs), '{}')"
+IFS = {
+    **{key: SELECTED.format(key) for key in ('workflows', 'secrets', 'static')},
+    **{
+        key: "${{ !cancelled() && !failure() && needs.static.result == 'success' && "
+        + SELECTED.format(key)
+        + ' }}'
+        for key in ('database', 'container')
+    },
+    'checks': 'always()',
+}
+PROFILE = ROOT / '.github/ci-profile.json'
 COMMANDS = {
     'workflows': [],
     'secrets': ['.github/scripts/secret-scan.sh'],
@@ -69,30 +85,41 @@ COMMANDS = {
 
 
 def workflow():
-    return yaml.safe_load((ROOT / '.github/workflows/quality.yml').read_text())
+    return yaml.safe_load((ROOT / '.github/workflows/ci.yml').read_text())
 
 
 def validate(value):
     events = value.get('on', value.get(True))
-    assert value['name'] == 'Quality'
+    assert value['name'] == 'ci'
     assert events['pull_request'] == {
         'branches': ['develop', 'main'],
-        'types': ['opened', 'synchronize', 'reopened', 'edited', 'ready_for_review'],
+        'types': [
+            'opened',
+            'synchronize',
+            'reopened',
+            'labeled',
+            'unlabeled',
+            'edited',
+            'ready_for_review',
+        ],
     }
     assert events['push'] == {'branches': ['develop', 'main']}
+    assert {'merge_group', 'workflow_dispatch'} <= events.keys()
     assert not ({'pull_request_target', 'workflow_run'} & events.keys())
     assert value['permissions'] == {}
-    assert value['concurrency']['cancel-in-progress'] is True
+    assert 'pull_request' in str(value['concurrency']['cancel-in-progress'])
     assert value['env']['AI_PROVIDER'] == 'fixture'
     assert value['env']['ALLOW_PAID_AI'] == 'false'
     assert value['env']['LANGSMITH_TRACING'] == 'false'
-    assert set(value['jobs']) == set(NAMES)
-    for key, job in value['jobs'].items():
-        assert job['name'] == NAMES[key]
-        assert job.get('needs', []) == NEEDS[key]
+    assert set(value['jobs']) == {*NAMES, *REUSABLE, 'ci-gate'}
+    validate_shared(value['jobs'])
+    for key, display in NAMES.items():
+        job = value['jobs'][key]
+        assert job['name'] == display
+        assert needs_of(job) == NEEDS[key]
         assert job['runs-on'] == 'ubuntu-24.04'
         assert not job.get('continue-on-error')
-        assert job.get('if') == ('always()' if key == 'checks' else None)
+        assert job.get('if') == IFS[key]
         assert job['permissions'] == ({} if key == 'checks' else {'contents': 'read'})
         for step in job['steps']:
             assert 'if' not in step
@@ -139,13 +166,31 @@ def validate(value):
     assert any(action.startswith('raven-actions/actionlint@') for action in actions)
     assert any(action.startswith('zizmorcore/zizmor-action@') for action in actions)
     assert value['jobs']['secrets']['steps'][0]['with']['fetch-depth'] == 0
-    gate = value['jobs']['checks']
-    assert len(gate['steps']) == 1
-    assert gate['steps'][0]['run'].strip().splitlines() == [
-        f'test "${name.upper()}_RESULT" = success' for name in NEEDS['checks']
-    ]
-    assert gate['steps'][0]['env'] == {
-        f'{key.upper()}_RESULT': '${{ needs.' + key + '.result }}' for key in NEEDS['checks']
+    alias = value['jobs']['checks']
+    assert len(alias['steps']) == 1
+    assert alias['steps'][0]['run'].strip() == 'test "$CI_GATE_RESULT" = success'
+    assert alias['steps'][0]['env'] == {'CI_GATE_RESULT': '${{ needs.ci-gate.result }}'}
+
+
+def needs_of(job):
+    needs = job.get('needs', [])
+    return [needs] if isinstance(needs, str) else needs
+
+
+def validate_shared(jobs):
+    for key in REUSABLE:
+        assert jobs[key]['uses'].startswith(STANDARDS + '.github/workflows/' + key + '.yml@')
+        assert needs_of(jobs[key]) == ([] if key == 'classify' else ['classify'])
+        assert jobs[key].get('if') == (None if key == 'classify' else SELECTED.format(key))
+    assert jobs['classify']['permissions'] == {'contents': 'read', 'pull-requests': 'read'}
+    assert jobs['security']['with'] == {'dependency-review': True}
+    gate = jobs['ci-gate']
+    assert gate['if'] == 'always()' and gate['permissions'] == {}
+    assert gate['needs'] == ['classify', *GATED]
+    action = next(step for step in gate['steps'] if STANDARDS + 'actions/ci-gate@' in step.get('uses', ''))
+    assert action['with'] == {
+        'needs': '${{ toJSON(needs) }}',
+        'expected': '${{ needs.classify.outputs.jobs }}',
     }
 
 
@@ -193,6 +238,7 @@ def test_filtered_privileged_or_missing_work_cannot_pass(mode):
 
 def test_actual_aggregate_shell_fails_for_every_missing_or_unsuccessful_job():
     gate = workflow()['jobs']['checks']['steps'][0]
+    assert set(gate['env']) == {'CI_GATE_RESULT'}
     green = {name: 'success' for name in gate['env']}
     clean = {name: value for name, value in os.environ.items() if name not in green}
 
@@ -278,7 +324,7 @@ def test_required_aggregate_cannot_skip_or_replace_any_prerequisite(mutation):
     if mutation == 'skip':
         gate['if'] = 'success()'
     elif mutation == 'wrong_result':
-        gate['steps'][0]['env']['WORKFLOWS_RESULT'] = '${{ needs.static.result }}'
+        gate['steps'][0]['env']['CI_GATE_RESULT'] = '${{ needs.static.result }}'
     elif mutation == 'empty_gate':
         gate['steps'] = []
     else:
@@ -331,3 +377,134 @@ def test_static_suite_runs_in_parallel_and_service_runs_keep_a_fixed_order():
     ):
         text = (ROOT / script).read_text()
         assert 'no:randomly' in text, script
+
+
+def glob_to_regex(pattern):
+    """Mirror engineering-standards classify.yml: `**/` crosses directories, `*` stays in one segment."""
+    out, i = '', 0
+    while i < len(pattern):
+        if pattern.startswith('**/', i):
+            out += '(?:.*/)?'
+            i += 3
+        elif pattern.startswith('**', i):
+            out += '.*'
+            i += 2
+        elif pattern[i] == '*':
+            out += '[^/]*'
+            i += 1
+        elif pattern[i] == '?':
+            out += '[^/]'
+            i += 1
+        else:
+            out += re.escape(pattern[i])
+            i += 1
+    return re.compile(out + r'\Z')
+
+
+def profile_map():
+    return json.loads(PROFILE.read_text())
+
+
+def classify_paths(paths, config=None):
+    """Return the jobs classify selects for a pull request changing `paths`; None means run everything."""
+    profiles = (config or profile_map())['profiles']
+    selected = set()
+    for path in paths:
+        hit = [
+            n
+            for n, spec in profiles.items()
+            if any(glob_to_regex(g).match(path) for g in spec.get('paths', []))
+        ]
+        if not hit or path == '.github/ci-profile.json':
+            return None
+        selected.update(hit)
+    return {job for name in selected for job in profiles[name]['adds']}
+
+
+def tracked_files():
+    out = subprocess.run(
+        ['git', 'ls-files'],  # noqa: S607 -- fixed git query
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return out.splitlines()
+
+
+def test_profile_map_shape_and_job_ids_exist_in_the_workflow():
+    config = profile_map()
+    assert config['version'] == 1 and config['required'] == 'ci-gate'
+    assert set(config['profiles']) == {
+        'docs', 'code', 'contract', 'assistant-quality', 'container', 'database', 'workflow',
+        'deps-weekly', 'release',
+    }  # fmt: skip
+    jobs = set(workflow()['jobs'])
+    named = set(config.get('base', []))
+    for name, spec in config['profiles'].items():
+        assert spec.get('paths') or spec.get('trigger'), name
+        named |= set(spec['adds']) - {'all-profiles'}
+    assert named <= jobs - {'classify', 'ci-gate', 'checks'}
+    assert named == set(GATED)
+    for name in ('deps-weekly', 'release'):
+        assert config['profiles'][name]['adds'] == ['all-profiles']
+
+
+def test_every_tracked_file_is_in_a_profile_so_nothing_falls_through_to_run_everything():
+    profiles = profile_map()['profiles']
+    regexes = [glob_to_regex(g) for spec in profiles.values() for g in spec.get('paths', [])]
+    orphans = [f for f in tracked_files() if not any(r.match(f) for r in regexes)]
+    assert orphans == []
+
+
+def test_gate_lists_every_job_except_classify_alias_and_itself_and_the_alias_depends_only_on_it():
+    jobs = workflow()['jobs']
+    assert set(jobs['ci-gate']['needs']) == set(jobs) - {'ci-gate', 'checks'}
+    assert needs_of(jobs['checks']) == ['ci-gate']
+    assert jobs['checks']['if'] == 'always()'
+
+
+def test_every_standards_reference_is_pinned_to_one_commit():
+    refs = set()
+    for job in workflow()['jobs'].values():
+        refs |= {s['uses'] for s in job.get('steps', []) if 'uses' in s}
+        refs |= {job['uses']} if 'uses' in job else set()
+    shared = [r for r in refs if r.startswith(STANDARDS)]
+    assert len(shared) >= 4
+    pins = [re.fullmatch(r'[\w./-]+@([a-f0-9]{40})', r) for r in shared]
+    assert all(pins), shared
+    shas = {pin.group(1) for pin in pins if pin}
+    assert len(shas) == 1
+
+
+def test_docs_only_change_runs_docs_and_skips_code_database_and_container():
+    jobs = classify_paths(['docs/ci.md', 'README.md', 'CHANGELOG.md'])
+    assert jobs == {'docs', 'secrets'}
+    assert not {'static', 'database', 'container'} & jobs
+
+
+@pytest.mark.parametrize(
+    ('paths', 'present', 'absent'),
+    [
+        (['app/domain/language.py'], {'static', 'secrets', 'security'}, {'database', 'container'}),
+        (['app/adapters/postgres/knowledge.py'], {'static', 'database'}, {'container'}),
+        (['migrations/001_initial.sql'], {'static', 'database', 'container'}, set()),
+        (['infra/docker/app/Dockerfile'], {'static', 'database', 'container'}, set()),
+        (['.github/workflows/ci.yml'], {'workflows', 'security', 'static', 'secrets'}, {'container'}),
+        (['contracts/openapi.json'], {'static', 'secrets', 'security'}, {'docs', 'database'}),
+        (['uv.lock'], {'static', 'database', 'container'}, set()),
+        (['scripts/smoke_container.sh'], {'static', 'database', 'container'}, set()),
+        (['.agents/skills/x/SKILL.md'], {'static', 'docs'}, {'container'}),
+    ],
+)
+def test_path_changes_select_the_expected_jobs(paths, present, absent):
+    jobs = classify_paths(paths)
+    assert present <= jobs
+    assert not absent & jobs
+
+
+@pytest.mark.parametrize(
+    'paths', [['unmapped/file.bin'], ['docs/ci.md', 'surprise.txt'], ['.github/ci-profile.json']]
+)
+def test_unknown_paths_and_profile_edits_run_everything(paths):
+    assert classify_paths(paths) is None

@@ -12,7 +12,7 @@
 ![Language](https://img.shields.io/badge/native_assistant-Espa%C3%B1ol-007E80?style=flat-square)
 ![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-opt--in-06305B?style=flat-square&logo=opentelemetry&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-private_metrics-E6522C?style=flat-square&logo=prometheus&logoColor=white)
-![CI](https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/workflows/quality.yml/badge.svg?branch=develop)
+![CI](https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/workflows/ci.yml/badge.svg?branch=develop)
 
 Backend of the Pequeverso shopping assistant: an **advisory, read-only** AI assistant that helps
 adult buyers understand the Grafismo Fonético kit and the separately recommended affiliate

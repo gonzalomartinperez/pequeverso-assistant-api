@@ -180,7 +180,7 @@ def test_title_labels_and_branch_are_not_inputs() -> None:
 
 
 def test_unexpected_files_and_script_changes_need_review() -> None:
-    workflow = facts(files=(('uv.lock', 'modified'), ('.github/workflows/quality.yml', 'modified')))
+    workflow = facts(files=(('uv.lock', 'modified'), ('.github/workflows/ci.yml', 'modified')))
     assert not evaluate(workflow, POLICY).eligible
     code = facts(files=(('uv.lock', 'modified'), ('app/main.py', 'modified')))
     assert not evaluate(code, POLICY).eligible
