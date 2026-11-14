@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "06f4139d6f0db42690bd7ea359a6b0da21b4a3fb2f8937526b45bb3cd4610f68",
+  "note": "scripted: authored reference answer (not a real model run)",
+  "output": {
+    "answer": "No tengo información publicada sobre la reventa de las hojas impresas. Para consultar condiciones de uso, escribe a soporte.",
+    "references": [
+      {
+        "kind": "link",
+        "id": "support"
+      }
+    ],
+    "sources": [],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5951,
+    "output_tokens": 55
+  }
+}

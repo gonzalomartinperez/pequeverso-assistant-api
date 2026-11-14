@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "637be4b1f143cda63d7f6734b5abdb84bf21ede1de9ca2356ad2e601c34be2f6",
+  "note": "scripted: authored reference answer (not a real model run)",
+  "output": {
+    "answer": "No puedo confirmar el precio actual en este momento. Revisa el total en la página de compra; para cualquier duda, escribe a soporte.",
+    "references": [
+      {
+        "kind": "product",
+        "id": "grafismo-fonetico"
+      },
+      {
+        "kind": "link",
+        "id": "support"
+      }
+    ],
+    "sources": [],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5947,
+    "output_tokens": 33
+  }
+}

@@ -21,7 +21,20 @@ Import contracts (`.importlinter`) must pass and run in parallel with the AST ar
 
 Coverage (`ratchets/coverage.json`, `scripts/coverage_gate.py`): the static CI job measures branch coverage, enforces `static_branch_floor` and requires 90% of the changed executable lines to be executed (diff coverage against the base revision); the database job combines its data with the static job's and enforces `branch_floor`. Floors only rise (`--write-floor`); locally run `uv run pytest -n auto --cov --cov-report=term` and `uv run coverage json` then `uv run python -m scripts.coverage_gate coverage.json --base origin/develop --floor static_branch_floor`.
 
+Load harness: run `uv run python -m tests.load.sse_load --report /tmp/sse-load.json` locally (defaults: 12 visitors, 900 seconds). It launches an isolated fixture uvicorn subprocess with four generation slots, raised rate limits and zero synthetic token prices; no keys or paid calls are used. It asserts TTFE p95 < 1.5 s, event-gap p95 < 500 ms, errors and premature closes each < 0.5%, and RSS growth < 20% for runs of at least 600 seconds. Backpressure rejections (`busy`, four generation slots against twelve visitors) are reported separately as `rejected_rate`: informational, because the API rejects rather than queues beyond its slots; latency is measured on admitted runs. The nightly workflow (PVA-M2.12) runs it for 15 minutes. Use `--duration 30` for a short run; opt into the 10-second subprocess test with `PVA_LOAD_SMOKE=1 uv run pytest tests/test_sse_load_harness.py`.
+
 `just fmt` formats and applies safe lint fixes; `just test` and `just unit` run the full or the unit-only suite. CI runs the same commands; a PR merges only when the required check is green (`checks` today, becoming `ci-gate` with PVA-M1.4). Image changes also run `scripts/smoke_container.sh`.
+
+## Property-based tests
+
+Hypothesis defaults to the deterministic `ci` profile (100 examples); `nightly` runs 1000 examples:
+
+```bash
+HYPOTHESIS_PROFILE=nightly uv run pytest -q tests/test_properties_*.py
+```
+
+Add a shrunk failure as an `@example` regression case before fixing the bug. The local
+Hypothesis example database (`.hypothesis/`) is ignored by Git.
 
 ## Branch flow
 
