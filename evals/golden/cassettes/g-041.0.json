@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "009307a9432f0d9356a326e64d159c2facbdc81c73c2b9eabda999e92c6744b3",
+  "note": "scripted: authored reference answer (not a real model run)",
+  "output": {
+    "answer": "No puedo confirmar el precio en dólares ahora mismo. Lo ves actualizado en la página del producto; si necesitas ayuda, escribe a soporte.",
+    "references": [
+      {
+        "kind": "product",
+        "id": "grafismo-fonetico"
+      },
+      {
+        "kind": "link",
+        "id": "support"
+      }
+    ],
+    "sources": [],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5609,
+    "output_tokens": 138
+  }
+}

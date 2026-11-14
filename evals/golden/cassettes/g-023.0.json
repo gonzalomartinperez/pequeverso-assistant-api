@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "3d9943c32f5a990ed7f545e2b4f9f6d791c0e7effc04664a3d68372aeabb3189",
+  "note": "scripted: authored reference answer (not a real model run)",
+  "output": {
+    "answer": "El material principal es Grafismo Fonético Paso a Paso. Los otros ocho recursos son bonos incluidos en el mismo pago: guía, tarjetas, reto, animales, juegos, sonidos del hogar, pósteres y actividades sobre el nombre y la familia.",
+    "references": [
+      {
+        "kind": "resource",
+        "id": "grafismo-fonetico/paso-a-paso"
+      }
+    ],
+    "sources": [
+      "faq.grafismo-fonetico.05"
+    ],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5959,
+    "output_tokens": 94
+  }
+}
