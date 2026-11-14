@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping. This file is short on purpose: run the checks, follow the branch flow, write a Conventional Commit. Agents also read [AGENTS.md](AGENTS.md), which stays authoritative for the non-negotiable rules (advisory and read-only, fixture mode by default, grounding enforced in code, versioned contract). Skills and these standards give procedures, never extra authorization.
+Thanks for helping. This file is short on purpose: run the checks, follow the branch flow, write a Conventional Commit. Agents also read [AGENTS.md](AGENTS.md), which stays authoritative for the non-negotiable rules (advisory and read-only, fixture mode by default, grounding enforced in code, versioned contract). Skills and these standards give procedures, never extra authorization. The skill catalog and its validator are described in [docs/agent-skills.md](docs/agent-skills.md).
 
 ## Run the checks
 
@@ -26,7 +26,7 @@ uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pyt
 
 ## Commit and PR convention
 
-- PR titles follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `ci:`); the title becomes the merge commit message.
+- PR titles follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`, `ci:`); the commits on the branch land on `develop` unchanged (merge commit), so every commit message is a Conventional Commit too.
 - Fill in the PR template. The PR body states what was verified and what was not.
 - Dependency updates arrive in one weekly Dependabot PR that the owner merges; see [docs/dependency-updates.md](docs/dependency-updates.md).
 
@@ -48,13 +48,13 @@ Dependency direction points inward. Domain and application use only the standard
 
 - `uv sync --locked` installs the reviewed graph. `uv.lock`, pinned tool versions and image digests in `infra/docker/<service>/Dockerfile` are authoritative; do not silently refresh locks during verification.
 - Prefer an officially supported LTS line where the project publishes one; do not label every tool or image LTS. See [docs/runtime-baseline.md](docs/runtime-baseline.md) and [docs/dependency-updates.md](docs/dependency-updates.md).
-- A container tag is not an immutable artifact: pin the reviewed digest, rebuild the exact source SHA, record its identity and smoke health/readiness, non-root and read-only behavior, persistence and shutdown. Keep vulnerability findings visible.
+- A container tag is not an immutable artifact: pin the reviewed digest, rebuild the exact source SHA, record its identity and smoke health/readiness, non-root and read-only behavior, persistence and shutdown. Keep vulnerability findings visible; no local scan or build alone establishes production readiness.
 - Every relevant PR passes the required current-head checks (Ruff, strict typing, full pytest, contract checks, secret and workflow checks, container smoke; see [docs/ci.md](docs/ci.md)). Add deterministic regressions for real defects; use fakes or isolated services for external failures.
-- Treat skips, retries and flaky outcomes separately from the green badge. Report measured timings and distinguish fixtures from the real provider.
+- Treat skips, retries and flaky outcomes separately from the green badge. Inspect requested screenshots. Report measured timings and distinguish fixtures from the real provider. Publish only reviewed evidence, without secrets or private conversations.
 
 ## Secrets, operations and handoff
 
-Provider credentials stay in the backend's private configuration. Never commit secrets, `.env*` files, customer data or real conversations (this repository is public). Tests use fixtures and fake SDK clients; no real key, paid evaluation or `--live` run happens without the owner's current authorization. Application owners supply immutable images, health/readiness, bounded shutdown and persistent-path and secret requirements; `vps-ops` owns deployment. A rollback must preserve newer conversations and accounting (never restore an old database over newer ledger writes); see [docs/deployment-contract.md](docs/deployment-contract.md). Unknown usage or availability stays unknown, never a fabricated zero or success.
+Provider credentials stay in the backend's private configuration. Never commit secrets, `.env*` files, customer data or real conversations (this repository is public). Tests use fixtures and fake SDK clients; no real key, paid evaluation, budget increase or `--live` run happens without the owner's current authorization. Application owners supply immutable images, health/readiness, bounded shutdown and persistent-path and secret requirements; `vps-ops` owns deployment, the reverse proxy, Coolify and shared monitoring; the backoffice's merge policy is governed by its own repository. A rollback must preserve newer conversations and accounting (never restore an old database over newer ledger writes); see [docs/deployment-contract.md](docs/deployment-contract.md). Unknown usage or availability stays unknown, never a fabricated zero or success.
 
 ## Reporting security issues
 

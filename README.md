@@ -221,7 +221,7 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
   [collector stability table](https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/component-stability.md).
 - No build, screenshot or local test authorizes a deployment or production activation.
 
-Task branches target `develop` through protected squash PRs. A release into `main` requires
+Task branches target `develop` through protected PRs merged as merge commits (never squash). A release into `main` requires
 separate owner authorization and a protected merge commit. The software license does not
 authorize deployment or access to private data. Never commit secrets, private evaluations
 or customer conversations.

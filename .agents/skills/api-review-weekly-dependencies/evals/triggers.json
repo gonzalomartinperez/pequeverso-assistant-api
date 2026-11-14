@@ -1,10 +1,10 @@
 {
-  "skill": "api-review-dependency-update",
+  "skill": "api-review-weekly-dependencies",
   "status": "stub",
   "protocol": "docs/agent-skills.md#activation-evals",
   "queries": [
     {
-      "query": "review this Dependabot pull request sent to manual review",
+      "query": "review the weekly Dependabot pull request with all ecosystems",
       "should_trigger": true,
       "split": "train"
     },
@@ -14,7 +14,7 @@
       "split": "train"
     },
     {
-      "query": "assess a Dependabot major version bump before merging",
+      "query": "check the lockfile and image digest changes in the weekly dependency PR before the owner merges",
       "should_trigger": true,
       "split": "validation"
     },

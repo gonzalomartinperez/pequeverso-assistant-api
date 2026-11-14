@@ -65,9 +65,9 @@ Full guide: [`CONTRIBUTING.md`](CONTRIBUTING.md). To continue the refactor from 
   (written out because `just` may not be installed). For image changes, also
   `scripts/smoke_container.sh`.
 - No deploys, DNS or production changes from this repository (vps-ops owns them).
-- Dependabot opens one weekly PR with all ecosystems; the owner merges it manually. Follow
-  `docs/dependency-updates.md`. The policy workflow is a read-only assessment; nothing here
-  authorizes merging an ineligible update or anything into `main`.
+- Dependabot opens one weekly multi-ecosystem PR into `develop`; the owner merges it manually.
+  `deps-weekly-guard` keeps at most one open and never merges. Follow `docs/dependency-updates.md`.
+  Nothing here authorizes merging anything into `main`.
 
 ## Skills
 

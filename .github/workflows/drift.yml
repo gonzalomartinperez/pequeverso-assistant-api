@@ -1,6 +1,5 @@
-# Standards drift check (ecosystem 16). Copy to .github/workflows/drift.yml. Runs on every PR (cheap,
-# no build) so an edit to a byte-matched file is caught before merge; add `drift` to ci-gate.needs
-# through a `uses:` job in ci.yml instead if it must block merges.
+# Standards drift check (ecosystem 16): byte-matched files and standards.lock against
+# engineering-standards. Runs on every PR (cheap, no build); not part of the required gate yet.
 name: drift
 
 on:
