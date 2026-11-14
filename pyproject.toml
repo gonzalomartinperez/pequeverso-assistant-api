@@ -26,10 +26,12 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "coverage>=7.10",
     "hypothesis>=6.140",
     "import-linter>=2.5",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
+    "pytest-cov>=7",
     "pytest-randomly>=5",
     "pytest-xdist>=3.8",
     "pyyaml>=6.0.3",
@@ -85,6 +87,25 @@ python_version = "3.14"
 strict = true
 files = ["app", "contracts", "scripts", "evals"]
 plugins = ["pydantic.mypy"]
+
+[tool.coverage.run]
+# PVA-M2.3: branch coverage over the shipped packages (app, contracts; CLI and eval tooling are
+# covered by their own tests but not floored); relative paths so the static and database
+# jobs' data combine. `patch = ["subprocess"]` measures the real-service pytest the database job's
+# smoke script starts.
+branch = true
+relative_files = true
+parallel = true
+source = ["app", "contracts"]
+patch = ["subprocess"]
+
+[tool.coverage.paths]
+# Map the database job's subprocess paths onto the repository-relative names before combining.
+app = ["app/", "*/app/"]
+contracts = ["contracts/", "*/contracts/"]
+
+[tool.coverage.report]
+skip_empty = true
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
