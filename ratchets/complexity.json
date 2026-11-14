@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "max_complexity": 10,
+  "functions": {
+    "app/adapters/catalog/knowledge.py::build_public_corpus": 12,
+    "app/adapters/neo4j/public_graph.py::Neo4jPublicGraph.candidates": 11,
+    "app/adapters/providers/openai_provider.py::OpenAIResponsesProvider.stream": 11,
+    "app/ai/composer.py::GroundedComposer.prepare": 17,
+    "app/application/answers.py::check_content": 13,
+    "app/application/answers.py::finalize": 21,
+    "app/application/catalog_scope.py::catalog_scope_reply": 12,
+    "app/application/chat.py::ChatService.start": 29,
+    "app/application/chat.py::_ModelRun.events": 17,
+    "app/application/indexing.py::KnowledgeIndexer.index": 11,
+    "app/application/knowledge.py::HybridKnowledgeRetrieval.retrieve": 15,
+    "app/bootstrap/config.py::Settings.fail_closed": 29,
+    "app/bootstrap/container.py::create_app": 36,
+    "app/bootstrap/container.py::create_app.lifespan": 12,
+    "app/domain/answer_policy.py::check_answer": 14,
+    "app/domain/page_claims.py::unsupported_page_claim": 16,
+    "app/presentation/product_analytics.py::ReportOut.consistent": 17,
+    "app/presentation/product_analytics.py::build_router": 20,
+    "app/presentation/product_analytics.py::build_router.ingest": 11
+  }
+}

@@ -152,6 +152,13 @@ def against_base(ref: str) -> list[str]:
         check=False,
     )
     if shown.returncode != 0:
+        probe = subprocess.run(
+            ["git", "-C", str(ROOT), "cat-file", "-e", f"{ref}^{{commit}}"],
+            capture_output=True,
+            check=False,
+        )
+        if probe.returncode != 0:
+            return [f"base revision {ref!r} is not available; refusing to skip the base check"]
         return []  # the base predates the ratchet: nothing to compare
     base = json.loads(shown.stdout)
     before = {

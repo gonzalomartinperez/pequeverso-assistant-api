@@ -147,11 +147,17 @@ jobs:
           if [ -n "$CI_BASE_SHA" ] && git fetch --no-tags --depth=1 origin "$CI_BASE_SHA"; then
             uv run python -m scripts.ruff_ratchet --base=FETCH_HEAD
             uv run python -m scripts.prompt_lock --base=FETCH_HEAD
+            uv run python -m scripts.complexity_ratchet --base=FETCH_HEAD
           else
             echo "::warning title=ratchets::base revision unavailable; checked the tree only"
             uv run python -m scripts.ruff_ratchet
             uv run python -m scripts.prompt_lock
+            uv run python -m scripts.complexity_ratchet
           fi
+      - name: Import contracts (import-linter, warn mode until PVA-M4.7)
+        run: uv run lint-imports
+      - name: Dead code (vulture)
+        run: uv run vulture
       - name: Validate paired skill discovery
         run: uv run python -m scripts.validate_skills
       - name: Mypy (strict)
