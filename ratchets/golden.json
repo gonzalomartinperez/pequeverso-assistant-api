@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "description": "Golden set gate (PVA-M2.5): every item passes in cassette replay. Only rises.",
+  "items": 60,
+  "pass_percent": 100.0
+}

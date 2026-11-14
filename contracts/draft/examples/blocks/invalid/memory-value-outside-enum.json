@@ -1,0 +1,14 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "memory_prompt",
+      "proposed_facts": [
+        {
+          "key": "audience_role",
+          "value": "recruiter"
+        }
+      ]
+    }
+  ]
+}
