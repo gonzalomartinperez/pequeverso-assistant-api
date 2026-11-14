@@ -19,6 +19,8 @@ Ruff enforces the ecosystem rule families (`pyproject.toml`). Findings that pred
 
 Import contracts (`.importlinter`) must pass and run in parallel with the AST architecture tests, which stay the authority until PVA-M4.7 (ADR-0011). The complexity ratchet (`ratchets/complexity.json`) rejects new or increased C901 findings above ten; after a reduction, run `uv run python -m scripts.complexity_ratchet --write` to tighten it. Vulture scans application, contract and script code at 80% confidence (mostly unused arguments and imports); add only verified false positives to `ratchets/vulture-whitelist.py`, with a reason for each entry. Preserve suspected dead code for review with `# TODO(PVA-M2.2): candidate dead code, verify`.
 
+Coverage (`ratchets/coverage.json`, `scripts/coverage_gate.py`): the static CI job measures branch coverage, enforces `static_branch_floor` and requires 90% of the changed executable lines to be executed (diff coverage against the base revision); the database job combines its data with the static job's and enforces `branch_floor`. Floors only rise (`--write-floor`); locally run `uv run pytest -n auto --cov --cov-report=term` and `uv run coverage json` then `uv run python -m scripts.coverage_gate coverage.json --base origin/develop --floor static_branch_floor`.
+
 `just fmt` formats and applies safe lint fixes; `just test` and `just unit` run the full or the unit-only suite. CI runs the same commands; a PR merges only when the required check is green (`checks` today, becoming `ci-gate` with PVA-M1.4). Image changes also run `scripts/smoke_container.sh`.
 
 ## Branch flow

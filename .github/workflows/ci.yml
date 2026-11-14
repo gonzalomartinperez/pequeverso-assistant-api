@@ -174,8 +174,28 @@ jobs:
           package-manager-cache: false
       - name: Local analytics pointer fixture regression (no browser or network)
         run: timeout 10s node --test tests/fixtures/product-analytics-pointer.test.cjs
-      - name: Tests
-        run: uv run pytest -q -n auto
+      - name: Tests (branch coverage)
+        run: uv run pytest -q -n auto --cov --cov-report=
+      - name: Coverage gate (static floor, diff coverage against the base revision)
+        env:
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+        run: |
+          uv run coverage json -q -o "$RUNNER_TEMP/coverage-static.json"
+          if [ -n "$CI_BASE_SHA" ] && git fetch --no-tags --depth=1 origin "$CI_BASE_SHA"; then
+            uv run python -m scripts.coverage_gate "$RUNNER_TEMP/coverage-static.json" --floor static_branch_floor --base FETCH_HEAD
+          else
+            echo "::warning title=coverage::base revision unavailable; diff coverage not checked"
+            uv run python -m scripts.coverage_gate "$RUNNER_TEMP/coverage-static.json" --floor static_branch_floor
+          fi
+          cp .coverage "$RUNNER_TEMP/coverage-static.data"
+      - name: Upload static coverage data (combined in the database job)
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-static
+          path: ${{ runner.temp }}/coverage-static.data
+          retention-days: 3
+          if-no-files-found: error
+          include-hidden-files: true
       - name: Contract artifacts are current
         run: uv run python -m contracts.export --check
       - name: Retrieval evaluation
@@ -330,12 +350,24 @@ jobs:
         env:
           PG_IMAGE: ${{ steps.images.outputs.postgres }}
           NEO_IMAGE: ${{ steps.images.outputs.neo4j }}
+          COVERAGE_FILE: ${{ github.workspace }}/.coverage.database
         run: |
-          uv run python -m scripts.smoke_graph_runtime \
+          uv run coverage run -m scripts.smoke_graph_runtime \
             --postgres-image "$PG_IMAGE" --neo4j-image "$NEO_IMAGE" \
             --receipt-dir "$RUNNER_TEMP/knowledge-http" --source-dir "$GITHUB_WORKSPACE" \
             --with-index-jobs --with-evaluation-tests
 
+      - name: Download static coverage data
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage-static
+          path: ${{ runner.temp }}/coverage-static
+      - name: Combined branch coverage (static + database) against the floor
+        run: |
+          cp "$RUNNER_TEMP/coverage-static/coverage-static.data" .coverage.static
+          uv run coverage combine -q
+          uv run coverage json -q -o "$RUNNER_TEMP/coverage-combined.json"
+          uv run python -m scripts.coverage_gate "$RUNNER_TEMP/coverage-combined.json" --floor branch_floor
       - name: Record tested database image identities
         run: python3 -m scripts.ci_identity --image pv-knowledge-pg:ci --image pv-knowledge-neo:ci
         env:

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "description": "Coverage floors (PVA-M2.3). Floors only rise; loosening needs an ADR and the owner.",
+  "branch_floor": 76.0,
+  "branch_floor_note": "combined static + database jobs; interim floor max(76, combined) valid until the M4 exit (2026-12-11); PVA-M4.12 raises it to 85",
+  "static_branch_floor": 76.0,
+  "static_branch_floor_note": "static job alone (service-gated tests skipped)",
+  "diff_floor": 90.0
+}
