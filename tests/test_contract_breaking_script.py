@@ -15,7 +15,8 @@ LABEL = '["contract-major"]'
 
 
 def _git(repo: Path, *args: str) -> None:
-    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)  # noqa: S603, S607
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, env=env)  # noqa: S603, S607
 
 
 @pytest.fixture
@@ -35,11 +36,14 @@ def repo(tmp_path: Path) -> Path:
 def _run(repo: Path, tmp_path: Path, base: str, oasdiff_status: int | None, labels: str):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(exist_ok=True)
-    env = {**os.environ, "PR_LABELS": labels}
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")} | {"PR_LABELS": labels}
     args = [str(SCRIPT), base]
     if oasdiff_status is not None:
         fake = bin_dir / "oasdiff"
-        fake.write_text(f"#!/usr/bin/env bash\nexit {oasdiff_status}\n")
+        log = tmp_path / "oasdiff.log"
+        fake.write_text(
+            f'#!/usr/bin/env bash\necho "$1 $2 $3" > "{log}"\ncat "$4" >> "{log}"\nexit {oasdiff_status}\n'
+        )
         fake.chmod(0o755)
         args.append(str(fake))
     else:
@@ -72,7 +76,12 @@ def test_missing_binary_is_a_hard_failure_even_with_the_label(repo, tmp_path):
 
 def test_base_ref_that_is_not_a_commit_fails(repo, tmp_path):
     result = _run(repo, tmp_path, "no-such-ref", 0, LABEL)
-    assert result.returncode != 0 and "not a commit" in result.stdout
+    assert result.returncode == 2 and "not a commit" in result.stdout
+
+
+def test_oasdiff_compares_the_base_spec_and_fails_on_errors(repo, tmp_path):
+    assert _run(repo, tmp_path, "HEAD", 0, "[]").returncode == 0
+    assert (tmp_path / "oasdiff.log").read_text() == "breaking --fail-on ERR\n{}"
 
 
 def test_path_absent_at_the_base_passes_with_a_notice(repo, tmp_path):

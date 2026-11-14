@@ -14,7 +14,8 @@ if ! git cat-file -e "$base_ref^{commit}" 2>/dev/null; then
   echo "::error title=contract::base ref '$base_ref' is not a commit; cannot compare $spec"
   exit 2
 fi
-if ! git cat-file -e "$base_ref:$spec" 2>/dev/null; then
+# ls-tree prints nothing for a missing path and fails on a repository error (which then fails here).
+if [ -z "$(git ls-tree --name-only "$base_ref" -- "$spec")" ]; then
   echo "::notice title=contract::no $spec at the base revision; nothing to compare"
   exit 0
 fi

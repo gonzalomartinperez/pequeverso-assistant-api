@@ -214,8 +214,9 @@ def test_stateful_session_flows(api_schema: Any) -> None:
 def every_operation_and_link_was_exercised() -> Any:
     """Guard against a vacuous suite: runs after the last test of the module, in any order."""
     yield
-    if os.environ.get("PYTEST_XDIST_WORKER") or not _STATUS:
-        # Under xdist the tests are spread over workers; the dedicated CI step runs serially.
+    if os.environ.get("PYTEST_XDIST_WORKER") or len(_STATUS) < 2:
+        # Enforced only by the dedicated serial CI step (ci.yml, nightly.yml): under xdist the tests
+        # are spread over workers, and a single selected test (-k) cannot cover every operation.
         return
     sys.stdout.write(
         f"\nstatus codes per operation: { ({k: dict(v) for k, v in sorted(_STATUS.items())}) }"
@@ -224,7 +225,8 @@ def every_operation_and_link_was_exercised() -> Any:
     for operation in ("POST /api/v1/session", "DELETE /api/v1/session", "POST /api/v1/messages"):
         codes = _STATUS[operation]
         assert any(200 <= code < 300 for code in codes), f"{operation} never 2xx: {dict(codes)}"
-    assert set(_STATUS["POST /api/v1/runs/{run_id}/cancel"]) <= {401, 403, 404, 409, 422, 429}
+    cancel = _STATUS["POST /api/v1/runs/{run_id}/cancel"]
+    assert cancel and set(cancel) <= {401, 403, 404, 409, 422, 429}, dict(cancel)
     declared = set(_SPEC["paths"]["/api/v1/session"]["post"]["responses"]["200"]["links"])
     assert declared <= set(_LINKS), f"links never traversed: {declared - set(_LINKS)}"
     # Generated message bodies rarely pass the content rules (documented 422); the 2xx path of
