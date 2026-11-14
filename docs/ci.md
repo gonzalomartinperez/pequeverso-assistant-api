@@ -19,6 +19,20 @@ are not service passes. The database job retains the real store and fixture HTTP
 commands, including cold indexing/operator jobs and evaluation tests. No runtime,
 Docker recipe, dependency lock or catalog changes accompany this CI migration.
 
+## Test lanes and parallelism
+
+`tests/conftest.py` marks every test `unit` (no external service) or `services` (gated by
+`skipif` on an explicitly isolated PostgreSQL or Neo4j fixture). The `static` job runs the whole
+suite in parallel with `pytest-xdist` (`-n auto`) and in random order with `pytest-randomly`
+(the seed is printed in the header; reproduce with `--randomly-seed=<seed>`, disable with
+`-p no:randomly`). The `database` job keeps a fixed order (`-p no:randomly`) because its tests
+share one isolated store per run.
+
+```sh
+uv run pytest -m unit -n auto      # fast local lane
+uv run pytest -n auto              # full suite; service tests skip without fixtures
+```
+
 ## Trust and provenance
 
 All jobs use read-only or empty token permissions and SHA-pinned actions. The

@@ -493,6 +493,8 @@ def main() -> int:
                     sys.executable,
                     '-m',
                     'pytest',
+                    '-p',
+                    'no:randomly',
                     *test_files,
                     '-c',
                     str(args.source_dir.resolve() / 'pyproject.toml'),
