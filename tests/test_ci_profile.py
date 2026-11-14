@@ -62,7 +62,9 @@ COMMANDS = {
         "python -m scripts.validate_skills",
         "uv run mypy",
         "pyrefly@",
-        "uv run pytest -q",
+        "uv run pytest -q -n auto --cov",
+        "scripts.coverage_gate",
+        "--floor static_branch_floor --base FETCH_HEAD",
         "contracts.export --check",
         "scripts/evaluate_retrieval.py",
         "scripts/evaluate_conversations.py",
@@ -75,6 +77,9 @@ COMMANDS = {
         "scripts.smoke_knowledge_neo4j",
         "scripts.smoke_graph_runtime",
         "--with-index-jobs --with-evaluation-tests",
+        "uv run coverage run -m scripts.smoke_graph_runtime",
+        "coverage combine",
+        "--floor branch_floor",
     ],
     "container": [
         "infra/docker/app/Dockerfile",
@@ -138,7 +143,7 @@ def validate(value):
             assert not step.get("continue-on-error")
             if "uses" in step:
                 assert re.fullmatch(r"[\w./-]+@[a-f0-9]{40}", step["uses"])
-                assert "upload-artifact" not in step["uses"] or key == "container"
+                assert "upload-artifact" not in step["uses"] or key in {"container", "static"}
                 assert "trivy" not in step["uses"]
             if step.get("uses", "").startswith("actions/checkout@"):
                 assert step["with"]["persist-credentials"] is False
@@ -411,7 +416,10 @@ def test_container_gate_pins_are_strict():
 
 def test_static_suite_runs_in_parallel_and_service_runs_keep_a_fixed_order():
     steps = workflow()["jobs"]["static"]["steps"]
-    assert any(step.get("run", "").strip() == "uv run pytest -q -n auto" for step in steps)
+    assert any(
+        step.get("run", "").strip() == "uv run pytest -q -n auto --cov --cov-report="
+        for step in steps
+    )
     for script in (
         "scripts/smoke_knowledge_postgres.sh",
         "scripts/smoke_knowledge_neo4j.py",
