@@ -11,7 +11,7 @@ import pytest
 from scripts.validate_skills import SKILL_NAMES, SkillValidationError, frontmatter, validate
 
 ROOT = Path(__file__).resolve().parents[1]
-METADATA = 'metadata:\n  owner: tester\n  last-reviewed: 2026-11-14\n  version: 1.0.0\n'
+METADATA = 'metadata:\n  owner: tester\n  last-reviewed: "2026-11-14"\n  version: "1.0.0"\n'
 
 
 def triggers(name: str, **changes: object) -> str:
@@ -192,7 +192,16 @@ def test_single_quoted_frontmatter_requires_yaml_escape() -> None:
 
 @pytest.mark.parametrize(
     'failure',
-    ['missing-metadata', 'missing-key', 'bad-date', 'impossible-date', 'bad-version'],
+    [
+        'missing-metadata',
+        'missing-key',
+        'bad-date',
+        'impossible-date',
+        'bad-version',
+        'tab-indent',
+        'duplicate-key',
+        'inline-value',
+    ],
 )
 def test_metadata_block_is_required_and_validated(checkout: Path, failure: str) -> None:
     path = checkout / '.agents/skills' / min(SKILL_NAMES) / 'SKILL.md'
@@ -203,6 +212,9 @@ def test_metadata_block_is_required_and_validated(checkout: Path, failure: str) 
         'bad-date': ('2026-11-14', '14/11/2026'),
         'impossible-date': ('2026-11-14', '2026-13-45'),
         'bad-version': ('1.0.0', '1.0'),
+        'tab-indent': ('  owner: tester\n', '\towner: tester\n'),
+        'duplicate-key': ('  owner: tester\n', '  owner: tester\n  owner: other\n'),
+        'inline-value': (METADATA, 'metadata: {owner: tester}\n'),
     }
     old, new = replacements[failure]
     assert old in text
@@ -211,7 +223,10 @@ def test_metadata_block_is_required_and_validated(checkout: Path, failure: str) 
         validate(checkout)
 
 
-@pytest.mark.parametrize('failure', ['missing', 'wrong-skill', 'no-negative', 'no-positive', 'bad-split'])
+@pytest.mark.parametrize(
+    'failure',
+    ['missing', 'wrong-skill', 'no-negative', 'no-positive', 'bad-split', 'invalid-json', 'empty', 'symlink'],
+)
 def test_activation_eval_stub_is_required_and_validated(checkout: Path, failure: str) -> None:
     name = min(SKILL_NAMES)
     path = checkout / '.agents/skills' / name / 'evals/triggers.json'
@@ -220,6 +235,14 @@ def test_activation_eval_stub_is_required_and_validated(checkout: Path, failure:
         (path.parent / 'keep.md').write_text('Keeps the directory non-empty.')
     elif failure == 'wrong-skill':
         path.write_text(triggers('api-other'))
+    elif failure == 'invalid-json':
+        path.write_text('{"skill": ')
+    elif failure == 'empty':
+        path.write_text(triggers(name, queries=[]))
+    elif failure == 'symlink':
+        real = path.parent / 'real.json'
+        path.rename(real)
+        path.symlink_to('real.json')
     elif failure == 'no-negative':
         path.write_text(triggers(name, queries=[{'query': 'a', 'should_trigger': True, 'split': 'train'}]))
     elif failure == 'no-positive':

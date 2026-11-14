@@ -3,8 +3,8 @@ name: api-change-use-case
 description: Change prompts, answer rules, evidence or evaluations of the Pequeverso assistant safely. Not for live paid evaluations without the owner's authorization.
 metadata:
   owner: gonzalomartinperez
-  last-reviewed: 2026-11-14
-  version: 1.0.0
+  last-reviewed: "2026-11-14"
+  version: "1.0.0"
 ---
 
 # Change assistant behavior

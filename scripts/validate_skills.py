@@ -71,12 +71,19 @@ def frontmatter(text: str) -> tuple[dict[str, str], str]:
         key, value = match.groups()
         require(key not in values, 'Duplicate frontmatter field')
         following: list[str] = []
+        raw_following: list[str] = []
         index += 1
         while index < end and (lines[index].startswith((' ', '\t')) or not lines[index].strip()):
+            raw_following.append(lines[index])
             following.append(lines[index].strip())
             index += 1
         if key == 'metadata':
             require(not value, 'Metadata must be an indented block')
+            # YAML forbids tab indentation; real clients would reject what a lenient check accepts.
+            require(
+                all(not line.strip() or re.match(r' +\S', line) for line in raw_following),
+                'Metadata entries must be indented with spaces',
+            )
             values[key] = '\n'.join(line for line in following if line)
             continue
         if key not in {'name', 'description'}:
@@ -99,7 +106,8 @@ def metadata_block(raw: str) -> dict[str, str]:
         require(match is not None, 'Malformed metadata entry')
         assert match is not None
         require(match.group(1) not in entries, 'Duplicate metadata entry')
-        entries[match.group(1)] = match.group(2).strip()
+        # Values are quoted in SKILL.md so YAML clients read strings, not dates or floats.
+        entries[match.group(1)] = scalar(match.group(2))
     return entries
 
 
@@ -111,7 +119,7 @@ def validate_metadata(name: str, raw: str | None) -> None:
         {'owner', 'last-reviewed', 'version'} <= entries.keys(),
         name + ': metadata needs owner, last-reviewed and version',
     )
-    require(entries['owner'], name + ': metadata owner is empty')
+    require(entries['owner'].strip(), name + ': metadata owner is empty')
     reviewed = entries['last-reviewed']
     require(re.fullmatch(r'\d{4}-\d{2}-\d{2}', reviewed), name + ': last-reviewed must be YYYY-MM-DD')
     try:
