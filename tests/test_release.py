@@ -38,10 +38,43 @@ def test_section_extraction_and_empty_section_failure() -> None:
         release_notes.section("## [1.1.0] - 2026-12-20\n\n## [1.0.0] - 2026-10-17\n", "1.1.0")
 
 
-def test_main_writes_outputs(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("## [1.1.0] - 2026-12-20\n\n- a\n\n[1.1.0]: https://x/compare\n", "- a\n"),
+        ("## [1.1.0] - 2026-12-20\r\n\r\n- a\r\n", "- a\n"),
+        ("## [Unreleased]\n\n- b\n\n## [1.1.0] - 2026-12-20\n\n- a\n", "- a\n"),
+        ("## [1.1.0]\n\n- a\n", None),  # a heading without a date is not a release section
+    ],
+)
+def test_section_edges(text: str, expected: str | None) -> None:
+    assert release_notes.section(text, "1.1.0") == expected
+
+
+def test_a_heading_only_section_is_empty() -> None:
+    with pytest.raises(SystemExit):
+        release_notes.section("## [1.1.0] - 2026-12-20\n\n### Added\n\n", "1.1.0")
+
+
+def test_versions_are_ascii_semver(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nversion = "\\u0661.2.3"\n', encoding="utf-8"
+    )
+    with pytest.raises(SystemExit):
+        release_notes.version(tmp_path)
+
+
+def test_main_writes_outputs_and_notes(tmp_path: Path) -> None:
+    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "1.1.0"\n', encoding="utf-8")
+    (tmp_path / "CHANGELOG.md").write_text(
+        "# Changelog\n\n## [Unreleased]\n\n## [1.1.0] - 2026-12-20\n\n### Added\n\n- x\n",
+        encoding="utf-8",
+    )
     out, notes = tmp_path / "out", tmp_path / "notes.md"
-    assert release_notes.main(["--github-output", str(out), "--notes", str(notes)]) == 0
-    assert f"version={release_notes.version()}\n" in out.read_text(encoding="utf-8")
+    argv = ["--github-output", str(out), "--notes", str(notes)]
+    assert release_notes.main(argv, root=tmp_path) == 0
+    assert out.read_text(encoding="utf-8") == "version=1.1.0\nhas_section=true\n"
+    assert notes.read_text(encoding="utf-8") == "### Added\n\n- x\n"
 
 
 def test_release_workflow_is_main_only_least_privilege_and_pinned() -> None:

@@ -41,10 +41,17 @@ jobs:
           SHA: ${{ github.sha }}
         run: |
           tag="v${VERSION}"
-          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          # Only an HTTP 404 means "absent"; any other API failure stops the job (never guess).
+          exists() {
+            local out
+            if out=$("$@" 2>&1); then return 0; fi
+            if grep -q "HTTP 404\|release not found" <<<"$out"; then return 1; fi
+            echo "$out"; exit 1
+          }
+          if exists gh release view "$tag" --repo "$GITHUB_REPOSITORY"; then
             echo "release $tag already exists; nothing to do"; exit 0
           fi
-          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" >/dev/null 2>&1; then
+          if exists gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag"; then
             echo "::notice title=release::tag $tag already exists without a release; bump the version to release"; exit 0
           fi
           if [ "$HAS_SECTION" != "true" ]; then

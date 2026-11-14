@@ -29,7 +29,9 @@ Option 2.
   that job only). It does nothing when the release exists. It never re-targets an existing tag:
   `v1.0.0` predates this flow and stays as it is.
 - The promotion itself stays owner-gated (M7). Image build, SBOM, provenance and the `vps-ops` pin
-  follow the release in later milestones.
+  follow the release in later milestones. A tag or release created with `GITHUB_TOKEN` does not
+  trigger other workflows, so those jobs must be called from `release.yml` (`workflow_call`) or
+  dispatched, not keyed on `push: tags` or `release` events.
 
 ### Consequences
 

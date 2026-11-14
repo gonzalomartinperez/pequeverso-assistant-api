@@ -16,7 +16,7 @@ import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = re.compile(r"\d+\.\d+\.\d+")
+VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+")
 
 
 def version(root: Path = ROOT) -> str:
@@ -30,24 +30,27 @@ def version(root: Path = ROOT) -> str:
 
 def section(changelog: str, number: str) -> str | None:
     """Return the body of `## [number] - date`, None when absent; an empty section fails."""
-    pattern = rf"^## \[{re.escape(number)}\] - \d{{4}}-\d{{2}}-\d{{2}}[^\n]*\n(.*?)(?=^## |\Z)"
+    # The body ends at the next `## ` heading or at the Keep a Changelog link references. A `## `
+    # line inside a fenced code block also ends it: do not put headings in fenced release notes.
+    date = r"[0-9]{4}-[0-9]{2}-[0-9]{2}"
+    pattern = rf"^## \[{re.escape(number)}\] - {date}[^\n]*\n(.*?)(?=^## |^\[[^\]]+\]: |\Z)"
     match = re.search(pattern, changelog, re.MULTILINE | re.DOTALL)
     if match is None:
         return None
     body = match.group(1).strip()
-    if not body:
+    if not any(line.strip() and not line.startswith("#") for line in body.splitlines()):
         raise SystemExit(f"CHANGELOG section [{number}] is empty")
     return body + "\n"
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, root: Path = ROOT) -> int:
     """Write `version` and `has_section` outputs and the notes file."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--github-output", type=Path, required=True)
     parser.add_argument("--notes", type=Path, required=True)
     args = parser.parse_args(argv)
-    number = version()
-    body = section((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"), number)
+    number = version(root)
+    body = section((root / "CHANGELOG.md").read_text(encoding="utf-8"), number)
     with args.github_output.open("a", encoding="utf-8") as out:
         out.write(f"version={number}\nhas_section={'true' if body else 'false'}\n")
     if body:
