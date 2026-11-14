@@ -36,6 +36,7 @@ dev = [
     "pytest-xdist>=3.8",
     "pyyaml>=6.0.3",
     "ruff>=0.17.1",
+    "schemathesis>=4.33.4",
     "types-pyyaml>=6.0.12",
     "types-requests>=2.33.0.20261006",
     "vulture>=2.14",
