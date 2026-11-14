@@ -6,13 +6,15 @@ FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b98
 
 FROM python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f AS build
 COPY --from=uv /uv /usr/local/bin/uv
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV UV_COMPILE_BYTECODE=0 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_PROJECT_ENVIRONMENT=/opt/venv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-# With SOURCE_DATE_EPOCH set, py_compile writes hash-checked .pyc files (no embedded mtimes).
 ARG SOURCE_DATE_EPOCH
 RUN --mount=type=cache,id=pva-uv-py314,target=/root/.cache/uv,sharing=locked \
     uv sync --locked --no-editable --no-build --no-dev --no-install-project
+# Reproducible bytecode: one process in sorted order (parallel workers make marshal output vary)
+# and hash-checked .pyc files without embedded source mtimes.
+RUN python -m compileall -q -j 1 --invalidation-mode checked-hash /opt/venv/lib
 
 FROM python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f AS runtime
 ENV PATH=/opt/venv/bin:$PATH \
