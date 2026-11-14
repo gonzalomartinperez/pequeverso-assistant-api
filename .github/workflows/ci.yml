@@ -180,7 +180,6 @@ jobs:
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
         run: |
-          uv run coverage combine --keep -q || true
           uv run coverage json -q -o "$RUNNER_TEMP/coverage-static.json"
           if [ -n "$CI_BASE_SHA" ] && git fetch --no-tags --depth=1 origin "$CI_BASE_SHA"; then
             uv run python -m scripts.coverage_gate "$RUNNER_TEMP/coverage-static.json" --floor static_branch_floor --base FETCH_HEAD
