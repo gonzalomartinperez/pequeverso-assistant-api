@@ -52,8 +52,12 @@ jobs:
         run: uv sync --frozen
       - name: Full suite with branch coverage
         run: |
-          uv run --frozen pytest -q -n auto --cov --cov-report=
+          uv run --frozen pytest -q -n auto --cov --cov-report= -m "not schemathesis"
           uv run --frozen coverage json -q -o "$RUNNER_TEMP/coverage.json"
+      - name: Schemathesis contract suite, nightly budget (500 examples per operation)
+        env:
+          SCHEMATHESIS_MAX_EXAMPLES: "500"
+        run: uv run --frozen pytest -q -m schemathesis tests/test_schemathesis_contract.py
       - name: Property tests, nightly profile (1000 examples)
         env:
           HYPOTHESIS_PROFILE: nightly

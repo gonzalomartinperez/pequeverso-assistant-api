@@ -195,7 +195,9 @@ jobs:
       - name: Local analytics pointer fixture regression (no browser or network)
         run: timeout 10s node --test tests/fixtures/product-analytics-pointer.test.cjs
       - name: Tests (branch coverage)
-        run: uv run pytest -q -n auto --cov --cov-report=
+        run: uv run pytest -q -n auto --cov --cov-report= -m "not schemathesis"
+      - name: Schemathesis contract suite (slow, outside coverage)
+        run: uv run pytest -q -m schemathesis tests/test_schemathesis_contract.py
       - name: Coverage gate (static floor, diff coverage against the base revision)
         env:
           EVENT: ${{ github.event_name }}

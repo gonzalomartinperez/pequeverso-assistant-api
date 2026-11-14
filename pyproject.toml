@@ -115,6 +115,7 @@ testpaths = ["tests"]
 addopts = "-ra --strict-markers"
 markers = [
     "live: calls a paid provider; requires explicit authorization (never in CI)",
+    "schemathesis: slow contract conformance suite; run in its own CI step, outside coverage",
     "unit: no external service; applied automatically by tests/conftest.py",
     "services: needs an explicitly isolated PostgreSQL or Neo4j fixture; applied automatically",
 ]
