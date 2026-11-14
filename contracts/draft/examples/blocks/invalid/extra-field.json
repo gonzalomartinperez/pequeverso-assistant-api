@@ -1,0 +1,11 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "text",
+      "markdown_lite": "Hola",
+      "claims": [],
+      "html": "<p>x</p>"
+    }
+  ]
+}

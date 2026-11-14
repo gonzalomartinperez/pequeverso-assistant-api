@@ -1,0 +1,14 @@
+{
+  "blocks": [
+    {
+      "id": "b3",
+      "type": "citation",
+      "title": "Garantía de 7 días",
+      "url": "http://example.com/garantia",
+      "source_type": "doc",
+      "icon_id": "doc",
+      "origin": "first_party",
+      "quote": "Tienes 7 días para pedir el reembolso."
+    }
+  ]
+}

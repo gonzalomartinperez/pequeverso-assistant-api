@@ -1,0 +1,36 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "link_chip",
+      "label": "Soporte",
+      "url": "https://example.com/soporte",
+      "kind": "support",
+      "icon_id": "help"
+    },
+    {
+      "id": "b2",
+      "type": "link_chip",
+      "label": "Soporte",
+      "url": "https://example.com/soporte",
+      "kind": "support",
+      "icon_id": "help"
+    },
+    {
+      "id": "b3",
+      "type": "link_chip",
+      "label": "Soporte",
+      "url": "https://example.com/soporte",
+      "kind": "support",
+      "icon_id": "help"
+    },
+    {
+      "id": "b4",
+      "type": "link_chip",
+      "label": "Soporte",
+      "url": "https://example.com/soporte",
+      "kind": "support",
+      "icon_id": "help"
+    }
+  ]
+}

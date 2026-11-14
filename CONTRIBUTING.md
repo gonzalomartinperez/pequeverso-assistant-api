@@ -23,6 +23,8 @@ Coverage (`ratchets/coverage.json`, `scripts/coverage_gate.py`): the static CI j
 
 Load harness: run `uv run python -m tests.load.sse_load --report /tmp/sse-load.json` locally (defaults: 12 visitors, 900 seconds). It launches an isolated fixture uvicorn subprocess with four generation slots, raised rate limits and zero synthetic token prices; no keys or paid calls are used. It asserts TTFE p95 < 1.5 s, event-gap p95 < 500 ms, errors and premature closes each < 0.5%, and RSS growth < 20% for runs of at least 600 seconds. Backpressure rejections (`busy`, four generation slots against twelve visitors) are reported separately as `rejected_rate`: informational, because the API rejects rather than queues beyond its slots; latency is measured on admitted runs. The nightly workflow (PVA-M2.12) runs it for 15 minutes. Use `--duration 30` for a short run; opt into the 10-second subprocess test with `PVA_LOAD_SMOKE=1 uv run pytest tests/test_sse_load_harness.py`.
 
+Scorecard: `scripts/scorecard.py` turns measured inputs (static ratchets, coverage, golden replay, load, mutation, retrieval) into `scorecard.json` per rubric axis and fails when a metric is worse than its committed baseline in `ratchets/`. The `nightly` workflow runs it after the full suite, Hypothesis at 1000 examples, the golden replay and a 15-minute load run; it also runs on every push to `develop` (scheduled runs read workflows from `main`). Baselines only tighten.
+
 `just fmt` formats and applies safe lint fixes; `just test` and `just unit` run the full or the unit-only suite. CI runs the same commands; a PR merges only when the required check is green (`checks` today, becoming `ci-gate` with PVA-M1.4). Image changes also run `scripts/smoke_container.sh`.
 
 ## Property-based tests

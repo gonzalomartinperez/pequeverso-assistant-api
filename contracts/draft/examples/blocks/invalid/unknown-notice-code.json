@@ -1,0 +1,11 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "notice",
+      "code": "free_text",
+      "severity": "info",
+      "text_ids": []
+    }
+  ]
+}
