@@ -1,6 +1,6 @@
 # GraphRAG runtime profile — 2026-10-17
 
-The current source profile uses Python **3.14.8**, uv **0.13.7**, PostgreSQL **18.6** with
+The current source profile uses Python **3.14.10**, uv **0.13.7**, PostgreSQL **18.6** with
 pgvector **0.8.7**, Neo4j Community **5.26.32** on the 5.26 LTS line, LangGraph **1.2.16**,
 LangChain Core **1.6.12**, LangSmith **0.14.9**, psycopg **3.3.6** / pool **3.3.3** and Neo4j
 driver **6.4.1**. Exact dependency resolution is in `uv.lock`; container bases are digest-pinned.

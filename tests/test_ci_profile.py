@@ -53,7 +53,18 @@ COMMANDS = {
         'scripts.smoke_graph_runtime',
         '--with-index-jobs --with-evaluation-tests',
     ],
-    'container': ['infra/docker/app/Dockerfile', 'scripts/smoke_container.sh pequeverso-assistant-api:smoke'],
+    'container': [
+        'infra/docker/app/Dockerfile',
+        'scripts/smoke_container.sh pequeverso-assistant-api:smoke',
+        'container-structure-test',
+        'infra/docker/app/structure-test.yaml',
+        'sha256sum -c',
+        'dockle',
+        '--exit-level warn',
+        'rewrite-timestamp=true',
+        'SOURCE_DATE_EPOCH',
+        'scripts.compare_oci_images',
+    ],
 }
 
 
@@ -88,7 +99,8 @@ def validate(value):
             assert not step.get('continue-on-error')
             if 'uses' in step:
                 assert re.fullmatch(r'[\w./-]+@[a-f0-9]{40}', step['uses'])
-                assert 'upload-artifact' not in step['uses']
+                assert 'upload-artifact' not in step['uses'] or key == 'container'
+                assert 'trivy' not in step['uses']
             if step.get('uses', '').startswith('actions/checkout@'):
                 assert step['with']['persist-credentials'] is False
                 assert 'ref' not in step['with']
@@ -97,6 +109,20 @@ def validate(value):
             assert command in commands
         if key != 'checks':
             assert 'python3 -m scripts.ci_identity' in commands
+    container = value['jobs']['container']
+    assert container['timeout-minutes'] <= 30
+    uses = {step['uses'].split('@')[0]: step for step in container['steps'] if 'uses' in step}
+    assert {'hadolint/hadolint-action', 'anchore/sbom-action', 'anchore/scan-action'} <= uses.keys()
+    assert uses['hadolint/hadolint-action']['with']['config'] == '.hadolint.yaml'
+    assert uses['anchore/sbom-action']['with']['format'] == 'cyclonedx-json'
+    assert uses['anchore/scan-action']['with']['config'] == '.grype.yaml'
+    assert uses['anchore/scan-action']['with']['fail-build'] is True
+    assert uses['anchore/scan-action']['with']['only-fixed'] is True
+    assert uses['anchore/scan-action']['with']['severity-cutoff'] == 'high'
+    upload = uses['actions/upload-artifact']['with']
+    assert upload['name'] == 'sbom-app-cyclonedx'
+    assert upload['retention-days'] == 14
+    assert all('${{' not in step.get('run', '') for step in container['steps'])
     static_steps = value['jobs']['static']['steps']
     setup = [step for step in static_steps if step.get('uses', '').startswith('actions/setup-node@')]
     assert len(setup) == 1
@@ -280,6 +306,19 @@ def test_pointer_fixture_regression_cannot_be_removed_or_unpinned(mutation):
         steps.append(setup)
     with pytest.raises(AssertionError):
         validate(value)
+
+
+def test_container_gate_pins_are_strict():
+    job = workflow()['jobs']['container']
+    for key in ('DOCKLE_SHA256', 'CST_SHA256'):
+        assert re.fullmatch(r'[0-9a-f]{64}', job['env'][key]), key
+    steps = {step.get('name', ''): step for step in job['steps']}
+    hadolint = next(step for step in job['steps'] if 'hadolint/hadolint-action@' in step.get('uses', ''))
+    assert hadolint['with']['failure-threshold'] == 'warning'
+    dockle = next(step['run'] for step in steps.values() if 'dockle' in step.get('run', ''))
+    assert set(re.findall(r'--ignore (\S+)', dockle)) == {'CIS-DI-0008', 'DKL-DI-0005'}
+    repro = next(step['run'] for step in steps.values() if 'rewrite-timestamp=true' in step.get('run', ''))
+    assert '--provenance=false' in repro and '--sbom=false' in repro
 
 
 def test_static_suite_runs_in_parallel_and_service_runs_keep_a_fixed_order():

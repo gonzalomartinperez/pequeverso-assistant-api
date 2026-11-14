@@ -30,7 +30,7 @@ fixture pass, image scan or advisory finding alone authorizes no deployment or p
 | Item | Value |
 |---|---|
 | Build | `docker build -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION=<sha> -t pequeverso-assistant-api:<sha> .` from a clean checkout of an exact commit (context allowlisted by `.dockerignore`). An empty `SERVICE_REVISION` is allowed; the ops summary then reports `revision: null` |
-| Base | `python:3.14.8-slim-trixie` and `ghcr.io/astral-sh/uv:0.13.7`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-build --no-dev`) |
+| Base | `python:3.14.10-slim-trixie` and `ghcr.io/astral-sh/uv:0.13.7`, both pinned by digest; dependencies from `uv.lock` (`uv sync --frozen --no-build --no-dev`) |
 | User | `65532:65532`; runs with a read-only root filesystem, `--cap-drop ALL`, `no-new-privileges` (verified by `scripts/smoke_container.sh`) |
 | Writable paths | `/tmp` tmpfs; `/data` only when explicitly mounted for a SQLite fixture/import. No anonymous image volume |
 | Process | `uvicorn app.main:app --workers 1 --no-proxy-headers --no-access-log --timeout-graceful-shutdown 15` |
@@ -423,9 +423,11 @@ The builder retains its tools. Scan each exact candidate image and retain the re
 these targeted changes do not imply that all OS advisories are fixed or that deployment is
 authorized. Unfixed advisories require explicit review before activation.
 
-The pinned base still carries liblzma5 5.8.1-1+deb13u1. A single explicit runtime package
-upgrade pins `liblzma5=5.8.1-1+deb13u2` from signed Debian security repositories and removes apt
-lists in the same layer. This fixes [DSA-6549-1](https://security-tracker.debian.org/tracker/DSA-6549-1),
+The pinned base (Python 3.14.10, 2026-11-14) ships liblzma5 5.8.1-1+deb13u2 but still carries
+zlib1g 1:1.3.dfsg+really1.3.1-1+b1. A single explicit runtime package upgrade pins
+`zlib1g=1:1.3.dfsg+really1.3.1-1+deb13u1` from signed Debian security repositories and removes apt
+lists in the same layer. Historically (to 2026-11-14) the same layer pinned
+`liblzma5=5.8.1-1+deb13u2`. This fixes [DSA-6549-1](https://security-tracker.debian.org/tracker/DSA-6549-1),
 whose [upstream advisory](https://github.com/tukaani-project/xz/security/advisories/GHSA-5qpq-xqfv-j9pg)
 is HIGH even though the Debian scanner record is UNKNOWN. No general distro upgrade or
 application dependency update is performed. Repository metadata is live, not a frozen snapshot;

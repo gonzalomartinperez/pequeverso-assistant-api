@@ -4,22 +4,29 @@
 # state; /data is only the explicitly mounted SQLite fixture/import path.
 FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 AS uv
 
-FROM python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS build
+FROM python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f AS build
 COPY --from=uv /uv /usr/local/bin/uv
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_PROJECT_ENVIRONMENT=/opt/venv
+ENV UV_COMPILE_BYTECODE=0 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=0 UV_PROJECT_ENVIRONMENT=/opt/venv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,id=vps-ops-uv-python314,target=/root/.cache/uv,sharing=locked uv sync --frozen --no-build --no-dev --no-install-project
+ARG SOURCE_DATE_EPOCH
+RUN --mount=type=cache,id=pva-uv-py314,target=/root/.cache/uv,sharing=locked \
+    uv sync --locked --no-editable --no-build --no-dev --no-install-project
+# Reproducible bytecode: one process in sorted order (parallel workers make marshal output vary)
+# and hash-checked .pyc files without embedded source mtimes.
+RUN python -m compileall -q -j 1 --invalidation-mode checked-hash /opt/venv/lib
 
-FROM python:3.14.8-slim-trixie@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170 AS runtime
+FROM python:3.14.10-slim-trixie@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f AS runtime
 ENV PATH=/opt/venv/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DATABASE_PATH=/data/assistant.sqlite3
-# Signed Debian security patch not yet present in the pinned official base.
+# Signed Debian security patch not yet present in the pinned official base (zlib1g
+# CVE-2026-76844, CVE-2026-85091). Drop this layer once the base digest ships deb13u1.
 RUN apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 update \
-    && apt-get install -y --no-install-recommends liblzma5=5.8.1-1+deb13u2 \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends zlib1g=1:1.3.dfsg+really1.3.1-1+deb13u1 \
+    && rm -rf /var/lib/apt/lists/* /var/log/apt /var/log/dpkg.log /var/log/alternatives.log \
+        /var/cache/ldconfig/aux-cache
 WORKDIR /app
 COPY --from=build /opt/venv /opt/venv
 COPY app ./app
@@ -35,6 +42,12 @@ RUN rm -rf /usr/local/lib/python3.14/ensurepip/_bundled \
 # Keep revision metadata after filesystem layers so a new revision reuses dependencies.
 ARG SERVICE_REVISION=
 ENV SERVICE_REVISION=${SERVICE_REVISION}
+LABEL org.opencontainers.image.title="pequeverso-assistant-api" \
+      org.opencontainers.image.description="Advisory, read-only shopping assistant backend for Pequeverso" \
+      org.opencontainers.image.source="https://github.com/gonzalomartinperez/pequeverso-assistant-api" \
+      org.opencontainers.image.documentation="https://github.com/gonzalomartinperez/pequeverso-assistant-api/tree/main/docs" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.revision="${SERVICE_REVISION}"
 USER 65532:65532
 # No anonymous volume: fixture/import operators mount /data explicitly.
 EXPOSE 8000
