@@ -1,0 +1,62 @@
+# Release automation (PVA-M1.10, ADR-0018 after engineering-standards ADR 0003, OD-78). A release PR
+# on develop bumps `version` in pyproject.toml and moves the CHANGELOG `[Unreleased]` entries under
+# `## [X.Y.Z] - YYYY-MM-DD`; after the promotion PR merges into main, this workflow creates the tag
+# vX.Y.Z on the merge commit and a GitHub Release with that CHANGELOG section. It does nothing when
+# the release already exists, and it never re-targets a tag that already exists (v1.0.0 predates
+# this flow). No GitHub App or PAT: GITHUB_TOKEN with contents: write on this job only.
+name: release
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag and release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read version and release notes
+        id: notes
+        run: python3 -m scripts.release_notes --github-output "$GITHUB_OUTPUT" --notes "$RUNNER_TEMP/notes.md"
+      - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.notes.outputs.version }}
+          HAS_SECTION: ${{ steps.notes.outputs.has_section }}
+          SHA: ${{ github.sha }}
+        run: |
+          tag="v${VERSION}"
+          # Only an HTTP 404 means "absent"; any other API failure stops the job (never guess).
+          exists() {
+            local out
+            if out=$("$@" 2>&1); then return 0; fi
+            if grep -q "HTTP 404\|release not found" <<<"$out"; then return 1; fi
+            echo "$out"; exit 1
+          }
+          if exists gh release view "$tag" --repo "$GITHUB_REPOSITORY"; then
+            echo "release $tag already exists; nothing to do"; exit 0
+          fi
+          if exists gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag"; then
+            echo "::notice title=release::tag $tag already exists without a release; bump the version to release"; exit 0
+          fi
+          if [ "$HAS_SECTION" != "true" ]; then
+            echo "::error title=release::version ${VERSION} has no CHANGELOG section [${VERSION}]"; exit 1
+          fi
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$SHA" --title "$tag" \
+            --notes-file "$RUNNER_TEMP/notes.md" --latest
+          echo "created $tag at $SHA"
