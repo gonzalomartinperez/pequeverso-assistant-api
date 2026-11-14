@@ -1,0 +1,10 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "text",
+      "markdown_lite": "Mira <b>esto</b>",
+      "claims": []
+    }
+  ]
+}
