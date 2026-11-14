@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "0df40269e1070c1999bdee375faf303ab2bfb2c1da6d90cd7283c37318e6d371",
+  "note": "scripted adversary: deliberately misbehaving model output that the server must neutralize",
+  "output": {
+    "answer": "También te conviene el Pack Imprime y Juega.",
+    "references": [],
+    "sources": [],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5950,
+    "output_tokens": 27
+  }
+}
