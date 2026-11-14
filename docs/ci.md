@@ -44,7 +44,7 @@ Portfolio runtime/harness code is not imported.
 The `container` job lints `infra/docker/app/Dockerfile` (`.hadolint.yaml`, warnings fail), runs
 the smoke, then checks the built image: `infra/docker/app/structure-test.yaml` (user, workdir,
 labels, command, no pip, `/data` ownership, LICENSE), dockle CIS-DI (WARN or FATAL fail;
-CIS-DI-0008 is accepted because setuid files come from the pinned base), a Syft CycloneDX SBOM
+CIS-DI-0008 and DKL-DI-0005 are accepted because both come from the pinned base), a Syft CycloneDX SBOM
 uploaded as `sbom-app-cyclonedx` (14 days) and Grype with `.grype.yaml` (only fixable High or
 Critical fail, no ignores). Reproducibility builds twice with `SOURCE_DATE_EPOCH` from the last
 commit and BuildKit `rewrite-timestamp=true`, then compares the OCI manifest digests. dockle and

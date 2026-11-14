@@ -167,10 +167,12 @@ jobs:
           echo "${DOCKLE_SHA256}  $dir/dockle.tar.gz" | sha256sum -c -
           tar -xzf "$dir/dockle.tar.gz" -C "$dir" dockle
           docker save "$IMAGE" -o "$dir/image.tar"
-          # Fail on WARN or FATAL. Accepted: CIS-DI-0008 (setuid/setgid files) is inherited from the
-          # pinned Debian base and cannot be removed without altering it; the runtime is non-root
-          # with no-new-privileges (scripts/smoke_container.sh).
-          "$dir/dockle" --input "$dir/image.tar" --exit-code 1 --exit-level warn --ignore CIS-DI-0008
+          # Fail on WARN or FATAL. Accepted, both inherited from the pinned official Python base:
+          # CIS-DI-0008 (setuid/setgid files; the runtime is non-root with no-new-privileges,
+          # scripts/smoke_container.sh) and DKL-DI-0005 (the base's own apt RUN keeps no cache we
+          # can remove; our apt layer is checked by hadolint DL3009 above).
+          "$dir/dockle" --input "$dir/image.tar" --exit-code 1 --exit-level warn \
+            --ignore CIS-DI-0008 --ignore DKL-DI-0005
       - name: Software bill of materials (Syft, CycloneDX)
         uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         with:
