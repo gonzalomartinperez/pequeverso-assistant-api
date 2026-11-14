@@ -63,7 +63,7 @@ COMMANDS = {
         '--exit-level warn',
         'rewrite-timestamp=true',
         'SOURCE_DATE_EPOCH',
-        'cmp ',
+        'scripts.compare_oci_images',
     ],
 }
 

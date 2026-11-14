@@ -208,10 +208,8 @@ jobs:
             docker buildx build -f infra/docker/app/Dockerfile --no-cache --provenance=false --sbom=false \
               --build-arg SERVICE_REVISION="$GITHUB_SHA" --build-arg SOURCE_DATE_EPOCH \
               --output "type=oci,dest=$RUNNER_TEMP/repro-$n.tar,rewrite-timestamp=true" .
-            tar -xOf "$RUNNER_TEMP/repro-$n.tar" index.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["manifests"][0]["digest"])' > "$RUNNER_TEMP/digest-$n"
           done
-          cat "$RUNNER_TEMP/digest-1" "$RUNNER_TEMP/digest-2"
-          cmp "$RUNNER_TEMP/digest-1" "$RUNNER_TEMP/digest-2"
+          python3 -m scripts.compare_oci_images "$RUNNER_TEMP/repro-1.tar" "$RUNNER_TEMP/repro-2.tar"
       - name: Record tested image identity
         run: python3 -m scripts.ci_identity --image pequeverso-assistant-api:smoke
         env:
