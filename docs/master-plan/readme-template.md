@@ -5,13 +5,13 @@ Same skeleton, order, headings and tone in all nine repositories (private repos 
 ```markdown
 <!-- Variant: PUBLIC | PRIVATE -->
 <div align="center">
-  <img src="docs/assets/<repo>-mark.svg" alt="" width="56" height="56">
+  <img src='docs/assets/<repo>-mark.svg' alt="" width="56" height="56">
   <h1><Product name></h1>
   <p><One-line value proposition, ≤ 120 characters.></p>
   <!-- At most three badges: CI gate, latest release, license -->
-  <a href=".../actions/workflows/ci.yml"><img alt="CI" src="..."></a>
-  <a href=".../releases"><img alt="Release" src="..."></a>
-  <a href="LICENSE"><img alt="License" src="..."></a>
+  <a href='.../actions/workflows/ci.yml'><img alt="CI" src='...'></a>
+  <a href='.../releases'><img alt="Release" src='...'></a>
+  <a href='LICENSE'><img alt="License" src='...'></a>
 </div>
 
 <picture> hero capture light/dark (UI repos) </picture>
