@@ -50,3 +50,13 @@ Option 1.
   (PVA-M1.7) or the SBOM review of the weekly PR confirms them under `/opt/venv`.
 - `pyproject.toml` keeps `hypothesis` (when added) in the `dev` dependency group only, and the
   runtime image is built with `--no-dev`.
+
+## Amendment (2026-11-14, PVA-M2.2): BSD-2-Clause-Views for grimp
+
+`import-linter` (BSD-2-Clause, dev group only, ADR-0011) depends on `grimp`, declared as
+`BSD-2-Clause AND BSD-2-Clause-Views AND BSD-3-Clause`. BSD-2-Clause-Views is BSD-2-Clause plus a
+non-binding sentence that views in the software are the authors' own: permissive, no copyleft.
+The shared dependency-review job accepts only an SPDX allow-list (no per-package exception), so
+`BSD-2-Clause-Views` is added to the list in `.github/workflows/ci.yml`. grimp stays a development
+dependency; the runtime image is built with `--no-dev` and never contains it. Any runtime
+dependency under this licence needs a review in its PR.

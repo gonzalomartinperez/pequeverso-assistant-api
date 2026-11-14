@@ -113,5 +113,17 @@ def test_raising_the_committed_ratchet_fails_against_the_base(
         "app/a.py: D101 ratchet raised from 1 to 2 against the base",
         "app/b.py: TC003 ratchet raised from 0 to 1 against the base",
     ]
-    Shown.returncode = 128
+    Shown.returncode = 128  # neither the file nor the commit exists: fail closed
+    assert ruff_ratchet.against_base("BASE") == [
+        "base revision 'BASE' is not available; refusing to skip the base check"
+    ]
+
+    def predates(args: list[str], **_: object) -> object:
+        class Result:
+            returncode = 0 if "cat-file" in args else 128
+            stdout = ""
+
+        return Result()
+
+    monkeypatch.setattr(ruff_ratchet.subprocess, "run", predates)
     assert ruff_ratchet.against_base("BASE") == []

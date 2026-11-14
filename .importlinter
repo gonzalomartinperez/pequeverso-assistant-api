@@ -1,0 +1,115 @@
+# PVA-M2.2: parallel diagnostic guard; the AST architecture tests remain authoritative.
+[importlinter]
+root_package = app
+include_external_packages = True
+
+[importlinter:contract:layers]
+name = Inward layer dependencies
+type = layers
+layers =
+    app.bootstrap
+    app.presentation
+    app.adapters
+    app.ai
+    app.application
+    app.domain
+
+[importlinter:contract:presentation]
+name = Presentation uses ports rather than concrete adapters
+type = forbidden
+source_modules = app.presentation
+forbidden_modules =
+    app.adapters
+    app.ai
+
+[importlinter:contract:stdlib]
+name = Inner layers and AI do not import web, database, model or telemetry SDKs
+type = forbidden
+source_modules =
+    app.domain
+    app.application
+    app.ai
+forbidden_modules =
+    fastapi
+    starlette
+    pydantic
+    pydantic_settings
+    httpx
+    openai
+    psycopg
+    psycopg_pool
+    neo4j
+    langgraph
+    langchain_core
+    langsmith
+    sqlite3
+    opentelemetry
+    prometheus_client
+    requests
+    uvicorn
+
+[importlinter:contract:postgres]
+name = postgres SDK confinement
+type = protected
+protected_modules =
+    psycopg
+    psycopg_pool
+allowed_importers =
+    app.adapters.postgres
+
+[importlinter:contract:neo4j]
+name = neo4j SDK confinement
+type = protected
+protected_modules =
+    neo4j
+allowed_importers =
+    app.adapters.neo4j
+
+[importlinter:contract:graph]
+name = graph SDK confinement
+type = protected
+protected_modules =
+    langgraph
+    langchain_core
+    langsmith
+allowed_importers =
+    app.adapters.graph
+
+[importlinter:contract:providers]
+name = providers SDK confinement
+type = protected
+protected_modules =
+    openai
+allowed_importers =
+    app.adapters.providers
+    app.bootstrap
+
+[importlinter:contract:telemetry]
+name = telemetry SDK confinement
+type = protected
+protected_modules =
+    opentelemetry
+    prometheus_client
+allowed_importers =
+    app.adapters.observability
+
+[importlinter:contract:sqlite]
+name = sqlite SDK confinement
+type = protected
+protected_modules =
+    sqlite3
+allowed_importers =
+    app.adapters.sqlite
+    app.adapters.postgres.import_sqlite
+
+[importlinter:contract:adapters]
+name = Adapter capabilities remain independent
+type = independence
+modules =
+    app.adapters.sqlite
+    app.adapters.postgres
+    app.adapters.neo4j
+    app.adapters.graph
+    app.adapters.providers
+    app.adapters.observability
+    app.adapters.catalog
