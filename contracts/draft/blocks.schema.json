@@ -11,37 +11,189 @@
     "blocks": {
       "type": "array",
       "maxItems": 24,
+      "contains": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "link_chip"
+          }
+        }
+      },
+      "minContains": 0,
+      "maxContains": 3,
       "items": {
-        "oneOf": [
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "text",
+              "citation",
+              "product_card",
+              "resource_card",
+              "link_chip",
+              "fundamentos",
+              "follow_ups",
+              "notice",
+              "feedback",
+              "memory_prompt"
+            ]
+          }
+        },
+        "allOf": [
           {
-            "$ref": "#/$defs/text"
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "text"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/$defs/text"
+            }
           },
           {
-            "$ref": "#/$defs/citation"
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "citation"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/$defs/citation"
+            }
           },
           {
-            "$ref": "#/$defs/product_card"
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "product_card"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/$defs/product_card"
+            }
           },
           {
-            "$ref": "#/$defs/resource_card"
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "resource_card"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/$defs/resource_card"
+            }
           },
           {
-            "$ref": "#/$defs/link_chip"
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "link_chip"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/$defs/link_chip"
+            }
           },
           {
-            "$ref": "#/$defs/fundamentos"
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "fundamentos"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/$defs/fundamentos"
+            }
           },
           {
-            "$ref": "#/$defs/follow_ups"
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "follow_ups"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/$defs/follow_ups"
+            }
           },
           {
-            "$ref": "#/$defs/notice"
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "notice"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/$defs/notice"
+            }
           },
           {
-            "$ref": "#/$defs/feedback"
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "feedback"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/$defs/feedback"
+            }
           },
           {
-            "$ref": "#/$defs/memory_prompt"
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "memory_prompt"
+                }
+              }
+            },
+            "then": {
+              "$ref": "#/$defs/memory_prompt"
+            }
           }
         ]
       }
@@ -55,7 +207,7 @@
     },
     "url": {
       "type": "string",
-      "pattern": "^https://[^\\s<>]+$",
+      "pattern": "^https://[^\\s<>]+(?![\\s\\S])",
       "maxLength": 500
     },
     "text": {
@@ -76,7 +228,7 @@
           "const": "text"
         },
         "markdown_lite": {
-          "$ref": "#/$defs/plain"
+          "$ref": "#/$defs/markdown_lite"
         },
         "claims": {
           "type": "array",
@@ -147,7 +299,7 @@
           ]
         },
         "icon_id": {
-          "type": "string"
+          "$ref": "#/$defs/icon_id"
         },
         "origin": {
           "enum": [
@@ -157,6 +309,21 @@
         },
         "quote": {
           "$ref": "#/$defs/plain"
+        },
+        "path": {
+          "$ref": "#/$defs/plain"
+        },
+        "start_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "commit_sha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,40}$"
         }
       }
     },
@@ -174,6 +341,7 @@
         "price",
         "url",
         "purchase_url",
+        "kind",
         "disclosure"
       ],
       "properties": {
@@ -197,101 +365,104 @@
           "$ref": "#/$defs/plain"
         },
         "image": {
-          "oneOf": [
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "url",
-                "width",
-                "height",
-                "alt"
-              ],
-              "properties": {
-                "url": {
-                  "$ref": "#/$defs/url"
-                },
-                "width": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "height": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "alt": {
-                  "$ref": "#/$defs/plain"
-                }
-              }
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "url",
+            "width",
+            "height",
+            "alt"
+          ],
+          "properties": {
+            "url": {
+              "$ref": "#/$defs/url"
             },
-            {
-              "type": "null"
+            "width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "alt": {
+              "$ref": "#/$defs/plain"
             }
-          ]
+          }
         },
         "price": {
-          "oneOf": [
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "amount",
-                "currency",
-                "display",
-                "note",
-                "tax_note",
-                "verified_at"
-              ],
-              "properties": {
-                "amount": {
-                  "type": "string",
-                  "pattern": "^[0-9]+\\.[0-9]{2}$"
-                },
-                "currency": {
-                  "const": "USD"
-                },
-                "display": {
-                  "$ref": "#/$defs/plain"
-                },
-                "note": {
-                  "$ref": "#/$defs/plain"
-                },
-                "tax_note": {
-                  "$ref": "#/$defs/plain"
-                },
-                "verified_at": {
-                  "type": "string",
-                  "format": "date-time"
-                }
-              }
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "amount",
+            "currency",
+            "display",
+            "note",
+            "tax_note",
+            "verified_at"
+          ],
+          "properties": {
+            "amount": {
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]{2}$"
             },
-            {
-              "type": "null"
+            "currency": {
+              "const": "USD"
+            },
+            "display": {
+              "$ref": "#/$defs/plain"
+            },
+            "note": {
+              "$ref": "#/$defs/plain"
+            },
+            "tax_note": {
+              "$ref": "#/$defs/plain"
+            },
+            "verified_at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})(?![\\s\\S])"
             }
-          ]
+          }
         },
         "url": {
           "$ref": "#/$defs/url"
         },
         "purchase_url": {
-          "oneOf": [
-            {
-              "$ref": "#/$defs/url"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^https://[^\\s<>]+(?![\\s\\S])",
+          "maxLength": 500
         },
         "disclosure": {
-          "oneOf": [
-            {
-              "$ref": "#/$defs/plain"
-            },
-            {
-              "type": "null"
-            }
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 600,
+          "pattern": "^[^<>]*$"
+        },
+        "kind": {
+          "enum": [
+            "core",
+            "affiliate"
           ]
+        },
+        "format": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 600,
+          "pattern": "^[^<>]*$"
         }
       }
     },
@@ -325,37 +496,33 @@
           "minimum": 1
         },
         "image": {
-          "oneOf": [
-            {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "url",
-                "width",
-                "height",
-                "alt"
-              ],
-              "properties": {
-                "url": {
-                  "$ref": "#/$defs/url"
-                },
-                "width": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "height": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "alt": {
-                  "$ref": "#/$defs/plain"
-                }
-              }
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "required": [
+            "url",
+            "width",
+            "height",
+            "alt"
+          ],
+          "properties": {
+            "url": {
+              "$ref": "#/$defs/url"
             },
-            {
-              "type": "null"
+            "width": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "height": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "alt": {
+              "$ref": "#/$defs/plain"
             }
-          ]
+          }
         }
       }
     },
@@ -395,7 +562,7 @@
           ]
         },
         "icon_id": {
-          "type": "string"
+          "$ref": "#/$defs/icon_id"
         }
       }
     },
@@ -501,7 +668,15 @@
           "const": "notice"
         },
         "code": {
-          "type": "string"
+          "enum": [
+            "answer_replaced",
+            "payment_data_refused",
+            "contact_data_redacted",
+            "language_unsupported",
+            "web_unavailable",
+            "memory_saved",
+            "abstained"
+          ]
         },
         "severity": {
           "enum": [
@@ -583,13 +758,112 @@
               },
               "value": {
                 "type": "string",
-                "maxLength": 40,
-                "pattern": "^[a-z0-9_-]+$"
+                "maxLength": 40
               }
-            }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "required": [
+                    "key"
+                  ],
+                  "properties": {
+                    "key": {
+                      "const": "audience_role"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "parent",
+                        "educator",
+                        "gift_buyer"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "key"
+                  ],
+                  "properties": {
+                    "key": {
+                      "const": "child_age_band"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "2-3",
+                        "4-5",
+                        "6-7"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "key"
+                  ],
+                  "properties": {
+                    "key": {
+                      "const": "verbosity"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "enum": [
+                        "short",
+                        "normal"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": [
+                    "key"
+                  ],
+                  "properties": {
+                    "key": {
+                      "const": "interests"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_-]{0,39}$"
+                    }
+                  }
+                }
+              }
+            ]
           }
         }
       }
+    },
+    "markdown_lite": {
+      "type": "string",
+      "not": {
+        "pattern": "<[A-Za-z/!]"
+      }
+    },
+    "icon_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]{1,40}$"
     }
   }
 }

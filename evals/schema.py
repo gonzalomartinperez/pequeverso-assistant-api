@@ -64,14 +64,20 @@ KEYS = frozenset(
         "owasp",
     }
 )
-# v2 optional keys (assistant-experience.md section 7): validated only when present.
+# v2 optional keys (assistant-experience.md section 8): validated only when present.
 V2_OPTIONAL = frozenset({"expected_blocks", "expected_progress", "memory_fixture", "consent"})
 REQUIRED = (
     KEYS - V2_OPTIONAL - {"judge_rubric_id", "status_reason", "owner", "deadline", "page", "owasp"}
 )
 PROGRESS_PHASES = frozenset({"understanding", "reading", "writing", "verifying"})
 # Closed memory schema of Pequeverso (assistant-experience.md section 6.2).
-MEMORY_KEYS = frozenset({"audience_role", "child_age_band", "interests", "verbosity"})
+MEMORY_VALUES: dict[str, frozenset[str] | re.Pattern[str]] = {
+    "audience_role": frozenset({"parent", "educator", "gift_buyer"}),
+    "child_age_band": frozenset({"2-3", "4-5", "6-7"}),
+    "verbosity": frozenset({"short", "normal"}),
+    "interests": re.compile(r"[a-z][a-z0-9_-]{0,39}"),  # resource-category slug (enum not yet set)
+}
+MEMORY_KEYS = frozenset(MEMORY_VALUES)
 BEHAVIORS = frozenset(
     {"answer", "clarify", "no_info", "decline", "refuse_payment_data", "refused"}
 )  # refused: the API rejects the request itself (HTTP 4xx), red team LLM10 only
@@ -160,6 +166,15 @@ def _type_problems(item: dict[str, Any], iid: str) -> list[str]:
     return out
 
 
+def _memory_value_ok(key: str, value: object) -> bool:
+    allowed = MEMORY_VALUES[key]
+    if not isinstance(value, str):
+        return False
+    return (
+        value in allowed if isinstance(allowed, frozenset) else allowed.fullmatch(value) is not None
+    )
+
+
 def _v2_problems(item: dict[str, Any], iid: str) -> list[str]:
     """Check the optional v2 keys: blocks, progress phases, memory fixture and consent."""
     out: list[str] = []
@@ -172,6 +187,8 @@ def _v2_problems(item: dict[str, Any], iid: str) -> list[str]:
     fixture = item.get("memory_fixture", {})
     if not isinstance(fixture, dict) or not set(fixture) <= MEMORY_KEYS:
         out.append(f"{iid}: memory_fixture keys must be in the closed memory schema")
+    elif any(not _memory_value_ok(k, v) for k, v in fixture.items()):
+        out.append(f"{iid}: memory_fixture values must be in the closed memory schema")
     if "consent" in item and not isinstance(item["consent"], bool):
         out.append(f"{iid}: consent must be a boolean")
     if item.get("memory_fixture") and item.get("consent") is not True:

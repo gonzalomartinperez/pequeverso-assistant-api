@@ -22,7 +22,9 @@
       },
       "url": "https://example.com/productos/grafismo-fonetico",
       "purchase_url": "https://example.com/productos/grafismo-fonetico#comprar",
-      "disclosure": null
+      "disclosure": null,
+      "kind": "core",
+      "format": null
     }
   ]
 }

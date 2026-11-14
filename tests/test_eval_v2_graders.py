@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import copy
+from dataclasses import replace
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -15,8 +17,8 @@ PRICE = {
     "amount": "14.99",
     "currency": "USD",
     "display": "US$14,99",
-    "note": "n",
-    "tax_note": "t",
+    "note": graders.CATALOG.products[0].price.note,  # type: ignore[union-attr]
+    "tax_note": graders.CATALOG.products[0].price.tax_note,  # type: ignore[union-attr]
     "verified_at": "2026-11-10T12:00:00Z",
 }
 
@@ -54,6 +56,16 @@ def test_no_blocks_is_clean() -> None:
         ([card()], True, ["while unverified"]),
         ([card(price=PRICE | {"amount": "1.00"})], False, ["differs from the catalog"]),
         ([card(price=PRICE | {"display": "US$1"})], False, ["differs from the catalog"]),
+        ([card(price=PRICE | {"currency": "ARS"})], False, ["differs from the catalog"]),
+        ([card(price=PRICE | {"note": "otra nota"})], False, ["differs from the catalog"]),
+        ([card(price=PRICE | {"tax_note": "otra"})], False, ["differs from the catalog"]),
+        ([card(price={k: v for k, v in PRICE.items() if k != "verified_at"})], False, ["differs"]),
+        ([card(price=PRICE | {"verified_at": ""})], False, ["differs from the catalog"]),
+        ([card(price=PRICE | {"amount": "14.990"})], False, ["differs from the catalog"]),
+        ([card(price=["14.99"])], False, ["price is not an object"]),
+        ([card(price="14.99")], False, ["price is not an object"]),
+        ([card(product_id=["x"])], False, ["is not a catalog product"]),
+        ([{"id": "b1", "type": ["product_card"]}], False, []),
     ],
 )
 def test_blocks_price(blocks: list[dict[str, Any]], stale: bool, expected: list[str]) -> None:
@@ -70,11 +82,26 @@ def test_blocks_price_when_catalog_has_no_price(monkeypatch: pytest.MonkeyPatch)
     assert problems == [f"product card {product.id} price differs from the catalog"]
 
 
+@pytest.mark.parametrize(("wire", "ok"), [("15.00", True), ("15", False), ("15.0", False)])
+def test_blocks_price_amount_formatting(
+    monkeypatch: pytest.MonkeyPatch, wire: str, ok: bool
+) -> None:
+    product = copy.copy(graders.CATALOG.products[0])
+    known = product.price
+    assert known is not None
+    object.__setattr__(product, "price", replace(known, amount=Decimal(15)))
+    monkeypatch.setattr(graders, "CATALOG", type("C", (), {"products": (product,)})())
+    problems = run("blocks.price", [card(product_id=product.id, price=PRICE | {"amount": wire})])
+    assert (problems == []) is ok
+
+
 @pytest.mark.parametrize(
     ("blocks", "expected"),
     [
         ([{"id": "b1", "type": "text"}, {"id": "b2", "type": "citation"}], []),
         ([{"id": "b1", "type": "carousel"}], ["unknown block type 'carousel'"]),
+        ([{"id": "b1", "type": ["text"]}], ["unknown block type ['text']"]),
+        ([{"id": "b1", "type": None}], ["unknown block type None"]),
         ([{"id": "b1", "type": "text"}, {"id": "b1", "type": "notice"}], ["duplicate block id"]),
         ([{"id": "b1", "type": "notice"}, {"id": "b2", "type": "text"}], ["out of order"]),
         ([{"id": "b1", "type": "text", "markdown_lite": "<b>x</b>"}], ["carries markup"]),
@@ -116,7 +143,7 @@ def test_valid_v2_keys_are_accepted() -> None:
     items = _with(
         expected_blocks=["text", "product_card"],
         expected_progress=["understanding", "writing"],
-        memory_fixture={"verbosity": "short"},
+        memory_fixture={"verbosity": "short", "interests": "grafismo", "child_age_band": "4-5"},
         consent=True,
     )
     assert schema.validate(items, counts=False) == []
@@ -131,6 +158,11 @@ def test_valid_v2_keys_are_accepted() -> None:
         ({"expected_progress": ["retrieving"]}, "expected_progress must be a list"),
         ({"memory_fixture": {"child_name": "x"}}, "closed memory schema"),
         ({"memory_fixture": ["x"], "consent": True}, "closed memory schema"),
+        ({"memory_fixture": {"verbosity": "long"}, "consent": True}, "values must be in"),
+        ({"memory_fixture": {"audience_role": "recruiter"}, "consent": True}, "values must be in"),
+        ({"memory_fixture": {"child_age_band": "4 a 5"}, "consent": True}, "values must be in"),
+        ({"memory_fixture": {"interests": "Free Text!"}, "consent": True}, "values must be in"),
+        ({"memory_fixture": {"verbosity": 3}, "consent": True}, "values must be in"),
         ({"consent": "yes"}, "consent must be a boolean"),
         ({"memory_fixture": {"verbosity": "short"}}, "needs consent true"),
         ({"memory_fixture": {"verbosity": "short"}, "consent": False}, "needs consent true"),

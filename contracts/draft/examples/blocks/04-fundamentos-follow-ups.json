@@ -3,8 +3,16 @@
     {
       "id": "b1",
       "type": "text",
-      "markdown_lite": "La garantía es de 7 días [1].",
-      "claims": []
+      "markdown_lite": "La garantía es de 7 días.",
+      "claims": [
+        {
+          "start": 0,
+          "end": 25,
+          "evidence_ids": [
+            "document:policy.guarantee"
+          ]
+        }
+      ]
     },
     {
       "id": "b2",

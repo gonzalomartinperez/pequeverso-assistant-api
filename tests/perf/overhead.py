@@ -8,7 +8,6 @@ only measures and reports; it never calls a model and imports nothing from `app`
 from __future__ import annotations
 
 import json
-import math
 import time
 from collections import defaultdict
 from contextlib import contextmanager
@@ -18,10 +17,10 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
 
-def percentile(values: list[float], q: float) -> float:
-    """Nearest-rank percentile (q in 0..100) of a non-empty list."""
+def percentile(values: list[float], q: int) -> float:
+    """Nearest-rank percentile (integer q in 0..100) of a non-empty list."""
     ordered = sorted(values)
-    rank = max(1, math.ceil(q / 100 * len(ordered)))
+    rank = max(1, -(-q * len(ordered) // 100))
     return ordered[rank - 1]
 
 

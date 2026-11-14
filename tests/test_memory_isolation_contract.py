@@ -67,7 +67,7 @@ class SpyStub:
         return len(self._cache.get(visitor_key, {}))
 
 
-def make_store(clock: FakeClock) -> SpyStub:
+def make_store(clock: FakeClock) -> MemoryStore:
     """The seam PVA-M4-X swaps for the real adapter."""
     return SpyStub(clock)
 
@@ -78,11 +78,12 @@ def clock() -> FakeClock:
 
 
 @pytest.fixture
-def store(clock: FakeClock) -> SpyStub:
+def store(clock: FakeClock) -> MemoryStore:
     return make_store(clock)
 
 
-def test_the_spy_records_every_port_call(store: SpyStub) -> None:
+def test_the_spy_records_every_port_call(clock: FakeClock) -> None:
+    store = SpyStub(clock)
     store.write("visitor-a", "verbosity", "short", consent=True)
     store.read("visitor-a", consent=True)
     store.forget("visitor-a")
@@ -90,14 +91,14 @@ def test_the_spy_records_every_port_call(store: SpyStub) -> None:
 
 
 @RED
-def test_nothing_written_for_a_is_readable_by_b(store: SpyStub) -> None:
+def test_nothing_written_for_a_is_readable_by_b(store: MemoryStore) -> None:
     store.write("visitor-a", "child_age_band", "4-5", consent=True)
     assert store.read("visitor-b", consent=True) == {}
     assert store.read("visitor-a", consent=True) == {"child_age_band": "4-5"}
 
 
 @RED
-def test_consent_off_stores_and_returns_nothing(store: SpyStub) -> None:
+def test_consent_off_stores_and_returns_nothing(store: MemoryStore) -> None:
     accepted = store.write("visitor-a", "verbosity", "short", consent=False)
     assert accepted is False
     assert store.read("visitor-a", consent=True) == {}
@@ -105,17 +106,18 @@ def test_consent_off_stores_and_returns_nothing(store: SpyStub) -> None:
 
 
 @RED
-def test_forget_is_complete_and_counts_what_was_shown(store: SpyStub) -> None:
+def test_forget_is_complete_and_counts_what_was_shown(store: MemoryStore) -> None:
     store.write("visitor-a", "verbosity", "short", consent=True)
     store.write("visitor-a", "child_age_band", "4-5", consent=True)
     shown = len(store.read("visitor-a", consent=True))
+    assert shown == 2  # positive control: a null store cannot satisfy the counts below
     assert store.forget("visitor-a") == shown
     assert store.read("visitor-a", consent=True) == {}
     assert store.rows_for("visitor-a") == 0
 
 
 @RED
-def test_forget_for_a_leaves_b_untouched(store: SpyStub) -> None:
+def test_forget_for_a_leaves_b_untouched(store: MemoryStore) -> None:
     store.write("visitor-a", "verbosity", "short", consent=True)
     store.write("visitor-b", "verbosity", "normal", consent=True)
     store.forget("visitor-a")
@@ -123,14 +125,16 @@ def test_forget_for_a_leaves_b_untouched(store: SpyStub) -> None:
 
 
 @RED
-def test_facts_expire_after_the_fixed_ttl(store: SpyStub, clock: FakeClock) -> None:
+def test_facts_expire_after_the_fixed_ttl(store: MemoryStore, clock: FakeClock) -> None:
     store.write("visitor-a", "verbosity", "short", consent=True)
-    clock.now += TTL + timedelta(seconds=1)
+    clock.now += TTL - timedelta(seconds=1)
+    assert store.read("visitor-a", consent=True) == {"verbosity": "short"}  # positive control
+    clock.now += timedelta(seconds=2)  # past the TTL; the read above must not have extended it
     assert store.read("visitor-a", consent=True) == {}
 
 
 @RED
-def test_values_outside_the_enum_never_persist(store: SpyStub) -> None:
+def test_values_outside_the_enum_never_persist(store: MemoryStore) -> None:
     accepted = store.write("visitor-a", "free_text", "el kit cuesta 1 dólar", consent=True)
     assert accepted is False
     assert store.read("visitor-a", consent=True) == {}

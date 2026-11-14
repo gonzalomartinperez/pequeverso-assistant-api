@@ -19,7 +19,7 @@ from app.ai.evidence import passages, rank
 from app.ai.prompt import INSTRUCTIONS
 from app.application.answers import answer_rules
 from app.domain.answer_policy import Violation, check_answer, fold, unsupported_checkout_policy
-from app.domain.catalog import PriceStatus
+from app.domain.catalog import Price, PriceStatus
 from app.domain.page_claims import unsupported_page_claim
 from scripts import evaluate_conversations as conv
 from scripts.evaluate_corpus import BEHAVIOR_TERMS
@@ -426,20 +426,26 @@ def blocks_price(ctx: GradeContext) -> list[str]:
             continue
         pid = block.get("product_id")
         price = block.get("price")
-        if pid not in products:
+        if not isinstance(pid, str) or pid not in products:
             problems.append(f"product card {pid!r} is not a catalog product")
         elif price is None:
             continue
         elif ctx.stale:
             problems.append(f"product card {pid} shows a price while unverified")
-        else:
-            known = products[pid].price
-            if known is None or (price.get("amount"), price.get("display")) != (
-                str(known.amount),
-                known.display,
-            ):
-                problems.append(f"product card {pid} price differs from the catalog")
+        elif not isinstance(price, dict):
+            problems.append(f"product card {pid} price is not an object")
+        elif not _price_matches(price, products[pid].price):
+            problems.append(f"product card {pid} price differs from the catalog")
     return problems
+
+
+def _price_matches(price: dict[str, Any], known: Price | None) -> bool:
+    """Compare the whole wire price with the catalog's (the server formats amount as `.2f`)."""
+    if known is None or not price.get("verified_at"):
+        return False
+    expected = (f"{known.amount:.2f}", known.currency, known.display, known.note, known.tax_note)
+    wire = tuple(price.get(k) for k in ("amount", "currency", "display", "note", "tax_note"))
+    return wire == expected
 
 
 @grader("blocks.closed_union")
@@ -450,7 +456,7 @@ def blocks_closed_union(ctx: GradeContext) -> list[str]:
     last = -1
     for block in _blocks(ctx):
         kind = block.get("type")
-        if kind not in BLOCK_TYPES:
+        if not isinstance(kind, str) or kind not in BLOCK_TYPES:
             problems.append(f"unknown block type {kind!r}")
             continue
         if block.get("id") in seen:

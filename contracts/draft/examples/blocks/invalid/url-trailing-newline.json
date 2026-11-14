@@ -1,0 +1,12 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "link_chip",
+      "label": "Soporte",
+      "url": "https://example.com/soporte\n",
+      "kind": "support",
+      "icon_id": "help"
+    }
+  ]
+}

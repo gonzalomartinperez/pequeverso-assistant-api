@@ -3,11 +3,11 @@
     {
       "id": "b1",
       "type": "text",
-      "markdown_lite": "Para 4 a 6 años te sirve este cuadernillo [1].",
+      "markdown_lite": "Para 3 a 7 años te sirve este cuadernillo.",
       "claims": [
         {
           "start": 0,
-          "end": 47,
+          "end": 42,
           "evidence_ids": [
             "product:grafismo-fonetico"
           ]
@@ -20,7 +20,7 @@
       "product_id": "grafismo-fonetico",
       "name": "Grafismo Fonético",
       "summary": "Cuadernillo para practicar trazos y sonidos.",
-      "age_range": "4 a 6 años",
+      "age_range": "3 a 7 años",
       "image": {
         "url": "https://example.com/img/grafismo.webp",
         "width": 800,
@@ -37,7 +37,9 @@
       },
       "url": "https://example.com/productos/grafismo-fonetico",
       "purchase_url": "https://example.com/productos/grafismo-fonetico#comprar",
-      "disclosure": null
+      "disclosure": null,
+      "kind": "core",
+      "format": null
     },
     {
       "id": "b3",
