@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "02c98c6adc5c3acf4bf9a2d725c88aa58bec59f046c34ce8bc6987b3a405ec9e",
+  "note": "scripted: authored reference answer (not a real model run)",
+  "output": {
+    "answer": "Safari de Sonidos y Sílabas suma animales, sonidos y palabras simples para dar variedad visual. Juega con Sonidos y Sílabas cambia el formato del repaso con bingo, memoria, dominó, ruletas y tableros. Los dos vienen incluidos en el kit.",
+    "references": [
+      {
+        "kind": "resource",
+        "id": "grafismo-fonetico/safari"
+      },
+      {
+        "kind": "resource",
+        "id": "grafismo-fonetico/juega"
+      }
+    ],
+    "sources": [],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5688,
+    "output_tokens": 102
+  }
+}

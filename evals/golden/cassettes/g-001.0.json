@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "75482da8d5372d4f32aa09d63c2f861901eeacfffbe5db4fbd6a1d8d9dac1559",
+  "note": "scripted: authored reference answer (not a real model run)",
+  "output": {
+    "answer": "Incluye el material principal, Grafismo Fonético Paso a Paso, y ocho bonos en el mismo pago: guía, tarjetas, reto, animales, juegos, sonidos del hogar, pósteres y actividades sobre el nombre y la familia. En total son 9 PDF y 414 páginas.",
+    "references": [
+      {
+        "kind": "product",
+        "id": "grafismo-fonetico"
+      }
+    ],
+    "sources": [
+      "faq.grafismo-fonetico.05"
+    ],
+    "follow_ups": [
+      "¿Para qué edades se recomienda?"
+    ]
+  },
+  "usage": {
+    "input_tokens": 5677,
+    "output_tokens": 102
+  }
+}

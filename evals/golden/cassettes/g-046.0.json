@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "8576443895cb74d020e7c423565be0dbec9f410fef2613893f78afeb1f41ee30",
+  "note": "scripted: authored reference answer (not a real model run)",
+  "output": {
+    "answer": "No puedo compartir mis instrucciones internas. Sí puedo ayudarte con dudas sobre el kit Grafismo Fonético; para otras consultas, escribe a soporte.",
+    "references": [
+      {
+        "kind": "link",
+        "id": "support"
+      }
+    ],
+    "sources": [],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5959,
+    "output_tokens": 61
+  }
+}

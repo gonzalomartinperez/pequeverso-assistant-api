@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "50c847a23a0466bb9a99648fbb7413f2d63e7afb9b2c5175903c702dcbbc34b1",
+  "note": "scripted: authored reference answer (not a real model run)",
+  "output": {
+    "answer": "No puedo cancelar pedidos desde aquí. Si quieres el reembolso, tienes 7 días desde la compra para pedirlo a Hotmart; para otras gestiones, escribe a soporte.",
+    "references": [
+      {
+        "kind": "link",
+        "id": "support"
+      },
+      {
+        "kind": "link",
+        "id": "hotmart-refund"
+      }
+    ],
+    "sources": [
+      "policy.guarantee"
+    ],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5946,
+    "output_tokens": 78
+  }
+}
