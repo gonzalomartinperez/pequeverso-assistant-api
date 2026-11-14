@@ -65,7 +65,7 @@ class CatalogService:
         try:
             body = await self._source.fetch()
             catalog = self._parse(body)
-        except Exception as error:  # noqa: BLE001 - every failure keeps the active snapshot
+        except Exception as error:  # broad catch: every failure keeps the active snapshot
             reason = type(error).__name__
             await self._repository.record_failure(reason, now)
             log.warning('{"operation":"catalog_refresh","outcome":"failed","reason":"%s"}', reason)
@@ -80,7 +80,9 @@ class CatalogService:
                 log.info(
                     '{"operation":"catalog_refresh","outcome":"activated","sha256":"%s"}', sha[:12]
                 )
-        except Exception as error:  # noqa: BLE001 - binding failure cannot replace the active snapshot
+        except (
+            Exception
+        ) as error:  # broad catch: binding failure cannot replace the active snapshot
             reason = type(error).__name__
             await self._repository.record_failure(reason, now)
             log.warning('{"operation":"catalog_refresh","outcome":"failed","reason":"%s"}', reason)

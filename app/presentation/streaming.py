@@ -155,7 +155,8 @@ class ResponseCleanups:
 
 class ClosingStreamingResponse(StreamingResponse):
     """Runs `on_close` after the response ends for any reason, including a client disconnect
-    or a send error, shielded from cancellation and bounded in time."""
+    or a send error, shielded from cancellation and bounded in time.
+    """
 
     def __init__(
         self,

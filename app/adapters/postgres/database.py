@@ -84,7 +84,7 @@ class PostgresDatabase:
                 )
             ).fetchone()
             return row is not None and row["owned"] is True
-        except Exception:  # noqa: BLE001 - never reconnect/reacquire silently during admission
+        except Exception:  # broad catch: never reconnect/reacquire silently during admission
             return False
 
     async def migrate(self) -> None:

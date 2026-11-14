@@ -219,7 +219,7 @@ def serve(fixture: Fixture, provider: ScriptedProvider) -> Iterator[Running]:
         except SystemExit:
             # Uvicorn exits3 when a second instance's lifespan refuses ownership.
             failures.append("SystemExit")
-        except Exception as error:  # noqa: BLE001 - record only safe thread failure classes
+        except Exception as error:  # broad catch: record only safe thread failure classes
             failures.append(type(error).__name__)  # Never expose credentials/SQL/exception text.
 
     thread = threading.Thread(target=target, daemon=True)
@@ -398,7 +398,7 @@ def test_real_graph_cancel_after_delta_keeps_unknown_spend_and_blocks_overlappin
                         chunks.append(line + "\n")
                         if line == "event: message.delta":
                             ready.set()
-            except Exception as error:  # noqa: BLE001 - record only safe thread failure classes
+            except Exception as error:  # broad catch: record only safe thread failure classes
                 errors.append(type(error).__name__)
                 ready.set()
 

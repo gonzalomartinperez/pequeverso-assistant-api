@@ -8,7 +8,7 @@ default:
 
 # The single local check: lint, format, types, tests, contract drift.
 check:
-    uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -n auto && uv run python -m contracts.export --check
+    uv run ruff check . && uv run ruff format --check . && uv run python -m scripts.ruff_ratchet && uv run mypy && uv run pytest -n auto && uv run python -m contracts.export --check
 
 # Apply formatting and safe lint fixes.
 fmt:

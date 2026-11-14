@@ -164,7 +164,7 @@ class SafeExporter(SpanExporter):
                 return SpanExportResult.FAILURE
         try:
             result = self.delegate.export(spans)
-        except Exception:  # noqa: BLE001 -- telemetry is best effort, never log exception text
+        except Exception:  # broad catch: telemetry is best effort, never log exception text
             result = SpanExportResult.FAILURE
             log.warning('{"operation":"telemetry_export","outcome":"failed"}')
         with self.lock:
@@ -182,7 +182,7 @@ class SafeExporter(SpanExporter):
             self.closed = True
         try:
             self.delegate.shutdown()
-        except Exception:  # noqa: BLE001 -- monitoring cleanup cannot break application cleanup
+        except Exception:  # broad catch: monitoring cleanup cannot break application cleanup
             log.warning('{"operation":"telemetry_shutdown","outcome":"failed"}')
 
     def state(self) -> tuple[int, int, datetime | None, bool | None]:
@@ -334,7 +334,7 @@ class RuntimeTelemetry:
             self.gauges[name].set(float(value) if value is not None else float("nan"))
         try:
             window = await self.run_window()
-        except Exception:  # noqa: BLE001 -- dependency outage must not hide readiness telemetry
+        except Exception:  # broad catch: dependency outage must not hide readiness telemetry
             window = None
             log.warning('{"operation":"telemetry_run_window","outcome":"unavailable"}')
         for outcome in ("completed", "failed", "cancelled", "interrupted", "refused"):

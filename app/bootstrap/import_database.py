@@ -38,7 +38,7 @@ async def main() -> int:
             target.write(output)
         print("Import verified; content-free private receipt written. No source data removed.")
         return 0
-    except Exception as error:  # noqa: BLE001 - private SQL values must never reach stderr
+    except Exception as error:  # broad catch: private SQL values must never reach stderr
         # DB error details can contain private row values. Never print the exception text/traceback.
         print(f"Import failed ({type(error).__name__}); inspect private state before retrying.")
         return 1

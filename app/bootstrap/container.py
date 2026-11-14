@@ -297,7 +297,7 @@ def create_app(
             return knowledge is None or (
                 catalog.synchronized and await knowledge.ready(catalog.active)
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             return False
 
     telemetry: RuntimeTelemetry | None = None

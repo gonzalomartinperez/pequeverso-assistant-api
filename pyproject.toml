@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "Advisory, read-only shopping assistant backend for Pequeverso."
 license = "MIT"
 license-files = ["LICENSE", "NOTICE.md"]
-requires-python = ">=3.14,<3.15"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.143.3",
     "httpx>=0.28.1",
@@ -40,20 +40,34 @@ dev = [
 package = false
 
 [tool.ruff]
+# Legacy findings live in the ratchet base config; they may only shrink (scripts/ruff_ratchet.py).
+extend = "ratchets/ruff-legacy.toml"
 line-length = 100
-extend-exclude = [".claude/hooks"]  # byte-matched copies from engineering-standards
+# .claude/hooks: byte-matched copies from engineering-standards; docs/master-plan: planning artifacts.
+extend-exclude = [".claude/hooks", "docs/master-plan"]
 target-version = "py314"
 # Run by the CI runner's system python3 (Ubuntu 24.04: 3.12), not the uv venv:
 # keep their syntax 3.12-compatible (tests/test_system_python_scripts.py).
 per-file-target-version = { "scripts/{ci_identity,compare_oci_images,postgres_fixture_identity,container_fixture_probe}.py" = "py312" }
 
 [tool.ruff.lint]
-extend-select = ["I", "N", "UP", "B", "S", "SIM", "RUF", "ASYNC", "PT"]
-ignore = ["S101"]
+# Ecosystem 10.2 families (never ALL). docs/master-plan/standards.md section 1.
+select = [
+    "E", "W", "F", "I", "B", "C4", "UP", "SIM", "RUF", "PERF", "PIE", "PT", "PTH", "TC", "ASYNC",
+    "S", "T20", "TRY", "ARG", "FAST", "LOG", "G", "DTZ", "ERA", "FURB", "N", "RET", "D", "ANN",
+]
+ignore = ["E501", "TRY003", "D203", "D213"]
 
-[tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S105", "S106", "S311", "PT018"]
-"scripts/**" = ["S603", "S607"]
+[tool.ruff.lint.extend-per-file-ignores]
+# S2: public-API docstrings (D100-D107) are enforced only for the ports, the presentation layer
+# and contracts; small typed internals elsewhere rely on names and types (standards.md S2).
+"!{app/application/ports.py,app/application/knowledge_ports.py,app/presentation/**,contracts/**}" = [
+    "D100", "D101", "D102", "D103", "D104", "D105", "D106", "D107",
+]
+# S4: tests use assert, synthetic secrets and untyped fixtures.
+"tests/**" = ["S101", "ANN", "D", "ARG", "S105", "S106", "S311", "PT018"]
+# S3: scripts are CLIs: print is the output, subprocess calls are fixed lists, sys.path bootstrap.
+"scripts/**" = ["T201", "S603", "S607", "E402"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Cookie"]

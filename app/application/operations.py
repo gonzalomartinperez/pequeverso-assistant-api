@@ -23,7 +23,8 @@ RECENT_RUNS = 50
 @dataclass(frozen=True, slots=True)
 class Spend:
     """Micro-dollars. confirmed: settled to provider usage; estimated: run ended without a usage
-    report, the reservation is kept; pending: reservation of a run still in progress."""
+    report, the reservation is kept; pending: reservation of a run still in progress.
+    """
 
     confirmed: int = 0
     estimated: int = 0

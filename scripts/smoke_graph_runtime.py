@@ -246,7 +246,7 @@ def teardown_services(
     failures: list[str] = []
     try:
         capture_logs()
-    except Exception as error:  # noqa: BLE001 - diagnostic failure must not leak resources
+    except Exception as error:  # broad catch: diagnostic failure must not leak resources
         failures.append(f"logs:{type(error).__name__}")
 
     def execute(arguments: list[str], operation: str, timeout: int) -> str | None:
@@ -257,7 +257,7 @@ def teardown_services(
             if result.returncode:
                 failures.append(f"{operation}:exit-{result.returncode}")
             return result.stdout.strip() if result.returncode == 0 else None
-        except Exception as error:  # noqa: BLE001 - continue every other independent cleanup
+        except Exception as error:  # broad catch: continue every other independent cleanup
             failures.append(f"{operation}:{type(error).__name__}")
             return None
 
@@ -283,7 +283,9 @@ def teardown_services(
     receipt["cleanup_failures"] = failures
     try:
         (output / "owned-services.json").write_text(json.dumps(receipt, indent=2) + "\n")
-    except Exception as error:  # noqa: BLE001 - all cleanup already attempted, preserve failure status
+    except (
+        Exception
+    ) as error:  # broad catch: all cleanup already attempted, preserve failure status
         failures.append(f"receipt:{type(error).__name__}")
     if failures:
         raise RuntimeError("owned fixture diagnostics, shutdown or cleanup did not complete safely")
@@ -442,7 +444,7 @@ async def cleanup(values: dict[str, str], roles: list[str]) -> None:
             # Only names actually created by this process are eligible for removal.
             try:
                 await connection.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(name)))
-            except Exception:  # noqa: BLE001 - attempt the remaining owned roles independently
+            except Exception:  # broad catch: attempt the remaining owned roles independently
                 failures += 1
         if failures:
             raise RuntimeError("one or more owned fixture roles could not be removed")
@@ -584,7 +586,7 @@ def main() -> int:
             else "borrowed exclusively leased services",
         }
         (output / "result.json").write_text(json.dumps(receipt, indent=2) + "\n")
-    except Exception as error:  # noqa: BLE001 - never render DSNs, passwords or SQL exception details
+    except Exception as error:  # broad catch: never render DSNs, passwords or SQL exception details
         result = 1
         receipt["failure_class"] = type(error).__name__
         print(f"Graph HTTP fixture failed ({type(error).__name__}); inspect private artifacts.")
@@ -592,7 +594,7 @@ def main() -> int:
         if values is not None and roles:
             try:
                 asyncio.run(cleanup(values, roles))
-            except Exception as error:  # noqa: BLE001 - preserve private errors without raw values
+            except Exception as error:  # broad catch: preserve private errors without raw values
                 print(
                     f"Owned fixture role cleanup failed ({type(error).__name__}); manual cleanup required."
                 )
@@ -600,14 +602,14 @@ def main() -> int:
         try:
             if private_created and private.exists():
                 private.unlink()
-        except Exception as error:  # noqa: BLE001 - file cleanup must not skip owned-service cleanup
+        except Exception as error:  # broad catch: file cleanup must not skip owned-service cleanup
             print(
                 f"Private fixture cleanup failed ({type(error).__name__}); inspect private artifacts."
             )
             result = 1
         try:
             services.close()
-        except Exception as error:  # noqa: BLE001 - report cleanup failure without private details
+        except Exception as error:  # broad catch: report cleanup failure without private details
             print(
                 f"Owned service cleanup failed ({type(error).__name__}); inspect private artifacts."
             )
