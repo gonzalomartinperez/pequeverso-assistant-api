@@ -89,7 +89,9 @@ uv run python scripts/run_bounded_real_eval.py --live --phase holdout \
   this evaluation's stricter independent envelope does not change application limits,
   contracts, deployment settings or storefront activation.
 - Review each scenario's `quality` list and the answers by hand. Adjust `app/ai/prompt.py` (bump
-  `PROMPT_VERSION`), then rerun. Commit the report with the model name and date.
+  `PROMPT_VERSION`, run `uv run python -m scripts.prompt_lock --append` and add a row to
+  [`reference/prompt-changelog.md`](reference/prompt-changelog.md); ADR-0017), then rerun. Commit the
+  report with the model name and date.
 - Before launch, also run 3–5 manual chats through the native storefront assistant against an isolated staging deployment.
 
 ## Explicit audited extension of one existing evaluation ledger (2026-10-18)

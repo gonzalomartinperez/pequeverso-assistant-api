@@ -55,6 +55,7 @@ COMMANDS = {
         "ruff check",
         "ruff format --check",
         "python -m scripts.ruff_ratchet",
+        "python -m scripts.prompt_lock --base=FETCH_HEAD",
         "python -m scripts.validate_skills",
         "uv run mypy",
         "pyrefly@",

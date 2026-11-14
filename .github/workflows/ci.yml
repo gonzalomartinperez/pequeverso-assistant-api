@@ -140,15 +140,17 @@ jobs:
         run: |
           uv run ruff check --output-format=github .
           uv run ruff format --check .
-      - name: Ruff legacy ratchet (legacy findings only shrink, also against the base revision)
+      - name: Ratchets and prompt lock (only tighten, also against the base revision)
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
         run: |
           if [ -n "$CI_BASE_SHA" ] && git fetch --no-tags --depth=1 origin "$CI_BASE_SHA"; then
             uv run python -m scripts.ruff_ratchet --base=FETCH_HEAD
+            uv run python -m scripts.prompt_lock --base=FETCH_HEAD
           else
-            echo "::warning title=ruff ratchet::base revision unavailable; checked the tree only"
+            echo "::warning title=ratchets::base revision unavailable; checked the tree only"
             uv run python -m scripts.ruff_ratchet
+            uv run python -m scripts.prompt_lock
           fi
       - name: Validate paired skill discovery
         run: uv run python -m scripts.validate_skills

@@ -7,6 +7,8 @@ app/domain/answer_policy.py).
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 PROMPT_VERSION = "2026-10-18.4"
@@ -135,3 +137,20 @@ OUTPUT_SCHEMA: dict[str, Any] = {
         "follow_ups": {"type": "array", "items": {"type": "string"}},
     },
 }
+
+
+def prompt_fingerprint() -> dict[str, str]:
+    """Return the sha256 pins of the instructions, the output schema and both together.
+
+    `app/ai/prompt.lock.json` records these per `PROMPT_VERSION`; `tests/test_prompt_contract.py`
+    fails when the text or schema changes without a new version (ADR-0017).
+    """
+    schema = json.dumps(OUTPUT_SCHEMA, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    instructions_sha = hashlib.sha256(INSTRUCTIONS.encode()).hexdigest()
+    schema_sha = hashlib.sha256(schema.encode()).hexdigest()
+    combined = hashlib.sha256(f"{instructions_sha}\n{schema_sha}".encode()).hexdigest()
+    return {
+        "instructions_sha256": instructions_sha,
+        "output_schema_sha256": schema_sha,
+        "prompt_sha256": combined,
+    }
