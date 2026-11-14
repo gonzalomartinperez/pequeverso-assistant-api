@@ -205,11 +205,29 @@ def patterns(changed: list[str]) -> list[str] | None:
     return [pattern(module) for module in eligible_modules() if module in paths]
 
 
+def weight(module: str) -> int:
+    """Approximate mutation sites: AST nodes inside function bodies (operators, constants, calls)."""
+    tree = ast.parse((ROOT / module).read_text(encoding="utf-8"))
+    functions = [
+        n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ]
+    return sum(1 for function in functions for _ in ast.walk(function))
+
+
 def shard_modules(index: int, count: int) -> list[str]:
-    """Round-robin assignment by sorted path; ``index`` is 1-based."""
+    """Greedy balance by `weight` (heaviest first onto the lightest shard); ``index`` is 1-based.
+
+    Deterministic: ties break on path and on the lowest shard index.
+    """
     if not 1 <= index <= count:
         raise ValueError("shard index must be between 1 and the shard count")
-    return eligible_modules()[index - 1 :: count]
+    loads = [0] * count
+    shards: list[list[str]] = [[] for _ in range(count)]
+    for module in sorted(eligible_modules(), key=lambda m: (-weight(m), m)):
+        target = loads.index(min(loads))
+        shards[target].append(module)
+        loads[target] += weight(module)
+    return sorted(shards[index - 1])
 
 
 def parse_shard(value: str) -> tuple[int, int]:
