@@ -99,6 +99,11 @@ parallel = true
 source = ["app", "contracts"]
 patch = ["subprocess"]
 
+[tool.coverage.paths]
+# Map the database job's subprocess paths onto the repository-relative names before combining.
+app = ["app/", "*/app/"]
+contracts = ["contracts/", "*/contracts/"]
+
 [tool.coverage.report]
 skip_empty = true
 

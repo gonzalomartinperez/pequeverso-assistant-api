@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from scripts import coverage_gate
 
 DIFF = """\
@@ -59,8 +61,32 @@ def test_branch_floor_and_diff_floor() -> None:
     assert coverage_gate.check(REPORT, RATCHET, {}, "static_branch_floor") == []
 
 
-def test_no_branches_counts_as_full_coverage() -> None:
-    assert coverage_gate.branch_percent({"totals": {"num_branches": 0}}) == 100.0
+def test_a_report_without_branch_data_or_files_fails_closed() -> None:
+    with pytest.raises(SystemExit):
+        coverage_gate.branch_percent({"totals": {"num_branches": 0}, "files": {"app/x.py": {}}})
+    with pytest.raises(SystemExit):
+        coverage_gate.branch_percent({"totals": {"num_branches": 10, "covered_branches": 9}})
+
+
+def test_a_body_line_that_looks_like_a_header_is_not_a_file() -> None:
+    diff = "\n".join(
+        [
+            "+++ b/app/x.py",
+            "@@ -1,0 +2,2 @@",
+            "+++ fake",
+            "+second",
+            "@@ -9 +11 @@",
+            "-old",
+            "+new",
+        ]
+    )
+    assert coverage_gate.changed_lines(diff) == {"app/x.py": {2, 3, 11}}
+
+
+def test_a_changed_measured_file_missing_from_the_report_fails() -> None:
+    problems = coverage_gate.check(REPORT, RATCHET, {"app/new_module.py": {1, 2}})
+    assert any("missing from the coverage report" in p for p in problems)
+    assert coverage_gate.check(REPORT, RATCHET, {"scripts/tool.py": {1}}) == []
 
 
 def test_write_floor_only_rises(tmp_path, monkeypatch) -> None:
@@ -81,6 +107,7 @@ def test_write_floor_only_rises(tmp_path, monkeypatch) -> None:
 
 def test_committed_ratchet_has_the_planned_floors() -> None:
     data = coverage_gate.load_ratchet()
-    assert data["branch_floor"] >= 76.0
+    # Floors only rise: these are the first CI measurements (run 43603948059).
+    assert data["branch_floor"] >= 81.0
     assert data["static_branch_floor"] >= 76.0
     assert data["diff_floor"] == 90.0

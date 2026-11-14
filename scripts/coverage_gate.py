@@ -26,7 +26,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 RATCHET = ROOT / "ratchets" / "coverage.json"
-HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
+HUNK = re.compile(r"^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+# Packages measured by `[tool.coverage.run] source`; a changed file here must appear in the report.
+MEASURED = ("app/", "contracts/")
 
 
 def load_ratchet(path: Path = RATCHET) -> dict[str, Any]:
@@ -36,11 +38,15 @@ def load_ratchet(path: Path = RATCHET) -> dict[str, Any]:
 
 
 def branch_percent(report: dict[str, Any]) -> float:
-    """Return whole-report branch coverage (covered branches / branches) in percent."""
+    """Return whole-report branch coverage (covered branches / branches) in percent.
+
+    A report without files or without branch data fails closed: it means branch mode or the
+    measured sources were lost, never 100% coverage.
+    """
     totals = report["totals"]
     branches = int(totals.get("num_branches", 0))
-    if branches == 0:
-        return 100.0
+    if not report.get("files") or branches <= 0:
+        raise SystemExit("coverage report has no measured files or no branch data (branch = true?)")
     return 100.0 * int(totals["covered_branches"]) / branches
 
 
@@ -48,15 +54,22 @@ def changed_lines(diff: str) -> dict[str, set[int]]:
     """Map each file in a `--unified=0` diff to its added or changed line numbers (new side)."""
     result: dict[str, set[int]] = {}
     current: str | None = None
+    body = 0  # hunk body lines still to skip, so a body line such as `+++ x` is never a header
     for line in diff.splitlines():
+        if body > 0:
+            body -= 1
+            continue
         if line.startswith("+++ "):
             target = line[4:].strip()
             current = None if target == "/dev/null" else target.removeprefix("b/")
             continue
         match = HUNK.match(line)
-        if match and current is not None:
-            start, count = int(match[1]), int(match[2] if match[2] is not None else 1)
-            result.setdefault(current, set()).update(range(start, start + count))
+        if match:
+            old = int(match[1] if match[1] is not None else 1)
+            start, count = int(match[2]), int(match[3] if match[3] is not None else 1)
+            body = old + count
+            if current is not None:
+                result.setdefault(current, set()).update(range(start, start + count))
     return result
 
 
@@ -82,7 +95,23 @@ def diff_coverage(
 
 def _git_diff(base: str) -> str:
     result = subprocess.run(
-        ["git", "-C", str(ROOT), "diff", "--unified=0", "--no-color", base, "HEAD", "--", "*.py"],
+        [
+            "git",
+            "-C",
+            str(ROOT),
+            "-c",
+            "core.quotepath=false",
+            "diff",
+            "--unified=0",
+            "--no-color",
+            "--no-ext-diff",
+            "--src-prefix=a/",
+            "--dst-prefix=b/",
+            base,
+            "HEAD",
+            "--",
+            "*.py",
+        ],
         capture_output=True,
         text=True,
         check=False,
@@ -104,6 +133,17 @@ def check(
     if branch + 1e-9 < float(ratchet[floor_key]):
         problems.append(f"branch coverage {branch:.2f}% is below {floor_key} {ratchet[floor_key]}%")
     if changed is not None:
+        reported = {Path(name).as_posix() for name in report["files"]}
+        unmeasured = sorted(
+            name
+            for name, lines in changed.items()
+            if lines and name.startswith(MEASURED) and name not in reported
+        )
+        if unmeasured:
+            problems.append(
+                f"changed files under {', '.join(MEASURED)} are missing from the coverage report "
+                f"(never imported by a test, or report paths do not match): {unmeasured[:12]}"
+            )
         hit, total, missed = diff_coverage(report, changed)
         if total and 100.0 * hit / total + 1e-9 < float(ratchet["diff_floor"]):
             detail = "; ".join(f"{name}: {lines[:12]}" for name, lines in sorted(missed.items()))

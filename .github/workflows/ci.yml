@@ -178,14 +178,17 @@ jobs:
         run: uv run pytest -q -n auto --cov --cov-report=
       - name: Coverage gate (static floor, diff coverage against the base revision)
         env:
+          EVENT: ${{ github.event_name }}
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
         run: |
           uv run coverage json -q -o "$RUNNER_TEMP/coverage-static.json"
-          if [ -n "$CI_BASE_SHA" ] && git fetch --no-tags --depth=1 origin "$CI_BASE_SHA"; then
-            uv run python -m scripts.coverage_gate "$RUNNER_TEMP/coverage-static.json" --floor static_branch_floor --base FETCH_HEAD
-          else
-            echo "::warning title=coverage::base revision unavailable; diff coverage not checked"
+          # Fail closed: only a manual run or a new branch (all-zero `before`) has no base to diff.
+          if [ "$EVENT" = "workflow_dispatch" ] || [ -z "${CI_BASE_SHA//0/}" ]; then
+            echo "::warning title=coverage::no base revision for $EVENT; diff coverage not checked"
             uv run python -m scripts.coverage_gate "$RUNNER_TEMP/coverage-static.json" --floor static_branch_floor
+          else
+            git fetch --no-tags --depth=1 origin "$CI_BASE_SHA" || { sleep 10; git fetch --no-tags --depth=1 origin "$CI_BASE_SHA"; }
+            uv run python -m scripts.coverage_gate "$RUNNER_TEMP/coverage-static.json" --floor static_branch_floor --base FETCH_HEAD
           fi
           cp .coverage "$RUNNER_TEMP/coverage-static.data"
       - name: Upload static coverage data (combined in the database job)
