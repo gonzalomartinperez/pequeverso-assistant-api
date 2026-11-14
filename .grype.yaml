@@ -1,0 +1,15 @@
+# Vulnerability gate for the built application image (CI job `container`).
+# Fails only on fixable High or Critical findings; unfixed ones are reported, not blocking.
+fail-on-severity: high
+only-fixed: true
+# Every ignore carries a reason, the tracking issue and an expiry of at most 90 days
+# ("expires: YYYY-MM-DD"); tests/test_container_layout.py fails once an expiry has passed.
+ignore:
+  # CPython 3.14.10 High, "fixed in 3.14.11", which is not released yet (no tag or official image
+  # on 2026-11-14). Remove when the base moves to python:3.14.11-slim-trixie.
+  # issue: https://github.com/gonzalomartinperez/pequeverso-assistant-api/issues/123
+  # expires: 2026-12-14
+  - vulnerability: CVE-2026-119170
+    package:
+      name: python
+      type: binary

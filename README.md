@@ -1,6 +1,6 @@
 # Pequeverso · Assistant API
 
-![Python](https://img.shields.io/badge/Python-3.14.8-3776AB?style=flat-square&logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.14.10-3776AB?style=flat-square&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-typed_HTTP-009688?style=flat-square&logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.6_%2B_pgvector-336791?style=flat-square&logo=postgresql&logoColor=white)
 ![Neo4j](https://img.shields.io/badge/Neo4j-5.26_LTS-007E80?style=flat-square&logo=neo4j&logoColor=white)
@@ -21,7 +21,7 @@ repository; its owner-authored software is MIT-licensed ([license](LICENSE),
 [scope and reserved material](NOTICE.md)). `main` is the default and release branch;
 development happens on `develop`.
 
-- Python 3.14.8, FastAPI and uv; PostgreSQL/pgvector with a public Neo4j projection in the
+- Python 3.14.10, FastAPI and uv; PostgreSQL/pgvector with a public Neo4j projection in the
   production profile; OpenAI Responses (`gpt-6-luna`) behind a provider port. The default
   credential-free local profile remains deterministic fixtures with SQLite.
 - Versioned commercial GraphRAG combines lexical, vector and bounded graph retrieval.
