@@ -47,13 +47,68 @@ Only `docs/master-plan/` is added (planning). No code, deploy, spend or producti
 
 none: all PVA decisions are resolved by delegation (README section 6). Owner inputs (3, the only ones): (1) the one-time 20% spot-check of judge labels (DR-05, about 1 h); (2) owner-only repository and release actions: applying the ruleset requiring `ci-gate`, private vulnerability reporting on, Dependabot security updates off, GitHub App or PAT for release-please, merging the weekly Dependabot PR, the release-please PR and the promotion to `main` (M7); (3) the standing per-run authorization before any live or paid run, including the VPS purchase and activation (MV; DR-04 caps apply).
 
+## M1 — Foundation (agent work merged; checkpoint pending)
+
+| Field | Value |
+|---|---|
+| Milestone | M1 Foundation: every task merged or parked; `checkpoint/M1` is tagged by the orchestrator after verification |
+| Date | 2026-11-14 |
+| develop SHA | `cad7f5b1613a3f4f1a6b48ae6adeaf0caad500f0` (merge of PR #127) before this docs PR |
+| Standards | `engineering-standards` v1.0.0 (`1f33be46bcb95f42f550f74608bc679cae5575ad`), `standards.lock` |
+
+### What changed
+
+| Task | PR | Result |
+|---|---|---|
+| PVA-M1.2 | #116 | certifi 2026.10.23 on develop (GHSA-6q48-6c7w-9gw2 fixed there); single weekly multi-ecosystem `dependabot.yml`; security-update PRs off, alerts on (verified) |
+| PVA-M1.3 | #124 | classifier and `pull_request_target` workflow retired (about 750 lines); `deps-weekly-guard` caller; `tests/test_dependabot_config.py`; skill `api-review-weekly-dependencies` |
+| PVA-M1.4 | #126 | `ci.yml` with `classify`, `.github/ci-profile.json`, shared docs and security jobs, `ci-gate`; `checks` kept as an alias until the ruleset switch; markdownlint and lychee green |
+| PVA-M1.5 | #120 | pytest-xdist and pytest-randomly, `unit`/`services` lanes, `pyyaml` and `types-PyYAML` declared |
+| PVA-M1.6 | #125 | Scorecard, daily vulnerability job (tracker issue #123), read-only settings check; CodeQL default setup enabled |
+| PVA-M1.7 | #122 | hadolint, container-structure-test, dockle, CycloneDX SBOM artifact, Grype gate, reproducibility check; base Python 3.14.10 (liblzma5 pin dropped, zlib1g pinned until the base ships it) |
+| PVA-M1.8 | #127 | community files and hooks from the standard (drift-checked), CONTRIBUTING (absorbs `docs/engineering-standards.md`), CODEOWNERS, justfile, retired-domain test, AGENTS workflow wording |
+| PVA-M1.9 | #121 | `.agents/skills` canonical, metadata, trigger stubs, validator and tests |
+| PVA-M1.11 | #118, #124 | ADR-0012, ADR-0015, ADR-0016 |
+| Carry-overs | #119 | owner decisions (OD-76) and README template resynced; "daily job notifies" wording already followed OD-75; Biome not applicable (no `package.json`, PVA-D2b) |
+
+Parked: PVA-M1.1 (E2 sandbox observation Monday 2026-11-16), PVA-M1.10 (release-please needs an owner GitHub App).
+
+### Exit criteria evidence
+
+- develop green on the full profile: every merge ran all jobs (push runs always run everything); last PR run all green including `ci-gate`.
+- Weekly PR: configured and tested on develop; not observable yet (Monday 2026-11-16) and only effective once the config reaches `main` (see Known issues).
+- Image builds reproducibly with SBOM: two consecutive `identical manifests` results (run 43556888072 and its re-run), SBOM artifact `sbom-app-cyclonedx`, 0 fixable High or Critical with one tracked, expiring ignore (CPython 3.14.11 unreleased, issue #123, expires 2026-12-14).
+- CI durations (latest green PR run): classify 18 s, static 56 s, database 182 s, container 176 s, gate 15 s; job critical path about 4.5 min, wall time 8.8 min with runner queueing. The 10-run p50 for PVA-M1.5 and the docs-only budget are still to be measured.
+
+### Known issues
+
+- **GitHub reads Dependabot config, scheduled workflows, `workflow_dispatch` and `pull_request_target` from the default branch `main`** (PVA-D17). Until M7 or an owner-authorized hotfix: Dependabot keeps the old multi-PR config (first run Monday 2026-11-16 06:00 ART), the old classifier still runs on PRs, and `deps-weekly-guard` (schedule), `vuln-daily`, Scorecard and `drift` (schedule) do not run.
+- Dependabot alert #1 (certifi) stays open because `main` still has certifi 2026.7.22.
+- `.python-version` stays 3.14.8 (local uv 0.12.10 cannot install 3.14.10); the image runs 3.14.10.
+- The Dependabot group is `weekly-all`; the standard name is `weekly` (drift warning only).
+- HEALTHCHECK calls `/health/ready`; the plan text says `/health/live` (left unchanged, liveness semantics are out of M1 scope).
+- Bytecode is compiled with one sorted `compileall` (`UV_COMPILE_BYTECODE=0`) for reproducibility, a justified deviation from ecosystem 8.2.
+
+### Owner inputs needed
+
+1. Authorize a hotfix to `main` limited to `.github/dependabot.yml` (and optionally the guard and scheduled workflows), before Monday 2026-11-16 06:00 ART, or accept several Dependabot PRs until M7.
+2. Apply the `ci-gate` ruleset (`engineering-standards/scripts/apply-rulesets.sh --flow release`, dry run first), then remove the `checks` alias.
+3. Enable private vulnerability reporting (SECURITY.md relies on it).
+4. GitHub App or token for release-please (PVA-M1.10).
+
+### Next item
+
+PVA-M1.1 after the Monday observation (update ADR-0016), then M2 starting with PVA-M2.1 (ruff migration) once `checkpoint/M1` is tagged.
+
 ## In-flight tasks
 
 Updated on each task merge (one row per task from `roadmap.md` that is `in-progress` or finished since the last milestone; the roadmap Status column is authoritative). Find the true next task with the RESUME command in `roadmap.md` (last section).
 
 | Task ID | Branch / PR | Status | Last update |
 |---|---|---|---|
-| (none started) | - | - | 2026-11-09 |
+| PVA-M1.1 | - | parked (Monday 2026-11-16 observation) | 2026-11-14 |
+| PVA-M1.10 | - | parked (owner GitHub App) | 2026-11-14 |
+| PVA-M1.2 to M1.9, M1.11 | PRs #116, #118 to #127 | done | 2026-11-14 |
 
 ## Ecosystem status (nine repositories; identical table in every repo)
 
