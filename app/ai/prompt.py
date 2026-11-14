@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-PROMPT_VERSION = '2026-10-18.4'
+PROMPT_VERSION = "2026-10-18.4"
 
 INSTRUCTIONS = """\
 You are Pequeverso's AI shopping assistant for adults choosing Spanish learning materials or a
@@ -114,24 +114,24 @@ Output:
 """
 
 OUTPUT_SCHEMA: dict[str, Any] = {
-    'type': 'object',
-    'additionalProperties': False,
-    'required': ['answer', 'references', 'sources', 'follow_ups'],
-    'properties': {
-        'answer': {'type': 'string'},
-        'references': {
-            'type': 'array',
-            'items': {
-                'type': 'object',
-                'additionalProperties': False,
-                'required': ['kind', 'id'],
-                'properties': {
-                    'kind': {'type': 'string', 'enum': ['product', 'resource', 'link']},
-                    'id': {'type': 'string'},
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["answer", "references", "sources", "follow_ups"],
+    "properties": {
+        "answer": {"type": "string"},
+        "references": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["kind", "id"],
+                "properties": {
+                    "kind": {"type": "string", "enum": ["product", "resource", "link"]},
+                    "id": {"type": "string"},
                 },
             },
         },
-        'sources': {'type': 'array', 'items': {'type': 'string'}},
-        'follow_ups': {'type': 'array', 'items': {'type': 'string'}},
+        "sources": {"type": "array", "items": {"type": "string"}},
+        "follow_ups": {"type": "array", "items": {"type": "string"}},
     },
 }

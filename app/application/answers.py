@@ -45,11 +45,11 @@ from app.domain.language import Language
 from app.domain.page_claims import unsupported_page_claim
 from app.domain.web_evidence import WebEvidence, negated_at, unsupported_platform_policy
 
-_MARKUP = re.compile(r'</?[A-Za-z][^<>]{0,300}>')
-_MARKDOWN_LINK = re.compile(r'\[([^\]\n]{1,180})\]\(([^)\n]{0,512})\)')
-_BRACKET_LABEL = re.compile(r'\[([^\[\]\n]{1,180})\](?!\()')
-_PROVIDER_CITATION = re.compile(r'[ \t]*\ue200cite\ue202[^\ue200\ue201\n]{1,256}\ue201[ \t]*')
-_PROVIDER_CITATION_MARKERS = ('\ue200', '\ue201', '\ue202')
+_MARKUP = re.compile(r"</?[A-Za-z][^<>]{0,300}>")
+_MARKDOWN_LINK = re.compile(r"\[([^\]\n]{1,180})\]\(([^)\n]{0,512})\)")
+_BRACKET_LABEL = re.compile(r"\[([^\[\]\n]{1,180})\](?!\()")
+_PROVIDER_CITATION = re.compile(r"[ \t]*\ue200cite\ue202[^\ue200\ue201\n]{1,256}\ue201[ \t]*")
+_PROVIDER_CITATION_MARKERS = ("\ue200", "\ue201", "\ue202")
 MAX_ANSWER_CHARS = 2000
 MAX_RESOURCES = 3
 MAX_LINKS = 3
@@ -58,28 +58,28 @@ MAX_FOLLOW_UPS = 3
 MAX_FOLLOW_UP_CHARS = 90
 
 REPLACEMENT_ANSWER = (
-    'No puedo confirmar esa información con los datos que tengo del catálogo. '
-    'Puedes revisar la información pública del producto y las opciones de ayuda de Hotmart.'
+    "No puedo confirmar esa información con los datos que tengo del catálogo. "
+    "Puedes revisar la información pública del producto y las opciones de ayuda de Hotmart."
 )
 REPLACEMENT_ANSWER_EN = (
     "I can't confirm that with the store information I have. "
-    'You can check the public product information and Hotmart help options.'
+    "You can check the public product information and Hotmart help options."
 )
 PAYMENT_REFUSAL_ANSWER = (
-    'Por seguridad eliminé tu mensaje: no escribas datos de tarjetas en este chat. '
-    'El pago se hace solo en la página segura de Hotmart. ¿Te ayudo con alguna duda sobre el producto?'
+    "Por seguridad eliminé tu mensaje: no escribas datos de tarjetas en este chat. "
+    "El pago se hace solo en la página segura de Hotmart. ¿Te ayudo con alguna duda sobre el producto?"
 )
 PAYMENT_REFUSAL_ANSWER_EN = (
-    'For your security I removed your message: please do not type card details in this chat. '
+    "For your security I removed your message: please do not type card details in this chat. "
     "Payment happens only on Hotmart's secure page. Can I help with a question about the product?"
 )
 UNSUPPORTED_LANGUAGE_ANSWER = (
-    'Por ahora solo puedo responder en español o en inglés. ¿Me escribes tu pregunta en uno de '
-    'esos idiomas?\n\nFor now I can only answer in Spanish or English. Could you write your '
-    'question in one of them?'
+    "Por ahora solo puedo responder en español o en inglés. ¿Me escribes tu pregunta en uno de "
+    "esos idiomas?\n\nFor now I can only answer in Spanish or English. Could you write your "
+    "question in one of them?"
 )
 UNSUPPORTED_LANGUAGE_ANSWER_ES = (
-    'Por ahora te ayudo solo en español. ¿Qué te gustaría saber sobre Pequeverso?'
+    "Por ahora te ayudo solo en español. ¿Qué te gustaría saber sobre Pequeverso?"
 )
 
 
@@ -110,37 +110,41 @@ def price_comparison_reply(
     products = comparison_products(question, active.catalog, history)
     if products is None:
         return None
-    if products and price_status is PriceStatus.VERIFIED and all(p.price is not None for p in products):
+    if (
+        products
+        and price_status is PriceStatus.VERIFIED
+        and all(p.price is not None for p in products)
+    ):
         return None
     if not products:
         text = clarification(language)
     else:
         missing = tuple(p for p in products if p.price is None)
-        names = ', '.join(f'«{p.name}»' for p in missing)
+        names = ", ".join(f"«{p.name}»" for p in missing)
         if language is Language.EN:
             text = (
-                f'I cannot compare their prices: I do not have a published price for {names}.'
+                f"I cannot compare their prices: I do not have a published price for {names}."
                 if missing
-                else 'I cannot compare their prices without currently verified prices.'
+                else "I cannot compare their prices without currently verified prices."
             )
         else:
             text = (
-                f'No puedo comparar sus precios: no tengo un precio publicado para {names}.'
+                f"No puedo comparar sus precios: no tengo un precio publicado para {names}."
                 if missing
-                else 'No puedo comparar sus precios sin precios actuales verificados.'
+                else "No puedo comparar sus precios sin precios actuales verificados."
             )
         if price_status is PriceStatus.VERIFIED:
             for product in products:
                 if product.price is not None:
                     text += (
-                        f' The reference price for «{product.name}» is {product.price.display}.'
+                        f" The reference price for «{product.name}» is {product.price.display}."
                         if language is Language.EN
-                        else f' El precio de referencia de «{product.name}» es {product.price.display}.'
+                        else f" El precio de referencia de «{product.name}» es {product.price.display}."
                     )
         text += (
             " Check each product's current final price, currency and applicable taxes before paying."
             if language is Language.EN
-            else ' Revisa el precio final actual, la moneda y los impuestos de cada producto antes de pagar.'
+            else " Revisa el precio final actual, la moneda y los impuestos de cada producto antes de pagar."
         )
     return finalize(
         Draft(text, tuple(DraftReference(ReferenceKind.PRODUCT, p.id) for p in products), (), ()),
@@ -168,17 +172,17 @@ def reference_clarification_reply(
         if product is None:
             return None
         parts.append(
-            f'The published format of «{product.name}» is: {product.format}'
+            f"The published format of «{product.name}» is: {product.format}"
             if language is Language.EN
-            else f'El formato publicado de «{product.name}» es: {product.format}'
+            else f"El formato publicado de «{product.name}» es: {product.format}"
         )
-        if not parts[-1].endswith(('.', '!', '?')):
-            parts[-1] += '.'
+        if not parts[-1].endswith((".", "!", "?")):
+            parts[-1] += "."
         if product.pdf_count is None:
             parts.append(
-                'I do not have confirmation of additional printable or downloadable materials.'
+                "I do not have confirmation of additional printable or downloadable materials."
                 if language is Language.EN
-                else 'No tengo confirmación sobre materiales adicionales para imprimir o descargar.'
+                else "No tengo confirmación sobre materiales adicionales para imprimir o descargar."
             )
         references.append(DraftReference(ReferenceKind.PRODUCT, product.id))
     else:
@@ -189,20 +193,20 @@ def reference_clarification_reply(
             _, resource = resolved
             if resource.pages is not None:
                 parts.append(
-                    f'«{resource.title}»: {resource.pages} pages.'
+                    f"«{resource.title}»: {resource.pages} pages."
                     if language is Language.EN
-                    else f'«{resource.title}»: {resource.pages} páginas.'
+                    else f"«{resource.title}»: {resource.pages} páginas."
                 )
             else:
                 parts.append(
-                    f'«{resource.title}»: page count unconfirmed.'
+                    f"«{resource.title}»: page count unconfirmed."
                     if language is Language.EN
-                    else f'«{resource.title}»: cantidad de páginas no confirmada.'
+                    else f"«{resource.title}»: cantidad de páginas no confirmada."
                 )
             references.append(DraftReference(ReferenceKind.RESOURCE, resource_id))
         parts.append(reference_clarification(language, guide=plan.guide))
     return finalize(
-        Draft(' '.join(parts), tuple(references), (), ()),
+        Draft(" ".join(parts), tuple(references), (), ()),
         active,
         price_status,
         answer_rules(active.catalog, price_status, ()),
@@ -213,10 +217,10 @@ def reference_clarification_reply(
 def answer_rules(
     catalog: Catalog, price_status: PriceStatus, extra_forbidden: tuple[str, ...]
 ) -> AnswerRules:
-    hosts = {urlsplit(catalog.site.origin).hostname or ''}
-    hosts.update(urlsplit(link.url).hostname or '' for link in catalog.links)
-    hosts.update(urlsplit(doc.url).hostname or '' for doc in catalog.documents)
-    hosts.discard('')
+    hosts = {urlsplit(catalog.site.origin).hostname or ""}
+    hosts.update(urlsplit(link.url).hostname or "" for link in catalog.links)
+    hosts.update(urlsplit(doc.url).hostname or "" for doc in catalog.documents)
+    hosts.discard("")
     urls = {catalog.site.origin}
     urls.update(link.url for link in catalog.links)
     urls.update(doc.url for doc in catalog.documents)
@@ -226,9 +230,9 @@ def answer_rules(
     # its structured link points to /refund?lang=es. Permit that literal public mention,
     # without opening arbitrary paths on the same host or trusting new text-only hosts.
     for host in hosts:
-        bare_host = re.compile(rf'(?<![\w/.-]){re.escape(host)}(?![\w/?#.-])', re.IGNORECASE)
+        bare_host = re.compile(rf"(?<![\w/.-]){re.escape(host)}(?![\w/?#.-])", re.IGNORECASE)
         if any(bare_host.search(document.text) for document in catalog.documents):
-            urls.add(f'https://{host}/')
+            urls.add(f"https://{host}/")
     return AnswerRules(
         allowed_hosts=frozenset(hosts),
         allowed_emails=frozenset({catalog.site.support_email}),
@@ -242,14 +246,17 @@ def answer_rules(
     )
 
 
-def support_link(catalog: Catalog, product_ids: frozenset[str] = frozenset()) -> tuple[LinkRef, ...]:
+def support_link(
+    catalog: Catalog, product_ids: frozenset[str] = frozenset()
+) -> tuple[LinkRef, ...]:
     link = catalog.link(catalog.site.support_link_id)
     if link and product_ids and not catalog.applies_to(link.product_ids, product_ids):
         link = next(
             (
                 item
                 for item in catalog.links
-                if item.id.startswith('hotmart-') and catalog.applies_to(item.product_ids, product_ids)
+                if item.id.startswith("hotmart-")
+                and catalog.applies_to(item.product_ids, product_ids)
             ),
             None,
         )
@@ -262,7 +269,9 @@ def replacement(
     language: Language = Language.ES,
     product_ids: frozenset[str] = frozenset(),
 ) -> AnswerDetails:
-    return AnswerDetails(links=support_link(catalog, product_ids), notices=(notice,), language=language.value)
+    return AnswerDetails(
+        links=support_link(catalog, product_ids), notices=(notice,), language=language.value
+    )
 
 
 def _image(image: Image | None) -> ImageRef | None:
@@ -274,7 +283,9 @@ def product_ref(active: ActiveCatalog, product: Product, price_status: PriceStat
     price = None
     if price_status is PriceStatus.VERIFIED and product.price is not None:
         p = product.price
-        price = PriceRef(f'{p.amount:.2f}', p.currency, p.display, p.note, p.tax_note, active.verified_at)
+        price = PriceRef(
+            f"{p.amount:.2f}", p.currency, p.display, p.note, p.tax_note, active.verified_at
+        )
     return ProductRef(
         id=product.id,
         name=product.name,
@@ -292,13 +303,18 @@ def product_ref(active: ActiveCatalog, product: Product, price_status: PriceStat
 
 def resource_ref(reference_id: str, owner: Product, resource: Resource) -> ResourceRef:
     return ResourceRef(
-        reference_id, owner.id, resource.title, resource.pages, resource.description, _image(resource.image)
+        reference_id,
+        owner.id,
+        resource.title,
+        resource.pages,
+        resource.description,
+        _image(resource.image),
     )
 
 
 def plain_text(text: str) -> str:
     """Answers are plain text by contract: markup-like tags are removed, not escaped or rendered."""
-    return _MARKUP.sub('', text).strip()
+    return _MARKUP.sub("", text).strip()
 
 
 def _readable_text(text: str) -> str:
@@ -308,9 +324,9 @@ def _readable_text(text: str) -> str:
     remain the only interactive navigation. Never run this before the destination guard.
     """
     # Raw destinations/prices were checked before this bounded presentation cleanup.
-    text = _PROVIDER_CITATION.sub(' ', text).strip()
-    text = _MARKDOWN_LINK.sub(lambda match: f'{match.group(1)} ({match.group(2)})', text)
-    return _BRACKET_LABEL.sub(r'\1', text)
+    text = _PROVIDER_CITATION.sub(" ", text).strip()
+    text = _MARKDOWN_LINK.sub(lambda match: f"{match.group(1)} ({match.group(2)})", text)
+    return _BRACKET_LABEL.sub(r"\1", text)
 
 
 @dataclass(frozen=True, slots=True)
@@ -342,23 +358,27 @@ def check_content(
     violations = list(dict.fromkeys([*violations, *check_answer(content, rules)]))
     # Product scopes are checked before AND after readable cleanup, including raw citation text.
     for candidate in (raw_content, content):
-        for sentence in re.split(r'[!?;\n]+|[.](?!\d)|,(?!\d)', candidate):
+        for sentence in re.split(r"[!?;\n]+|[.](?!\d)|,(?!\d)", candidate):
             selected = mentioned_products(sentence, catalog)
             owners = tuple(p for p in catalog.products if p.id in selected)
             if not owners:
                 continue
             if any(p.price is None for p in owners):
-                scoped_rules = replace(rules, known_prices=frozenset(), known_price_pairs=frozenset())
+                scoped_rules = replace(
+                    rules, known_prices=frozenset(), known_price_pairs=frozenset()
+                )
                 if Violation.UNKNOWN_PRICE in check_answer(sentence, scoped_rules):
                     violations.append(Violation.UNKNOWN_PRICE)
             if any(p.pdf_count is None for p in owners):
                 normalized = fold(sentence)
                 if any(
                     not negated_at(normalized, match.start())
-                    for match in re.finditer(r'\b\d{1,5}\s+(?:pdfs?|archivos? pdf)\b', normalized)
+                    for match in re.finditer(r"\b\d{1,5}\s+(?:pdfs?|archivos? pdf)\b", normalized)
                 ):
                     violations.append(Violation.UNSUPPORTED_PAGE_CLAIM)
-            policies = tuple(d.text for d in catalog.documents if catalog.applies_to(d.product_ids, selected))
+            policies = tuple(
+                d.text for d in catalog.documents if catalog.applies_to(d.product_ids, selected)
+            )
             if unsupported_platform_policy(sentence, policies):
                 violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
     # Merchant policy authority never depends on optional external evidence availability.
@@ -372,7 +392,7 @@ def check_content(
     return CheckedContent(content, tuple(dict.fromkeys(violations)))
 
 
-_COMPLETE_PREFIX = re.compile(r'[.!?](?=\s)|\n[ \t]*\n')
+_COMPLETE_PREFIX = re.compile(r"[.!?](?=\s)|\n[ \t]*\n")
 
 
 class ValidatedStreamPrefix:
@@ -384,8 +404,8 @@ class ValidatedStreamPrefix:
     """
 
     def __init__(self) -> None:
-        self._buffer = ''
-        self._emitted = ''
+        self._buffer = ""
+        self._emitted = ""
         self._blocked = False
 
     def feed(
@@ -396,30 +416,32 @@ class ValidatedStreamPrefix:
         web_evidence: tuple[WebEvidence, ...] = (),
     ) -> str:
         if self._blocked:
-            return ''
+            return ""
         if len(self._buffer) + len(chunk) > MAX_ANSWER_CHARS:
             self._blocked = True
-            return ''
+            return ""
         self._buffer += chunk
-        if any(marker in self._buffer for marker in ('<', '>', '[', ']', *_PROVIDER_CITATION_MARKERS)):
+        if any(
+            marker in self._buffer for marker in ("<", ">", "[", "]", *_PROVIDER_CITATION_MARKERS)
+        ):
             self._blocked = True
-            return ''
+            return ""
         end = max((match.end() for match in _COMPLETE_PREFIX.finditer(self._buffer)), default=0)
         if not end:
-            return ''
+            return ""
         checked = check_content(self._buffer[:end], catalog, rules, web_evidence)
         if not checked.accepted or not checked.content.startswith(self._emitted):
             self._blocked = True
-            return ''
+            return ""
         return self._append(checked.content)
 
     def finish(self, final: FinalizedAnswer) -> str:
         # Full canonical validation has completed; never turn a replacement into fake typing.
         if self._blocked or Notice.ANSWER_REPLACED in final.details.notices:
-            return ''
+            return ""
         if not final.content.startswith(self._emitted):
             self._blocked = True
-            return ''
+            return ""
         return self._append(final.content)
 
     def _append(self, content: str) -> str:
@@ -439,17 +461,23 @@ def finalize(
 ) -> FinalizedAnswer:
     catalog = active.catalog
     selected = frozenset(
-        ref.id for ref in draft.references if ref.kind == ReferenceKind.PRODUCT and catalog.product(ref.id)
+        ref.id
+        for ref in draft.references
+        if ref.kind == ReferenceKind.PRODUCT and catalog.product(ref.id)
     )
     scoped = (
         replace(
             catalog,
-            documents=tuple(d for d in catalog.documents if catalog.applies_to(d.product_ids, selected)),
+            documents=tuple(
+                d for d in catalog.documents if catalog.applies_to(d.product_ids, selected)
+            ),
         )
         if selected
         else catalog
     )
-    if selected and all((p := catalog.product(pid)) is not None and p.price is None for pid in selected):
+    if selected and all(
+        (p := catalog.product(pid)) is not None and p.price is None for pid in selected
+    ):
         rules = replace(rules, known_prices=frozenset(), known_price_pairs=frozenset())
     checked = check_content(draft.answer, scoped, rules, web_evidence)
     content = checked.content
@@ -506,7 +534,7 @@ def finalize(
 
     follow_ups: list[str] = []
     for suggestion in draft.follow_ups:
-        raw_text = ' '.join(plain_text(suggestion).split())
+        raw_text = " ".join(plain_text(suggestion).split())
         if check_answer(raw_text, rules):
             continue
         text = _readable_text(raw_text)
@@ -521,13 +549,13 @@ def finalize(
     disclosures = tuple(
         p.disclosure
         for p in catalog.products
-        if p.kind == 'affiliate'
+        if p.kind == "affiliate"
         and p.disclosure
         and (p.id in products or p.name.casefold() in content.casefold())
     )
     for disclosure in disclosures:
         if disclosure not in content:
-            enriched = f'{content}\n\n{disclosure}'
+            enriched = f"{content}\n\n{disclosure}"
             if len(enriched) > MAX_ANSWER_CHARS:
                 return FinalizedAnswer(
                     replacement_text(language),

@@ -12,7 +12,7 @@ from app.domain.budget import Usage
 
 @dataclass(frozen=True, slots=True)
 class ModelInput:
-    role: Literal['user', 'assistant']
+    role: Literal["user", "assistant"]
     text: str
 
 
@@ -32,9 +32,11 @@ class ModelRequest:
         It is a deliberately pessimistic byte bound, not a provider tokenization estimate.
         """
         payload = {
-            'instructions': self.instructions,
-            'input': [{'role': item.role, 'content': item.text, 'type': 'message'} for item in self.inputs],
-            'schema': self.output_schema,
+            "instructions": self.instructions,
+            "input": [
+                {"role": item.role, "content": item.text, "type": "message"} for item in self.inputs
+            ],
+            "schema": self.output_schema,
         }
         return len(json.dumps(payload, ensure_ascii=False).encode()) + 1024
 

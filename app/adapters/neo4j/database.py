@@ -11,7 +11,7 @@ class Neo4jDatabase:
     def __init__(self, uri: str, username: str, password: str) -> None:
         location = urlsplit(uri)
         if (
-            location.scheme not in {'bolt', 'bolt+s', 'neo4j', 'neo4j+s'}
+            location.scheme not in {"bolt", "bolt+s", "neo4j", "neo4j+s"}
             or not location.hostname
             or location.username
             or location.password
@@ -20,7 +20,9 @@ class Neo4jDatabase:
             or not username
             or not password
         ):
-            raise ValueError('graph connection requires explicit private credentials and a valid URI')
+            raise ValueError(
+                "graph connection requires explicit private credentials and a valid URI"
+            )
         self.driver = AsyncGraphDatabase.driver(
             uri,
             auth=(username, password),
@@ -37,7 +39,7 @@ class Neo4jDatabase:
 
     async def open(self) -> None:
         if self._closed:
-            raise RuntimeError('graph database is already closed')
+            raise RuntimeError("graph database is already closed")
         if self._opened:
             return
         try:

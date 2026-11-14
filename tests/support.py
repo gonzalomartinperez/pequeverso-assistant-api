@@ -20,8 +20,8 @@ from app.bootstrap.container import create_app
 from app.domain.budget import Usage
 from app.domain.errors import FailureCode, RejectedError
 
-ORIGIN = 'http://localhost:3000'
-JSON_HEADERS = {'Origin': ORIGIN, 'Content-Type': 'application/json'}
+ORIGIN = "http://localhost:3000"
+JSON_HEADERS = {"Origin": ORIGIN, "Content-Type": "application/json"}
 CATALOG_BYTES = DEFAULT_CATALOG.read_bytes()
 
 
@@ -44,10 +44,10 @@ def answer_json(
 ) -> str:
     return json.dumps(
         {
-            'answer': answer,
-            'references': references or [],
-            'sources': sources or [],
-            'follow_ups': follow_ups or [],
+            "answer": answer,
+            "references": references or [],
+            "sources": sources or [],
+            "follow_ups": follow_ups or [],
         },
         ensure_ascii=False,
     )
@@ -57,7 +57,9 @@ def answer_json(
 class ScriptedProvider:
     """Streams a fixed structured output; optionally fails, hangs or delays between chunks."""
 
-    output: str = field(default_factory=lambda: answer_json('Hola, soy el asistente de Pequeverso.'))
+    output: str = field(
+        default_factory=lambda: answer_json("Hola, soy el asistente de Pequeverso.")
+    )
     usage: Usage | None = field(default_factory=lambda: Usage(input_tokens=5000, output_tokens=200))
     fail_with: FailureCode | None = None
     hang: bool = False
@@ -68,7 +70,7 @@ class ScriptedProvider:
 
     @property
     def model(self) -> str:
-        return 'scripted'
+        return "scripted"
 
     async def stream(self, request: ModelRequest) -> AsyncGenerator[ModelChunk]:
         self.calls.append(request)
@@ -88,7 +90,10 @@ class ScriptedProvider:
 
 
 def settings(tmp_path: Path, **overrides: Any) -> Settings:
-    values: dict[str, Any] = {'database_path': str(tmp_path / 'test.sqlite3'), 'environment': 'test'}
+    values: dict[str, Any] = {
+        "database_path": str(tmp_path / "test.sqlite3"),
+        "environment": "test",
+    }
     values.update(overrides)
     return Settings(_env_file=None, **values)
 
@@ -97,32 +102,34 @@ def settings(tmp_path: Path, **overrides: Any) -> Settings:
 def client(
     tmp_path: Path, provider: Any = None, clock: FixedClock | None = None, **overrides: Any
 ) -> Iterator[TestClient]:
-    app = create_app(settings(tmp_path, **overrides), provider=provider, clock=clock or FixedClock())
-    with TestClient(app, base_url='http://localhost:8000') as test_client:
+    app = create_app(
+        settings(tmp_path, **overrides), provider=provider, clock=clock or FixedClock()
+    )
+    with TestClient(app, base_url="http://localhost:8000") as test_client:
         yield test_client
 
 
 def open_session(c: TestClient) -> str:
-    response = c.post('/api/v1/session', headers=JSON_HEADERS, json={})
+    response = c.post("/api/v1/session", headers=JSON_HEADERS, json={})
     assert response.status_code in (200, 201), response.text
-    token: str = response.json()['csrf_token']
+    token: str = response.json()["csrf_token"]
     return token
 
 
 def mutation_headers(csrf: str, key: str | None = None) -> dict[str, str]:
-    return {**JSON_HEADERS, 'X-CSRF-Token': csrf, 'Idempotency-Key': key or secrets.token_hex(8)}
+    return {**JSON_HEADERS, "X-CSRF-Token": csrf, "Idempotency-Key": key or secrets.token_hex(8)}
 
 
 def parse_sse(body: str) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
-    for block in body.split('\n\n'):
-        lines = [line for line in block.split('\n') if line and not line.startswith(':')]
+    for block in body.split("\n\n"):
+        lines = [line for line in block.split("\n") if line and not line.startswith(":")]
         if not lines:
             continue
-        fields = dict(line.split(': ', 1) for line in lines)
-        data = json.loads(fields['data'])
-        assert data['type'] == fields['event']
-        assert str(data['sequence']) == fields['id']
+        fields = dict(line.split(": ", 1) for line in lines)
+        data = json.loads(fields["data"])
+        assert data["type"] == fields["event"]
+        assert str(data["sequence"]) == fields["id"]
         events.append(data)
     return events
 
@@ -130,12 +137,14 @@ def parse_sse(body: str) -> list[dict[str, Any]]:
 def ask(
     c: TestClient, csrf: str, content: str, key: str | None = None, page: str | None = None
 ) -> tuple[int, list[dict[str, Any]], Any]:
-    body: dict[str, Any] = {'content': content}
+    body: dict[str, Any] = {"content": content}
     if page:
-        body['page'] = page
-    with c.stream('POST', '/api/v1/messages', headers=mutation_headers(csrf, key), json=body) as response:
-        text = ''.join(response.iter_text())
-    if response.headers.get('content-type', '').startswith('text/event-stream'):
+        body["page"] = page
+    with c.stream(
+        "POST", "/api/v1/messages", headers=mutation_headers(csrf, key), json=body
+    ) as response:
+        text = "".join(response.iter_text())
+    if response.headers.get("content-type", "").startswith("text/event-stream"):
         return response.status_code, parse_sse(text), None
     return response.status_code, [], json.loads(text)
 
@@ -152,17 +161,21 @@ def live_server(
     import uvicorn
 
     with socket.socket() as probe:
-        probe.bind(('127.0.0.1', 0))
+        probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
-    app = create_app(settings(tmp_path, **overrides), provider=provider, clock=clock or FixedClock())
-    server = uvicorn.Server(uvicorn.Config(app, host='127.0.0.1', port=port, log_config=None, lifespan='on'))
+    app = create_app(
+        settings(tmp_path, **overrides), provider=provider, clock=clock or FixedClock()
+    )
+    server = uvicorn.Server(
+        uvicorn.Config(app, host="127.0.0.1", port=port, log_config=None, lifespan="on")
+    )
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
     deadline = time.monotonic() + 10
     while not server.started and time.monotonic() < deadline:
         time.sleep(0.02)
     try:
-        yield f'http://127.0.0.1:{port}'
+        yield f"http://127.0.0.1:{port}"
     finally:
         server.should_exit = True
         thread.join(10)

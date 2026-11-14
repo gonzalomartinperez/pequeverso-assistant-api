@@ -10,7 +10,7 @@ from app.application.catalog_diff import diff
 from app.bootstrap.config import Settings
 from tests.support import CATALOG_BYTES
 
-PARSE = CatalogParser(frozenset(Settings.model_fields['catalog_allowed_hosts'].default))
+PARSE = CatalogParser(frozenset(Settings.model_fields["catalog_allowed_hosts"].default))
 
 
 def _variant(change: Any) -> bytes:
@@ -27,13 +27,13 @@ def test_price_document_and_retirement_changes_are_reported() -> None:
     before = PARSE(CATALOG_BYTES)
 
     def change(data: dict[str, Any]) -> None:
-        data['products'][0]['price']['amount'] = '19.99'
-        data['documents'][0]['text'] += ' Actualizado.'
-        data['documents'].pop()
+        data["products"][0]["price"]["amount"] = "19.99"
+        data["documents"][0]["text"] += " Actualizado."
+        data["documents"].pop()
 
     after = PARSE(_variant(change))
     result = diff(before, after)
-    assert result.price_changes == {'grafismo-fonetico': ('14.99 USD', '19.99 USD')}
+    assert result.price_changes == {"grafismo-fonetico": ("14.99 USD", "19.99 USD")}
     assert result.documents_changed == [before.documents[0].id]
     assert result.documents_removed == [before.documents[-1].id]
     assert not result.empty
@@ -41,4 +41,7 @@ def test_price_document_and_retirement_changes_are_reported() -> None:
 
 def test_first_sync_reports_everything_as_added() -> None:
     result = diff(None, PARSE(CATALOG_BYTES))
-    assert result.products_added == ['alimentacion-bebe', 'grafismo-fonetico'] and not result.products_retired
+    assert (
+        result.products_added == ["alimentacion-bebe", "grafismo-fonetico"]
+        and not result.products_retired
+    )

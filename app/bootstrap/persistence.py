@@ -45,7 +45,7 @@ class Persistence:
 
 
 def build_persistence(settings: Settings, parser: CatalogParser) -> Persistence:
-    if settings.application_storage == 'sqlite':
+    if settings.application_storage == "sqlite":
         database = Database(settings.database_path)
         return Persistence(
             database=database,
@@ -64,18 +64,20 @@ def build_persistence(settings: Settings, parser: CatalogParser) -> Persistence:
     assert settings.neo4j_uri is not None
     assert settings.neo4j_password is not None
     private = PostgresDatabase(
-        settings.postgres_private_dsn.get_secret_value(), pool_size=settings.postgres_private_pool_size
+        settings.postgres_private_dsn.get_secret_value(),
+        pool_size=settings.postgres_private_pool_size,
     )
     public = PostgresDatabase(
-        settings.postgres_knowledge_dsn.get_secret_value(), pool_size=settings.postgres_knowledge_pool_size
+        settings.postgres_knowledge_dsn.get_secret_value(),
+        pool_size=settings.postgres_knowledge_pool_size,
     )
     graph_database = Neo4jDatabase(
         settings.neo4j_uri, settings.neo4j_username, settings.neo4j_password.get_secret_value()
     )
     spec = (
-        EmbeddingSpec('openai', 'text-embedding-3-small', 1536)
-        if settings.ai_provider == 'openai'
-        else EmbeddingSpec('fixture', 'hash64-v1', 64)
+        EmbeddingSpec("openai", "text-embedding-3-small", 1536)
+        if settings.ai_provider == "openai"
+        else EmbeddingSpec("fixture", "hash64-v1", 64)
     )
     return Persistence(
         database=private,

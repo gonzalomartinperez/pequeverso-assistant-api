@@ -107,7 +107,7 @@ class ServiceInfo:
 
     @property
     def synthetic(self) -> bool:
-        return self.provider == 'fixture'
+        return self.provider == "fixture"
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,24 +143,24 @@ class Summary:
 
 
 def usd(micro: int) -> str:
-    return f'{from_micro(micro):.6f}'
+    return f"{from_micro(micro):.6f}"
 
 
 def _spend(spend: Spend) -> dict[str, str]:
     return {
-        'confirmed': usd(spend.confirmed),
-        'estimated': usd(spend.estimated),
-        'pending': usd(spend.pending),
+        "confirmed": usd(spend.confirmed),
+        "estimated": usd(spend.estimated),
+        "pending": usd(spend.pending),
     }
 
 
 def _tokens(tokens: Tokens) -> dict[str, int]:
     return {
-        'input': tokens.input,
-        'cached_input': tokens.cached_input,
-        'output': tokens.output,
-        'reasoning': tokens.reasoning,
-        'runs_with_usage': tokens.runs_with_usage,
+        "input": tokens.input,
+        "cached_input": tokens.cached_input,
+        "output": tokens.output,
+        "reasoning": tokens.reasoning,
+        "runs_with_usage": tokens.runs_with_usage,
     }
 
 
@@ -185,9 +185,9 @@ class OperationsService:
 
     async def summary(self) -> Summary:
         now = self._clock.now()
-        month, day = now.strftime('%Y-%m'), now.strftime('%Y-%m-%d')
-        month_spend = await self._queries.spend('month', month)
-        day_spend = await self._queries.spend('day', day)
+        month, day = now.strftime("%Y-%m"), now.strftime("%Y-%m-%d")
+        month_spend = await self._queries.spend("month", month)
+        day_spend = await self._queries.spend("day", day)
         windows: list[dict[str, object]] = []
         for hours in WINDOWS_HOURS:
             since = now - timedelta(hours=hours)
@@ -195,27 +195,27 @@ class OperationsService:
             first, total = percentiles(window.first_delta_ms), percentiles(window.total_ms)
             windows.append(
                 {
-                    'hours': hours,
-                    'runs': window.counts,
-                    'replaced': window.replaced,
-                    'failures': window.failures,
-                    'latency_ms': {
-                        'first_delta': None if first is None else vars_of(first),
-                        'total': None if total is None else vars_of(total),
+                    "hours": hours,
+                    "runs": window.counts,
+                    "replaced": window.replaced,
+                    "failures": window.failures,
+                    "latency_ms": {
+                        "first_delta": None if first is None else vars_of(first),
+                        "total": None if total is None else vars_of(total),
                     },
-                    'tokens': _tokens(await self._queries.tokens(since)),
+                    "tokens": _tokens(await self._queries.tokens(since)),
                 }
             )
-        since_day = (now - timedelta(days=DAILY_DAYS - 1)).strftime('%Y-%m-%d')
+        since_day = (now - timedelta(days=DAILY_DAYS - 1)).strftime("%Y-%m-%d")
         daily = [
             {
-                'day': row.day,
+                "day": row.day,
                 **row.counts,
-                'confirmed': usd(row.spend.confirmed),
-                'estimated': usd(row.spend.estimated),
-                'input_tokens': row.tokens.input,
-                'output_tokens': row.tokens.output,
-                'reasoning_tokens': row.tokens.reasoning,
+                "confirmed": usd(row.spend.confirmed),
+                "estimated": usd(row.spend.estimated),
+                "input_tokens": row.tokens.input,
+                "output_tokens": row.tokens.output,
+                "reasoning_tokens": row.tokens.reasoning,
             }
             for row in await self._queries.daily(since_day)
         ]
@@ -225,14 +225,16 @@ class OperationsService:
             availability=await self._availability(),
             catalog=await self._catalog_status(now),
             budget={
-                'month': month,
-                'day': day,
-                'monthly_limit': usd(self._budget.monthly_limit_micro),
-                'monthly_cutoff': usd(self._budget.monthly_cutoff_micro),
-                'daily_limit': usd(self._budget.daily_cutoff_micro),
-                'month_spend': _spend(month_spend),
-                'day_spend': _spend(day_spend),
-                'remaining_month': usd(max(0, self._budget.monthly_cutoff_micro - month_spend.total)),
+                "month": month,
+                "day": day,
+                "monthly_limit": usd(self._budget.monthly_limit_micro),
+                "monthly_cutoff": usd(self._budget.monthly_cutoff_micro),
+                "daily_limit": usd(self._budget.daily_cutoff_micro),
+                "month_spend": _spend(month_spend),
+                "day_spend": _spend(day_spend),
+                "remaining_month": usd(
+                    max(0, self._budget.monthly_cutoff_micro - month_spend.total)
+                ),
             },
             windows=windows,
             daily=daily,
@@ -244,41 +246,41 @@ class OperationsService:
         state = await self._queries.catalog_state()
         active = self._catalog.active
         common: dict[str, object] = {
-            'source': 'live' if self._live else 'bundled',
-            'price_max_age_hours': self._info.price_max_age_hours,
-            'activated_at': state.activated_at,
-            'last_attempt_at': state.last_attempt_at,
-            'last_failure': state.last_failure,
-            'last_failure_at': state.last_failure_at,
+            "source": "live" if self._live else "bundled",
+            "price_max_age_hours": self._info.price_max_age_hours,
+            "activated_at": state.activated_at,
+            "last_attempt_at": state.last_attempt_at,
+            "last_failure": state.last_failure,
+            "last_failure_at": state.last_failure_at,
         }
         if active is None:
             return {
-                'status': 'missing',
+                "status": "missing",
                 **common,
-                'revision': None,
-                'sha256': None,
-                'generated_at': None,
-                'verified_at': None,
-                'price_status': None,
-                'products': None,
-                'documents': None,
+                "revision": None,
+                "sha256": None,
+                "generated_at": None,
+                "verified_at": None,
+                "price_status": None,
+                "products": None,
+                "documents": None,
             }
         catalog = active.catalog
         return {
-            'status': 'active',
+            "status": "active",
             **common,
-            'revision': catalog.source_revision,
-            'sha256': active.sha256,
-            'generated_at': catalog.generated_at,
-            'verified_at': active.verified_at,
-            'price_status': active.price_status(now).value,
-            'products': len(catalog.products),
-            'documents': len(catalog.documents),
+            "revision": catalog.source_revision,
+            "sha256": active.sha256,
+            "generated_at": catalog.generated_at,
+            "verified_at": active.verified_at,
+            "price_status": active.price_status(now).value,
+            "products": len(catalog.products),
+            "documents": len(catalog.documents),
         }
 
 
 def vars_of(p: Percentiles) -> dict[str, int]:
-    return {'p50': p.p50, 'p95': p.p95, 'count': p.count}
+    return {"p50": p.p50, "p95": p.p95, "count": p.count}
 
 
 class AvailabilityCheck(Protocol):

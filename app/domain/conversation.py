@@ -9,23 +9,23 @@ from typing import Literal
 
 
 class Role(StrEnum):
-    USER = 'user'
-    ASSISTANT = 'assistant'
+    USER = "user"
+    ASSISTANT = "assistant"
 
 
 class ReferenceKind(StrEnum):
-    PRODUCT = 'product'
-    RESOURCE = 'resource'
-    LINK = 'link'
+    PRODUCT = "product"
+    RESOURCE = "resource"
+    LINK = "link"
 
 
 class Notice(StrEnum):
     """Why a final answer differs from what a model would have produced."""
 
-    ANSWER_REPLACED = 'answer_replaced'
-    PAYMENT_DATA_REFUSED = 'payment_data_refused'
-    CONTACT_DATA_REDACTED = 'contact_data_redacted'
-    LANGUAGE_UNSUPPORTED = 'language_unsupported'
+    ANSWER_REPLACED = "answer_replaced"
+    PAYMENT_DATA_REFUSED = "payment_data_refused"
+    CONTACT_DATA_REDACTED = "contact_data_redacted"
+    LANGUAGE_UNSUPPORTED = "language_unsupported"
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,7 +59,7 @@ class ProductRef:
     image: ImageRef | None
     price: PriceRef | None
     """None when the price could not be confirmed as current (see docs/api-contract.md)."""
-    kind: Literal['core', 'affiliate'] = 'core'
+    kind: Literal["core", "affiliate"] = "core"
     format: str | None = None
     disclosure: str | None = None
 
@@ -98,7 +98,7 @@ class AnswerDetails:
     sources: tuple[SourceRef, ...] = ()
     follow_ups: tuple[str, ...] = ()
     notices: tuple[Notice, ...] = ()
-    language: str = 'es'
+    language: str = "es"
     """Language of the message text ('es' or 'en')."""
 
 

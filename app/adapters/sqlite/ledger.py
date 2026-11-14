@@ -9,12 +9,14 @@ from app.adapters.sqlite.database import Database
 from app.application.ports import BudgetCheck
 from app.domain.budget import Usage
 
-_SPENT = 'SELECT coalesce(sum(coalesce(actual_micro, reserved_micro)), 0) FROM spend_ledger WHERE {} = ?'
+_SPENT = (
+    "SELECT coalesce(sum(coalesce(actual_micro, reserved_micro)), 0) FROM spend_ledger WHERE {} = ?"
+)
 
 
 def _spent(c: sqlite3.Connection, month: str, day: str) -> tuple[int, int]:
-    month_spent = int(c.execute(_SPENT.format('month'), (month,)).fetchone()[0])
-    day_spent = int(c.execute(_SPENT.format('day'), (day,)).fetchone()[0])
+    month_spent = int(c.execute(_SPENT.format("month"), (month,)).fetchone()[0])
+    day_spent = int(c.execute(_SPENT.format("day"), (day,)).fetchone()[0])
     return month_spent, day_spent
 
 
@@ -27,10 +29,12 @@ class SqliteLedger:
     ) -> bool:
         def work(c: sqlite3.Connection) -> bool:
             month_spent, day_spent = _spent(c, month, day)
-            if not allows(month_spent=month_spent, day_spent=day_spent, reservation=reservation_micro):
+            if not allows(
+                month_spent=month_spent, day_spent=day_spent, reservation=reservation_micro
+            ):
                 return False
             c.execute(
-                'INSERT INTO spend_ledger (run_id, month, day, reserved_micro, created_at)'
+                "INSERT INTO spend_ledger (run_id, month, day, reserved_micro, created_at)"
                 " VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))",
                 (run_id, month, day, reservation_micro),
             )
@@ -41,10 +45,10 @@ class SqliteLedger:
     async def settle(self, run_id: str, actual_micro: int, usage: Usage, model: str) -> None:
         def work(c: sqlite3.Connection) -> None:
             updated = c.execute(
-                'UPDATE spend_ledger SET actual_micro = ?, model = ?, input_tokens = ?, output_tokens = ?,'
+                "UPDATE spend_ledger SET actual_micro = ?, model = ?, input_tokens = ?, output_tokens = ?,"
                 " cached_input_tokens = ?, reasoning_tokens = ?, status = 'settled',"
                 " settled_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
-                ' WHERE run_id = ? AND actual_micro IS NULL',
+                " WHERE run_id = ? AND actual_micro IS NULL",
                 (
                     actual_micro,
                     model,
@@ -56,7 +60,7 @@ class SqliteLedger:
                 ),
             ).rowcount
             if updated != 1:
-                raise LookupError('no open reservation for this run')
+                raise LookupError("no open reservation for this run")
 
         await self._db.write(work)
 
@@ -108,13 +112,13 @@ class SqliteRateLimiter:
 
         def work(c: sqlite3.Connection) -> bool:
             row = c.execute(
-                'SELECT count FROM rate_counters WHERE key = ? AND window_start = ?', (key, window)
+                "SELECT count FROM rate_counters WHERE key = ? AND window_start = ?", (key, window)
             ).fetchone()
             if row is not None and row[0] >= limit:
                 return False
             c.execute(
-                'INSERT INTO rate_counters (key, window_start, count) VALUES (?, ?, 1)'
-                ' ON CONFLICT (key, window_start) DO UPDATE SET count = count + 1',
+                "INSERT INTO rate_counters (key, window_start, count) VALUES (?, ?, 1)"
+                " ON CONFLICT (key, window_start) DO UPDATE SET count = count + 1",
                 (key, window),
             )
             return True
@@ -125,6 +129,6 @@ class SqliteRateLimiter:
         cutoff = int((now - keep).timestamp())
 
         def work(c: sqlite3.Connection) -> int:
-            return c.execute('DELETE FROM rate_counters WHERE window_start < ?', (cutoff,)).rowcount
+            return c.execute("DELETE FROM rate_counters WHERE window_start < ?", (cutoff,)).rowcount
 
         return await self._db.write(work)

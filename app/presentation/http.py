@@ -36,17 +36,26 @@ from app.presentation.schemas import (
     SessionIn,
     SessionOut,
 )
-from app.presentation.streaming import SSE_HEADERS, ClosingStreamingResponse, ResponseCleanups, sse_body
+from app.presentation.streaming import (
+    SSE_HEADERS,
+    ClosingStreamingResponse,
+    ResponseCleanups,
+    sse_body,
+)
 
-_IDEMPOTENCY_KEY = re.compile(r'^[A-Za-z0-9_-]{8,128}$')
-_UNAVAILABLE = {FailureCode.ASSISTANT_DISABLED, FailureCode.CATALOG_UNAVAILABLE, FailureCode.BUDGET_EXHAUSTED}
+_IDEMPOTENCY_KEY = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
+_UNAVAILABLE = {
+    FailureCode.ASSISTANT_DISABLED,
+    FailureCode.CATALOG_UNAVAILABLE,
+    FailureCode.BUDGET_EXHAUSTED,
+}
 
 
 @dataclass(frozen=True, slots=True)
 class CookiePolicy:
     name: str
     secure: bool
-    samesite: Literal['lax', 'strict']
+    samesite: Literal["lax", "strict"]
     max_age_seconds: int
 
 
@@ -79,17 +88,19 @@ def services(request: Request) -> Services:
 ServicesDep = Annotated[Services, Depends(services)]
 
 
-def client_ip(request: Request, trusted: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...]) -> str:
+def client_ip(
+    request: Request, trusted: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...]
+) -> str:
     """Peer address, or the right-most untrusted X-Forwarded-For hop when the peer is a trusted proxy."""
-    peer = request.client.host if request.client else ''
+    peer = request.client.host if request.client else ""
     try:
         address = ipaddress.ip_address(peer)
     except ValueError:
-        return peer or 'unknown'
+        return peer or "unknown"
     if not any(address in network for network in trusted):
         return str(address)
-    header = request.headers.get('x-forwarded-for', '')
-    hops = [hop.strip() for hop in header.split(',') if hop.strip()]
+    header = request.headers.get("x-forwarded-for", "")
+    hops = [hop.strip() for hop in header.split(",") if hop.strip()]
     if not hops or len(hops) > 5:
         return str(address)
     for hop in reversed(hops):
@@ -115,39 +126,41 @@ def _set_cookie(response: Response, policy: CookiePolicy, secret: str) -> None:
         httponly=True,
         secure=policy.secure,
         samesite=policy.samesite,
-        path='/',
+        path="/",
     )
 
 
 def _require_json(request: Request) -> None:
-    if request.headers.get('content-type', '').split(';')[0].strip().lower() != 'application/json':
+    if request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
         raise RejectedError(FailureCode.INVALID_REQUEST)
 
 
 async def _availability(chat: ChatService) -> AvailabilityOut:
     code = await chat.availability()
     if code is None:
-        return AvailabilityOut(status='available')
-    reason = code.value if code in _UNAVAILABLE else 'catalog_unavailable'
-    return AvailabilityOut(status='unavailable', reason=reason)
+        return AvailabilityOut(status="available")
+    reason = code.value if code in _UNAVAILABLE else "catalog_unavailable"
+    return AvailabilityOut(status="unavailable", reason=reason)
 
 
 ERRORS: dict[int | str, dict[str, object]] = {
-    status: {'model': ErrorOut} for status in (401, 403, 409, 422, 429, 503)
+    status: {"model": ErrorOut} for status in (401, 403, 409, 422, 429, 503)
 }
-router = APIRouter(prefix='/api/v1', responses=ERRORS)
+router = APIRouter(prefix="/api/v1", responses=ERRORS)
 
 
-@router.get('/availability', response_model=AvailabilityOut, summary='Whether new questions are accepted')
+@router.get(
+    "/availability", response_model=AvailabilityOut, summary="Whether new questions are accepted"
+)
 async def availability(s: ServicesDep) -> AvailabilityOut:
     return await _availability(s.chat)
 
 
 @router.post(
-    '/session',
+    "/session",
     response_model=SessionOut,
-    summary='Open (restore or create) the caller-owned session',
-    responses={201: {'model': SessionOut, 'description': 'A new session was created.'}},
+    summary="Open (restore or create) the caller-owned session",
+    responses={201: {"model": SessionOut, "description": "A new session was created."}},
 )
 async def open_session(
     request: Request, response: Response, s: ServicesDep, body: SessionIn | None = None
@@ -156,7 +169,9 @@ async def open_session(
     locale = Language(body.locale) if body and body.locale else Language.ES
     active = s.catalog.active
     policy = s.settings.cookie
-    opened = await s.sessions.open(request.cookies.get(policy.name), client_key(request, s.settings))
+    opened = await s.sessions.open(
+        request.cookies.get(policy.name), client_key(request, s.settings)
+    )
     created = opened.secret is not None and opened.secret != request.cookies.get(policy.name)
     if opened.secret:
         _set_cookie(response, policy, opened.secret)
@@ -168,7 +183,8 @@ async def open_session(
         messages=[MessageOut.of(m) for m in opened.history],
         availability=await _availability(s.chat),
         limits=LimitsOut(
-            max_message_chars=s.settings.max_message_chars, messages_per_day=s.settings.messages_per_day
+            max_message_chars=s.settings.max_message_chars,
+            messages_per_day=s.settings.messages_per_day,
         ),
         starters=list(starters(active.catalog, locale)) if active else [],
     )
@@ -185,7 +201,7 @@ async def mutation_session(
 SessionDep = Annotated[Session, Depends(mutation_session)]
 
 
-@router.delete('/session', status_code=204, summary='Delete the session and its whole conversation')
+@router.delete("/session", status_code=204, summary="Delete the session and its whole conversation")
 async def delete_session(session: SessionDep, s: ServicesDep) -> Response:
     async with s.chat.registry.session_mutation(session.id):
         try:
@@ -197,7 +213,7 @@ async def delete_session(session: SessionDep, s: ServicesDep) -> Response:
     response = Response(status_code=204)
     response.delete_cookie(
         s.settings.cookie.name,
-        path='/',
+        path="/",
         secure=s.settings.cookie.secure,
         httponly=True,
         samesite=s.settings.cookie.samesite,
@@ -206,11 +222,13 @@ async def delete_session(session: SessionDep, s: ServicesDep) -> Response:
 
 
 @router.post(
-    '/messages',
-    summary='Ask a question; the answer streams as Server-Sent Events',
+    "/messages",
+    summary="Ask a question; the answer streams as Server-Sent Events",
     response_class=ClosingStreamingResponse,
     status_code=200,
-    responses={200: {'content': {'text/event-stream': {}}, 'description': 'See contracts/sse.schema.json.'}},
+    responses={
+        200: {"content": {"text/event-stream": {}}, "description": "See contracts/sse.schema.json."}
+    },
 )
 async def post_message(
     request: Request,
@@ -226,7 +244,7 @@ async def post_message(
         # The dependency may have resolved before a concurrent DELETE won the lock.
         # Revalidate ownership/CSRF under the same admission lock before reserving spend.
         session = await s.sessions.require(
-            request.cookies.get(s.settings.cookie.name), request.headers.get('x-csrf-token')
+            request.cookies.get(s.settings.cookie.name), request.headers.get("x-csrf-token")
         )
         run = await s.chat.start(
             session,
@@ -247,45 +265,47 @@ async def post_message(
         sse_body(run, s.clock, s.settings.heartbeat_seconds),
         on_close=run.aclose,
         cleanups=s.cleanups,
-        media_type='text/event-stream',
-        headers={**SSE_HEADERS, 'X-Run-ID': run.id},
+        media_type="text/event-stream",
+        headers={**SSE_HEADERS, "X-Run-ID": run.id},
     )
     _set_cookie(response, s.settings.cookie, request.cookies[s.settings.cookie.name])
     return response
 
 
-@router.post('/runs/{run_id}/cancel', status_code=202, summary="Cancel the caller's active run")
+@router.post("/runs/{run_id}/cancel", status_code=202, summary="Cancel the caller's active run")
 async def cancel_run(run_id: str, session: SessionDep, s: ServicesDep) -> Response:
     s.chat.cancel(session, run_id)
     return Response(status_code=202)
 
 
-health = APIRouter(prefix='/health', include_in_schema=False)
+health = APIRouter(prefix="/health", include_in_schema=False)
 
 
-@health.get('/live')
+@health.get("/live")
 async def live() -> dict[str, str]:
-    return {'status': 'ok'}
+    return {"status": "ok"}
 
 
-@health.get('/ready')
+@health.get("/ready")
 async def ready(s: ServicesDep) -> JSONResponse:
     ok = await s.ready()
     active = s.catalog.active
-    body: dict[str, object] = {'status': 'ready' if ok else 'not_ready'}
+    body: dict[str, object] = {"status": "ready" if ok else "not_ready"}
     if active is not None:
-        body['catalog'] = {
-            'revision': active.catalog.source_revision[:12],
-            'price_status': active.price_status(s.clock.now()).value,
+        body["catalog"] = {
+            "revision": active.catalog.source_revision[:12],
+            "price_status": active.price_status(s.clock.now()).value,
         }
     return JSONResponse(body, status_code=200 if ok else 503)
 
 
 def install_error_handlers(app: FastAPI) -> None:
     def respond(request: Request, code: FailureCode) -> JSONResponse:
-        headers = {'Retry-After': RETRY_AFTER[code]} if code in RETRY_AFTER else None
+        headers = {"Retry-After": RETRY_AFTER[code]} if code in RETRY_AFTER else None
         return JSONResponse(
-            error_payload(code, request_id_of(request.scope)), status_code=STATUS[code], headers=headers
+            error_payload(code, request_id_of(request.scope)),
+            status_code=STATUS[code],
+            headers=headers,
         )
 
     @app.exception_handler(RejectedError)
@@ -299,11 +319,11 @@ def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def http_error(request: Request, error: StarletteHTTPException) -> JSONResponse:
         payload = {
-            'error': {
-                'code': 'not_found' if error.status_code == 404 else 'invalid_request',
-                'message': 'Not found.' if error.status_code == 404 else 'Request not supported.',
-                'retryable': False,
-                'request_id': request_id_of(request.scope),
+            "error": {
+                "code": "not_found" if error.status_code == 404 else "invalid_request",
+                "message": "Not found." if error.status_code == 404 else "Request not supported.",
+                "retryable": False,
+                "request_id": request_id_of(request.scope),
             }
         }
         return JSONResponse(payload, status_code=error.status_code)

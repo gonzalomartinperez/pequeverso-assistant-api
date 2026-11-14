@@ -16,49 +16,56 @@ from app.presentation.schemas import MessageOut
 
 
 class _Event(BaseModel):
-    model_config = ConfigDict(extra='forbid', frozen=True)
-    schema_version: Literal['1'] = '1'
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    schema_version: Literal["1"] = "1"
     run_id: str
-    sequence: int = Field(ge=0, description='0-based, strictly increasing within a run.')
+    sequence: int = Field(ge=0, description="0-based, strictly increasing within a run.")
     timestamp: datetime
 
 
 class RunStartedEvent(_Event):
-    type: Literal['run.started'] = 'run.started'
+    type: Literal["run.started"] = "run.started"
     user_message: MessageOut | None = Field(
-        description='The stored question (redacted if it contained contact data); null on an idempotent replay.'
+        description="The stored question (redacted if it contained contact data); null on an idempotent replay."
     )
 
 
 class MessageDeltaEvent(_Event):
-    type: Literal['message.delta'] = 'message.delta'
-    text: str = Field(description='Append to the draft answer. Provisional until message.completed.')
+    type: Literal["message.delta"] = "message.delta"
+    text: str = Field(
+        description="Append to the draft answer. Provisional until message.completed."
+    )
 
 
 class MessageCompletedEvent(_Event):
-    type: Literal['message.completed'] = 'message.completed'
+    type: Literal["message.completed"] = "message.completed"
     message: MessageOut = Field(
-        description='Authoritative final answer: replace the streamed draft with message.content.'
+        description="Authoritative final answer: replace the streamed draft with message.content."
     )
 
 
 class RunCompletedEvent(_Event):
-    type: Literal['run.completed'] = 'run.completed'
+    type: Literal["run.completed"] = "run.completed"
 
 
 FailureCodeOut = Literal[
-    'budget_exhausted', 'provider_unavailable', 'generation_failed', 'timeout', 'catalog_unavailable', 'busy'
+    "budget_exhausted",
+    "provider_unavailable",
+    "generation_failed",
+    "timeout",
+    "catalog_unavailable",
+    "busy",
 ]
 
 
 class RunFailedEvent(_Event):
-    type: Literal['run.failed'] = 'run.failed'
+    type: Literal["run.failed"] = "run.failed"
     code: FailureCodeOut
     retryable: bool
 
 
 class RunCancelledEvent(_Event):
-    type: Literal['run.cancelled'] = 'run.cancelled'
+    type: Literal["run.cancelled"] = "run.cancelled"
 
 
 StreamEvent = Annotated[
@@ -68,6 +75,6 @@ StreamEvent = Annotated[
     | RunCompletedEvent
     | RunFailedEvent
     | RunCancelledEvent,
-    Field(discriminator='type'),
+    Field(discriminator="type"),
 ]
-TERMINAL_TYPES = frozenset({'run.completed', 'run.failed', 'run.cancelled'})
+TERMINAL_TYPES = frozenset({"run.completed", "run.failed", "run.cancelled"})

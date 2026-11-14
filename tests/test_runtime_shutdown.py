@@ -32,11 +32,11 @@ uvicorn.run(app, host='127.0.0.1', port=int(sys.argv[2]), log_config=None,
 
 def _start(database: Path, port: int, delay: int, output: Path) -> subprocess.Popen[bytes]:
     # Deliberately exclude ambient provider configuration/secrets from the child.
-    with output.open('ab') as log:
+    with output.open("ab") as log:
         process = subprocess.Popen(  # noqa: S603 - fixed Python program, isolated fixture paths/port
-            [sys.executable, '-c', SERVER, str(database), str(port), str(delay)],
+            [sys.executable, "-c", SERVER, str(database), str(port), str(delay)],
             cwd=ROOT,
-            env={'PATH': str(Path(sys.executable).parent)},
+            env={"PATH": str(Path(sys.executable).parent)},
             stdout=log,
             stderr=subprocess.STDOUT,
         )
@@ -46,13 +46,13 @@ def _start(database: Path, port: int, delay: int, output: Path) -> subprocess.Po
             while time.monotonic() < deadline:
                 assert process.poll() is None
                 try:
-                    response = probe.get(f'http://127.0.0.1:{port}/health/ready')
+                    response = probe.get(f"http://127.0.0.1:{port}/health/ready")
                     if response.status_code == 200:
                         return process
                 except httpx.TransportError:
                     pass
                 time.sleep(0.02)
-        raise AssertionError('isolated subprocess did not become ready')
+        raise AssertionError("isolated subprocess did not become ready")
     except BaseException:
         process.terminate()
         process.wait(5)
@@ -69,35 +69,35 @@ def _stop(process: subprocess.Popen[bytes]) -> None:
 
 def test_sigterm_active_stream_drains_run_and_unknown_spend_before_restart(tmp_path: Path) -> None:
     with socket.socket() as probe:
-        probe.bind(('127.0.0.1', 0))
+        probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
-    database = tmp_path / 'assistant.sqlite3'
-    process = _start(database, port, 2000, tmp_path / 'server.log')
+    database = tmp_path / "assistant.sqlite3"
+    process = _start(database, port, 2000, tmp_path / "server.log")
     thread: threading.Thread | None = None
     chunks: list[str] = []
     try:
-        with httpx.Client(base_url=f'http://127.0.0.1:{port}', timeout=10) as http:
-            session = http.post('/api/v1/session', headers=JSON_HEADERS, json={})
+        with httpx.Client(base_url=f"http://127.0.0.1:{port}", timeout=10) as http:
+            session = http.post("/api/v1/session", headers=JSON_HEADERS, json={})
             assert session.status_code == 201
-            csrf = session.json()['csrf_token']
+            csrf = session.json()["csrf_token"]
             started = threading.Event()
 
             def consume() -> None:
                 try:
                     with http.stream(
-                        'POST',
-                        '/api/v1/messages',
+                        "POST",
+                        "/api/v1/messages",
                         headers={
                             **JSON_HEADERS,
-                            'X-CSRF-Token': csrf,
-                            'Idempotency-Key': 'shutdown-test-001',
+                            "X-CSRF-Token": csrf,
+                            "Idempotency-Key": "shutdown-test-001",
                         },
-                        json={'content': 'What does the kit include?', 'locale': 'en'},
+                        json={"content": "What does the kit include?", "locale": "en"},
                     ) as response:
                         assert response.status_code == 200
                         for chunk in response.iter_text():
                             chunks.append(chunk)
-                            if 'run.started' in ''.join(chunks):
+                            if "run.started" in "".join(chunks):
                                 started.set()
                 except httpx.TransportError:
                     # A transport torn down by SIGTERM cannot promise a terminal frame.
@@ -109,29 +109,33 @@ def test_sigterm_active_stream_drains_run_and_unknown_spend_before_restart(tmp_p
             _stop(process)
             thread.join(5)
             assert not thread.is_alive()
-            events = parse_sse(''.join(chunks))
-            assert events[0]['type'] == 'run.started'
-            assert not any(event['type'] == 'message.completed' for event in events)
+            events = parse_sse("".join(chunks))
+            assert events[0]["type"] == "run.started"
+            assert not any(event["type"] == "message.completed" for event in events)
             with closing(sqlite3.connect(database)) as connection:
-                assert connection.execute('PRAGMA quick_check').fetchone()[0] == 'ok'
-                assert connection.execute('SELECT state FROM runs').fetchone()[0] == 'cancelled'
+                assert connection.execute("PRAGMA quick_check").fetchone()[0] == "ok"
+                assert connection.execute("SELECT state FROM runs").fetchone()[0] == "cancelled"
                 ledger = connection.execute(
-                    'SELECT status,actual_micro,reserved_micro FROM spend_ledger'
+                    "SELECT status,actual_micro,reserved_micro FROM spend_ledger"
                 ).fetchone()
-                assert ledger[0] == 'unreported' and ledger[1] is None and ledger[2] > 0
-                assert connection.execute('SELECT role FROM messages').fetchall() == [('user',)]
-            process = _start(database, port, 0, tmp_path / 'server.log')
-            restored = http.post('/api/v1/session', headers=JSON_HEADERS, json={})
+                assert ledger[0] == "unreported" and ledger[1] is None and ledger[2] > 0
+                assert connection.execute("SELECT role FROM messages").fetchall() == [("user",)]
+            process = _start(database, port, 0, tmp_path / "server.log")
+            restored = http.post("/api/v1/session", headers=JSON_HEADERS, json={})
             assert restored.status_code == 200
-            assert [message['role'] for message in restored.json()['messages']] == ['user']
+            assert [message["role"] for message in restored.json()["messages"]] == ["user"]
             # The cancelled idempotency key does not silently regenerate after restart.
             duplicate = http.post(
-                '/api/v1/messages',
-                headers={**JSON_HEADERS, 'X-CSRF-Token': csrf, 'Idempotency-Key': 'shutdown-test-001'},
-                json={'content': 'What does the kit include?', 'locale': 'en'},
+                "/api/v1/messages",
+                headers={
+                    **JSON_HEADERS,
+                    "X-CSRF-Token": csrf,
+                    "Idempotency-Key": "shutdown-test-001",
+                },
+                json={"content": "What does the kit include?", "locale": "en"},
             )
             assert duplicate.status_code == 409
-            assert duplicate.json()['error']['code'] == 'idempotency_conflict'
+            assert duplicate.json()["error"]["code"] == "idempotency_conflict"
     finally:
         _stop(process)
         if thread is not None:

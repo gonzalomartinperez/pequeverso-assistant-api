@@ -15,8 +15,8 @@ from typing import Literal
 
 
 class PriceStatus(StrEnum):
-    VERIFIED = 'verified'
-    UNVERIFIED = 'unverified'
+    VERIFIED = "verified"
+    UNVERIFIED = "unverified"
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,16 +70,16 @@ class Product:
     audience_for: tuple[str, ...] = ()
     audience_not_for: tuple[str, ...] = ()
     age_guidance: tuple[AgeGuidance, ...] = ()
-    kind: Literal['core', 'affiliate'] = 'core'
+    kind: Literal["core", "affiliate"] = "core"
     disclosure: str | None = None
     guarantee_days: int | None = None
     topics: tuple[str, ...] = ()
 
 
 class DocumentKind(StrEnum):
-    FAQ = 'faq'
-    POLICY = 'policy'
-    SUPPORT = 'support'
+    FAQ = "faq"
+    POLICY = "policy"
+    SUPPORT = "support"
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,7 +138,7 @@ class Catalog:
         return next((d for d in self.documents if d.id == document_id), None)
 
     def url(self, path: str) -> str:
-        return f'{self.site.origin}{path}'
+        return f"{self.site.origin}{path}"
 
     def prices(self) -> frozenset[Decimal]:
         return frozenset(p.price.amount for p in self.products if p.price is not None)
@@ -146,13 +146,13 @@ class Catalog:
     def applies_to(self, product_ids: tuple[str, ...], selected: frozenset[str]) -> bool:
         # Legacy unscoped merchant facts belong to the original core products, never to
         # a newly added third-party product. New exports name scopes explicitly.
-        owners = product_ids or tuple(p.id for p in self.products if p.kind == 'core')
+        owners = product_ids or tuple(p.id for p in self.products if p.kind == "core")
         return bool(selected.intersection(owners))
 
 
 def resource_key(product_id: str, resource_id: str) -> str:
     """Globally unique reference id of a resource inside a product."""
-    return f'{product_id}/{resource_id}'
+    return f"{product_id}/{resource_id}"
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,15 +178,17 @@ def product_mentioned(
     kind: str,
     resource_ids: tuple[str, ...] = (),
     *,
-    format_text: str = '',
+    format_text: str = "",
 ) -> bool:
     """Shared bounded alias matching for retrieval and the deterministic fixture."""
     import re
     import unicodedata
 
     def normalize(value: str) -> str:
-        return ''.join(
-            c for c in unicodedata.normalize('NFD', value.lower()) if unicodedata.category(c) != 'Mn'
+        return "".join(
+            c
+            for c in unicodedata.normalize("NFD", value.lower())
+            if unicodedata.category(c) != "Mn"
         )
 
     normalized = normalize(text)
@@ -195,28 +197,29 @@ def product_mentioned(
     # this product. Never infer that all affiliates are courses, or all kits PDFs.
     format_cue = any(
         re.search(pattern, normalized_format) and re.search(pattern, normalized)
-        for pattern in (r'\b(?:curso|course)s?\b', r'\bvideos?\b', r'\bpdfs?\b')
+        for pattern in (r"\b(?:curso|course)s?\b", r"\bvideos?\b", r"\bpdfs?\b")
     )
     aliases = (
         normalize(name),
-        product_id.replace('-', ' '),
-        *(rid.replace('-', ' ') for rid in resource_ids),
+        product_id.replace("-", " "),
+        *(rid.replace("-", " ") for rid in resource_ids),
     )
     return (
         bool(format_cue)
         or any(alias in normalized for alias in aliases)
         or bool(
             (
-                kind == 'affiliate'
+                kind == "affiliate"
                 and re.search(
-                    r'\b(?:alimentacion|complementaria|bebe|bebes|comidas|menus?|recetas|recipes?|feeding|baby|babies)\b',
+                    r"\b(?:alimentacion|complementaria|bebe|bebes|comidas|menus?|recetas|recipes?|feeding|baby|babies)\b",
                     normalized,
                 )
             )
             or (
-                kind == 'core'
+                kind == "core"
                 and re.search(
-                    r'\b(?:grafismo|fonetico|kit|lectura|leer|silabas|reading|phonics)\b', normalized
+                    r"\b(?:grafismo|fonetico|kit|lectura|leer|silabas|reading|phonics)\b",
+                    normalized,
                 )
             )
         )

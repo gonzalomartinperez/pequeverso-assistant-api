@@ -49,7 +49,14 @@ from app.bootstrap.logging import configure_logging
 from app.bootstrap.persistence import build_persistence
 from app.bootstrap.provider_transport import close_owned_provider, provider_http_client
 from app.domain.budget import BudgetPolicy, Pricing, to_micro
-from app.presentation.http import CookiePolicy, HttpSettings, Services, health, install_error_handlers, router
+from app.presentation.http import (
+    CookiePolicy,
+    HttpSettings,
+    Services,
+    health,
+    install_error_handlers,
+    router,
+)
 from app.presentation.middleware import OriginMiddleware, RequestContextMiddleware
 from app.presentation.operations import build_router as build_operations_router
 from app.presentation.product_analytics import AnalyticsBodyLimitMiddleware
@@ -82,30 +89,33 @@ ProviderFactory = Callable[[Settings, EmbeddingAccounting], ProviderResource]
 def build_provider(
     settings: Settings, embedding_accounting: EmbeddingAccounting | None = None
 ) -> _ProviderResource:
-    if settings.ai_provider == 'openai':
+    if settings.ai_provider == "openai":
         assert settings.openai_api_key is not None
         http = provider_http_client()
         client = AsyncOpenAI(
             http_client=http,
             api_key=settings.openai_api_key.get_secret_value(),
-            base_url='https://api.openai.com/v1',
+            base_url="https://api.openai.com/v1",
             timeout=settings.openai_timeout_seconds,
             max_retries=0,
         )
         embeddings: Embeddings | None = None
-        if settings.knowledge_backend == 'graphrag':
+        if settings.knowledge_backend == "graphrag":
             assert embedding_accounting is not None
             embeddings = OpenAIEmbeddings(client, embedding_accounting)
         return _ProviderResource(
             OpenAIResponsesProvider(
-                client, settings.openai_model, settings.openai_reasoning_effort, settings.openai_max_retries
+                client,
+                settings.openai_model,
+                settings.openai_reasoning_effort,
+                settings.openai_max_retries,
             ),
             lambda: close_owned_provider(client, http),
             embeddings,
         )
     return _ProviderResource(
         FixtureProvider(chunk_delay_seconds=settings.fixture_chunk_delay_ms / 1000),
-        embeddings=FixtureHashEmbeddings() if settings.knowledge_backend == 'graphrag' else None,
+        embeddings=FixtureHashEmbeddings() if settings.knowledge_backend == "graphrag" else None,
     )
 
 
@@ -126,9 +136,11 @@ def create_app(
 ) -> FastAPI:
     settings = settings or get_settings()
     if provider is not None and provider_factory is not None:
-        raise ValueError('provider and provider_factory overrides are mutually exclusive')
-    if (provider is not None or provider_factory is not None) and settings.environment == 'production':
-        raise ValueError('provider overrides are for tests and fixtures only')
+        raise ValueError("provider and provider_factory overrides are mutually exclusive")
+    if (
+        provider is not None or provider_factory is not None
+    ) and settings.environment == "production":
+        raise ValueError("provider overrides are for tests and fixtures only")
     clock = clock or SystemClock()
     parser = CatalogParser(frozenset(settings.catalog_allowed_hosts))
     persistence = build_persistence(settings, parser)
@@ -136,13 +148,13 @@ def create_app(
     analytics: AnalyticsService | None = None
     if settings.product_analytics_enabled:
         assert isinstance(db, PostgresDatabase)
-        synthetic = settings.environment != 'production'
+        synthetic = settings.environment != "production"
         analytics = AnalyticsService(
             PostgresProductAnalytics(db, synthetic=synthetic),
             synthetic=synthetic,
-            country_collection='trusted_proxy_header'
+            country_collection="trusted_proxy_header"
             if settings.product_analytics_country_enabled
-            else 'disabled',
+            else "disabled",
         )
     stores_rate = persistence.rates
     sessions_store = persistence.sessions
@@ -174,7 +186,9 @@ def create_app(
         safety_margin=settings.budget_safety_margin,
         daily_limit_micro=to_micro(settings.daily_budget_usd),
     )
-    accounting = SharedEmbeddingAccounting(ledger, clock, budget, settings.embedding_input_price_per_million)
+    accounting = SharedEmbeddingAccounting(
+        ledger, clock, budget, settings.embedding_input_price_per_million
+    )
     if provider_factory is not None:
         owned_provider = provider_factory(settings, accounting)
     elif provider is not None:
@@ -184,15 +198,17 @@ def create_app(
     model = owned_provider.provider
     grounded = GroundedComposer(
         model,
-        ComposerSettings(settings.max_output_tokens, settings.max_evidence_chars, settings.max_input_tokens),
+        ComposerSettings(
+            settings.max_output_tokens, settings.max_evidence_chars, settings.max_input_tokens
+        ),
     )
     composer: AnswerComposer = grounded
     knowledge: HybridKnowledgeRetrieval | None = None
-    if settings.knowledge_backend == 'graphrag':
+    if settings.knowledge_backend == "graphrag":
         assert persistence.graph is not None
         assert isinstance(persistence.catalog, PostgresKnowledgeStore)
         embeddings = owned_provider.embeddings
-        if embeddings is None and settings.ai_provider == 'fixture':
+        if embeddings is None and settings.ai_provider == "fixture":
             embeddings = FixtureHashEmbeddings()
         assert embeddings is not None
         knowledge = HybridKnowledgeRetrieval(
@@ -205,7 +221,7 @@ def create_app(
         official_help=(
             OfficialHelpReader()
             if settings.official_help_enabled
-            and settings.ai_provider == 'openai'
+            and settings.ai_provider == "openai"
             and settings.assistant_enabled
             else None
         ),
@@ -252,17 +268,19 @@ def create_app(
             revision=settings.service_revision,
             provider=settings.ai_provider,
             model=model.model,
-            reasoning_effort=settings.openai_reasoning_effort if settings.ai_provider == 'openai' else 'n/a',
+            reasoning_effort=settings.openai_reasoning_effort
+            if settings.ai_provider == "openai"
+            else "n/a",
             assistant_enabled=settings.assistant_enabled,
             started_at=clock.now(),
             price_max_age_hours=settings.catalog_price_max_age_hours,
             pricing={
-                'revision': settings.pricing_revision,
-                'model': settings.openai_model,
-                'input_per_million': str(settings.price_input_per_million),
-                'cached_input_per_million': str(settings.price_cached_input_per_million),
-                'cache_write_per_million': str(settings.price_cache_write_per_million),
-                'output_per_million': str(settings.price_output_per_million),
+                "revision": settings.pricing_revision,
+                "model": settings.openai_model,
+                "input_per_million": str(settings.price_input_per_million),
+                "cached_input_per_million": str(settings.price_cached_input_per_million),
+                "cache_write_per_million": str(settings.price_cache_write_per_million),
+                "output_per_million": str(settings.price_output_per_million),
             },
         ),
         chat.availability,
@@ -276,7 +294,9 @@ def create_app(
                 return False
             if analytics is not None and not await analytics.repository.ready():
                 return False
-            return knowledge is None or (catalog.synchronized and await knowledge.ready(catalog.active))
+            return knowledge is None or (
+                catalog.synchronized and await knowledge.ready(catalog.active)
+            )
         except Exception:  # noqa: BLE001
             return False
 
@@ -286,7 +306,7 @@ def create_app(
 
         telemetry = RuntimeTelemetry(
             started_at=clock.now(),
-            synthetic=settings.ai_provider == 'fixture',
+            synthetic=settings.ai_provider == "fixture",
             revision=settings.service_revision,
             ready=ready,
             active_runs=lambda: len(chat.registry),
@@ -338,7 +358,9 @@ def create_app(
                     # An overlapping instance must fail before touching another owner's runs.
                     await resources.enter_async_context(db.runtime_ownership())
                 if analytics is not None and not await analytics.repository.ready():
-                    raise RuntimeError('product analytics requires the exact offline schema migration')
+                    raise RuntimeError(
+                        "product analytics requires the exact offline schema migration"
+                    )
                 abandoned = await runs.abandon_active()
                 await ledger.abandon_pending()
                 if abandoned:
@@ -368,21 +390,21 @@ def create_app(
                         await task
 
     app = FastAPI(
-        title='Pequeverso assistant API',
-        version='1',
+        title="Pequeverso assistant API",
+        version="1",
         lifespan=lifespan,
         # Only the explicit, content-free application telemetry may instrument requests.
         # FastAPI 0.142 introduces native instrumentation enabled by default.
         telemetry={
-            'tracing': False,
-            'metrics': False,
-            'logs': False,
-            'operation_spans': False,
-            'auto_configure': False,
+            "tracing": False,
+            "metrics": False,
+            "logs": False,
+            "operation_spans": False,
+            "auto_configure": False,
         },
         docs_url=None,
         redoc_url=None,
-        openapi_url='/api/v1/openapi.json' if settings.environment != 'production' else None,
+        openapi_url="/api/v1/openapi.json" if settings.environment != "production" else None,
     )
     app.state.services = Services(
         sessions=session_service,
@@ -434,9 +456,9 @@ def create_app(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
         allow_credentials=True,
-        allow_methods=['GET', 'POST', 'DELETE'],
-        allow_headers=['Content-Type', 'X-CSRF-Token', 'Idempotency-Key', 'X-Request-ID'],
-        expose_headers=['X-Request-ID', 'X-Run-ID', 'Retry-After'],
+        allow_methods=["GET", "POST", "DELETE"],
+        allow_headers=["Content-Type", "X-CSRF-Token", "Idempotency-Key", "X-Request-ID"],
+        expose_headers=["X-Request-ID", "X-Run-ID", "Retry-After"],
         max_age=600,
     )
     if telemetry is not None:
@@ -444,14 +466,19 @@ def create_app(
 
         # FastAPI includes routers lazily; their top-level entries have no path.
         # Public route contexts enumerate the registered, effective templates.
-        routes = frozenset(context.path for context in iter_route_contexts(app.routes) if context.path)
+        routes = frozenset(
+            context.path for context in iter_route_contexts(app.routes) if context.path
+        )
         private_digest = (
             hashlib.sha256(settings.ops_read_token.get_secret_value().encode()).digest()
             if settings.ops_read_token
             else None
         )
         app.add_middleware(
-            TelemetryMiddleware, telemetry=telemetry, routes=routes, private_token_digest=private_digest
+            TelemetryMiddleware,
+            telemetry=telemetry,
+            routes=routes,
+            private_token_digest=private_digest,
         )
     app.add_middleware(RequestContextMiddleware)
     return app

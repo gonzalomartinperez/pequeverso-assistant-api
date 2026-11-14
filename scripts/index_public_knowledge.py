@@ -4,5 +4,5 @@ import asyncio
 
 from app.bootstrap.knowledge_jobs import index_main
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(asyncio.run(index_main()))

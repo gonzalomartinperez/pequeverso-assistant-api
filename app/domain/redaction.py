@@ -9,12 +9,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-_CARD_CANDIDATE = re.compile(r'(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)')
-_EMAIL = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
-_PHONE = re.compile(r'(?<![\w])\+?\d(?:[\s().-]?\d){7,14}(?![\w])')
+_CARD_CANDIDATE = re.compile(r"(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)")
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_PHONE = re.compile(r"(?<![\w])\+?\d(?:[\s().-]?\d){7,14}(?![\w])")
 
-EMAIL_PLACEHOLDER = '[correo]'
-PHONE_PLACEHOLDER = '[teléfono]'
+EMAIL_PLACEHOLDER = "[correo]"
+PHONE_PLACEHOLDER = "[teléfono]"
 
 
 def _luhn_valid(digits: str) -> bool:
@@ -31,7 +31,7 @@ def _luhn_valid(digits: str) -> bool:
 
 def contains_card_number(text: str) -> bool:
     for match in _CARD_CANDIDATE.finditer(text):
-        digits = re.sub(r'\D', '', match.group())
+        digits = re.sub(r"\D", "", match.group())
         if 13 <= len(digits) <= 19 and _luhn_valid(digits):
             return True
     return False

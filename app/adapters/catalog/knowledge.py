@@ -21,7 +21,7 @@ from app.domain.knowledge import (
     RelationKind,
 )
 
-PARSER_VERSION = 'commercial-corpus-v1'
+PARSER_VERSION = "commercial-corpus-v1"
 
 
 def build_public_corpus(
@@ -33,20 +33,22 @@ def build_public_corpus(
     this function. Oversize clauses fail ingestion instead of silently changing their meaning.
     """
     if len(body) > MAX_PUBLIC_BODY_BYTES:
-        raise ValueError('public catalog exceeds its ingestion bound')
+        raise ValueError("public catalog exceeds its ingestion bound")
     catalog = parse(body)
     catalog_hash = hashlib.sha256(body).hexdigest()
     identity = {
-        'catalog_sha256': catalog_hash,
-        'parser_version': PARSER_VERSION,
-        'provider': embedding.provider,
-        'model': embedding.model,
-        'dimensions': embedding.dimensions,
+        "catalog_sha256": catalog_hash,
+        "parser_version": PARSER_VERSION,
+        "provider": embedding.provider,
+        "model": embedding.model,
+        "dimensions": embedding.dimensions,
     }
     version = hashlib.sha256(
-        json.dumps(identity, sort_keys=True, separators=(',', ':')).encode('utf-8')
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
-    revision = KnowledgeRevision(version, catalog_hash, catalog.source_revision, PARSER_VERSION, embedding)
+    revision = KnowledgeRevision(
+        version, catalog_hash, catalog.source_revision, PARSER_VERSION, embedding
+    )
     chunks: list[KnowledgeChunk] = []
     entities: list[KnowledgeEntity] = []
     relations: list[KnowledgeRelation] = []
@@ -61,7 +63,7 @@ def build_public_corpus(
         owners: tuple[str, ...],
         pointer: str,
     ) -> str:
-        chunk_id = f'{kind.value}:{source_id}'
+        chunk_id = f"{kind.value}:{source_id}"
         chunks.append(
             KnowledgeChunk(
                 chunk_id,
@@ -71,49 +73,49 @@ def build_public_corpus(
                 text,
                 url,
                 owners,
-                hashlib.sha256(text.encode('utf-8')).hexdigest(),
+                hashlib.sha256(text.encode("utf-8")).hexdigest(),
                 pointer,
             )
         )
         return chunk_id
 
     for index, product in enumerate(catalog.products):
-        pointer = f'/products/{index}'
+        pointer = f"/products/{index}"
         owners: tuple[str, ...] = (product.id,)
-        product_id = f'product:{product.id}'
+        product_id = f"product:{product.id}"
         # Commercial numbers remain in their canonical snapshot; runtime freshness policy
         # still determines whether a retrieved price may be quoted.
         fields: dict[str, object] = {
-            'name': product.name,
-            'summary': product.summary,
-            'kind': product.kind,
-            'age_range': product.age_range,
-            'format': product.format,
-            'usage': product.usage,
-            'pdf_count': product.pdf_count,
-            'page_count': product.page_count,
-            'method': product.method,
-            'audience_for': product.audience_for,
-            'audience_not_for': product.audience_not_for,
-            'age_guidance': [{'label': a.label, 'hint': a.hint} for a in product.age_guidance],
-            'disclosure': product.disclosure,
-            'guarantee_days': product.guarantee_days,
-            'topics': product.topics,
-            'price': None
+            "name": product.name,
+            "summary": product.summary,
+            "kind": product.kind,
+            "age_range": product.age_range,
+            "format": product.format,
+            "usage": product.usage,
+            "pdf_count": product.pdf_count,
+            "page_count": product.page_count,
+            "method": product.method,
+            "audience_for": product.audience_for,
+            "audience_not_for": product.audience_not_for,
+            "age_guidance": [{"label": a.label, "hint": a.hint} for a in product.age_guidance],
+            "disclosure": product.disclosure,
+            "guarantee_days": product.guarantee_days,
+            "topics": product.topics,
+            "price": None
             if product.price is None
             else {
-                'amount': str(product.price.amount),
-                'currency': product.price.currency,
-                'display': product.price.display,
-                'note': product.price.note,
-                'tax_note': product.price.tax_note,
+                "amount": str(product.price.amount),
+                "currency": product.price.currency,
+                "display": product.price.display,
+                "note": product.price.note,
+                "tax_note": product.price.tax_note,
             },
         }
         main = chunk(
             ChunkKind.PRODUCT,
             product.id,
             product.name,
-            json.dumps(fields, ensure_ascii=False, separators=(',', ':')),
+            json.dumps(fields, ensure_ascii=False, separators=(",", ":")),
             catalog.url(product.path),
             owners,
             pointer,
@@ -121,21 +123,25 @@ def build_public_corpus(
         entities.append(KnowledgeEntity(product_id, EntityKind.PRODUCT, product.name, (main,)))
         for resource_index, resource in enumerate(product.resources):
             rid = resource_key(product.id, resource.id)
-            rp = f'{pointer}/resources/{resource_index}'
+            rp = f"{pointer}/resources/{resource_index}"
             resource_chunk = chunk(
                 ChunkKind.RESOURCE,
                 rid,
                 resource.title,
                 json.dumps(
-                    {'title': resource.title, 'description': resource.description, 'pages': resource.pages},
+                    {
+                        "title": resource.title,
+                        "description": resource.description,
+                        "pages": resource.pages,
+                    },
                     ensure_ascii=False,
-                    separators=(',', ':'),
+                    separators=(",", ":"),
                 ),
                 catalog.url(product.path),
                 owners,
                 rp,
             )
-            entity_id = f'resource:{rid}'
+            entity_id = f"resource:{rid}"
             entities.append(
                 KnowledgeEntity(entity_id, EntityKind.RESOURCE, resource.title, (resource_chunk,))
             )
@@ -144,7 +150,7 @@ def build_public_corpus(
             )
         for topic_index, topic in enumerate(product.topics):
             # Exact published labels are shared; no synonyms, medical classification or LLM extraction.
-            topic_id = 'topic:' + hashlib.sha256(topic.encode('utf-8')).hexdigest()
+            topic_id = "topic:" + hashlib.sha256(topic.encode("utf-8")).hexdigest()
             if topic_id not in topics:
                 topics[topic_id] = (topic, [])
             topics[topic_id][1].append(main)
@@ -154,37 +160,43 @@ def build_public_corpus(
                     RelationKind.HAS_TOPIC,
                     topic_id,
                     main,
-                    f'{pointer}/topics/{topic_index}',
+                    f"{pointer}/topics/{topic_index}",
                 )
             )
 
-    legacy_owners = tuple(p.id for p in catalog.products if p.kind == 'core')
+    legacy_owners = tuple(p.id for p in catalog.products if p.kind == "core")
     for index, document in enumerate(catalog.documents):
         owners = document.product_ids or legacy_owners
-        pointer = f'/documents/{index}'
+        pointer = f"/documents/{index}"
         cid = chunk(
             ChunkKind.DOCUMENT,
             document.id,
             document.title,
-            f'{document.title}\n{document.text}',
+            f"{document.title}\n{document.text}",
             document.url,
             owners,
             pointer,
         )
-        eid = f'document:{document.id}'
+        eid = f"document:{document.id}"
         entities.append(KnowledgeEntity(eid, EntityKind.DOCUMENT, document.title, (cid,)))
         for owner in owners:
             relations.append(
-                KnowledgeRelation(f'product:{owner}', RelationKind.HAS_DOCUMENT, eid, cid, pointer)
+                KnowledgeRelation(f"product:{owner}", RelationKind.HAS_DOCUMENT, eid, cid, pointer)
             )
     for index, link in enumerate(catalog.links):
         owners = link.product_ids or legacy_owners
-        pointer = f'/links/{index}'
+        pointer = f"/links/{index}"
         cid = chunk(ChunkKind.LINK, link.id, link.label, link.label, link.url, owners, pointer)
-        eid = f'link:{link.id}'
+        eid = f"link:{link.id}"
         entities.append(KnowledgeEntity(eid, EntityKind.LINK, link.label, (cid,)))
         for owner in owners:
-            relations.append(KnowledgeRelation(f'product:{owner}', RelationKind.HAS_LINK, eid, cid, pointer))
+            relations.append(
+                KnowledgeRelation(f"product:{owner}", RelationKind.HAS_LINK, eid, cid, pointer)
+            )
     for topic_id, (label, support) in topics.items():
-        entities.append(KnowledgeEntity(topic_id, EntityKind.TOPIC, label, tuple(dict.fromkeys(support))))
-    return KnowledgeCorpus(revision, body, verified_at, tuple(chunks), tuple(entities), tuple(relations))
+        entities.append(
+            KnowledgeEntity(topic_id, EntityKind.TOPIC, label, tuple(dict.fromkeys(support)))
+        )
+    return KnowledgeCorpus(
+        revision, body, verified_at, tuple(chunks), tuple(entities), tuple(relations)
+    )

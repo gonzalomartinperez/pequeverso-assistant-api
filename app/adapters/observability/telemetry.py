@@ -34,10 +34,10 @@ from app.application.telemetry import RuntimeResources, TelemetrySnapshot
 
 log = logging.getLogger(__name__)
 PRIVATE_PATHS = frozenset(
-    {'/internal/v1/ops/summary', '/internal/v1/ops/telemetry', '/internal/v1/ops/metrics'}
+    {"/internal/v1/ops/summary", "/internal/v1/ops/telemetry", "/internal/v1/ops/metrics"}
 )
-TRACEPARENT = re.compile(r'^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$')
-METHODS = frozenset({'GET', 'POST', 'DELETE', 'PUT', 'PATCH', 'HEAD', 'OPTIONS'})
+TRACEPARENT = re.compile(r"^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$")
+METHODS = frozenset({"GET", "POST", "DELETE", "PUT", "PATCH", "HEAD", "OPTIONS"})
 BUCKETS = (0.01, 0.05, 0.1, 0.5, 1, 5, 15, 30, 60, 120)
 
 
@@ -46,28 +46,28 @@ def _integer_file(path: str) -> int | None:
         value = Path(path).read_text().strip()
         number = int(value)
         return number if number >= 0 else None
-    except (OSError, ValueError):
+    except OSError, ValueError:
         return None
 
 
 def resources() -> RuntimeResources:
     try:
-        rss = int(Path('/proc/self/statm').read_text().split()[1]) * os.sysconf('SC_PAGE_SIZE')
-    except (OSError, ValueError, IndexError):
+        rss = int(Path("/proc/self/statm").read_text().split()[1]) * os.sysconf("SC_PAGE_SIZE")
+    except OSError, ValueError, IndexError:
         rss = None
     try:
-        quota, period = Path('/sys/fs/cgroup/cpu.max').read_text().split()
-        cpu = int(quota) / int(period) if quota != 'max' and int(period) > 0 else None
-    except (OSError, ValueError):
+        quota, period = Path("/sys/fs/cgroup/cpu.max").read_text().split()
+        cpu = int(quota) / int(period) if quota != "max" and int(period) > 0 else None
+    except OSError, ValueError:
         cpu = None
     return RuntimeResources(
         process_rss_bytes=rss,
         process_peak_rss_bytes=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024,
-        cgroup_memory_current_bytes=_integer_file('/sys/fs/cgroup/memory.current'),
-        cgroup_memory_limit_bytes=_integer_file('/sys/fs/cgroup/memory.max'),
+        cgroup_memory_current_bytes=_integer_file("/sys/fs/cgroup/memory.current"),
+        cgroup_memory_limit_bytes=_integer_file("/sys/fs/cgroup/memory.max"),
         cgroup_cpu_limit_cores=cpu,
-        cgroup_pids_current=_integer_file('/sys/fs/cgroup/pids.current'),
-        cgroup_pids_limit=_integer_file('/sys/fs/cgroup/pids.max'),
+        cgroup_pids_current=_integer_file("/sys/fs/cgroup/pids.current"),
+        cgroup_pids_limit=_integer_file("/sys/fs/cgroup/pids.max"),
     )
 
 
@@ -88,19 +88,21 @@ class DeadlineSession(requests.Session):
         self._loop: asyncio.AbstractEventLoop | None = None
         self._task: asyncio.Task[requests.Response] | None = None
 
-    def request(self, method: str | bytes, url: str | bytes, *args: Any, **kwargs: Any) -> requests.Response:
+    def request(
+        self, method: str | bytes, url: str | bytes, *args: Any, **kwargs: Any
+    ) -> requests.Response:
         if args:
-            raise requests.RequestException('positional collector options unsupported')
-        timeout = min(self.ceiling, float(kwargs.get('timeout', self.ceiling)))
+            raise requests.RequestException("positional collector options unsupported")
+        timeout = min(self.ceiling, float(kwargs.get("timeout", self.ceiling)))
         if timeout <= 0 or self._closed:
-            raise requests.RequestException('collector request stopped')
+            raise requests.RequestException("collector request stopped")
 
         async def send() -> requests.Response:
             with self._state_lock:
                 self._loop = asyncio.get_running_loop()
                 self._task = asyncio.current_task()
                 if self._closed:
-                    raise requests.RequestException('collector request stopped')
+                    raise requests.RequestException("collector request stopped")
             try:
                 async with (
                     asyncio.timeout(timeout),
@@ -113,18 +115,18 @@ class DeadlineSession(requests.Session):
                     client.stream(
                         method.decode() if isinstance(method, bytes) else method,
                         url.decode() if isinstance(url, bytes) else url,
-                        headers=kwargs.get('headers'),
-                        content=kwargs.get('data'),
+                        headers=kwargs.get("headers"),
+                        content=kwargs.get("data"),
                     ) as response,
                 ):
                     if 300 <= response.status_code < 400:
-                        raise requests.RequestException('collector redirect refused')
+                        raise requests.RequestException("collector redirect refused")
                     result = requests.Response()
                     result.status_code = response.status_code
                     result.headers = requests.structures.CaseInsensitiveDict(response.headers)
                     # The SDK consumes status and Retry-After only. Do not retain/read a
                     # collector body or untrusted reason text (including on an error).
-                    result.reason = ''
+                    result.reason = ""
                     return result
             finally:
                 with self._state_lock:
@@ -134,7 +136,7 @@ class DeadlineSession(requests.Session):
         try:
             return asyncio.run(send())
         except asyncio.CancelledError:
-            raise requests.RequestException('collector request stopped') from None
+            raise requests.RequestException("collector request stopped") from None
 
     def close(self) -> None:
         with self._state_lock:
@@ -217,40 +219,40 @@ class RuntimeTelemetry:
         self.http_inflight = 0
         self.registry = CollectorRegistry()
         self.requests = Counter(
-            'pequeverso_http_requests_total',
-            'Completed HTTP requests since process start.',
-            ['method', 'route', 'status_class'],
+            "pequeverso_http_requests_total",
+            "Completed HTTP requests since process start.",
+            ["method", "route", "status_class"],
             registry=self.registry,
         )
         self.duration = Histogram(
-            'pequeverso_http_request_duration_seconds',
-            'HTTP duration including the lifetime of streamed responses.',
-            ['method', 'route'],
+            "pequeverso_http_request_duration_seconds",
+            "HTTP duration including the lifetime of streamed responses.",
+            ["method", "route"],
             buckets=BUCKETS,
             registry=self.registry,
         )
         self.gauges = {
-            name: Gauge(f'pequeverso_{name}', description, registry=self.registry)
+            name: Gauge(f"pequeverso_{name}", description, registry=self.registry)
             for name, description in {
-                'process_uptime_seconds': 'Current process uptime, not historical availability.',
-                'process_rss_bytes': 'Current process RSS in bytes.',
-                'process_peak_rss_bytes': 'Process RSS high-water in bytes.',
-                'cgroup_memory_current_bytes': 'Current enclosing cgroup memory, scope may be shared.',
-                'cgroup_memory_limit_bytes': 'Configured enclosing cgroup limit if known.',
-                'cgroup_cpu_limit_cores': 'Configured enclosing cgroup CPU quota if known.',
-                'cgroup_pids_current': 'Current enclosing cgroup PID count, scope may be shared.',
-                'cgroup_pids_limit': 'Configured enclosing cgroup PID ceiling if known.',
-                'ready': 'Point-in-time application readiness, no provider probe.',
-                'active_runs': 'Current in-process active runs.',
-                'max_concurrent_runs': 'Configured application concurrent run ceiling.',
-                'http_inflight': 'Current HTTP requests, including streams.',
-                'synthetic': 'One for fixture provider configuration, zero for real provider configuration.',
+                "process_uptime_seconds": "Current process uptime, not historical availability.",
+                "process_rss_bytes": "Current process RSS in bytes.",
+                "process_peak_rss_bytes": "Process RSS high-water in bytes.",
+                "cgroup_memory_current_bytes": "Current enclosing cgroup memory, scope may be shared.",
+                "cgroup_memory_limit_bytes": "Configured enclosing cgroup limit if known.",
+                "cgroup_cpu_limit_cores": "Configured enclosing cgroup CPU quota if known.",
+                "cgroup_pids_current": "Current enclosing cgroup PID count, scope may be shared.",
+                "cgroup_pids_limit": "Configured enclosing cgroup PID ceiling if known.",
+                "ready": "Point-in-time application readiness, no provider probe.",
+                "active_runs": "Current in-process active runs.",
+                "max_concurrent_runs": "Configured application concurrent run ceiling.",
+                "http_inflight": "Current HTTP requests, including streams.",
+                "synthetic": "One for fixture provider configuration, zero for real provider configuration.",
             }.items()
         }
         self.run_counts = Gauge(
-            'pequeverso_runs_window',
-            'Recorded runs in trailing24h, not a monotonic counter.',
-            ['outcome'],
+            "pequeverso_runs_window",
+            "Recorded runs in trailing24h, not a monotonic counter.",
+            ["outcome"],
             registry=self.registry,
         )
         self.exporter: SafeExporter | None = None
@@ -268,7 +270,10 @@ class RuntimeTelemetry:
             self.exporter = SafeExporter(exporter)
             self.trace_provider = TracerProvider(
                 resource=Resource(
-                    {'service.name': 'pequeverso-assistant-api', 'service.version': revision or 'unknown'}
+                    {
+                        "service.name": "pequeverso-assistant-api",
+                        "service.version": revision or "unknown",
+                    }
                 ),
                 sampler=TraceIdRatioBased(sampling_ratio),
                 shutdown_on_exit=False,
@@ -282,7 +287,9 @@ class RuntimeTelemetry:
                     export_timeout_millis=5000,
                 )
             )
-        self.tracer = self.trace_provider.get_tracer('pequeverso.http') if self.trace_provider else None
+        self.tracer = (
+            self.trace_provider.get_tracer("pequeverso.http") if self.trace_provider else None
+        )
 
     async def snapshot(self) -> TelemetrySnapshot:
         ready = await self.ready()
@@ -312,33 +319,38 @@ class RuntimeTelemetry:
     async def prometheus(self) -> bytes:
         snapshot = await self.snapshot()
         values: dict[str, float | int | bool | None] = {
-            'process_uptime_seconds': snapshot.process_uptime_seconds,
-            'ready': snapshot.ready,
-            'active_runs': snapshot.active_runs,
-            'max_concurrent_runs': snapshot.max_concurrent_runs,
-            'http_inflight': snapshot.http_inflight,
-            'synthetic': snapshot.synthetic,
-            **{name: getattr(snapshot.resources, name) for name in snapshot.resources.__dataclass_fields__},
+            "process_uptime_seconds": snapshot.process_uptime_seconds,
+            "ready": snapshot.ready,
+            "active_runs": snapshot.active_runs,
+            "max_concurrent_runs": snapshot.max_concurrent_runs,
+            "http_inflight": snapshot.http_inflight,
+            "synthetic": snapshot.synthetic,
+            **{
+                name: getattr(snapshot.resources, name)
+                for name in snapshot.resources.__dataclass_fields__
+            },
         }
         for name, value in values.items():
-            self.gauges[name].set(float(value) if value is not None else float('nan'))
+            self.gauges[name].set(float(value) if value is not None else float("nan"))
         try:
             window = await self.run_window()
         except Exception:  # noqa: BLE001 -- dependency outage must not hide readiness telemetry
             window = None
             log.warning('{"operation":"telemetry_run_window","outcome":"unavailable"}')
-        for outcome in ('completed', 'failed', 'cancelled', 'interrupted', 'refused'):
-            self.run_counts.labels(outcome).set(window.counts.get(outcome, 0) if window else float('nan'))
+        for outcome in ("completed", "failed", "cancelled", "interrupted", "refused"):
+            self.run_counts.labels(outcome).set(
+                window.counts.get(outcome, 0) if window else float("nan")
+            )
         return generate_latest(self.registry)
 
     def begin(self, method: str, context: Context | None = None) -> Span | None:
         self.http_inflight += 1
         return (
             self.tracer.start_span(
-                'HTTP request',
+                "HTTP request",
                 context=context or Context(),
                 kind=SpanKind.SERVER,
-                attributes={'http.request.method': method},
+                attributes={"http.request.method": method},
                 record_exception=False,
                 set_status_on_exception=False,
             )
@@ -346,17 +358,19 @@ class RuntimeTelemetry:
             else None
         )
 
-    def finish(self, span: Span | None, method: str, route: str, status: int, duration: float) -> None:
+    def finish(
+        self, span: Span | None, method: str, route: str, status: int, duration: float
+    ) -> None:
         self.http_inflight -= 1
         self.http_requests += 1
         self.http_server_errors += int(status >= 500)
-        self.requests.labels(method, route, f'{status // 100}xx' if status else 'unknown').inc()
+        self.requests.labels(method, route, f"{status // 100}xx" if status else "unknown").inc()
         self.duration.labels(method, route).observe(duration)
         if span:
-            span.update_name(f'{method} {route}')
-            span.set_attribute('http.route', route)
+            span.update_name(f"{method} {route}")
+            span.set_attribute("http.route", route)
             if status:
-                span.set_attribute('http.response.status_code', status)
+                span.set_attribute("http.response.status_code", status)
             if status >= 500:
                 span.set_status(StatusCode.ERROR)
             span.end()
@@ -386,41 +400,41 @@ class TelemetryMiddleware:
         self.private_token_digest = private_token_digest
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope['type'] != 'http':
+        if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        method = scope['method'] if scope['method'] in METHODS else 'OTHER'
+        method = scope["method"] if scope["method"] in METHODS else "OTHER"
         started = time.monotonic()
         context = Context()
-        if self.private_token_digest is not None and scope['path'] in PRIVATE_PATHS:
-            headers = dict(scope.get('headers', []))
-            scheme, _, value = headers.get(b'authorization', b'').partition(b' ')
-            incoming = headers.get(b'traceparent', b'').decode('latin-1')
+        if self.private_token_digest is not None and scope["path"] in PRIVATE_PATHS:
+            headers = dict(scope.get("headers", []))
+            scheme, _, value = headers.get(b"authorization", b"").partition(b" ")
+            incoming = headers.get(b"traceparent", b"").decode("latin-1")
             if (
-                scheme.lower() == b'bearer'
+                scheme.lower() == b"bearer"
                 and value
                 and len(incoming) == 55
                 and hmac.compare_digest(hashlib.sha256(value).digest(), self.private_token_digest)
                 and TRACEPARENT.fullmatch(incoming)
             ):
-                context = TraceContextTextMapPropagator().extract({'traceparent': incoming})
+                context = TraceContextTextMapPropagator().extract({"traceparent": incoming})
         span = self.telemetry.begin(method, context)
         status = 0
 
         async def capture_status(message: Message) -> None:
             nonlocal status
-            if message['type'] == 'http.response.start':
-                status = message['status'] if 100 <= message['status'] <= 599 else 500
+            if message["type"] == "http.response.start":
+                status = message["status"] if 100 <= message["status"] <= 599 else 500
             await send(message)
 
         try:
             await self.app(scope, receive, capture_status)
         finally:
-            route = getattr(scope.get('route'), 'path', 'unmatched')
+            route = getattr(scope.get("route"), "path", "unmatched")
             self.telemetry.finish(
                 span,
                 method,
-                route if route in self.routes else 'unmatched',
+                route if route in self.routes else "unmatched",
                 status,
                 max(0, time.monotonic() - started),
             )

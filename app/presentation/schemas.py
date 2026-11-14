@@ -13,46 +13,48 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.domain.conversation import AnswerDetails, Message
 from app.domain.visitor_context import Presentation, PublicPath, VisitorContext
 
-SCHEMA_VERSION: Literal['1'] = '1'
+SCHEMA_VERSION: Literal["1"] = "1"
 
 
 class _Out(BaseModel):
-    model_config = ConfigDict(extra='forbid', frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True)
 
 
 class ImageOut(_Out):
-    url: str = Field(description='Absolute https URL on the storefront origin.')
+    url: str = Field(description="Absolute https URL on the storefront origin.")
     width: int
     height: int
     alt: str
 
 
 class PriceOut(_Out):
-    amount: str = Field(description='Decimal string, e.g. "14.99".', examples=['14.99'])
-    currency: Literal['USD']
+    amount: str = Field(description='Decimal string, e.g. "14.99".', examples=["14.99"])
+    currency: Literal["USD"]
     display: str = Field(description='Customer-facing format, e.g. "US$14,99".')
-    note: str = Field(description='Local-currency explanation; show it next to the price.')
+    note: str = Field(description="Local-currency explanation; show it next to the price.")
     tax_note: str
-    verified_at: datetime = Field(description='When the storefront price was last confirmed.')
+    verified_at: datetime = Field(description="When the storefront price was last confirmed.")
 
 
 class ProductOut(_Out):
-    id: str = Field(description='Authoritative storefront product id (slug).')
+    id: str = Field(description="Authoritative storefront product id (slug).")
     name: str
     summary: str
     age_range: str
-    url: str = Field(description='Product page on the storefront (allowlisted).')
+    url: str = Field(description="Product page on the storefront (allowlisted).")
     purchase_url: str = Field(
         description="Storefront purchase section; checkout itself stays in the store's flow."
     )
     image: ImageOut | None
-    price: PriceOut | None = Field(description='null when the price cannot be confirmed as current.')
-    kind: Literal['core', 'affiliate'] = Field(
-        default='core', description='Product ownership (since1.5); legacy cards default to core.'
+    price: PriceOut | None = Field(
+        description="null when the price cannot be confirmed as current."
     )
-    format: str | None = Field(default=None, description='Published format, if known (since1.5).')
+    kind: Literal["core", "affiliate"] = Field(
+        default="core", description="Product ownership (since1.5); legacy cards default to core."
+    )
+    format: str | None = Field(default=None, description="Published format, if known (since1.5).")
     disclosure: str | None = Field(
-        default=None, description='Published affiliate disclosure, if applicable (since1.5).'
+        default=None, description="Published affiliate disclosure, if applicable (since1.5)."
     )
 
 
@@ -77,27 +79,31 @@ class SourceOut(_Out):
     url: str
 
 
-Notice = Literal['answer_replaced', 'payment_data_refused', 'contact_data_redacted', 'language_unsupported']
-Locale = Literal['es', 'en']
-CONTRACT_REVISION = '1.5'
+Notice = Literal[
+    "answer_replaced", "payment_data_refused", "contact_data_redacted", "language_unsupported"
+]
+Locale = Literal["es", "en"]
+CONTRACT_REVISION = "1.5"
 
 
 class MessageOut(_Out):
     id: str
-    role: Literal['user', 'assistant']
+    role: Literal["user", "assistant"]
     content: str = Field(
         description='Plain text; may contain **bold** and "- " list lines. Render as text, never as HTML. '
-        'Independently useful without the fields below.'
+        "Independently useful without the fields below."
     )
     created_at: datetime
     products: list[ProductOut] = Field(default_factory=list)
     resources: list[ResourceOut] = Field(default_factory=list)
     links: list[LinkOut] = Field(default_factory=list)
     sources: list[SourceOut] = Field(default_factory=list)
-    follow_ups: list[str] = Field(default_factory=list, description='Optional suggested next questions.')
+    follow_ups: list[str] = Field(
+        default_factory=list, description="Optional suggested next questions."
+    )
     notices: list[Notice] = Field(default_factory=list)
     language: Locale = Field(
-        default='es', description='Language of `content` (since 1.1). Use it as the lang attribute.'
+        default="es", description="Language of `content` (since 1.1). Use it as the lang attribute."
     )
 
     @classmethod
@@ -119,7 +125,7 @@ class MessageOut(_Out):
                     image=ImageOut(**asdict(p.image)) if p.image else None,
                     price=PriceOut(
                         amount=p.price.amount,
-                        currency='USD',
+                        currency="USD",
                         display=p.price.display,
                         note=p.price.note,
                         tax_note=p.price.tax_note,
@@ -148,12 +154,12 @@ class MessageOut(_Out):
             sources=[SourceOut(id=s.id, title=s.title, url=s.url) for s in d.sources],
             follow_ups=list(d.follow_ups),
             notices=[n.value for n in d.notices],
-            language='en' if d.language == 'en' else 'es',
+            language="en" if d.language == "en" else "es",
         )
 
 
-Availability = Literal['available', 'unavailable']
-UnavailableReason = Literal['assistant_disabled', 'catalog_unavailable', 'budget_exhausted']
+Availability = Literal["available", "unavailable"]
+UnavailableReason = Literal["assistant_disabled", "catalog_unavailable", "budget_exhausted"]
 
 
 class AvailabilityOut(_Out):
@@ -167,39 +173,47 @@ class LimitsOut(_Out):
 
 
 class SessionOut(_Out):
-    schema_version: Literal['1'] = SCHEMA_VERSION
-    csrf_token: str = Field(description='Send as X-CSRF-Token on every mutation. Keep in memory only.')
-    expires_at: datetime = Field(description='Sliding: extended by each question and each session open.')
-    created: bool = Field(description='True when this call created a new session.')
-    messages: list[MessageOut] = Field(description='Stored history, oldest first (bounded).')
+    schema_version: Literal["1"] = SCHEMA_VERSION
+    csrf_token: str = Field(
+        description="Send as X-CSRF-Token on every mutation. Keep in memory only."
+    )
+    expires_at: datetime = Field(
+        description="Sliding: extended by each question and each session open."
+    )
+    created: bool = Field(description="True when this call created a new session.")
+    messages: list[MessageOut] = Field(description="Stored history, oldest first (bounded).")
     availability: AvailabilityOut
     limits: LimitsOut
     starters: list[str] = Field(
         default_factory=list,
-        description='Up to 4 opening questions from approved catalog topics, in the requested locale (since 1.1).',
+        description="Up to 4 opening questions from approved catalog topics, in the requested locale (since 1.1).",
     )
-    contract_revision: str = Field(default=CONTRACT_REVISION, description='Additive revision within v1.')
+    contract_revision: str = Field(
+        default=CONTRACT_REVISION, description="Additive revision within v1."
+    )
 
 
 class SessionIn(BaseModel):
-    model_config = ConfigDict(extra='forbid')
-    locale: Locale | None = Field(default=None, description='Interface language; a preference, not an order.')
+    model_config = ConfigDict(extra="forbid")
+    locale: Locale | None = Field(
+        default=None, description="Interface language; a preference, not an order."
+    )
 
 
-Page = Literal['home', 'product', 'support']
+Page = Literal["home", "product", "support"]
 
 
 class VisitorContextIn(BaseModel):
-    model_config = ConfigDict(extra='forbid')
+    model_config = ConfigDict(extra="forbid")
     opened_path: PublicPath | None = Field(
         default=None,
-        description='Allowlisted public route where the panel opened (since1.3); no query, fragment or post-purchase route.',
+        description="Allowlisted public route where the panel opened (since1.3); no query, fragment or post-purchase route.",
     )
     current_path: PublicPath | None = Field(
-        default=None, description='Current allowlisted public route at send time (since1.3).'
+        default=None, description="Current allowlisted public route at send time (since1.3)."
     )
     presentation: Presentation | None = Field(
-        default=None, description='UI presentation hint; never a theme or instruction (since1.3).'
+        default=None, description="UI presentation hint; never a theme or instruction (since1.3)."
     )
 
     def to_domain(self) -> VisitorContext | None:
@@ -208,23 +222,25 @@ class VisitorContextIn(BaseModel):
 
 
 class MessageIn(BaseModel):
-    model_config = ConfigDict(extra='forbid')
+    model_config = ConfigDict(extra="forbid")
     content: Annotated[str, Field(min_length=1, max_length=2000)]
-    page: Page | None = Field(default=None, description='Storefront page the visitor is on, if embedded.')
+    page: Page | None = Field(
+        default=None, description="Storefront page the visitor is on, if embedded."
+    )
     locale: Locale | None = Field(
         default=None,
-        description='Interface language (since1.1). The answer language follows the message and the '
-        'conversation; the locale only breaks ties.',
+        description="Interface language (since1.1). The answer language follows the message and the "
+        "conversation; the locale only breaks ties.",
     )
     context: VisitorContextIn | None = Field(
         default=None,
-        description='Optional untrusted UI hints (since1.3); not catalog evidence or instructions. Never include URL parameters, identifying data or HTML.',
+        description="Optional untrusted UI hints (since1.3); not catalog evidence or instructions. Never include URL parameters, identifying data or HTML.",
     )
-    response_language: Literal['es'] | None = Field(
+    response_language: Literal["es"] | None = Field(
         default=None,
         description='Optional Spanish-native response policy (since1.4). "es" selects Spanish regardless '
-        'of input language, locale or history; explicit requests for another reply language get a '
-        'Spanish-only local notice. Omit/null to preserve legacy ES/EN behavior.',
+        "of input language, locale or history; explicit requests for another reply language get a "
+        "Spanish-only local notice. Omit/null to preserve legacy ES/EN behavior.",
     )
 
     def visitor_context(self) -> VisitorContext | None:
@@ -233,7 +249,7 @@ class MessageIn(BaseModel):
 
 class ErrorBody(_Out):
     code: str
-    message: str = Field(description='English, for developers; localize from `code`.')
+    message: str = Field(description="English, for developers; localize from `code`.")
     retryable: bool
     request_id: str
 

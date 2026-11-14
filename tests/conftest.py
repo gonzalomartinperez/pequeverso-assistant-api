@@ -12,5 +12,5 @@ import pytest
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     for item in items:
-        lane = 'services' if item.get_closest_marker('skipif') else 'unit'
+        lane = "services" if item.get_closest_marker("skipif") else "unit"
         item.add_marker(getattr(pytest.mark, lane))

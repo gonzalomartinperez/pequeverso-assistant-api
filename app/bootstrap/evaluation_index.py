@@ -77,10 +77,10 @@ class RecordingComposer:
                 if isinstance(prepared, GraphPrepared):
                     self._records.append(
                         {
-                            'retrieved': asdict(prepared.retrieval) if prepared.retrieval else None,
-                            'sent_chunk_ids': list(prepared.sent_chunk_ids),
-                            'catalog_only': bool(getattr(prepared, 'catalog_only', False)),
-                            'generation_started': prepared.generation_started,
+                            "retrieved": asdict(prepared.retrieval) if prepared.retrieval else None,
+                            "sent_chunk_ids": list(prepared.sent_chunk_ids),
+                            "catalog_only": bool(getattr(prepared, "catalog_only", False)),
+                            "generation_started": prepared.generation_started,
                         }
                     )
 
@@ -88,13 +88,17 @@ class RecordingComposer:
 async def index_evaluation_snapshot(
     config: EvaluationIndexConfig, body: bytes, clock: Clock, factory: EmbeddingFactory
 ) -> IndexResult:
-    parser = CatalogParser(frozenset({'pequeverso.com', 'consumer.hotmart.com', 'refund.hotmart.com'}))
+    parser = CatalogParser(
+        frozenset({"pequeverso.com", "consumer.hotmart.com", "refund.hotmart.com"})
+    )
     # Parse the pinned public snapshot before acquiring any resource or constructing a client.
     catalog = parser(body)
     async with AsyncExitStack() as resources:
         public = PostgresDatabase(config.indexer_dsn.get_secret_value(), pool_size=2)
         accounting_db = PostgresDatabase(config.accounting_dsn.get_secret_value(), pool_size=2)
-        neo = Neo4jDatabase(config.neo4j_uri, config.neo4j_username, config.neo4j_password.get_secret_value())
+        neo = Neo4jDatabase(
+            config.neo4j_uri, config.neo4j_username, config.neo4j_password.get_secret_value()
+        )
         for database in (public, accounting_db, neo):
             resources.push_async_callback(database.close)
             await database.open()
@@ -102,8 +106,8 @@ async def index_evaluation_snapshot(
         accounting = SharedEmbeddingAccounting(
             ledger,
             clock,
-            BudgetPolicy(to_micro(Decimal(10)), Decimal('0.1'), to_micro(Decimal(1))),
-            Decimal('0.02'),
+            BudgetPolicy(to_micro(Decimal(10)), Decimal("0.1"), to_micro(Decimal(1))),
+            Decimal("0.02"),
         )
         owned = factory(accounting)
         if owned.close is not None:
@@ -133,6 +137,6 @@ async def evaluation_spend_snapshot(
         queries = PostgresOperationsQueries(private, public)
         now = clock.now()
         return [
-            {'period': period, **asdict(await queries.spend(period, now.strftime(pattern)))}
-            for period, pattern in (('month', '%Y-%m'), ('day', '%Y-%m-%d'))
+            {"period": period, **asdict(await queries.spend(period, now.strftime(pattern)))}
+            for period, pattern in (("month", "%Y-%m"), ("day", "%Y-%m-%d"))
         ]

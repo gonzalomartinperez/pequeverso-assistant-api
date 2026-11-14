@@ -17,14 +17,14 @@ from app.bootstrap.logging import configure_logging
 async def main() -> int:
     configure_logging()
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--snapshot', type=Path, required=True)
-    parser.add_argument('--receipt', type=Path, required=True)
-    parser.add_argument('--source-quiescent', action='store_true', required=True)
+    parser.add_argument("--snapshot", type=Path, required=True)
+    parser.add_argument("--receipt", type=Path, required=True)
+    parser.add_argument("--source-quiescent", action="store_true", required=True)
     args = parser.parse_args()
-    dsn = os.environ.get('POSTGRES_IMPORT_DSN')
+    dsn = os.environ.get("POSTGRES_IMPORT_DSN")
     if not dsn:
         print(
-            'POSTGRES_IMPORT_DSN is required for the explicit migration identity; no DSN arguments accepted'
+            "POSTGRES_IMPORT_DSN is required for the explicit migration identity; no DSN arguments accepted"
         )
         return 2
     db = PostgresDatabase(dsn, pool_size=2)
@@ -32,19 +32,19 @@ async def main() -> int:
         await db.open()
         # Migrations are a separate, explicit operator job; this command never creates the target.
         receipt = await import_snapshot(db, args.snapshot, source_quiescent=args.source_quiescent)
-        output = json.dumps(asdict(receipt), indent=2) + '\n'
+        output = json.dumps(asdict(receipt), indent=2) + "\n"
         descriptor = os.open(args.receipt, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-        with os.fdopen(descriptor, 'w') as target:
+        with os.fdopen(descriptor, "w") as target:
             target.write(output)
-        print('Import verified; content-free private receipt written. No source data removed.')
+        print("Import verified; content-free private receipt written. No source data removed.")
         return 0
     except Exception as error:  # noqa: BLE001 - private SQL values must never reach stderr
         # DB error details can contain private row values. Never print the exception text/traceback.
-        print(f'Import failed ({type(error).__name__}); inspect private state before retrying.')
+        print(f"Import failed ({type(error).__name__}); inspect private state before retrying.")
         return 1
     finally:
         await db.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(asyncio.run(main()))

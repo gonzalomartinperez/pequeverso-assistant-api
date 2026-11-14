@@ -80,7 +80,7 @@ class HybridKnowledgeRetrieval:
         try:
             revision = await self._revision(active)
             return await self._graph_current(revision)
-        except (RejectedError, OSError, TimeoutError, ValueError, TypeError):
+        except RejectedError, OSError, TimeoutError, ValueError, TypeError:
             return False
 
     async def retrieve(
@@ -92,7 +92,7 @@ class HybridKnowledgeRetrieval:
     ) -> RetrievedKnowledge:
         # The caller supplies a redacted visitor question. It is embedded once, not persisted
         # as knowledge, and never transformed into executable SQL or Cypher.
-        if not question.strip() or len(question.encode('utf-8')) > 8000:
+        if not question.strip() or len(question.encode("utf-8")) > 8000:
             raise RejectedError(FailureCode.INVALID_REQUEST)
         allowed = frozenset(product_ids)
         if not allowed.issubset({p.id for p in active.catalog.products}):
@@ -139,15 +139,15 @@ class HybridKnowledgeRetrieval:
         # below the other. These are still exact PG chunks, never invented index content.
         anchors = await self._store.read_chunks(
             revision.version,
-            tuple(f'product:{pid}' for pid in product_ids),
+            tuple(f"product:{pid}" for pid in product_ids),
         )
-        expected_anchors = {f'product:{pid}' for pid in product_ids}
+        expected_anchors = {f"product:{pid}" for pid in product_ids}
         if len(anchors) != len(expected_anchors) or {c.id for c in anchors} != expected_anchors:
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
         for anchor in anchors:
             if (
                 anchor.kind is not ChunkKind.PRODUCT
-                or anchor.id != f'product:{anchor.source_id}'
+                or anchor.id != f"product:{anchor.source_id}"
                 or anchor.source_id not in allowed
                 or anchor.product_ids != (anchor.source_id,)
             ):

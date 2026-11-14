@@ -26,66 +26,66 @@ def test_factory_is_single_owned_composition_with_real_shared_accounting(tmp_pat
     calls: list[str] = []
 
     async def close() -> None:
-        calls.append('close')
+        calls.append("close")
 
     def factory(config: Settings, accounting: EmbeddingAccounting) -> ProviderResource:
-        assert config.ai_provider == 'fixture'
+        assert config.ai_provider == "fixture"
         assert isinstance(accounting, SharedEmbeddingAccounting)
-        calls.append('construct')
+        calls.append("construct")
         return ProviderResource(FixtureProvider(), close)
 
     app = container.create_app(settings(tmp_path), provider_factory=factory)
-    assert calls == ['construct']
+    assert calls == ["construct"]
     with TestClient(app) as client:
-        assert client.get('/health/ready').status_code == 200
-        assert calls == ['construct']
-    assert calls == ['construct', 'close']
+        assert client.get("/health/ready").status_code == 200
+        assert calls == ["construct"]
+    assert calls == ["construct", "close"]
 
 
-@pytest.mark.parametrize('production', [False, True])
+@pytest.mark.parametrize("production", [False, True])
 def test_forbidden_factory_overrides_fail_before_any_resource_construction(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, production: bool
 ) -> None:
     def forbidden(*args: object, **kwargs: object) -> Any:
-        raise AssertionError('forbidden override must fail before persistence or factory')
+        raise AssertionError("forbidden override must fail before persistence or factory")
 
-    monkeypatch.setattr(container, 'build_persistence', forbidden)
+    monkeypatch.setattr(container, "build_persistence", forbidden)
     config = settings(tmp_path)
     if production:
         config = Settings(
             _env_file=None,
-            environment='production',
+            environment="production",
             assistant_enabled=False,
             session_cookie_secure=True,
-            allowed_origins=['https://pequeverso.com'],
-            client_hash_key=SecretStr('c' * 32),
+            allowed_origins=["https://pequeverso.com"],
+            client_hash_key=SecretStr("c" * 32),
         )
-        with pytest.raises(ValueError, match='overrides'):
+        with pytest.raises(ValueError, match="overrides"):
             container.create_app(config, provider_factory=forbidden)
     else:
-        with pytest.raises(ValueError, match='mutually exclusive'):
+        with pytest.raises(ValueError, match="mutually exclusive"):
             container.create_app(config, provider=FixtureProvider(), provider_factory=forbidden)
 
 
 def test_fixture_factories_never_construct_sdk_even_with_ambient_credentials(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv('OPENAI_API_KEY', 'synthetic-ambient-must-not-be-read')
-    monkeypatch.setenv('AI_PROVIDER', 'openai')
+    monkeypatch.setenv("OPENAI_API_KEY", "synthetic-ambient-must-not-be-read")
+    monkeypatch.setenv("AI_PROVIDER", "openai")
 
     def forbidden(*args: object, **kwargs: object) -> Any:
-        raise AssertionError('fixture factory may not construct SDK or HTTP transport')
+        raise AssertionError("fixture factory may not construct SDK or HTTP transport")
 
-    monkeypatch.setattr(graph_runner, 'AsyncOpenAI', forbidden)
-    monkeypatch.setattr(graph_runner, 'provider_http_client', forbidden)
+    monkeypatch.setattr(graph_runner, "AsyncOpenAI", forbidden)
+    monkeypatch.setattr(graph_runner, "provider_http_client", forbidden)
     receipts: list[dict[str, Any]] = []
     embedding_factory, runtime_factory = graph_runner.factories(None, receipts)
     resource = embedding_factory(ApplicationAccounting())
-    assert resource.embeddings.spec.provider == 'fixture' and resource.close is None
+    assert resource.embeddings.spec.provider == "fixture" and resource.close is None
     evidence = EvidenceProvider()
     runtime = runtime_factory(
         evidence,
-        Settings(_env_file=None, ai_provider='fixture', allow_paid_ai=False, openai_api_key=None),
+        Settings(_env_file=None, ai_provider="fixture", allow_paid_ai=False, openai_api_key=None),
         ApplicationAccounting(),
     )
     assert runtime.provider is evidence and runtime.embeddings is not None and runtime.close is None
@@ -95,125 +95,134 @@ def test_fixture_factories_never_construct_sdk_even_with_ambient_credentials(
 def test_frozen_subset_preserves_full_conversations_and_rejects_changed_turns() -> None:
     cases: list[dict[str, Any]] = [
         {
-            'id': 'conversation',
-            'family': 'followup',
-            'turns': [{'question': 'one'}, {'question': 'two'}, {'question': 'three'}],
+            "id": "conversation",
+            "family": "followup",
+            "turns": [{"question": "one"}, {"question": "two"}, {"question": "three"}],
         },
-        {'id': 'independent', 'family': 'price', 'turns': [{'question': 'four'}]},
+        {"id": "independent", "family": "price", "turns": [{"question": "four"}]},
     ]
-    parent: dict[str, Any] = {'cases': cases, 'reply_policy': 'spanish_native'}
-    parent_hash = 'a' * 64
-    canonical = {'phase': graph_runner.PHASE, 'parent_manifest_sha256': parent_hash, 'cases': [cases[0]]}
+    parent: dict[str, Any] = {"cases": cases, "reply_policy": "spanish_native"}
+    parent_hash = "a" * 64
+    canonical = {
+        "phase": graph_runner.PHASE,
+        "parent_manifest_sha256": parent_hash,
+        "cases": [cases[0]],
+    }
     selector_hash = hashlib.sha256(
-        json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
+        json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     plan = {
-        'recommended_full_manifest': {'sha256': parent_hash},
-        'proposed_subset_not_execution_authorization': {
-            'case_ids_in_order': ['conversation'],
-            'canonical_selector_sha256': selector_hash,
+        "recommended_full_manifest": {"sha256": parent_hash},
+        "proposed_subset_not_execution_authorization": {
+            "case_ids_in_order": ["conversation"],
+            "canonical_selector_sha256": selector_hash,
         },
     }
     selected = graph_runner.selected_manifest(parent, parent_hash, plan)
-    assert selected['query_count'] == 3 and selected['counts']['unexecuted_parent_queries'] == 1
-    assert selected['cases'][0] == parent['cases'][0] and selected['cases'][0] is not parent['cases'][0]
-    selected['cases'][0]['turns'][0]['question'] = 'changed'
-    assert parent['cases'][0]['turns'][0]['question'] == 'one'
-    parent['cases'][0]['turns'][0]['question'] = 'tampered'
-    with pytest.raises(ValueError, match='changed'):
+    assert selected["query_count"] == 3 and selected["counts"]["unexecuted_parent_queries"] == 1
+    assert (
+        selected["cases"][0] == parent["cases"][0]
+        and selected["cases"][0] is not parent["cases"][0]
+    )
+    selected["cases"][0]["turns"][0]["question"] = "changed"
+    assert parent["cases"][0]["turns"][0]["question"] == "one"
+    parent["cases"][0]["turns"][0]["question"] = "tampered"
+    with pytest.raises(ValueError, match="changed"):
         graph_runner.selected_manifest(parent, parent_hash, plan)
-    with pytest.raises(ValueError, match='parent hash'):
-        graph_runner.selected_manifest(parent, 'b' * 64, plan)
+    with pytest.raises(ValueError, match="parent hash"):
+        graph_runner.selected_manifest(parent, "b" * 64, plan)
 
 
 def fixture_values() -> dict[str, Any]:
     return {
-        'isolated_fixture': True,
-        'runtime_roles_verified_non_owner': True,
+        "isolated_fixture": True,
+        "runtime_roles_verified_non_owner": True,
         **{
-            f'postgres_{kind}_dsn': f'postgresql://{kind}:synthetic@127.0.0.1:55440/pv_graph_eval'
-            for kind in ('private', 'knowledge', 'indexer', 'embedding')
+            f"postgres_{kind}_dsn": f"postgresql://{kind}:synthetic@127.0.0.1:55440/pv_graph_eval"
+            for kind in ("private", "knowledge", "indexer", "embedding")
         },
-        'neo4j_uri': 'bolt://127.0.0.1:17689',
-        'neo4j_username': 'neo4j',
-        'neo4j_password': 'synthetic-fixture-only',
+        "neo4j_uri": "bolt://127.0.0.1:17689",
+        "neo4j_username": "neo4j",
+        "neo4j_password": "synthetic-fixture-only",
     }
 
 
-@pytest.mark.parametrize('problem', ['permissions', 'remote', 'shared_database', 'same_role', 'neo_origin'])
+@pytest.mark.parametrize(
+    "problem", ["permissions", "remote", "shared_database", "same_role", "neo_origin"]
+)
 def test_configuration_rejects_unsafe_fixture_targets(tmp_path: Path, problem: str) -> None:
-    path = tmp_path / 'fixture.json'
+    path = tmp_path / "fixture.json"
     values = fixture_values()
-    if problem == 'remote':
-        values['postgres_private_dsn'] = (
-            'postgresql://private:synthetic@untrusted.invalid:55440/pv_graph_eval'
+    if problem == "remote":
+        values["postgres_private_dsn"] = (
+            "postgresql://private:synthetic@untrusted.invalid:55440/pv_graph_eval"
         )
-    elif problem == 'shared_database':
-        values['postgres_private_dsn'] = 'postgresql://private:synthetic@127.0.0.1:55440/shared'
-    elif problem == 'same_role':
-        values['postgres_private_dsn'] = values['postgres_knowledge_dsn']
-    elif problem == 'neo_origin':
-        values['neo4j_uri'] = 'bolt://untrusted.invalid:17689'
+    elif problem == "shared_database":
+        values["postgres_private_dsn"] = "postgresql://private:synthetic@127.0.0.1:55440/shared"
+    elif problem == "same_role":
+        values["postgres_private_dsn"] = values["postgres_knowledge_dsn"]
+    elif problem == "neo_origin":
+        values["neo4j_uri"] = "bolt://untrusted.invalid:17689"
     path.write_text(json.dumps(values))
-    path.chmod(0o644 if problem == 'permissions' else 0o600)
-    with pytest.raises(ValueError, match=r'fixture|capabilities'):
+    path.chmod(0o644 if problem == "permissions" else 0o600)
+    with pytest.raises(ValueError, match=r"fixture|capabilities"):
         graph_runner.graph_configuration(path)
 
 
-@pytest.mark.parametrize('audit', [None, 'malformed', 'a' * 64])
+@pytest.mark.parametrize("audit", [None, "malformed", "a" * 64])
 def test_default_graph_cli_ignores_key_and_budget_arguments(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, audit: str | None
 ) -> None:
-    manifest = tmp_path / 'matrix.json'
-    manifest.write_text(json.dumps({'cases': [{'id': 'fixture', 'turns': [{'question': 'Hola'}]}]}))
-    output = tmp_path / 'output'
-    monkeypatch.setattr(graph_runner, 'graph_configuration', lambda path: fixture_values())
+    manifest = tmp_path / "matrix.json"
+    manifest.write_text(json.dumps({"cases": [{"id": "fixture", "turns": [{"question": "Hola"}]}]}))
+    output = tmp_path / "output"
+    monkeypatch.setattr(graph_runner, "graph_configuration", lambda path: fixture_values())
 
     def forbidden(*args: object, **kwargs: object) -> Any:
-        raise AssertionError('default fixture CLI must not read key/budget or create SDK')
+        raise AssertionError("default fixture CLI must not read key/budget or create SDK")
 
-    monkeypatch.setattr(graph_runner, 'load_live_provider', forbidden)
-    monkeypatch.setattr(graph_runner, 'AsyncOpenAI', forbidden)
-    monkeypatch.setattr(graph_runner, 'provider_http_client', forbidden)
+    monkeypatch.setattr(graph_runner, "load_live_provider", forbidden)
+    monkeypatch.setattr(graph_runner, "AsyncOpenAI", forbidden)
+    monkeypatch.setattr(graph_runner, "provider_http_client", forbidden)
 
     async def index(*args: object, **kwargs: object) -> Any:
         from app.application.indexing import IndexResult
         from app.domain.knowledge import ProjectionStamp
 
-        return IndexResult('a' * 64, ProjectionStamp('a' * 64, 'b' * 64, 1, 1, 1), False)
+        return IndexResult("a" * 64, ProjectionStamp("a" * 64, "b" * 64, 1, 1, 1), False)
 
-    monkeypatch.setattr(graph_runner, 'index_evaluation_snapshot', index)
+    monkeypatch.setattr(graph_runner, "index_evaluation_snapshot", index)
 
     def evaluate(*args: object, **kwargs: Any) -> dict[str, Any]:
-        assert kwargs['bounded'] is None
-        assert kwargs['graph_settings'].ai_provider == 'fixture'
-        assert kwargs['graph_settings'].openai_api_key is None
-        return {'stop_reason': None, 'structural_flagged_queries': 0, 'history_mismatches': 0}
+        assert kwargs["bounded"] is None
+        assert kwargs["graph_settings"].ai_provider == "fixture"
+        assert kwargs["graph_settings"].openai_api_key is None
+        return {"stop_reason": None, "structural_flagged_queries": 0, "history_mismatches": 0}
 
-    monkeypatch.setattr(graph_runner, 'evaluate', evaluate)
+    monkeypatch.setattr(graph_runner, "evaluate", evaluate)
     monkeypatch.setattr(
-        'sys.argv',
+        "sys.argv",
         [
-            'graph-eval',
-            '--services-config',
-            str(tmp_path / 'fixture.json'),
-            '--manifest',
+            "graph-eval",
+            "--services-config",
+            str(tmp_path / "fixture.json"),
+            "--manifest",
             str(manifest),
-            '--output-dir',
+            "--output-dir",
             str(output),
-            '--source-revision',
-            'a' * 40,
-            '--key-file',
-            str(tmp_path / 'MUST-NOT-READ'),
-            '--budget-state',
-            str(tmp_path / 'MUST-NOT-TOUCH'),
+            "--source-revision",
+            "a" * 40,
+            "--key-file",
+            str(tmp_path / "MUST-NOT-READ"),
+            "--budget-state",
+            str(tmp_path / "MUST-NOT-TOUCH"),
         ],
     )
     if audit is not None:
-        monkeypatch.setattr('sys.argv', [*sys.argv, '--authorized-envelope-sha256', audit])
+        monkeypatch.setattr("sys.argv", [*sys.argv, "--authorized-envelope-sha256", audit])
     assert graph_runner.main() == 0
-    assert not (tmp_path / 'MUST-NOT-TOUCH').exists()
-    assert json.loads((output / 'index-accounting.json').read_text())['fixture_only'] is True
+    assert not (tmp_path / "MUST-NOT-TOUCH").exists()
+    assert json.loads((output / "index-accounting.json").read_text())["fixture_only"] is True
 
 
 def test_historical_unreported_attempt_blocks_factory_before_any_sdk(
@@ -222,23 +231,23 @@ def test_historical_unreported_attempt_blocks_factory_before_any_sdk(
     from app.domain.errors import RejectedError
     from scripts.real_eval_budget import BoundedProvider, Envelope
 
-    envelope = Envelope(tmp_path / 'budget.sqlite3', max_attempts=650)
+    envelope = Envelope(tmp_path / "budget.sqlite3", max_attempts=650)
     attempt = envelope.reserve()
 
     def forbidden(*args: object, **kwargs: object) -> Any:
-        raise AssertionError('historical unknown usage must stop before SDK construction')
+        raise AssertionError("historical unknown usage must stop before SDK construction")
 
-    monkeypatch.setattr(graph_runner, 'provider_http_client', forbidden)
-    monkeypatch.setattr(graph_runner, 'AsyncOpenAI', forbidden)
+    monkeypatch.setattr(graph_runner, "provider_http_client", forbidden)
+    monkeypatch.setattr(graph_runner, "AsyncOpenAI", forbidden)
     with pytest.raises(RejectedError):
-        graph_runner.factories(BoundedProvider('synthetic-unused', envelope), [])
+        graph_runner.factories(BoundedProvider("synthetic-unused", envelope), [])
     assert envelope.snapshot() == {
-        'attempts': 1,
-        'reserved_micro_usd': 11000,
-        'stop_reason': 'historical_unreported_usage',
+        "attempts": 1,
+        "reserved_micro_usd": 11000,
+        "stop_reason": "historical_unreported_usage",
     }
     with envelope.connect() as database:
-        assert database.execute('SELECT id,reserved,settled FROM attempts').fetchall() == [
+        assert database.execute("SELECT id,reserved,settled FROM attempts").fetchall() == [
             (attempt, 11000, 0)
         ]
 
@@ -250,30 +259,30 @@ def test_live_loader_blocks_historical_unknown_before_credential_read(
     from scripts import evaluate_end_to_end as runner
     from scripts.real_eval_budget import Envelope
 
-    private = tmp_path / 'private'
+    private = tmp_path / "private"
     private.mkdir(mode=0o700)
-    key = private / 'key.env'
-    key.write_text('synthetic must never be parsed')
+    key = private / "key.env"
+    key.write_text("synthetic must never be parsed")
     key.chmod(0o600)
-    budget = private / 'budget.sqlite3'
+    budget = private / "budget.sqlite3"
     envelope = Envelope(budget, max_attempts=650)
     envelope.reserve()
 
     def forbidden(*args: object, **kwargs: object) -> Any:
-        raise AssertionError('do not parse credentials with historical unknown spend')
+        raise AssertionError("do not parse credentials with historical unknown spend")
 
-    monkeypatch.setattr(runner, 'dotenv_values', forbidden)
+    monkeypatch.setattr(runner, "dotenv_values", forbidden)
     with pytest.raises(RejectedError):
         runner.load_live_provider(key, budget, max_attempts=650)
-    assert envelope.snapshot()['stop_reason'] == 'historical_unreported_usage'
+    assert envelope.snapshot()["stop_reason"] == "historical_unreported_usage"
 
 
 def test_evaluation_owner_is_exclusive_and_release_preserves_ledger(tmp_path: Path) -> None:
     from scripts.real_eval_budget import Envelope, evaluation_run_ownership
 
-    directory = tmp_path / 'private'
+    directory = tmp_path / "private"
     directory.mkdir(mode=0o700)
-    path = directory / 'budget.sqlite3'
+    path = directory / "budget.sqlite3"
     envelope = Envelope(path, max_attempts=650)
     attempt = envelope.reserve()
     envelope.settle(attempt, 1, 1)
@@ -281,16 +290,16 @@ def test_evaluation_owner_is_exclusive_and_release_preserves_ledger(tmp_path: Pa
 
     def second_owner() -> None:
         with evaluation_run_ownership(path):
-            raise AssertionError('second runner cannot enter')
+            raise AssertionError("second runner cannot enter")
 
-    with evaluation_run_ownership(path), pytest.raises(ValueError, match='owned'):
+    with evaluation_run_ownership(path), pytest.raises(ValueError, match="owned"):
         second_owner()
     with evaluation_run_ownership(path):
         envelope.admit_new_run()
     assert envelope.snapshot() == before
 
 
-@pytest.mark.parametrize('cancelled', [False, True])
+@pytest.mark.parametrize("cancelled", [False, True])
 def test_graph_index_failure_after_known_usage_persists_stop_and_receipt(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cancelled: bool
 ) -> None:
@@ -303,23 +312,25 @@ def test_graph_index_failure_after_known_usage_persists_stop_and_receipt(
     from app.domain.knowledge import EmbeddingPurpose
     from scripts.real_eval_budget import BoundedProvider, Envelope, evaluation_run_ownership
 
-    private = tmp_path / 'private'
+    private = tmp_path / "private"
     private.mkdir(mode=0o700)
-    budget = private / 'budget.sqlite3'
+    budget = private / "budget.sqlite3"
     envelope = Envelope(budget, max_attempts=650)
-    bounded = BoundedProvider('synthetic-unused-no-provider-call', envelope)
-    manifest = tmp_path / 'manifest.json'
-    manifest.write_text(json.dumps({'cases': [{'id': 'synthetic', 'turns': [{'question': 'Hola'}]}]}))
-    plan = tmp_path / 'plan.json'
-    plan.write_text('{}')
-    output = tmp_path / 'result'
-    monkeypatch.setattr(graph_runner, 'graph_configuration', lambda path: fixture_values())
-    monkeypatch.setattr(graph_runner, 'selected_manifest', lambda original, parent, plan: original)
-    monkeypatch.setattr(graph_runner, 'load_live_provider', lambda *a, **k: bounded)
+    bounded = BoundedProvider("synthetic-unused-no-provider-call", envelope)
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps({"cases": [{"id": "synthetic", "turns": [{"question": "Hola"}]}]})
+    )
+    plan = tmp_path / "plan.json"
+    plan.write_text("{}")
+    output = tmp_path / "result"
+    monkeypatch.setattr(graph_runner, "graph_configuration", lambda path: fixture_values())
+    monkeypatch.setattr(graph_runner, "selected_manifest", lambda original, parent, plan: original)
+    monkeypatch.setattr(graph_runner, "load_live_provider", lambda *a, **k: bounded)
 
     async def failed_index(*args: object, **kwargs: object) -> Any:
-        with pytest.raises(ValueError, match='owned'), evaluation_run_ownership(budget):
-            raise AssertionError('runner must hold ownership throughout indexing')
+        with pytest.raises(ValueError, match="owned"), evaluation_run_ownership(budget):
+            raise AssertionError("runner must hold ownership throughout indexing")
         if cancelled:
             attempt = envelope.reserve()
             assert envelope.settle_embedding(attempt, 2, input_byte_bound=20)
@@ -328,29 +339,31 @@ def test_graph_index_failure_after_known_usage_persists_stop_and_receipt(
         assert callable(factory)
         owned = factory(ApplicationAccounting())
         try:
-            await owned.embeddings.encode(('synthetic public catalog chunk',), EmbeddingPurpose.INDEX)
+            await owned.embeddings.encode(
+                ("synthetic public catalog chunk",), EmbeddingPurpose.INDEX
+            )
         finally:
             await owned.close()
-        raise AssertionError('zero vector must be rejected after known SDK usage')
+        raise AssertionError("zero vector must be rejected after known SDK usage")
 
     sdk_calls: list[str] = []
 
     def response(request: httpx2.Request) -> httpx2.Response:
         sdk_calls.append(request.url.path)
-        assert envelope.snapshot()['attempts'] == 1
+        assert envelope.snapshot()["attempts"] == 1
         return httpx2.Response(
             200,
             json={
-                'object': 'list',
-                'model': 'text-embedding-3-small',
-                'data': [{'object': 'embedding', 'index': 0, 'embedding': [0.0] * 1536}],
-                'usage': {'prompt_tokens': 2, 'total_tokens': 2},
+                "object": "list",
+                "model": "text-embedding-3-small",
+                "data": [{"object": "embedding", "index": 0, "embedding": [0.0] * 1536}],
+                "usage": {"prompt_tokens": 2, "total_tokens": 2},
             },
         )
 
     monkeypatch.setattr(
         graph_runner,
-        'provider_http_client',
+        "provider_http_client",
         lambda: DefaultAsyncHttpxClient(
             transport=httpx2.MockTransport(response),
             verify=True,
@@ -358,43 +371,43 @@ def test_graph_index_failure_after_known_usage_persists_stop_and_receipt(
             trust_env=False,
         ),
     )
-    monkeypatch.setattr(graph_runner, 'index_evaluation_snapshot', failed_index)
+    monkeypatch.setattr(graph_runner, "index_evaluation_snapshot", failed_index)
     monkeypatch.setattr(
-        'sys.argv',
+        "sys.argv",
         [
-            'graph-eval',
-            '--services-config',
-            str(tmp_path / 'fixture.json'),
-            '--manifest',
+            "graph-eval",
+            "--services-config",
+            str(tmp_path / "fixture.json"),
+            "--manifest",
             str(manifest),
-            '--subset-plan',
+            "--subset-plan",
             str(plan),
-            '--output-dir',
+            "--output-dir",
             str(output),
-            '--source-revision',
-            'a' * 40,
-            '--live',
-            '--key-file',
-            str(private / 'MUST-NOT-READ'),
-            '--budget-state',
+            "--source-revision",
+            "a" * 40,
+            "--live",
+            "--key-file",
+            str(private / "MUST-NOT-READ"),
+            "--budget-state",
             str(budget),
         ],
     )
     with pytest.raises(asyncio.CancelledError if cancelled else RejectedError):
         graph_runner.main()
     assert envelope.snapshot() == {
-        'attempts': 1,
-        'reserved_micro_usd': 1,
-        'stop_reason': 'index_setup_failure',
+        "attempts": 1,
+        "reserved_micro_usd": 1,
+        "stop_reason": "index_setup_failure",
     }
-    assert sdk_calls == ([] if cancelled else ['/v1/embeddings'])
-    receipt = json.loads((output / 'index-accounting.json').read_text())
-    assert receipt['result'] is None and receipt['envelope'] == envelope.snapshot()
+    assert sdk_calls == ([] if cancelled else ["/v1/embeddings"])
+    receipt = json.loads((output / "index-accounting.json").read_text())
+    assert receipt["result"] is None and receipt["envelope"] == envelope.snapshot()
     with evaluation_run_ownership(budget), pytest.raises(RejectedError):
         envelope.admit_new_run()
 
 
-@pytest.mark.parametrize('audit', ['malformed', 'a' * 64])
+@pytest.mark.parametrize("audit", ["malformed", "a" * 64])
 def test_default_http_cli_ignores_audit_and_private_arguments_for_full_225_fixture(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -403,67 +416,75 @@ def test_default_http_cli_ignores_audit_and_private_arguments_for_full_225_fixtu
     from scripts import evaluate_end_to_end as runner
 
     parent = {
-        'cases': [{'id': f'fixture-{i}', 'turns': [{'question': 'Synthetic case'}]} for i in range(225)]
+        "cases": [
+            {"id": f"fixture-{i}", "turns": [{"question": "Synthetic case"}]} for i in range(225)
+        ]
     }
-    manifest = tmp_path / 'full225.json'
+    manifest = tmp_path / "full225.json"
     manifest.write_text(json.dumps(parent))
-    output = tmp_path / 'output'
+    output = tmp_path / "output"
 
     def forbidden(*args: object, **kwargs: object) -> Any:
-        raise AssertionError('fixture must never load a private ledger/key or construct SDK')
+        raise AssertionError("fixture must never load a private ledger/key or construct SDK")
 
-    monkeypatch.setattr(runner, 'load_live_provider', forbidden)
-    monkeypatch.setattr('scripts.real_eval_budget.Envelope.open_authorized', forbidden)
+    monkeypatch.setattr(runner, "load_live_provider", forbidden)
+    monkeypatch.setattr("scripts.real_eval_budget.Envelope.open_authorized", forbidden)
 
     def evaluate(body: dict[str, Any], *args: object, **kwargs: Any) -> dict[str, Any]:
-        assert len(body['cases']) == 225 and kwargs['bounded'] is None
-        return {'stop_reason': None}
+        assert len(body["cases"]) == 225 and kwargs["bounded"] is None
+        return {"stop_reason": None}
 
-    monkeypatch.setattr(runner, 'evaluate', evaluate)
+    monkeypatch.setattr(runner, "evaluate", evaluate)
     monkeypatch.setattr(
-        'sys.argv',
+        "sys.argv",
         [
-            'eval',
-            '--manifest',
+            "eval",
+            "--manifest",
             str(manifest),
-            '--output-dir',
+            "--output-dir",
             str(output),
-            '--source-revision',
-            'b' * 40,
-            '--key-file',
-            str(tmp_path / 'MUST-NOT-READ'),
-            '--budget-state',
-            str(tmp_path / 'MUST-NOT-TOUCH'),
-            '--authorized-envelope-sha256',
+            "--source-revision",
+            "b" * 40,
+            "--key-file",
+            str(tmp_path / "MUST-NOT-READ"),
+            "--budget-state",
+            str(tmp_path / "MUST-NOT-TOUCH"),
+            "--authorized-envelope-sha256",
             audit,
         ],
     )
     runner.main()
-    assert not (tmp_path / 'MUST-NOT-TOUCH').exists()
-    assert json.loads((output / 'manifest.json').read_text()) == parent
+    assert not (tmp_path / "MUST-NOT-TOUCH").exists()
+    assert json.loads((output / "manifest.json").read_text()) == parent
 
 
 def test_full_225_selection_still_requires_frozen_parent_and_selector_proof() -> None:
     parent = {
-        'official_help_enabled': True,
-        'cases': [{'id': f'fixture-{i}', 'turns': [{'question': 'Synthetic case'}]} for i in range(225)],
+        "official_help_enabled": True,
+        "cases": [
+            {"id": f"fixture-{i}", "turns": [{"question": "Synthetic case"}]} for i in range(225)
+        ],
     }
     raw = json.dumps(parent).encode()
     parent_hash = hashlib.sha256(raw).hexdigest()
-    canonical = {'phase': graph_runner.PHASE, 'parent_manifest_sha256': parent_hash, 'cases': parent['cases']}
+    canonical = {
+        "phase": graph_runner.PHASE,
+        "parent_manifest_sha256": parent_hash,
+        "cases": parent["cases"],
+    }
     selector = hashlib.sha256(
-        json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()
+        json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
     plan = {
-        'recommended_full_manifest': {'sha256': parent_hash},
-        'proposed_subset_not_execution_authorization': {
-            'case_ids_in_order': [c['id'] for c in parent['cases']],
-            'canonical_selector_sha256': selector,
+        "recommended_full_manifest": {"sha256": parent_hash},
+        "proposed_subset_not_execution_authorization": {
+            "case_ids_in_order": [c["id"] for c in parent["cases"]],
+            "canonical_selector_sha256": selector,
         },
     }
     selected = graph_runner.selected_manifest(parent, parent_hash, plan)
-    assert selected['query_count'] == 225 and selected['counts']['unexecuted_parent_queries'] == 0
-    assert selected['official_help_enabled'] is True and selected['cases'] == parent['cases']
-    parent['cases'][0]['turns'][0]['question'] = 'Changed'
-    with pytest.raises(ValueError, match='changed'):
+    assert selected["query_count"] == 225 and selected["counts"]["unexecuted_parent_queries"] == 0
+    assert selected["official_help_enabled"] is True and selected["cases"] == parent["cases"]
+    parent["cases"][0]["turns"][0]["question"] = "Changed"
+    with pytest.raises(ValueError, match="changed"):
         graph_runner.selected_manifest(parent, parent_hash, plan)

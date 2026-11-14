@@ -6,7 +6,7 @@ from app.domain.knowledge import RetrievalStrategy
 from tests.test_hybrid_knowledge import execute, setup
 
 
-@pytest.mark.parametrize('reverse_storage', [False, True])
+@pytest.mark.parametrize("reverse_storage", [False, True])
 def test_graph_seeds_follow_verified_fusion_rank_not_canonical_storage_order(reverse_storage):
     retrieval, store, graph, _, active = setup()
     chunks = store.corpus.chunks[:24]

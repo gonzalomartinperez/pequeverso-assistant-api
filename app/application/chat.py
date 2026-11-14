@@ -63,13 +63,18 @@ from app.domain.errors import FailureCode, RejectedError
 from app.domain.language import Language, reply_language, spanish_native_language
 from app.domain.redaction import contains_card_number, redact_contact_data
 from app.domain.visitor_context import VisitorContext
-from app.domain.web_evidence import MAX_WEB_EVIDENCE_CHARS, WebEvidence, evidence_payload, topics_for
+from app.domain.web_evidence import (
+    MAX_WEB_EVIDENCE_CHARS,
+    WebEvidence,
+    evidence_payload,
+    topics_for,
+)
 
 log = logging.getLogger(__name__)
 
-PAYMENT_PLACEHOLDER = '[mensaje eliminado: contenía datos de pago]'
-PAGES = frozenset({'home', 'product', 'support'})
-LOCALES = frozenset({'es', 'en'})
+PAYMENT_PLACEHOLDER = "[mensaje eliminado: contenía datos de pago]"
+PAGES = frozenset({"home", "product", "support"})
+LOCALES = frozenset({"es", "en"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -200,7 +205,9 @@ class _ModelRun(Run):
                         self._active.price_status(service.clock.now()),
                         service.limits.extra_forbidden_terms,
                     )
-                    delta = self._prefix.feed(event.text, self._active.catalog, rules, self._web_evidence)
+                    delta = self._prefix.feed(
+                        event.text, self._active.catalog, rules, self._web_evidence
+                    )
                     if delta:
                         if self._first_delta_ms is None:
                             self._first_delta_ms = self._elapsed_ms()
@@ -261,7 +268,9 @@ class _ModelRun(Run):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise TimeoutError
-        self._dispatched = True  # scheduling may already dispatch; retain uncertain spend conservatively
+        self._dispatched = (
+            True  # scheduling may already dispatch; retain uncertain spend conservatively
+        )
         step = asyncio.ensure_future(anext(stream))
         cancelled = asyncio.ensure_future(self._cancel.wait())
         try:
@@ -285,7 +294,9 @@ class _ModelRun(Run):
     def _finalize(self, event: DraftEvent) -> FinalizedAnswer:
         service = self._service
         price_status = self._active.price_status(service.clock.now())
-        rules = answer_rules(self._active.catalog, price_status, service.limits.extra_forbidden_terms)
+        rules = answer_rules(
+            self._active.catalog, price_status, service.limits.extra_forbidden_terms
+        )
         return finalize(
             event.draft,
             self._active,
@@ -307,17 +318,17 @@ class _ModelRun(Run):
         log.info(
             json.dumps(
                 {
-                    'operation': 'run',
-                    'outcome': 'completed',
-                    'replaced': self._replaced,
-                    'violations': [v.value for v in final.violations],
-                    'dropped_references': final.dropped_references,
-                    'input_tokens': event.usage.input_tokens if event.usage else None,
-                    'output_tokens': event.usage.output_tokens if event.usage else None,
-                    'reasoning_tokens': event.usage.reasoning_tokens if event.usage else None,
-                    'language': self._prepared_language.value,
-                    'first_delta_ms': self._first_delta_ms,
-                    'latency_ms': self._elapsed_ms(),
+                    "operation": "run",
+                    "outcome": "completed",
+                    "replaced": self._replaced,
+                    "violations": [v.value for v in final.violations],
+                    "dropped_references": final.dropped_references,
+                    "input_tokens": event.usage.input_tokens if event.usage else None,
+                    "output_tokens": event.usage.output_tokens if event.usage else None,
+                    "reasoning_tokens": event.usage.reasoning_tokens if event.usage else None,
+                    "language": self._prepared_language.value,
+                    "first_delta_ms": self._first_delta_ms,
+                    "latency_ms": self._elapsed_ms(),
                 }
             )
         )
@@ -376,7 +387,7 @@ class _ModelRun(Run):
         if not self._settled:
             await service.ledger.mark_unreported(self.id)
         if code is not None:
-            log.info(json.dumps({'operation': 'run', 'outcome': state.value, 'code': code.value}))
+            log.info(json.dumps({"operation": "run", "outcome": state.value, "code": code.value}))
         await service.record_metric(
             RunMetric(
                 run_id=self.id,
@@ -425,7 +436,7 @@ class _StaticRun(Run):
 
 
 def _message_id() -> str:
-    return f'msg_{secrets.token_urlsafe(12)}'
+    return f"msg_{secrets.token_urlsafe(12)}"
 
 
 def _request_hash(
@@ -439,7 +450,7 @@ def _request_hash(
     if context is not None and not context.empty:
         payload.append(context.payload())
     if response_language is not None:
-        payload.append({'response_language': response_language})
+        payload.append({"response_language": response_language})
     return hashlib.sha256(json.dumps(payload).encode()).hexdigest()
 
 
@@ -547,7 +558,9 @@ class ChatService:
         return None
 
     def _worst_case(self) -> int:
-        return worst_case_micro(self.limits.max_input_tokens, self.limits.max_output_tokens, self.pricing)
+        return worst_case_micro(
+            self.limits.max_input_tokens, self.limits.max_output_tokens, self.pricing
+        )
 
     async def start(
         self,
@@ -581,7 +594,7 @@ class ChatService:
         if not await self._owns_runtime():
             raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
         now = self.clock.now()
-        run_id = f'run_{secrets.token_urlsafe(12)}'
+        run_id = f"run_{secrets.token_urlsafe(12)}"
         record = await self.runs.claim(
             run_id,
             session.id,
@@ -613,7 +626,9 @@ class ChatService:
                 else reply_language(question, previous, Language(locale) if locale else None, names)
             )
             if contains_card_number(question):
-                return await self._refuse_payment_data(run_id, session, now, active, language or Language.ES)
+                return await self._refuse_payment_data(
+                    run_id, session, now, active, language or Language.ES
+                )
             if language is None:
                 return await self._unsupported_language(
                     run_id,
@@ -661,8 +676,12 @@ class ChatService:
                 return _StaticRun(run_id, user_message, answer)
             web_evidence: tuple[WebEvidence, ...] = ()
             if self.official_help:
-                previous_question = next((m.content for m in reversed(history) if m.role is Role.USER), '')
-                web_evidence = await self.official_help.read(topics_for(redacted.text, previous_question))
+                previous_question = next(
+                    (m.content for m in reversed(history) if m.role is Role.USER), ""
+                )
+                web_evidence = await self.official_help.read(
+                    topics_for(redacted.text, previous_question)
+                )
                 while len(evidence_payload(web_evidence)) > MAX_WEB_EVIDENCE_CHARS:
                     web_evidence = web_evidence[:-1]
             turn = Turn(
@@ -757,16 +776,21 @@ class ChatService:
 
     async def _rate_limit(self, session: Session, client_key: str, now: datetime) -> None:
         per_session = await self.rate_limiter.hit(
-            f'messages:session:{session.id}', 86400, self.limits.messages_per_session_per_day, now
+            f"messages:session:{session.id}", 86400, self.limits.messages_per_session_per_day, now
         )
         per_client = await self.rate_limiter.hit(
-            f'messages:client:{client_key}', 3600, self.limits.messages_per_client_per_hour, now
+            f"messages:client:{client_key}", 3600, self.limits.messages_per_client_per_hour, now
         )
         if not (per_session and per_client):
             raise RejectedError(FailureCode.RATE_LIMITED)
 
     async def _refuse_payment_data(
-        self, run_id: str, session: Session, now: datetime, active: ActiveCatalog, language: Language
+        self,
+        run_id: str,
+        session: Session,
+        now: datetime,
+        active: ActiveCatalog,
+        language: Language,
     ) -> Run:
         user_message = Message(
             _message_id(),
@@ -801,7 +825,9 @@ class ChatService:
         """A local policy notice, without a model call or budget use."""
         redacted = redact_contact_data(question)
         notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
-        user_message = Message(_message_id(), Role.USER, redacted.text, now, AnswerDetails(notices=notices))
+        user_message = Message(
+            _message_id(), Role.USER, redacted.text, now, AnswerDetails(notices=notices)
+        )
         await self.messages.append(session.id, user_message)
         answer = Message(
             _message_id(),
@@ -823,4 +849,4 @@ class ChatService:
 
 
 def _periods(now: datetime) -> tuple[str, str]:
-    return now.strftime('%Y-%m'), now.strftime('%Y-%m-%d')
+    return now.strftime("%Y-%m"), now.strftime("%Y-%m-%d")
