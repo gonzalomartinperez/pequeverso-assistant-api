@@ -13,7 +13,7 @@ from app.domain.catalog import Catalog, Price
 
 
 def _price(price: Price | None) -> str:
-    return f'{price.amount} {price.currency}' if price is not None else 'unknown'
+    return f"{price.amount} {price.currency}" if price is not None else "unknown"
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,18 +52,20 @@ class CatalogDiff:
 
     def as_dict(self) -> dict[str, object]:
         return {
-            'products_added': self.products_added,
-            'products_retired': self.products_retired,
-            'products_changed': self.products_changed,
-            'price_changes': {k: {'before': a, 'after': b} for k, (a, b) in self.price_changes.items()},
-            'resources_added': self.resources_added,
-            'resources_removed': self.resources_removed,
-            'resources_changed': self.resources_changed,
-            'documents_added': self.documents_added,
-            'documents_removed': self.documents_removed,
-            'documents_changed': self.documents_changed,
-            'links_changed': self.links_changed,
-            'forbidden_terms_changed': self.forbidden_terms_changed,
+            "products_added": self.products_added,
+            "products_retired": self.products_retired,
+            "products_changed": self.products_changed,
+            "price_changes": {
+                k: {"before": a, "after": b} for k, (a, b) in self.price_changes.items()
+            },
+            "resources_added": self.resources_added,
+            "resources_removed": self.resources_removed,
+            "resources_changed": self.resources_changed,
+            "documents_added": self.documents_added,
+            "documents_removed": self.documents_removed,
+            "documents_changed": self.documents_changed,
+            "links_changed": self.links_changed,
+            "forbidden_terms_changed": self.forbidden_terms_changed,
         }
 
 
@@ -79,34 +81,46 @@ def diff(before: Catalog | None, after: Catalog) -> CatalogDiff:
         if pid in old_products and old_products[pid].price != p.price
     }
     old_resources = {
-        f'{p.id}/{r.id}': (r.title, r.pages, r.description)
+        f"{p.id}/{r.id}": (r.title, r.pages, r.description)
         for p in old_products.values()
         for r in p.resources
     }
     new_resources = {
-        f'{p.id}/{r.id}': (r.title, r.pages, r.description)
+        f"{p.id}/{r.id}": (r.title, r.pages, r.description)
         for p in new_products.values()
         for r in p.resources
     }
-    old_docs = {d.id: (d.title, d.text, d.url, d.product_ids) for d in before.documents} if before else {}
+    old_docs = (
+        {d.id: (d.title, d.text, d.url, d.product_ids) for d in before.documents} if before else {}
+    )
     new_docs = {d.id: (d.title, d.text, d.url, d.product_ids) for d in after.documents}
-    old_links = {link.id: (link.label, link.url, link.product_ids) for link in before.links} if before else {}
+    old_links = (
+        {link.id: (link.label, link.url, link.product_ids) for link in before.links}
+        if before
+        else {}
+    )
     new_links = {link.id: (link.label, link.url, link.product_ids) for link in after.links}
     return CatalogDiff(
         products_added=sorted(new_products.keys() - old_products.keys()),
         products_retired=sorted(old_products.keys() - new_products.keys()),
         products_changed=sorted(
-            pid for pid in new_products.keys() & old_products.keys() if new_products[pid] != old_products[pid]
+            pid
+            for pid in new_products.keys() & old_products.keys()
+            if new_products[pid] != old_products[pid]
         ),
         price_changes=prices,
         resources_added=sorted(new_resources.keys() - old_resources.keys()),
         resources_removed=sorted(old_resources.keys() - new_resources.keys()),
         resources_changed=sorted(
-            k for k in new_resources.keys() & old_resources.keys() if new_resources[k] != old_resources[k]
+            k
+            for k in new_resources.keys() & old_resources.keys()
+            if new_resources[k] != old_resources[k]
         ),
         documents_added=sorted(new_docs.keys() - old_docs.keys()),
         documents_removed=sorted(old_docs.keys() - new_docs.keys()),
-        documents_changed=sorted(k for k in new_docs.keys() & old_docs.keys() if new_docs[k] != old_docs[k]),
+        documents_changed=sorted(
+            k for k in new_docs.keys() & old_docs.keys() if new_docs[k] != old_docs[k]
+        ),
         links_changed=sorted(
             k for k in new_links.keys() | old_links.keys() if new_links.get(k) != old_links.get(k)
         ),

@@ -16,12 +16,12 @@ METADATA = 'metadata:\n  owner: tester\n  last-reviewed: "2026-11-14"\n  version
 
 def triggers(name: str, **changes: object) -> str:
     data: dict[str, object] = {
-        'skill': name,
-        'status': 'stub',
-        'protocol': 'docs/agent-skills.md#activation-evals',
-        'queries': [
-            {'query': 'do the thing', 'should_trigger': True, 'split': 'train'},
-            {'query': 'do something else', 'should_trigger': False, 'split': 'validation'},
+        "skill": name,
+        "status": "stub",
+        "protocol": "docs/agent-skills.md#activation-evals",
+        "queries": [
+            {"query": "do the thing", "should_trigger": True, "split": "train"},
+            {"query": "do something else", "should_trigger": False, "split": "validation"},
         ],
     }
     return json.dumps(data | changes)
@@ -29,20 +29,20 @@ def triggers(name: str, **changes: object) -> str:
 
 @pytest.fixture
 def checkout(tmp_path: Path) -> Path:
-    for directory in ('.agents/skills', '.claude/skills', 'docs'):
+    for directory in (".agents/skills", ".claude/skills", "docs"):
         (tmp_path / directory).mkdir(parents=True, exist_ok=True)
-    (tmp_path / 'docs/procedure.md').write_text('Reviewed local reference.')
+    (tmp_path / "docs/procedure.md").write_text("Reviewed local reference.")
     for name in SKILL_NAMES:
-        folder = tmp_path / '.agents/skills' / name
+        folder = tmp_path / ".agents/skills" / name
         folder.mkdir()
-        (folder / 'SKILL.md').write_text(
-            f'---\nname: {name}\ndescription: Handle {name}. Not for deployment.\n{METADATA}---\n\n'
-            f'# {name}\n\nRead `docs/procedure.md`.\n\n## Limits\n\nProcedure only: {name}.\n'
+        (folder / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: Handle {name}. Not for deployment.\n{METADATA}---\n\n"
+            f"# {name}\n\nRead `docs/procedure.md`.\n\n## Limits\n\nProcedure only: {name}.\n"
         )
-        (folder / 'evals').mkdir()
-        (folder / 'evals/triggers.json').write_text(triggers(name))
-        (tmp_path / '.claude/skills' / name).symlink_to(
-            '../../.agents/skills/' + name, target_is_directory=True
+        (folder / "evals").mkdir()
+        (folder / "evals/triggers.json").write_text(triggers(name))
+        (tmp_path / ".claude/skills" / name).symlink_to(
+            "../../.agents/skills/" + name, target_is_directory=True
         )
     return tmp_path
 
@@ -50,135 +50,148 @@ def checkout(tmp_path: Path) -> Path:
 def test_actual_repository_has_six_shared_physical_procedures() -> None:
     assert validate(ROOT) == sorted(SKILL_NAMES)
     for name in SKILL_NAMES:
-        canonical = ROOT / '.agents/skills' / name / 'SKILL.md'
-        assert canonical.samefile(ROOT / '.claude/skills' / name / 'SKILL.md')
+        canonical = ROOT / ".agents/skills" / name / "SKILL.md"
+        assert canonical.samefile(ROOT / ".claude/skills" / name / "SKILL.md")
 
 
-@pytest.mark.parametrize('failure', ['broken', 'escape', 'wrapper-copy', 'absolute', 'wrong-skill'])
+@pytest.mark.parametrize("failure", ["broken", "escape", "wrapper-copy", "absolute", "wrong-skill"])
 def test_discovery_rejects_broken_escaping_or_duplicated_instructions(
     checkout: Path, tmp_path: Path, failure: str
 ) -> None:
     name, other = sorted(SKILL_NAMES)[:2]
-    link = checkout / '.claude/skills' / name
+    link = checkout / ".claude/skills" / name
     link.unlink()
-    if failure == 'broken':
-        link.symlink_to('../../.agents/skills/missing', target_is_directory=True)
-    elif failure == 'escape':
-        outside = tmp_path.parent / 'foreign-skill'
+    if failure == "broken":
+        link.symlink_to("../../.agents/skills/missing", target_is_directory=True)
+    elif failure == "escape":
+        outside = tmp_path.parent / "foreign-skill"
         outside.mkdir(exist_ok=True)
         link.symlink_to(outside, target_is_directory=True)
-    elif failure == 'wrapper-copy':
-        shutil.copytree(checkout / '.agents/skills' / name, link)
-    elif failure == 'absolute':
-        link.symlink_to(checkout / '.agents/skills' / name, target_is_directory=True)
+    elif failure == "wrapper-copy":
+        shutil.copytree(checkout / ".agents/skills" / name, link)
+    elif failure == "absolute":
+        link.symlink_to(checkout / ".agents/skills" / name, target_is_directory=True)
     else:
-        link.symlink_to('../../.agents/skills/' + other, target_is_directory=True)
+        link.symlink_to("../../.agents/skills/" + other, target_is_directory=True)
     with pytest.raises(SkillValidationError):
         validate(checkout)
 
 
 @pytest.mark.parametrize(
-    'failure',
+    "failure",
     [
-        'name',
-        'description-copy',
-        'procedure-copy',
-        'duplicate-field',
-        'missing-limits',
-        'scaffold',
-        'secret',
-        'github-secret',
+        "name",
+        "description-copy",
+        "procedure-copy",
+        "duplicate-field",
+        "missing-limits",
+        "scaffold",
+        "secret",
+        "github-secret",
     ],
 )
 def test_metadata_limits_and_sensitive_material_fail_closed(checkout: Path, failure: str) -> None:
     name, other = sorted(SKILL_NAMES)[:2]
-    path = checkout / '.agents/skills' / name / 'SKILL.md'
+    path = checkout / ".agents/skills" / name / "SKILL.md"
     text = path.read_text()
-    if failure == 'name':
-        text = text.replace('name: ' + name, 'name: api-other')
-    elif failure == 'description-copy':
-        text = text.replace('Handle ' + name, 'Handle ' + other)
-    elif failure == 'procedure-copy':
-        other_text = (checkout / '.agents/skills' / other / 'SKILL.md').read_text()
+    if failure == "name":
+        text = text.replace("name: " + name, "name: api-other")
+    elif failure == "description-copy":
+        text = text.replace("Handle " + name, "Handle " + other)
+    elif failure == "procedure-copy":
+        other_text = (checkout / ".agents/skills" / other / "SKILL.md").read_text()
         text = (
-            text.split('---', 2)[0]
-            + '---'
-            + text.split('---', 2)[1]
-            + '---\n'
-            + other_text.split('---', 2)[2]
+            text.split("---", 2)[0]
+            + "---"
+            + text.split("---", 2)[1]
+            + "---\n"
+            + other_text.split("---", 2)[2]
         )
-    elif failure == 'duplicate-field':
-        text = text.replace('name: ' + name, 'name: ' + name + '\nname: ' + name)
-    elif failure == 'missing-limits':
-        text = text.replace('## Limits', '## Other')
-    elif failure == 'scaffold':
-        text += '\nTODO finish this procedure\n'
-    elif failure == 'secret':
-        text += '\nsk-' + 'x' * 30 + '\n'
-    elif failure == 'github-secret':
-        text += '\nghp_' + 'x' * 36 + '\n'
+    elif failure == "duplicate-field":
+        text = text.replace("name: " + name, "name: " + name + "\nname: " + name)
+    elif failure == "missing-limits":
+        text = text.replace("## Limits", "## Other")
+    elif failure == "scaffold":
+        text += "\nTODO finish this procedure\n"
+    elif failure == "secret":
+        text += "\nsk-" + "x" * 30 + "\n"
+    elif failure == "github-secret":
+        text += "\nghp_" + "x" * 36 + "\n"
     path.write_text(text)
     with pytest.raises(SkillValidationError):
         validate(checkout)
 
 
 @pytest.mark.parametrize(
-    'failure',
-    ['missing', 'plain-missing', 'escape', 'resource-symlink', 'inrepo-resource-symlink', 'empty-directory'],
+    "failure",
+    [
+        "missing",
+        "plain-missing",
+        "escape",
+        "resource-symlink",
+        "inrepo-resource-symlink",
+        "empty-directory",
+    ],
 )
 def test_local_references_cannot_escape_or_point_to_missing_resources(
     checkout: Path, tmp_path: Path, failure: str
 ) -> None:
-    folder = checkout / '.agents/skills' / min(SKILL_NAMES)
-    skill = folder / 'SKILL.md'
-    outside = tmp_path.parent / 'outside-reference.md'
-    outside.write_text('Outside this checkout.')
-    if failure == 'missing':
-        skill.write_text(skill.read_text() + '\nRead [details](references/missing.md).\n')
-    elif failure == 'plain-missing':
-        skill.write_text(skill.read_text() + '\nRead docs/missing.md before proceeding.\n')
-    elif failure == 'escape':
-        skill.write_text(skill.read_text() + '\nRead [details](' + str(outside) + ').\n')
-    elif failure == 'resource-symlink':
-        (folder / 'reference.md').symlink_to(outside)
-    elif failure == 'inrepo-resource-symlink':
-        (folder / 'reference.md').symlink_to(checkout / 'docs/procedure.md')
+    folder = checkout / ".agents/skills" / min(SKILL_NAMES)
+    skill = folder / "SKILL.md"
+    outside = tmp_path.parent / "outside-reference.md"
+    outside.write_text("Outside this checkout.")
+    if failure == "missing":
+        skill.write_text(skill.read_text() + "\nRead [details](references/missing.md).\n")
+    elif failure == "plain-missing":
+        skill.write_text(skill.read_text() + "\nRead docs/missing.md before proceeding.\n")
+    elif failure == "escape":
+        skill.write_text(skill.read_text() + "\nRead [details](" + str(outside) + ").\n")
+    elif failure == "resource-symlink":
+        (folder / "reference.md").symlink_to(outside)
+    elif failure == "inrepo-resource-symlink":
+        (folder / "reference.md").symlink_to(checkout / "docs/procedure.md")
     else:
-        (folder / 'references').mkdir()
+        (folder / "references").mkdir()
     with pytest.raises(SkillValidationError):
         validate(checkout)
 
 
 def test_external_urls_are_data_and_never_followed(checkout: Path) -> None:
-    skill = checkout / '.agents/skills' / min(SKILL_NAMES) / 'SKILL.md'
-    skill.write_text(skill.read_text() + '\n[Official context](https://example.invalid/unreachable).\n')
+    skill = checkout / ".agents/skills" / min(SKILL_NAMES) / "SKILL.md"
+    skill.write_text(
+        skill.read_text() + "\n[Official context](https://example.invalid/unreachable).\n"
+    )
     assert len(validate(checkout)) == 6
 
 
 @pytest.mark.parametrize(
-    'description',
+    "description",
     [
-        'Plain task. Not for deployment.',
+        "Plain task. Not for deployment.",
         '"Quoted task. Not for deployment."',
-        '>\n  Folded task.\n  Not for deployment.',
+        ">\n  Folded task.\n  Not for deployment.",
     ],
 )
 def test_portable_frontmatter_scalars(description: str) -> None:
-    metadata, body = frontmatter('---\nname: api-example\ndescription: ' + description + '\n---\nProcedure.')
-    assert metadata['name'] == 'api-example'
-    assert 'Not for deployment.' in metadata['description']
-    assert body == 'Procedure.'
+    metadata, body = frontmatter(
+        "---\nname: api-example\ndescription: " + description + "\n---\nProcedure."
+    )
+    assert metadata["name"] == "api-example"
+    assert "Not for deployment." in metadata["description"]
+    assert body == "Procedure."
 
 
-@pytest.mark.parametrize('description', ['false', '[]', '{}', '12', ''])
+@pytest.mark.parametrize("description", ["false", "[]", "{}", "12", ""])
 def test_non_text_or_empty_metadata_is_rejected(description: str) -> None:
     with pytest.raises(SkillValidationError):
-        frontmatter('---\nname: api-example\ndescription: ' + description + '\n---\nProcedure.')
+        frontmatter("---\nname: api-example\ndescription: " + description + "\n---\nProcedure.")
 
 
 def test_valid_prohibition_is_ordinary_skill_text(checkout: Path) -> None:
-    skill = checkout / '.agents/skills' / min(SKILL_NAMES) / 'SKILL.md'
-    skill.write_text(skill.read_text() + '\nNever deploy to production without owner authorization.\n')
+    skill = checkout / ".agents/skills" / min(SKILL_NAMES) / "SKILL.md"
+    skill.write_text(
+        skill.read_text() + "\nNever deploy to production without owner authorization.\n"
+    )
     assert validate(checkout) == sorted(SKILL_NAMES)
 
 
@@ -187,34 +200,34 @@ def test_single_quoted_frontmatter_requires_yaml_escape() -> None:
     with pytest.raises(SkillValidationError):
         frontmatter(text)
     metadata, _ = frontmatter(text.replace("isn't", "isn''t"))
-    assert "isn't" in metadata['description']
+    assert "isn't" in metadata["description"]
 
 
 @pytest.mark.parametrize(
-    'failure',
+    "failure",
     [
-        'missing-metadata',
-        'missing-key',
-        'bad-date',
-        'impossible-date',
-        'bad-version',
-        'tab-indent',
-        'duplicate-key',
-        'inline-value',
+        "missing-metadata",
+        "missing-key",
+        "bad-date",
+        "impossible-date",
+        "bad-version",
+        "tab-indent",
+        "duplicate-key",
+        "inline-value",
     ],
 )
 def test_metadata_block_is_required_and_validated(checkout: Path, failure: str) -> None:
-    path = checkout / '.agents/skills' / min(SKILL_NAMES) / 'SKILL.md'
+    path = checkout / ".agents/skills" / min(SKILL_NAMES) / "SKILL.md"
     text = path.read_text()
     replacements = {
-        'missing-metadata': (METADATA, ''),
-        'missing-key': ('  owner: tester\n', ''),
-        'bad-date': ('2026-11-14', '14/11/2026'),
-        'impossible-date': ('2026-11-14', '2026-13-45'),
-        'bad-version': ('1.0.0', '1.0'),
-        'tab-indent': ('  owner: tester\n', '\towner: tester\n'),
-        'duplicate-key': ('  owner: tester\n', '  owner: tester\n  owner: other\n'),
-        'inline-value': (METADATA, 'metadata: {owner: tester}\n'),
+        "missing-metadata": (METADATA, ""),
+        "missing-key": ("  owner: tester\n", ""),
+        "bad-date": ("2026-11-14", "14/11/2026"),
+        "impossible-date": ("2026-11-14", "2026-13-45"),
+        "bad-version": ("1.0.0", "1.0"),
+        "tab-indent": ("  owner: tester\n", "\towner: tester\n"),
+        "duplicate-key": ("  owner: tester\n", "  owner: tester\n  owner: other\n"),
+        "inline-value": (METADATA, "metadata: {owner: tester}\n"),
     }
     old, new = replacements[failure]
     assert old in text
@@ -224,36 +237,49 @@ def test_metadata_block_is_required_and_validated(checkout: Path, failure: str) 
 
 
 @pytest.mark.parametrize(
-    'failure',
-    ['missing', 'wrong-skill', 'no-negative', 'no-positive', 'bad-split', 'invalid-json', 'empty', 'symlink'],
+    "failure",
+    [
+        "missing",
+        "wrong-skill",
+        "no-negative",
+        "no-positive",
+        "bad-split",
+        "invalid-json",
+        "empty",
+        "symlink",
+    ],
 )
 def test_activation_eval_stub_is_required_and_validated(checkout: Path, failure: str) -> None:
     name = min(SKILL_NAMES)
-    path = checkout / '.agents/skills' / name / 'evals/triggers.json'
-    if failure == 'missing':
+    path = checkout / ".agents/skills" / name / "evals/triggers.json"
+    if failure == "missing":
         path.unlink()
-        (path.parent / 'keep.md').write_text('Keeps the directory non-empty.')
-    elif failure == 'wrong-skill':
-        path.write_text(triggers('api-other'))
-    elif failure == 'invalid-json':
+        (path.parent / "keep.md").write_text("Keeps the directory non-empty.")
+    elif failure == "wrong-skill":
+        path.write_text(triggers("api-other"))
+    elif failure == "invalid-json":
         path.write_text('{"skill": ')
-    elif failure == 'empty':
+    elif failure == "empty":
         path.write_text(triggers(name, queries=[]))
-    elif failure == 'symlink':
-        real = path.parent / 'real.json'
+    elif failure == "symlink":
+        real = path.parent / "real.json"
         path.rename(real)
-        path.symlink_to('real.json')
-    elif failure == 'no-negative':
-        path.write_text(triggers(name, queries=[{'query': 'a', 'should_trigger': True, 'split': 'train'}]))
-    elif failure == 'no-positive':
-        path.write_text(triggers(name, queries=[{'query': 'a', 'should_trigger': False, 'split': 'train'}]))
+        path.symlink_to("real.json")
+    elif failure == "no-negative":
+        path.write_text(
+            triggers(name, queries=[{"query": "a", "should_trigger": True, "split": "train"}])
+        )
+    elif failure == "no-positive":
+        path.write_text(
+            triggers(name, queries=[{"query": "a", "should_trigger": False, "split": "train"}])
+        )
     else:
         path.write_text(
             triggers(
                 name,
                 queries=[
-                    {'query': 'a', 'should_trigger': True, 'split': 'test'},
-                    {'query': 'b', 'should_trigger': False, 'split': 'train'},
+                    {"query": "a", "should_trigger": True, "split": "test"},
+                    {"query": "b", "should_trigger": False, "split": "train"},
                 ],
             )
         )

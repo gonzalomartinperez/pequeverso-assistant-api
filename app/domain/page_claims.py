@@ -23,9 +23,9 @@ class _Entity:
 
 
 def _normalize(text: str) -> str:
-    return ''.join(
-        c for c in unicodedata.normalize('NFD', text.casefold()) if not unicodedata.combining(c)
-    ).replace('-', ' ')
+    return "".join(
+        c for c in unicodedata.normalize("NFD", text.casefold()) if not unicodedata.combining(c)
+    ).replace("-", " ")
 
 
 def _entities(catalog: Catalog) -> tuple[_Entity, ...]:
@@ -35,28 +35,30 @@ def _entities(catalog: Catalog) -> tuple[_Entity, ...]:
             if resource.pages is not None:
                 items.append(
                     _Entity(
-                        f'{product.id}/{resource.id}',
+                        f"{product.id}/{resource.id}",
                         resource.pages,
                         False,
                         (
                             _normalize(resource.title),
-                            _normalize(f'{product.id}/{resource.id}'),
+                            _normalize(f"{product.id}/{resource.id}"),
                             *((_normalize(resource.id),) if resource.id.isalpha() else ()),
                         ),
                     )
                 )
         aliases: tuple[str, ...] = (_normalize(product.name), _normalize(product.id))
-        if product.kind == 'core' and len([p for p in catalog.products if p.kind == 'core']) == 1:
-            aliases += ('kit',)
+        if product.kind == "core" and len([p for p in catalog.products if p.kind == "core"]) == 1:
+            aliases += ("kit",)
         items.append(_Entity(product.id, product.page_count, True, aliases))
     return tuple(items)
 
 
-_PAGES = re.compile(r'\b(\d{1,5})\s+(?:paginas?|pages?)\b')
-_SHARED = re.compile(r'\b(?:ambos|ambas|both|cada uno|cada una|each)\b')
-_TOTAL = re.compile(r'\b(?:en total|suman|suma|juntos|juntas|combined|altogether|together|in total)\b')
+_PAGES = re.compile(r"\b(\d{1,5})\s+(?:paginas?|pages?)\b")
+_SHARED = re.compile(r"\b(?:ambos|ambas|both|cada uno|cada una|each)\b")
+_TOTAL = re.compile(
+    r"\b(?:en total|suman|suma|juntos|juntas|combined|altogether|together|in total)\b"
+)
 _SUBSET = re.compile(
-    r'\b(?:imprimir|imprime|imprimes|imprimiendo|imprimas|print|printing|choose|select|elige|elegir|escoge|selecciona)\b'
+    r"\b(?:imprimir|imprime|imprimes|imprimiendo|imprimas|print|printing|choose|select|elige|elegir|escoge|selecciona)\b"
 )
 
 
@@ -65,19 +67,23 @@ def unsupported_page_claim(text: str, catalog: Catalog) -> bool:
     normalized = _normalize(text)
     entities = _entities(catalog)
     previous: list[_Entity] = []
-    for sentence in re.split(r'[.!?;\n]', normalized):
+    for sentence in re.split(r"[.!?;\n]", normalized):
         mentions: list[tuple[int, int, _Entity]] = []
         for entity in entities:
-            aliases = '|'.join(re.escape(a) for a in sorted(set(entity.aliases), key=len, reverse=True))
+            aliases = "|".join(
+                re.escape(a) for a in sorted(set(entity.aliases), key=len, reverse=True)
+            )
             mentions.extend(
-                (m.start(), m.end(), entity) for m in re.finditer(rf'(?<!\w)(?:{aliases})(?!\w)', sentence)
+                (m.start(), m.end(), entity)
+                for m in re.finditer(rf"(?<!\w)(?:{aliases})(?!\w)", sentence)
             )
         # A product title embedded in a resource title is not a second subject.
         mentions = [
             m
             for m in mentions
             if not (
-                m[2].product and any(not r[2].product and r[0] <= m[0] and r[1] >= m[1] for r in mentions)
+                m[2].product
+                and any(not r[2].product and r[0] <= m[0] and r[1] >= m[1] for r in mentions)
             )
         ]
         mentions.sort(key=lambda m: (m[0], m[1]))
@@ -86,7 +92,8 @@ def unsupported_page_claim(text: str, catalog: Catalog) -> bool:
                 continue
             # Explicit print/selection quantities are subsets, not the PDF's size.
             clause_start = (
-                max(sentence.rfind(',', 0, claim.start()), sentence.rfind(':', 0, claim.start())) + 1
+                max(sentence.rfind(",", 0, claim.start()), sentence.rfind(":", 0, claim.start()))
+                + 1
             )
             clause = sentence[clause_start : claim.start()]
             if _SUBSET.search(clause):
@@ -120,7 +127,7 @@ def unsupported_page_claim(text: str, catalog: Catalog) -> bool:
                 if (
                     after
                     and re.fullmatch(
-                        r'\s*(?:de|del|en|in|of|for|from)\s+', sentence[claim.end() : after[0][0]]
+                        r"\s*(?:de|del|en|in|of|for|from)\s+", sentence[claim.end() : after[0][0]]
                     )
                     and after[0][2].pages != value
                 ):

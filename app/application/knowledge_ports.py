@@ -44,8 +44,12 @@ class PublicKnowledgeStore(CatalogRepository, Protocol):
     """
 
     def indexing_lock(self) -> AbstractAsyncContextManager[None]: ...
-    async def stage(self, corpus: KnowledgeCorpus, vectors: tuple[tuple[float, ...], ...]) -> None: ...
-    async def vectors_for_indexing(self, version: str, ids: tuple[str, ...]) -> tuple[tuple[float, ...], ...]:
+    async def stage(
+        self, corpus: KnowledgeCorpus, vectors: tuple[tuple[float, ...], ...]
+    ) -> None: ...
+    async def vectors_for_indexing(
+        self, version: str, ids: tuple[str, ...]
+    ) -> tuple[tuple[float, ...], ...]:
         """Reuse a bounded staged embedding set in explicit indexing, preserving input order."""
         ...
 
@@ -62,8 +66,12 @@ class PublicKnowledgeStore(CatalogRepository, Protocol):
     async def vector_candidates(
         self, version: str, vector: tuple[float, ...], limit: int
     ) -> tuple[KnowledgeHit, ...]: ...
-    async def read_chunks(self, version: str, ids: tuple[str, ...]) -> tuple[KnowledgeChunk, ...]: ...
-    async def verify_relations(self, version: str, relations: tuple[KnowledgeRelation, ...]) -> bool:
+    async def read_chunks(
+        self, version: str, ids: tuple[str, ...]
+    ) -> tuple[KnowledgeChunk, ...]: ...
+    async def verify_relations(
+        self, version: str, relations: tuple[KnowledgeRelation, ...]
+    ) -> bool:
         """Validate graph-returned paths against canonical relations and provenance."""
         ...
 

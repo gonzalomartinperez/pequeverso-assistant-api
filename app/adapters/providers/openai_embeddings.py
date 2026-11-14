@@ -24,13 +24,15 @@ MAX_EMBEDDING_BATCH_BYTES = 240_000
 
 def _input_bound(texts: tuple[str, ...]) -> int:
     if not texts or len(texts) > MAX_EMBEDDING_BATCH:
-        raise ValueError('embedding batch must contain between one and 32 texts')
-    sizes = [len(text.encode('utf-8')) for text in texts]
-    if any(not text.strip() for text in texts) or any(size > MAX_EMBEDDING_TEXT_BYTES for size in sizes):
-        raise ValueError('embedding texts must be nonempty and at most 8000 UTF-8 bytes')
+        raise ValueError("embedding batch must contain between one and 32 texts")
+    sizes = [len(text.encode("utf-8")) for text in texts]
+    if any(not text.strip() for text in texts) or any(
+        size > MAX_EMBEDDING_TEXT_BYTES for size in sizes
+    ):
+        raise ValueError("embedding texts must be nonempty and at most 8000 UTF-8 bytes")
     total = sum(sizes)
     if total > MAX_EMBEDDING_BATCH_BYTES:
-        raise ValueError('embedding batch exceeds its UTF-8 byte bound')
+        raise ValueError("embedding batch exceeds its UTF-8 byte bound")
     # Byte-level tokens cannot exceed UTF-8 bytes; this is a conservative reservation, not usage.
     return total
 
@@ -39,7 +41,7 @@ class OpenAIEmbeddings:
     def __init__(self, client: AsyncOpenAI, accounting: EmbeddingAccounting) -> None:
         self._client = client.with_options(max_retries=0, timeout=10.0)
         self._accounting = accounting
-        self._spec = EmbeddingSpec('openai', 'text-embedding-3-small', 1536)
+        self._spec = EmbeddingSpec("openai", "text-embedding-3-small", 1536)
 
     @property
     def spec(self) -> EmbeddingSpec:
@@ -55,7 +57,7 @@ class OpenAIEmbeddings:
                 input=list(texts),
                 model=self.spec.model,
                 dimensions=self.spec.dimensions,
-                encoding_format='float',
+                encoding_format="float",
             )
             usage = response.usage
             if (
@@ -63,15 +65,19 @@ class OpenAIEmbeddings:
                 or type(usage.total_tokens) is not int
                 or not 0 <= usage.prompt_tokens == usage.total_tokens <= bound
             ):
-                raise ValueError('embedding usage is missing or outside the reserved bound')
+                raise ValueError("embedding usage is missing or outside the reserved bound")
             # A malformed vector does not undo known billed usage.
             await self._accounting.settle(operation, usage.prompt_tokens)
             if response.model != self.spec.model or len(response.data) != len(texts):
-                raise ValueError('embedding response identity or cardinality mismatch')
+                raise ValueError("embedding response identity or cardinality mismatch")
             by_index: dict[int, tuple[float, ...]] = {}
             for item in response.data:
-                if type(item.index) is not int or item.index in by_index or not 0 <= item.index < len(texts):
-                    raise ValueError('embedding response indices must be unique and complete')
+                if (
+                    type(item.index) is not int
+                    or item.index in by_index
+                    or not 0 <= item.index < len(texts)
+                ):
+                    raise ValueError("embedding response indices must be unique and complete")
                 vector = tuple(item.embedding)
                 validate_vector(vector, self.spec)
                 by_index[item.index] = vector
@@ -88,7 +94,7 @@ class OpenAIEmbeddings:
 class FixtureHashEmbeddings:
     @property
     def spec(self) -> EmbeddingSpec:
-        return EmbeddingSpec('fixture', 'hash64-v1', 64)
+        return EmbeddingSpec("fixture", "hash64-v1", 64)
 
     async def encode(
         self, texts: tuple[str, ...], purpose: EmbeddingPurpose
@@ -97,7 +103,7 @@ class FixtureHashEmbeddings:
         result: list[tuple[float, ...]] = []
         for text in texts:
             values = [0.0] * self.spec.dimensions
-            for token in re.findall(r'\w+', text.casefold()) or [text]:
+            for token in re.findall(r"\w+", text.casefold()) or [text]:
                 digest = hashlib.sha256(token.encode()).digest()
                 values[int.from_bytes(digest[:2]) % self.spec.dimensions] += 1.0
             norm = math.hypot(*values)

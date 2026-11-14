@@ -44,9 +44,9 @@ from tests.support import (
     parse_sse,
 )
 
-CATALOG = CatalogParser(frozenset({'pequeverso.com', 'consumer.hotmart.com', 'refund.hotmart.com'}))(
-    CATALOG_BYTES
-)
+CATALOG = CatalogParser(
+    frozenset({"pequeverso.com", "consumer.hotmart.com", "refund.hotmart.com"})
+)(CATALOG_BYTES)
 ACTIVE = ActiveCatalog(
     CATALOG, hashlib.sha256(CATALOG_BYTES).hexdigest(), CATALOG.generated_at, timedelta(hours=168)
 )
@@ -54,20 +54,20 @@ ACTIVE = ActiveCatalog(
 
 def _knowledge(active: ActiveCatalog) -> RetrievedKnowledge:
     document = active.catalog.documents[0]
-    text = f'{document.title}\n{document.text}'
+    text = f"{document.title}\n{document.text}"
     chunk = KnowledgeChunk(
-        f'document:{document.id}',
+        f"document:{document.id}",
         ChunkKind.DOCUMENT,
         document.id,
         document.title,
         text,
-        'https://pequeverso.com/soporte/',
+        "https://pequeverso.com/soporte/",
         document.product_ids,
         hashlib.sha256(text.encode()).hexdigest(),
-        '/documents/0',
+        "/documents/0",
     )
     revision = KnowledgeRevision(
-        'b' * 64, active.sha256, 'c' * 40, 'test-v1', EmbeddingSpec('fixture', 'hash64-v1', 64)
+        "b" * 64, active.sha256, "c" * 40, "test-v1", EmbeddingSpec("fixture", "hash64-v1", 64)
     )
     return RetrievedKnowledge(revision, (chunk,), (RetrievalStrategy.LEXICAL,))
 
@@ -99,11 +99,13 @@ class Retrieval:
 
 
 def _composer(provider: ScriptedProvider, retrieval: Retrieval) -> GraphAnswerComposer:
-    return GraphAnswerComposer(GroundedComposer(provider, ComposerSettings(4000, 40000)), retrieval, 24000)
+    return GraphAnswerComposer(
+        GroundedComposer(provider, ComposerSettings(4000, 40000)), retrieval, 24000
+    )
 
 
 def _turn() -> Turn:
-    return Turn(ACTIVE, PriceStatus.VERIFIED, (), '¿Qué incluye el kit?', 'home', 'synthetic')
+    return Turn(ACTIVE, PriceStatus.VERIFIED, (), "¿Qué incluye el kit?", "home", "synthetic")
 
 
 def test_prepare_never_retrieves_or_dispatches_and_reserves_a_fixed_input_bound() -> None:
@@ -132,15 +134,15 @@ def test_graph_streams_once_and_records_exact_sent_passage_hashes() -> None:
         assert request.size_bytes() <= prepared.input_size_bytes == 24000
         evidence = json.loads(
             next(
-                item.text.split('\n', 1)[1]
+                item.text.split("\n", 1)[1]
                 for item in request.inputs
-                if item.text.startswith('retrieved_public_data:')
+                if item.text.startswith("retrieved_public_data:")
             )
         )
-        assert evidence['catalog_sha256'] == ACTIVE.sha256
-        assert tuple(item['id'] for item in evidence['passages']) == prepared.sent_chunk_ids
-        for item in evidence['passages']:
-            assert hashlib.sha256(item['text'].encode()).hexdigest() == item['sha256']
+        assert evidence["catalog_sha256"] == ACTIVE.sha256
+        assert tuple(item["id"] for item in evidence["passages"]) == prepared.sent_chunk_ids
+        for item in evidence["passages"]:
+            assert hashlib.sha256(item["text"].encode()).hexdigest() == item["sha256"]
 
     asyncio.run(scenario())
 
@@ -180,18 +182,20 @@ def test_cancellation_closes_retrieval_without_starting_generation() -> None:
     asyncio.run(scenario())
 
 
-def test_ambient_tracing_is_disabled_for_entire_graph_lifetime(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ambient_tracing_is_disabled_for_entire_graph_lifetime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     attempted: list[object] = []
 
     def forbidden_connect(*args: object, **kwargs: object) -> None:
         attempted.append(args)
-        raise AssertionError('runtime tracing must not attempt network access')
+        raise AssertionError("runtime tracing must not attempt network access")
 
-    monkeypatch.setenv('LANGSMITH_TRACING', 'true')
-    monkeypatch.setenv('LANGCHAIN_TRACING_V2', 'true')
-    monkeypatch.setenv('LANGSMITH_API_KEY', 'synthetic-not-a-secret')
-    monkeypatch.setenv('LANGSMITH_ENDPOINT', 'https://192.0.2.1')
-    monkeypatch.setattr(socket.socket, 'connect', forbidden_connect)
+    monkeypatch.setenv("LANGSMITH_TRACING", "true")
+    monkeypatch.setenv("LANGCHAIN_TRACING_V2", "true")
+    monkeypatch.setenv("LANGSMITH_API_KEY", "synthetic-not-a-secret")
+    monkeypatch.setenv("LANGSMITH_ENDPOINT", "https://192.0.2.1")
+    monkeypatch.setattr(socket.socket, "connect", forbidden_connect)
 
     async def scenario() -> None:
         provider = ScriptedProvider()
@@ -205,17 +209,17 @@ def test_ambient_tracing_is_disabled_for_entire_graph_lifetime(monkeypatch: pyte
 
 
 def test_http_sse_persistence_and_idempotency_use_real_graph(tmp_path: Path) -> None:
-    provider = ScriptedProvider(output=answer_json('Hola, puedo ayudarte a elegir.'))
+    provider = ScriptedProvider(output=answer_json("Hola, puedo ayudarte a elegir."))
     retrieval = Retrieval()
     with client(tmp_path, provider=provider) as http:
         http.app.state.services.chat.composer = _composer(provider, retrieval)
         session = open_session(http)
-        status, events, _ = ask(http, session, '¿Qué incluye el kit?', key='graph-once')
-        assert status == 200 and events[-2]['type'] == 'message.completed'
-        history = http.post('/api/v1/session', headers=JSON_HEADERS, json={})
+        status, events, _ = ask(http, session, "¿Qué incluye el kit?", key="graph-once")
+        assert status == 200 and events[-2]["type"] == "message.completed"
+        history = http.post("/api/v1/session", headers=JSON_HEADERS, json={})
         assert history.status_code == 200
-        assert 'Hola, puedo ayudarte a elegir.' in history.text
-        repeated, _, _ = ask(http, session, '¿Qué incluye el kit?', key='graph-once')
+        assert "Hola, puedo ayudarte a elegir." in history.text
+        repeated, _, _ = ask(http, session, "¿Qué incluye el kit?", key="graph-once")
         assert repeated == 200
         assert retrieval.calls == len(provider.calls) == 1
 
@@ -226,12 +230,12 @@ def test_http_local_failure_reports_no_generation_and_keeps_history(tmp_path: Pa
     with client(tmp_path, provider=provider) as http:
         http.app.state.services.chat.composer = _composer(provider, retrieval)
         session = open_session(http)
-        status, events, _ = ask(http, session, '¿Qué incluye el kit?')
+        status, events, _ = ask(http, session, "¿Qué incluye el kit?")
         # Existing v1 SSE deliberately maps internal dependency failures to its safe code.
-        assert status == 200 and events[-1]['code'] == 'generation_failed'
+        assert status == 200 and events[-1]["code"] == "generation_failed"
         assert len(provider.calls) == 0 and retrieval.calls == 1
-        history = http.post('/api/v1/session', headers=JSON_HEADERS, json={})
-        assert history.status_code == 200 and '¿Qué incluye el kit?' in history.text
+        history = http.post("/api/v1/session", headers=JSON_HEADERS, json={})
+        assert history.status_code == 200 and "¿Qué incluye el kit?" in history.text
 
 
 def test_closing_graph_after_first_delta_closes_provider_exactly_once() -> None:
@@ -253,16 +257,16 @@ def test_real_http_cancel_after_delta_retains_unknown_spend_and_no_partial_histo
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     provider = ScriptedProvider(
-        output=answer_json('Puedo ayudarte a elegir. ' * 12), hang=True, usage=None, delay=0.002
+        output=answer_json("Puedo ayudarte a elegir. " * 12), hang=True, usage=None, delay=0.002
     )
     retrieval = Retrieval()
 
     def composer_factory(model, settings):
         return GraphAnswerComposer(GroundedComposer(model, settings), retrieval, 24000)
 
-    monkeypatch.setattr(container, 'GroundedComposer', composer_factory)
+    monkeypatch.setattr(container, "GroundedComposer", composer_factory)
     with live_server(tmp_path, provider) as url, httpx.Client(base_url=url, timeout=10) as http:
-        csrf = http.post('/api/v1/session', headers=JSON_HEADERS, json={}).json()['csrf_token']
+        csrf = http.post("/api/v1/session", headers=JSON_HEADERS, json={}).json()["csrf_token"]
         first_delta = threading.Event()
         chunks: list[str] = []
         run_ids: list[str] = []
@@ -271,16 +275,16 @@ def test_real_http_cancel_after_delta_retains_unknown_spend_and_no_partial_histo
         def consume() -> None:
             try:
                 with http.stream(
-                    'POST',
-                    '/api/v1/messages',
-                    headers=mutation_headers(csrf, 'graph-cancel-after-delta'),
-                    json={'content': '¿Qué incluye el kit?'},
+                    "POST",
+                    "/api/v1/messages",
+                    headers=mutation_headers(csrf, "graph-cancel-after-delta"),
+                    json={"content": "¿Qué incluye el kit?"},
                 ) as response:
                     assert response.status_code == 200
-                    run_ids.append(response.headers['X-Run-ID'])
+                    run_ids.append(response.headers["X-Run-ID"])
                     for chunk in response.iter_text():
                         chunks.append(chunk)
-                        if 'event: message.delta' in ''.join(chunks):
+                        if "event: message.delta" in "".join(chunks):
                             first_delta.set()
             except (AssertionError, httpx.HTTPError, KeyError, ValueError) as error:
                 errors.append(error)
@@ -291,26 +295,30 @@ def test_real_http_cancel_after_delta_retains_unknown_spend_and_no_partial_histo
         try:
             assert first_delta.wait(5) and not errors and len(run_ids) == 1
             cancelled = http.post(
-                f'/api/v1/runs/{run_ids[0]}/cancel', headers=mutation_headers(csrf), json={}
+                f"/api/v1/runs/{run_ids[0]}/cancel", headers=mutation_headers(csrf), json={}
             )
             assert cancelled.status_code == 202
             thread.join(5)
             assert not thread.is_alive() and not errors
-            assert parse_sse(''.join(chunks))[-1]['type'] == 'run.cancelled'
+            assert parse_sse("".join(chunks))[-1]["type"] == "run.cancelled"
             assert len(provider.calls) == provider.closed == retrieval.calls == 1
-            restored = http.post('/api/v1/session', headers=JSON_HEADERS, json={}).json()
-            assert [message['role'] for message in restored['messages']] == ['user']
-            with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as db:
-                row = db.execute('SELECT status,actual_micro,reserved_micro FROM spend_ledger').fetchone()
-                assert row[0] == 'unreported' and row[1] is None and row[2] > 0
-                assert db.execute('SELECT model_call FROM run_metrics').fetchone()[0] == 1
+            restored = http.post("/api/v1/session", headers=JSON_HEADERS, json={}).json()
+            assert [message["role"] for message in restored["messages"]] == ["user"]
+            with closing(sqlite3.connect(tmp_path / "test.sqlite3")) as db:
+                row = db.execute(
+                    "SELECT status,actual_micro,reserved_micro FROM spend_ledger"
+                ).fetchone()
+                assert row[0] == "unreported" and row[1] is None and row[2] > 0
+                assert db.execute("SELECT model_call FROM run_metrics").fetchone()[0] == 1
         finally:
             if thread.is_alive() and run_ids:
-                http.post(f'/api/v1/runs/{run_ids[0]}/cancel', headers=mutation_headers(csrf), json={})
+                http.post(
+                    f"/api/v1/runs/{run_ids[0]}/cancel", headers=mutation_headers(csrf), json={}
+                )
                 thread.join(5)
 
 
-@pytest.mark.parametrize('failure', ['projection', 'source', 'ownership', 'ownership_error'])
+@pytest.mark.parametrize("failure", ["projection", "source", "ownership", "ownership_error"])
 def test_direct_post_refuses_known_unavailable_dependencies_without_spend(
     tmp_path: Path, failure: str
 ) -> None:
@@ -322,8 +330,8 @@ def test_direct_post_refuses_known_unavailable_dependencies_without_spend(
         return False
 
     async def lost_owner() -> bool:
-        if failure == 'ownership_error':
-            raise ConnectionError('synthetic-private-connection-detail')
+        if failure == "ownership_error":
+            raise ConnectionError("synthetic-private-connection-detail")
         return False
 
     with client(tmp_path, provider=provider) as http:
@@ -331,24 +339,24 @@ def test_direct_post_refuses_known_unavailable_dependencies_without_spend(
         chat.composer = _composer(provider, retrieval)
         chat.knowledge = retrieval
         session = open_session(http)
-        if failure == 'projection':
+        if failure == "projection":
             retrieval.ready = unavailable
-        elif failure == 'source':
+        elif failure == "source":
             chat.catalog._synchronized = False
         else:
             chat.runtime_ownership = lost_owner
-        status, events, error = ask(http, session, '¿Qué incluye el kit?', key='known-unavailable')
+        status, events, error = ask(http, session, "¿Qué incluye el kit?", key="known-unavailable")
         assert status == 503 and events == []
-        assert error['error']['code'] == 'dependency_unavailable'
-        assert 'synthetic-private-connection-detail' not in json.dumps(error)
+        assert error["error"]["code"] == "dependency_unavailable"
+        assert "synthetic-private-connection-detail" not in json.dumps(error)
         assert retrieval.calls == len(provider.calls) == 0
-        history = http.post('/api/v1/session', headers=JSON_HEADERS, json={})
-        assert history.status_code == 200 and history.json()['messages'] == []
-        with closing(sqlite3.connect(tmp_path / 'test.sqlite3')) as db:
-            assert db.execute('SELECT COUNT(*) FROM spend_ledger').fetchone()[0] == 0
+        history = http.post("/api/v1/session", headers=JSON_HEADERS, json={})
+        assert history.status_code == 200 and history.json()["messages"] == []
+        with closing(sqlite3.connect(tmp_path / "test.sqlite3")) as db:
+            assert db.execute("SELECT COUNT(*) FROM spend_ledger").fetchone()[0] == 0
             assert db.execute("SELECT COUNT(*) FROM runs WHERE state = 'active'").fetchone()[0] == 0
-            if failure.startswith('ownership'):
-                assert db.execute('SELECT COUNT(*) FROM runs').fetchone()[0] == 0
+            if failure.startswith("ownership"):
+                assert db.execute("SELECT COUNT(*) FROM runs").fetchone()[0] == 0
 
 
 def test_completed_replay_survives_projection_outage_without_new_generation(tmp_path: Path) -> None:
@@ -363,10 +371,10 @@ def test_completed_replay_survives_projection_outage_without_new_generation(tmp_
         chat.composer = _composer(provider, retrieval)
         chat.knowledge = retrieval
         session = open_session(http)
-        first, events, _ = ask(http, session, '¿Qué incluye el kit?', key='saved-before-outage')
+        first, events, _ = ask(http, session, "¿Qué incluye el kit?", key="saved-before-outage")
         assert first == 200
-        saved = events[-2]['message']
+        saved = events[-2]["message"]
         retrieval.ready = unavailable
-        repeated, replay, _ = ask(http, session, '¿Qué incluye el kit?', key='saved-before-outage')
-        assert repeated == 200 and replay[-2]['message'] == saved
+        repeated, replay, _ = ask(http, session, "¿Qué incluye el kit?", key="saved-before-outage")
+        assert repeated == 200 and replay[-2]["message"] == saved
         assert len(provider.calls) == retrieval.calls == 1

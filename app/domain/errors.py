@@ -6,22 +6,22 @@ from enum import StrEnum
 
 
 class FailureCode(StrEnum):
-    INVALID_REQUEST = 'invalid_request'
-    ORIGIN_DENIED = 'origin_denied'
-    CSRF_FAILED = 'csrf_failed'
-    SESSION_EXPIRED = 'session_expired'
-    RATE_LIMITED = 'rate_limited'
-    BUSY = 'busy'
-    RUN_IN_PROGRESS = 'run_in_progress'
-    IDEMPOTENCY_CONFLICT = 'idempotency_conflict'
-    RUN_NOT_FOUND = 'run_not_found'
-    BUDGET_EXHAUSTED = 'budget_exhausted'
-    ASSISTANT_DISABLED = 'assistant_disabled'
-    CATALOG_UNAVAILABLE = 'catalog_unavailable'
-    PROVIDER_UNAVAILABLE = 'provider_unavailable'
-    GENERATION_FAILED = 'generation_failed'
-    TIMEOUT = 'timeout'
-    DEPENDENCY_UNAVAILABLE = 'dependency_unavailable'
+    INVALID_REQUEST = "invalid_request"
+    ORIGIN_DENIED = "origin_denied"
+    CSRF_FAILED = "csrf_failed"
+    SESSION_EXPIRED = "session_expired"
+    RATE_LIMITED = "rate_limited"
+    BUSY = "busy"
+    RUN_IN_PROGRESS = "run_in_progress"
+    IDEMPOTENCY_CONFLICT = "idempotency_conflict"
+    RUN_NOT_FOUND = "run_not_found"
+    BUDGET_EXHAUSTED = "budget_exhausted"
+    ASSISTANT_DISABLED = "assistant_disabled"
+    CATALOG_UNAVAILABLE = "catalog_unavailable"
+    PROVIDER_UNAVAILABLE = "provider_unavailable"
+    GENERATION_FAILED = "generation_failed"
+    TIMEOUT = "timeout"
+    DEPENDENCY_UNAVAILABLE = "dependency_unavailable"
 
 
 RETRYABLE = frozenset(

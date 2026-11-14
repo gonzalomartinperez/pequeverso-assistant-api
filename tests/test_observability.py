@@ -17,16 +17,16 @@ from app.application.operations import RunWindow
 from app.bootstrap.config import Settings
 from app.bootstrap.container import create_app
 
-TOKEN = 'test-only-' + '0' * 32  # Explicit dummy bearer; never a deployable credential.
-AUTH = {'Authorization': f'Bearer {TOKEN}'}
+TOKEN = "test-only-" + "0" * 32  # Explicit dummy bearer; never a deployable credential.
+AUTH = {"Authorization": f"Bearer {TOKEN}"}
 
 
 def settings(tmp_path, **overrides):
     return Settings(
         _env_file=None,
-        environment='test',
-        database_path=str(tmp_path / 'api.sqlite3'),
-        ai_provider='fixture',
+        environment="test",
+        database_path=str(tmp_path / "api.sqlite3"),
+        ai_provider="fixture",
         allow_paid_ai=False,
         openai_api_key=None,
         ops_read_token=TOKEN,
@@ -34,70 +34,72 @@ def settings(tmp_path, **overrides):
     )
 
 
-def test_observability_is_disabled_by_default_and_legacy_summary_is_unchanged(tmp_path, monkeypatch):
-    monkeypatch.setenv('OTEL_EXPORTER_OTLP_ENDPOINT', 'http://127.0.0.1:1')
+def test_observability_is_disabled_by_default_and_legacy_summary_is_unchanged(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://127.0.0.1:1")
     with TestClient(create_app(settings(tmp_path))) as client:
-        assert client.get('/internal/v1/ops/telemetry', headers=AUTH).status_code == 404
-        assert client.get('/internal/v1/ops/metrics', headers=AUTH).status_code == 404
-        summary = client.get('/internal/v1/ops/summary', headers=AUTH).json()
-        assert 'telemetry' not in summary
+        assert client.get("/internal/v1/ops/telemetry", headers=AUTH).status_code == 404
+        assert client.get("/internal/v1/ops/metrics", headers=AUTH).status_code == 404
+        summary = client.get("/internal/v1/ops/summary", headers=AUTH).json()
+        assert "telemetry" not in summary
         assert set(summary) == {
-            'schema_version',
-            'generated_at',
-            'service',
-            'availability',
-            'catalog',
-            'budget',
-            'windows',
-            'daily',
-            'metrics_since',
-            'pricing',
-            'recent',
+            "schema_version",
+            "generated_at",
+            "service",
+            "availability",
+            "catalog",
+            "budget",
+            "windows",
+            "daily",
+            "metrics_since",
+            "pricing",
+            "recent",
         }
 
 
 def test_private_metrics_and_telemetry_require_bearer_and_do_not_probe_provider(tmp_path):
     with TestClient(create_app(settings(tmp_path, observability_enabled=True))) as client:
-        for path in ('/internal/v1/ops/telemetry', '/internal/v1/ops/metrics'):
+        for path in ("/internal/v1/ops/telemetry", "/internal/v1/ops/metrics"):
             assert client.get(path).status_code == 401
-            assert client.get(path, headers={'Authorization': 'Bearer nope'}).status_code == 401
-        assert client.get('/api/v1/ops/metrics', headers=AUTH).status_code == 404
-        state = client.get('/internal/v1/ops/telemetry', headers=AUTH).json()
-        assert state['schema_version'] == '1'
-        assert state['readiness']['measurement'] == 'point_in_time'
-        assert state['readiness']['status'] == 'ready'
-        assert state['provider_observation'] == {'status': 'unknown', 'reason': 'not_probed'}
-        assert state['synthetic'] is True
-        assert state['active_runs'] == 0 and state['max_concurrent_runs'] == 4
-        assert state['traces']['last_export_success'] is None
-        assert not state['traces']['enabled']
-        metrics = client.get('/internal/v1/ops/metrics', headers=AUTH)
-        assert metrics.status_code == 200 and metrics.headers['cache-control'] == 'no-store'
-        assert 'pequeverso_http_requests_total' in metrics.text
+            assert client.get(path, headers={"Authorization": "Bearer nope"}).status_code == 401
+        assert client.get("/api/v1/ops/metrics", headers=AUTH).status_code == 404
+        state = client.get("/internal/v1/ops/telemetry", headers=AUTH).json()
+        assert state["schema_version"] == "1"
+        assert state["readiness"]["measurement"] == "point_in_time"
+        assert state["readiness"]["status"] == "ready"
+        assert state["provider_observation"] == {"status": "unknown", "reason": "not_probed"}
+        assert state["synthetic"] is True
+        assert state["active_runs"] == 0 and state["max_concurrent_runs"] == 4
+        assert state["traces"]["last_export_success"] is None
+        assert not state["traces"]["enabled"]
+        metrics = client.get("/internal/v1/ops/metrics", headers=AUTH)
+        assert metrics.status_code == 200 and metrics.headers["cache-control"] == "no-store"
+        assert "pequeverso_http_requests_total" in metrics.text
         assert 'pequeverso_runs_window{outcome="completed"} 0.0' in metrics.text
-        assert 'python_gc_' not in metrics.text and 'process_open_fds' not in metrics.text
+        assert "python_gc_" not in metrics.text and "process_open_fds" not in metrics.text
         assert TOKEN not in json.dumps(state) + metrics.text
-        assert 'uptime_percent' not in json.dumps(state)
+        assert "uptime_percent" not in json.dumps(state)
 
 
 @pytest.mark.parametrize(
-    'endpoint',
+    "endpoint",
     [
-        'https://user:password@collector/v1/traces',
-        'http://public.example/v1/traces',
-        'http://collector/v1/traces?secret=value',
-        'http://collector/v1/traces#secret',
-        'file:///v1/traces',
+        "https://user:password@collector/v1/traces",
+        "http://public.example/v1/traces",
+        "http://collector/v1/traces?secret=value",
+        "http://collector/v1/traces#secret",
+        "file:///v1/traces",
     ],
 )
 def test_otlp_endpoint_rejects_unsafe_configuration(tmp_path, endpoint):
-    with pytest.raises(ValueError, match='OTLP'):
+    with pytest.raises(ValueError, match="OTLP"):
         settings(tmp_path, observability_enabled=True, telemetry_otlp_endpoint=endpoint)
 
 
 def test_otlp_endpoint_requires_explicit_observability(tmp_path):
-    with pytest.raises(ValueError, match='OTLP'):
-        settings(tmp_path, telemetry_otlp_endpoint='http://collector:4318/v1/traces')
+    with pytest.raises(ValueError, match="OTLP"):
+        settings(tmp_path, telemetry_otlp_endpoint="http://collector:4318/v1/traces")
 
 
 def test_manual_traces_drop_inbound_context_raw_paths_headers_and_body():
@@ -112,7 +114,7 @@ def test_manual_traces_drop_inbound_context_raw_paths_headers_and_body():
     telemetry = RuntimeTelemetry(
         started_at=datetime.now(UTC),
         synthetic=True,
-        revision='abcdef0',
+        revision="abcdef0",
         ready=ready,
         active_runs=lambda: 0,
         max_runs=4,
@@ -123,21 +125,21 @@ def test_manual_traces_drop_inbound_context_raw_paths_headers_and_body():
 
     async def app(scope, receive, send):
         # A malicious/unknown path is never a metric label or span name.
-        await JSONResponse({'safe': True})(scope, receive, send)
+        await JSONResponse({"safe": True})(scope, receive, send)
 
-    app = TelemetryMiddleware(app, telemetry, frozenset({'/api/v1/session'}))
+    app = TelemetryMiddleware(app, telemetry, frozenset({"/api/v1/session"}))
 
     async def run():
         scope = {
-            'type': 'http',
-            'method': 'GET',
-            'path': '/private-customer-secret',
-            'query_string': b'key=private-query-secret',
-            'headers': [
-                (b'authorization', b'Bearer private-header-secret'),
-                (b'traceparent', b'00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01'),
+            "type": "http",
+            "method": "GET",
+            "path": "/private-customer-secret",
+            "query_string": b"key=private-query-secret",
+            "headers": [
+                (b"authorization", b"Bearer private-header-secret"),
+                (b"traceparent", b"00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01"),
             ],
-            'route': type('Route', (), {'path': '/untrusted-parameter-secret'})(),
+            "route": type("Route", (), {"path": "/untrusted-parameter-secret"})(),
         }
         messages = []
 
@@ -145,7 +147,7 @@ def test_manual_traces_drop_inbound_context_raw_paths_headers_and_body():
             messages.append(message)
 
         async def receive():
-            return {'type': 'http.request', 'body': b'private-body-secret'}
+            return {"type": "http.request", "body": b"private-body-secret"}
 
         await app(scope, receive, send)
         assert telemetry.http_inflight == 0
@@ -153,19 +155,25 @@ def test_manual_traces_drop_inbound_context_raw_paths_headers_and_body():
         metrics = (await telemetry.prometheus()).decode()
         spans = exporter.get_finished_spans()
         assert len(spans) == 1 and spans[0].parent is None
-        assert spans[0].name == 'GET unmatched'
-        assert set(spans[0].attributes) == {'http.request.method', 'http.route', 'http.response.status_code'}
-        serialized = metrics + str(spans[0].attributes) + spans[0].name + str(spans[0].resource.attributes)
+        assert spans[0].name == "GET unmatched"
+        assert set(spans[0].attributes) == {
+            "http.request.method",
+            "http.route",
+            "http.response.status_code",
+        }
+        serialized = (
+            metrics + str(spans[0].attributes) + spans[0].name + str(spans[0].resource.attributes)
+        )
         for sentinel in (
-            'private-customer-secret',
-            'private-query-secret',
-            'private-header-secret',
-            'private-body-secret',
-            'untrusted-parameter-secret',
-            'aaaaaaaa',
+            "private-customer-secret",
+            "private-query-secret",
+            "private-header-secret",
+            "private-body-secret",
+            "untrusted-parameter-secret",
+            "aaaaaaaa",
         ):
             assert sentinel not in serialized
-        assert 'service.instance.id' not in spans[0].resource.attributes
+        assert "service.instance.id" not in spans[0].resource.attributes
 
     asyncio.run(run())
     telemetry.shutdown()
@@ -174,7 +182,7 @@ def test_manual_traces_drop_inbound_context_raw_paths_headers_and_body():
 def test_export_failure_is_content_free_and_never_changes_http_status(caplog):
     class FailingExporter(InMemorySpanExporter):
         def export(self, spans):
-            raise RuntimeError('private-provider-and-credentials-sentinel')
+            raise RuntimeError("private-provider-and-credentials-sentinel")
 
     async def ready():
         return True
@@ -193,34 +201,36 @@ def test_export_failure_is_content_free_and_never_changes_http_status(caplog):
         exporter=FailingExporter(),
         sampling_ratio=1,
     )
-    span = telemetry.begin('GET')
-    telemetry.finish(span, 'GET', '/health/live', 200, 0.01)
+    span = telemetry.begin("GET")
+    telemetry.finish(span, "GET", "/health/live", 200, 0.01)
     assert telemetry.trace_provider.force_flush(1000)
     state = asyncio.run(telemetry.snapshot())
     assert state.export_failures == 1 and state.last_export_success is False
     assert state.http_server_errors == 0
-    assert 'private-provider-and-credentials-sentinel' not in caplog.text
+    assert "private-provider-and-credentials-sentinel" not in caplog.text
     telemetry.shutdown()
 
 
 def test_ambient_sdk_headers_are_rejected_before_any_exporter_is_created(tmp_path, monkeypatch):
-    monkeypatch.setenv('OTEL_EXPORTER_OTLP_HEADERS', 'authorization=private-sentinel')
-    with pytest.raises(ValueError, match='ambient OTEL') as rejected:
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_HEADERS", "authorization=private-sentinel")
+    with pytest.raises(ValueError, match="ambient OTEL") as rejected:
         settings(
-            tmp_path, observability_enabled=True, telemetry_otlp_endpoint='http://collector:4318/v1/traces'
+            tmp_path,
+            observability_enabled=True,
+            telemetry_otlp_endpoint="http://collector:4318/v1/traces",
         )
-    assert 'private-sentinel' not in str(rejected.value)
+    assert "private-sentinel" not in str(rejected.value)
 
 
 @pytest.mark.parametrize(
-    ('path', 'token', 'inherits'),
+    ("path", "token", "inherits"),
     [
-        ('/internal/v1/ops/summary', TOKEN, True),
-        ('/internal/v1/ops/telemetry', TOKEN, True),
-        ('/internal/v1/ops/metrics', TOKEN, True),
-        ('/internal/v1/ops/summary', 'not-authorized', False),
-        ('/api/v1/session', TOKEN, False),
-        ('/internal/v1/ops/unknown', TOKEN, False),
+        ("/internal/v1/ops/summary", TOKEN, True),
+        ("/internal/v1/ops/telemetry", TOKEN, True),
+        ("/internal/v1/ops/metrics", TOKEN, True),
+        ("/internal/v1/ops/summary", "not-authorized", False),
+        ("/api/v1/session", TOKEN, False),
+        ("/internal/v1/ops/unknown", TOKEN, False),
     ],
 )
 def test_only_authenticated_exact_private_routes_inherit_bounded_traceparent(path, token, inherits):
@@ -247,32 +257,35 @@ def test_only_authenticated_exact_private_routes_inherit_bounded_traceparent(pat
     )
 
     async def inner(scope, receive, send):
-        await JSONResponse({'safe': True})(scope, receive, send)
+        await JSONResponse({"safe": True})(scope, receive, send)
 
     wrapped = TelemetryMiddleware(
-        inner, telemetry, frozenset({path}), private_token_digest=hashlib.sha256(TOKEN.encode()).digest()
+        inner,
+        telemetry,
+        frozenset({path}),
+        private_token_digest=hashlib.sha256(TOKEN.encode()).digest(),
     )
 
     async def run():
-        parent_trace_id = 'a' * 32
+        parent_trace_id = "a" * 32
         scope = {
-            'type': 'http',
-            'method': 'GET',
-            'path': path,
-            'headers': [
-                (b'authorization', f'Bearer {token}'.encode()),
-                (b'traceparent', f'00-{parent_trace_id}-bbbbbbbbbbbbbbbb-01'.encode()),
-                (b'baggage', b'secret=private-sentinel'),
-                (b'tracestate', b'private-sentinel=value'),
+            "type": "http",
+            "method": "GET",
+            "path": path,
+            "headers": [
+                (b"authorization", f"Bearer {token}".encode()),
+                (b"traceparent", f"00-{parent_trace_id}-bbbbbbbbbbbbbbbb-01".encode()),
+                (b"baggage", b"secret=private-sentinel"),
+                (b"tracestate", b"private-sentinel=value"),
             ],
-            'route': type('Route', (), {'path': path})(),
+            "route": type("Route", (), {"path": path})(),
         }
 
         async def send(message):
             pass
 
         async def receive():
-            return {'type': 'http.request', 'body': b''}
+            return {"type": "http.request", "body": b""}
 
         await wrapped(scope, receive, send)
         assert telemetry.trace_provider.force_flush(1000)
@@ -280,12 +293,12 @@ def test_only_authenticated_exact_private_routes_inherit_bounded_traceparent(pat
         assert len(spans) == 1
         if inherits:
             assert spans[0].context.trace_id == int(parent_trace_id, 16)
-            assert spans[0].parent.span_id == int('b' * 16, 16)
+            assert spans[0].parent.span_id == int("b" * 16, 16)
         else:
             assert spans[0].parent is None
             assert spans[0].context.trace_id != int(parent_trace_id, 16)
         assert not spans[0].context.trace_state
-        assert 'private-sentinel' not in str(spans[0].attributes)
+        assert "private-sentinel" not in str(spans[0].attributes)
 
     asyncio.run(run())
     telemetry.shutdown()
@@ -296,7 +309,7 @@ def test_database_outage_keeps_readiness_metrics_and_unknown_run_window(caplog):
         return False
 
     async def failed_window():
-        raise RuntimeError('private-database-path-sentinel')
+        raise RuntimeError("private-database-path-sentinel")
 
     telemetry = RuntimeTelemetry(
         started_at=datetime.now(UTC),
@@ -308,9 +321,9 @@ def test_database_outage_keeps_readiness_metrics_and_unknown_run_window(caplog):
         run_window=failed_window,
     )
     metrics = asyncio.run(telemetry.prometheus()).decode()
-    assert 'pequeverso_ready 0.0' in metrics
+    assert "pequeverso_ready 0.0" in metrics
     assert 'pequeverso_runs_window{outcome="completed"} NaN' in metrics
-    assert 'private-database-path-sentinel' not in caplog.text + metrics
+    assert "private-database-path-sentinel" not in caplog.text + metrics
     telemetry.shutdown()
 
 
@@ -324,7 +337,7 @@ def test_actual_otlp_http_export_ignores_proxy_and_contains_safe_protobuf_only(m
 
     class Collector(BaseHTTPRequestHandler):
         def do_POST(self):
-            body = self.rfile.read(int(self.headers['Content-Length']))
+            body = self.rfile.read(int(self.headers["Content-Length"]))
             payload = ExportTraceServiceRequest()
             payload.ParseFromString(body)
             received.append(payload)
@@ -334,9 +347,9 @@ def test_actual_otlp_http_export_ignores_proxy_and_contains_safe_protobuf_only(m
         def log_message(self, *args):
             pass
 
-    monkeypatch.setenv('HTTP_PROXY', 'http://127.0.0.1:1')
-    monkeypatch.delenv('NO_PROXY', raising=False)
-    server = ThreadingHTTPServer(('127.0.0.1', 0), Collector)
+    monkeypatch.setenv("HTTP_PROXY", "http://127.0.0.1:1")
+    monkeypatch.delenv("NO_PROXY", raising=False)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Collector)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
 
@@ -349,28 +362,28 @@ def test_actual_otlp_http_export_ignores_proxy_and_contains_safe_protobuf_only(m
     telemetry = RuntimeTelemetry(
         started_at=datetime.now(UTC),
         synthetic=True,
-        revision='abcdef0',
+        revision="abcdef0",
         ready=ready,
         active_runs=lambda: 0,
         max_runs=4,
         run_window=window,
-        endpoint=f'http://127.0.0.1:{server.server_port}/v1/traces',
+        endpoint=f"http://127.0.0.1:{server.server_port}/v1/traces",
         sampling_ratio=1,
     )
     try:
-        span = telemetry.begin('GET')
-        telemetry.finish(span, 'GET', '/health/live', 200, 0.01)
+        span = telemetry.begin("GET")
+        telemetry.finish(span, "GET", "/health/live", 200, 0.01)
         assert telemetry.trace_provider.force_flush(2000)
         assert len(received) == 1
         exported = received[0].resource_spans[0]
-        assert {a.key for a in exported.resource.attributes} == {'service.name', 'service.version'}
+        assert {a.key for a in exported.resource.attributes} == {"service.name", "service.version"}
         assert len(exported.scope_spans[0].spans) == 1
         actual = exported.scope_spans[0].spans[0]
-        assert actual.name == 'GET /health/live'
+        assert actual.name == "GET /health/live"
         assert {a.key for a in actual.attributes} == {
-            'http.request.method',
-            'http.route',
-            'http.response.status_code',
+            "http.request.method",
+            "http.route",
+            "http.response.status_code",
         }
         state = asyncio.run(telemetry.snapshot())
         assert state.export_successes == 1 and state.last_export_success is True
@@ -421,8 +434,8 @@ def test_exporter_shutdown_drops_queued_batches_without_repeating_timeouts():
         sampling_ratio=1,
     )
     for _ in range(64):
-        span = telemetry.begin('GET')
-        telemetry.finish(span, 'GET', '/health/live', 200, 0.01)
+        span = telemetry.begin("GET")
+        telemetry.finish(span, "GET", "/health/live", 200, 0.01)
     assert exporter.started.wait(timeout=2)
     started = time.monotonic()
     telemetry.shutdown()
@@ -434,7 +447,7 @@ def test_exporter_shutdown_drops_queued_batches_without_repeating_timeouts():
 def test_sdk_cleanup_exception_is_redacted_and_does_not_break_runtime_shutdown(caplog):
     class BrokenCleanup(InMemorySpanExporter):
         def shutdown(self):
-            raise RuntimeError('private-shutdown-credential-sentinel')
+            raise RuntimeError("private-shutdown-credential-sentinel")
 
     async def ready():
         return True
@@ -454,7 +467,7 @@ def test_sdk_cleanup_exception_is_redacted_and_does_not_break_runtime_shutdown(c
         sampling_ratio=1,
     )
     telemetry.shutdown()
-    assert 'private-shutdown-credential-sentinel' not in caplog.text
+    assert "private-shutdown-credential-sentinel" not in caplog.text
 
 
 def test_actual_export_header_stall_has_overall_deadline_and_runtime_can_stop():
@@ -467,7 +480,7 @@ def test_actual_export_header_stall_has_overall_deadline_and_runtime_can_stop():
 
     class StalledCollector(BaseHTTPRequestHandler):
         def do_POST(self):
-            self.rfile.read(int(self.headers['Content-Length']))
+            self.rfile.read(int(self.headers["Content-Length"]))
             received.set()
             release.wait(timeout=2)
             # Send no headers until released: the client's overall await deadline expires.
@@ -475,7 +488,7 @@ def test_actual_export_header_stall_has_overall_deadline_and_runtime_can_stop():
         def log_message(self, *args):
             pass
 
-    server = ThreadingHTTPServer(('127.0.0.1', 0), StalledCollector)
+    server = ThreadingHTTPServer(("127.0.0.1", 0), StalledCollector)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
 
@@ -493,14 +506,14 @@ def test_actual_export_header_stall_has_overall_deadline_and_runtime_can_stop():
         active_runs=lambda: 0,
         max_runs=4,
         run_window=window,
-        endpoint=f'http://127.0.0.1:{server.server_port}/v1/traces',
+        endpoint=f"http://127.0.0.1:{server.server_port}/v1/traces",
         sampling_ratio=1,
         export_timeout=0.2,
     )
     try:
         started = time.monotonic()
-        span = telemetry.begin('GET')
-        telemetry.finish(span, 'GET', '/health/live', 200, 0.01)
+        span = telemetry.begin("GET")
+        telemetry.finish(span, "GET", "/health/live", 200, 0.01)
         assert telemetry.trace_provider.force_flush(1500)
         assert received.is_set()
         assert time.monotonic() - started < 1.5
@@ -517,32 +530,32 @@ def test_actual_export_header_stall_has_overall_deadline_and_runtime_can_stop():
         server.server_close()
 
 
-@pytest.mark.parametrize('enabled', [False, True])
+@pytest.mark.parametrize("enabled", [False, True])
 def test_framework_does_not_use_ambient_telemetry_or_public_parent(tmp_path, monkeypatch, enabled):
     # An ambient provider represents instrumentation installed by another library.
     # It must not capture public requests, even when our own telemetry is enabled.
     ambient_exporter = InMemorySpanExporter()
     ambient = TracerProvider(shutdown_on_exit=False)
     ambient.add_span_processor(SimpleSpanProcessor(ambient_exporter))
-    monkeypatch.setattr(trace, 'get_tracer_provider', lambda: ambient)
+    monkeypatch.setattr(trace, "get_tracer_provider", lambda: ambient)
     own_exporter = InMemorySpanExporter()
     instances = []
 
     class CapturedTelemetry(RuntimeTelemetry):
         def __init__(self, **kwargs):
-            kwargs['exporter'] = own_exporter
-            kwargs['sampling_ratio'] = 1
+            kwargs["exporter"] = own_exporter
+            kwargs["sampling_ratio"] = 1
             super().__init__(**kwargs)
             instances.append(self)
 
-    monkeypatch.setattr('app.adapters.observability.telemetry.RuntimeTelemetry', CapturedTelemetry)
+    monkeypatch.setattr("app.adapters.observability.telemetry.RuntimeTelemetry", CapturedTelemetry)
     try:
         with TestClient(create_app(settings(tmp_path, observability_enabled=enabled))) as client:
             response = client.get(
-                '/api/v1/availability?private_query=visitor-query-sentinel',
+                "/api/v1/availability?private_query=visitor-query-sentinel",
                 headers={
-                    'traceparent': '00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01',
-                    'x-private': 'visitor-header-sentinel',
+                    "traceparent": "00-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbb-01",
+                    "x-private": "visitor-header-sentinel",
                 },
             )
             assert response.status_code == 200
@@ -551,10 +564,10 @@ def test_framework_does_not_use_ambient_telemetry_or_public_parent(tmp_path, mon
                 assert instances[0].trace_provider.force_flush(1000)
                 spans = own_exporter.get_finished_spans()
                 assert spans and all(span.parent is None for span in spans)
-                assert all(span.context.trace_id != int('a' * 32, 16) for span in spans)
+                assert all(span.context.trace_id != int("a" * 32, 16) for span in spans)
                 exported = str([(span.name, dict(span.attributes)) for span in spans])
-                assert 'visitor-query-sentinel' not in exported
-                assert 'visitor-header-sentinel' not in exported
+                assert "visitor-query-sentinel" not in exported
+                assert "visitor-header-sentinel" not in exported
             else:
                 assert not own_exporter.get_finished_spans()
         assert ambient.force_flush(1000)

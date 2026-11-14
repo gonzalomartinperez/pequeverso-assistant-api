@@ -36,9 +36,9 @@ def _mandatory_document(kind: DocumentKind, title: str, text: str) -> bool:
 
     return (
         re.search(
-            r'\b(?:garant\w*|reembols\w*|pago\w*|compra\w*|moneda|impuesto\w*|'
-            r'entrega|acceso|hotmart|fisico|digital|resultad\w*)\b',
-            fold(f'{title} {text}'),
+            r"\b(?:garant\w*|reembols\w*|pago\w*|compra\w*|moneda|impuesto\w*|"
+            r"entrega|acceso|hotmart|fisico|digital|resultad\w*)\b",
+            fold(f"{title} {text}"),
         )
         is not None
     )
@@ -75,11 +75,16 @@ class _Dispatch:
 def _conversation(turn: Turn) -> list[dict[str, object]]:
     entries: list[dict[str, object]] = []
     for message in turn.history:
-        entry: dict[str, object] = {'role': message.role.value, 'text': message.content[:MAX_HISTORY_CHARS]}
+        entry: dict[str, object] = {
+            "role": message.role.value,
+            "text": message.content[:MAX_HISTORY_CHARS],
+        }
         if message.role is Role.ASSISTANT:
-            referenced = [p.id for p in message.details.products] + [r.id for r in message.details.resources]
+            referenced = [p.id for p in message.details.products] + [
+                r.id for r in message.details.resources
+            ]
             if referenced:
-                entry['referenced_ids'] = referenced
+                entry["referenced_ids"] = referenced
         entries.append(entry)
     return entries
 
@@ -102,7 +107,7 @@ class GroundedComposer:
         substitutes graph text for catalog facts or bypasses ordinary packing and validation.
         """
         if not document_ids.issubset({document.id for document in turn.active.catalog.documents}):
-            raise ValueError('retrieval named an unknown catalog document')
+            raise ValueError("retrieval named an unknown catalog document")
         selected = tuple(
             document
             for document in turn.active.catalog.documents
@@ -121,7 +126,7 @@ class GroundedComposer:
                 base.request,
                 inputs=(
                     *base.request.inputs[:-1],
-                    ModelInput('user', f'retrieved_public_data:\n{retrieved_payload}'),
+                    ModelInput("user", f"retrieved_public_data:\n{retrieved_payload}"),
                     base.request.inputs[-1],
                 ),
             )
@@ -130,13 +135,15 @@ class GroundedComposer:
         # Reserve exact serialized payload overhead before the ordinary packer decides which
         # optional documents/history fit. Mandatory facts and the original input bound remain.
         extra_bytes = with_retrieval(prepared).input_size_bytes - prepared.input_size_bytes
-        limit = min(self._settings.max_input_bytes, turn.input_size_limit or self._settings.max_input_bytes)
+        limit = min(
+            self._settings.max_input_bytes, turn.input_size_limit or self._settings.max_input_bytes
+        )
         packed = self.prepare(replace(selected_turn, input_size_limit=max(1, limit - extra_bytes)))
         assert isinstance(packed, PreparedRequest)
         return with_retrieval(packed)
 
     def prepare(self, turn: Turn) -> PreparedTurn:
-        last_user = next((m.content for m in reversed(turn.history) if m.role is Role.USER), '')
+        last_user = next((m.content for m in reversed(turn.history) if m.role is Role.USER), "")
         current_ids = mentioned_products(turn.question, turn.active.catalog)
         previous_ids = next(
             (
@@ -148,8 +155,8 @@ class GroundedComposer:
         )
         # An explicit topic change wins. Otherwise preserve structured referents across multiple
         # short follow-ups without indexing visitor conversations into catalog knowledge.
-        hints = ' '.join(current_ids or previous_ids)
-        query = f'{turn.question} {hints}' if hints else f'{turn.question} {last_user}'
+        hints = " ".join(current_ids or previous_ids)
+        query = f"{turn.question} {hints}" if hints else f"{turn.question} {last_user}"
         limit = (
             min(self._settings.max_input_bytes, turn.input_size_limit)
             if turn.input_size_limit is not None
@@ -173,30 +180,36 @@ class GroundedComposer:
         for entry in conversation[:-2]:
             if request.size_bytes() <= limit:
                 break
-            entry['text'] = ''
+            entry["text"] = ""
             request = self._request(turn, evidence, conversation, ())
         # Whole low-ranked documents only: commercial and support evidence is mandatory.
         ranked = rank(query, passages(catalog))
         removable = [
-            p.id.removeprefix('document:')
+            p.id.removeprefix("document:")
             for p, _ in reversed(ranked)
-            if p.id.startswith('document:')
-            and (document := catalog.document(p.id.removeprefix('document:'))) is not None
+            if p.id.startswith("document:")
+            and (document := catalog.document(p.id.removeprefix("document:"))) is not None
             and not _mandatory_document(document.kind, document.title, document.text)
         ]
         for document_id in removable:
             if request.size_bytes() <= limit:
                 break
-            catalog = replace(catalog, documents=tuple(d for d in catalog.documents if d.id != document_id))
+            catalog = replace(
+                catalog, documents=tuple(d for d in catalog.documents if d.id != document_id)
+            )
             evidence = evidence_text()
             request = self._request(turn, evidence, conversation, ())
-        if request.size_bytes() > limit and conversation and conversation[-1]['role'] == Role.ASSISTANT.value:
-            original_text = str(conversation[-1]['text'])
+        if (
+            request.size_bytes() > limit
+            and conversation
+            and conversation[-1]["role"] == Role.ASSISTANT.value
+        ):
+            original_text = str(conversation[-1]["text"])
             # Preserve a useful complete-sentence prefix and every structured reference id;
             # never mutate the stored message or slice through its final qualification.
-            ends = [m.end() for m in re.finditer(r'[.!?](?=\s|$)', original_text)]
+            ends = [m.end() for m in re.finditer(r"[.!?](?=\s|$)", original_text)]
             for end in reversed(ends):
-                conversation[-1]['text'] = original_text[:end]
+                conversation[-1]["text"] = original_text[:end]
                 trial = self._request(turn, evidence, conversation, ())
                 if trial.size_bytes() <= limit:
                     request = trial
@@ -206,7 +219,7 @@ class GroundedComposer:
                 # retrieved evidence. Omit only this model-context answer text, keeping
                 # its role/reference ids and the latest user question. Stored history is
                 # untouched; neither commercial qualifications nor passages are sliced.
-                conversation[-1]['text'] = ''
+                conversation[-1]["text"] = ""
                 request = self._request(turn, evidence, conversation, ())
         selected: list[WebEvidence] = []
         if request.size_bytes() <= limit:
@@ -214,8 +227,10 @@ class GroundedComposer:
                 kept: list[str] = []
                 accepted: WebEvidence | None = None
                 for paragraph in item.text.splitlines():
-                    text = '\n'.join([*kept, paragraph])
-                    candidate = replace(item, text=text, sha256=hashlib.sha256(text.encode()).hexdigest())
+                    text = "\n".join([*kept, paragraph])
+                    candidate = replace(
+                        item, text=text, sha256=hashlib.sha256(text.encode()).hexdigest()
+                    )
                     proposed = (*selected, candidate)
                     trial = self._request(turn, evidence, conversation, proposed)
                     # Make room for effective procedure evidence by removing only whole,
@@ -227,7 +242,8 @@ class GroundedComposer:
                         if catalog.document(document_id) is None:
                             continue
                         catalog = replace(
-                            catalog, documents=tuple(d for d in catalog.documents if d.id != document_id)
+                            catalog,
+                            documents=tuple(d for d in catalog.documents if d.id != document_id),
                         )
                         evidence = evidence_text()
                         trial = self._request(turn, evidence, conversation, proposed)
@@ -238,7 +254,7 @@ class GroundedComposer:
                 if accepted is not None:
                     selected.append(accepted)
             request = self._request(turn, evidence, conversation, tuple(selected))
-        source_ids = frozenset(d['id'] for d in decode_documents(json.loads(evidence)['documents']))
+        source_ids = frozenset(d["id"] for d in decode_documents(json.loads(evidence)["documents"]))
         return PreparedRequest(request, tuple(selected), source_ids)
 
     def _request(
@@ -251,7 +267,9 @@ class GroundedComposer:
         current_ids = mentioned_products(turn.question, turn.active.catalog)
         previous_ids = next(
             (
-                frozenset(p.id for p in message.details.products if turn.active.catalog.product(p.id))
+                frozenset(
+                    p.id for p in message.details.products if turn.active.catalog.product(p.id)
+                )
                 for message in reversed(turn.history)
                 if message.role is Role.ASSISTANT and message.details.products
             ),
@@ -260,39 +278,45 @@ class GroundedComposer:
         # These catalog-validated identifiers describe relevance, not a grant of
         # authority. Navigation never supplies a product referent on its own.
         reference_hints = {
-            'ids': sorted(current_ids or previous_ids),
-            'basis': 'current_question' if current_ids else 'conversation' if previous_ids else 'unresolved',
+            "ids": sorted(current_ids or previous_ids),
+            "basis": "current_question"
+            if current_ids
+            else "conversation"
+            if previous_ids
+            else "unresolved",
         }
         question = json.dumps(
             {
-                'page': turn.page,
-                'reply_language': turn.language.value,
-                'conversation': conversation,
-                'question': turn.question,
-                'product_reference_hints': reference_hints,
+                "page": turn.page,
+                "reply_language": turn.language.value,
+                "conversation": conversation,
+                "question": turn.question,
+                "product_reference_hints": reference_hints,
                 **(
-                    {'visitor_context': turn.context.payload()}
+                    {"visitor_context": turn.context.payload()}
                     if turn.context and not turn.context.empty
                     else {}
                 ),
             },
             ensure_ascii=False,
-            separators=(',', ':'),
+            separators=(",", ":"),
         )
         web_inputs: tuple[ModelInput, ...] = ()
         if web_evidence:
-            web_inputs = (ModelInput('user', f'official_platform_data:\n{evidence_payload(web_evidence)}'),)
+            web_inputs = (
+                ModelInput("user", f"official_platform_data:\n{evidence_payload(web_evidence)}"),
+            )
         return ModelRequest(
             instructions=INSTRUCTIONS,
             inputs=(
-                ModelInput('user', f'store_data:\n{evidence}'),
+                ModelInput("user", f"store_data:\n{evidence}"),
                 *web_inputs,
-                ModelInput('user', f'visitor_turn:\n{question}'),
+                ModelInput("user", f"visitor_turn:\n{question}"),
             ),
             output_schema=OUTPUT_SCHEMA,
             max_output_tokens=self._settings.max_output_tokens,
             safety_identifier=turn.safety_identifier,
-            cache_key=f'pequeverso-assistant:{PROMPT_VERSION}:{turn.active.sha256[:16]}',
+            cache_key=f"pequeverso-assistant:{PROMPT_VERSION}:{turn.active.sha256[:16]}",
         )
 
     async def compose(self, prepared: PreparedTurn) -> AsyncGenerator[ComposerEvent]:

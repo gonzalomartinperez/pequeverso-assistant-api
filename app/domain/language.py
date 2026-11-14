@@ -16,111 +16,113 @@ from enum import StrEnum
 
 
 class Language(StrEnum):
-    ES = 'es'
-    EN = 'en'
+    ES = "es"
+    EN = "en"
 
 
 class Detected(StrEnum):
-    ES = 'es'
-    EN = 'en'
-    OTHER = 'other'
-    UNKNOWN = 'unknown'
+    ES = "es"
+    EN = "en"
+    OTHER = "other"
+    UNKNOWN = "unknown"
 
 
 _QUOTED = re.compile(r'"[^"]*"|“[^”]*”|«[^»]*»|`[^`]*`|(?<!\w)\'[^\']{6,}\'(?!\w)')
-_CODE = re.compile(r'```.*?```', re.DOTALL)
-_URLISH = re.compile(r'\S+@\S+|(?:https?://|www\.)\S+|\b\S+\.(?:com|net|org|io|ar|es|mx)\S*', re.IGNORECASE)
+_CODE = re.compile(r"```.*?```", re.DOTALL)
+_URLISH = re.compile(
+    r"\S+@\S+|(?:https?://|www\.)\S+|\b\S+\.(?:com|net|org|io|ar|es|mx)\S*", re.IGNORECASE
+)
 _WORD = re.compile(r"[a-zñçãõâêôàèìòùäëïöü']+")
 
 _ES = frozenset(
     [
-        'el',
-        'la',
-        'los',
-        'las',
-        'de',
-        'del',
-        'que',
-        'y',
-        'en',
-        'un',
-        'una',
-        'es',
-        'por',
-        'para',
-        'con',
-        'no',
-        'se',
-        'lo',
-        'al',
-        'como',
-        'mas',
-        'pero',
-        'sus',
-        'le',
-        'ya',
-        'o',
-        'este',
-        'esta',
-        'si',
-        'porque',
-        'muy',
-        'sin',
-        'sobre',
-        'tambien',
-        'me',
-        'hay',
-        'donde',
-        'quien',
-        'desde',
-        'todo',
-        'nos',
-        'cuando',
-        'hola',
-        'gracias',
-        'quiero',
-        'puedo',
-        'tiene',
-        'tengo',
-        'cuanto',
-        'cuesta',
-        'precio',
-        'hijo',
-        'hija',
-        'nino',
-        'nina',
-        'anos',
-        'edad',
-        'kit',
-        'incluye',
-        'sirve',
-        'imprimir',
-        'comprar',
-        'pago',
-        'reembolso',
-        'garantia',
-        'cual',
-        'cuales',
-        'que',
-        'como',
-        'sabe',
-        'lee',
-        'leer',
-        'escribir',
-        'letras',
-        'mi',
-        'tu',
-        'su',
-        'usted',
-        'vos',
-        'hace',
-        'donde',
-        'necesito',
-        'busco',
-        'ayuda',
-        'hijos',
-        'ninos',
-        'favor',
+        "el",
+        "la",
+        "los",
+        "las",
+        "de",
+        "del",
+        "que",
+        "y",
+        "en",
+        "un",
+        "una",
+        "es",
+        "por",
+        "para",
+        "con",
+        "no",
+        "se",
+        "lo",
+        "al",
+        "como",
+        "mas",
+        "pero",
+        "sus",
+        "le",
+        "ya",
+        "o",
+        "este",
+        "esta",
+        "si",
+        "porque",
+        "muy",
+        "sin",
+        "sobre",
+        "tambien",
+        "me",
+        "hay",
+        "donde",
+        "quien",
+        "desde",
+        "todo",
+        "nos",
+        "cuando",
+        "hola",
+        "gracias",
+        "quiero",
+        "puedo",
+        "tiene",
+        "tengo",
+        "cuanto",
+        "cuesta",
+        "precio",
+        "hijo",
+        "hija",
+        "nino",
+        "nina",
+        "anos",
+        "edad",
+        "kit",
+        "incluye",
+        "sirve",
+        "imprimir",
+        "comprar",
+        "pago",
+        "reembolso",
+        "garantia",
+        "cual",
+        "cuales",
+        "que",
+        "como",
+        "sabe",
+        "lee",
+        "leer",
+        "escribir",
+        "letras",
+        "mi",
+        "tu",
+        "su",
+        "usted",
+        "vos",
+        "hace",
+        "donde",
+        "necesito",
+        "busco",
+        "ayuda",
+        "hijos",
+        "ninos",
+        "favor",
     ]
 )
 _EN = frozenset(
@@ -140,253 +142,253 @@ _EN = frozenset(
         "doesn't",
         "isn't",
         "can't",
-        'looking',
-        'something',
-        'like',
-        'know',
-        'best',
-        'old',
-        'kid',
-        'teacher',
-        'homeschooling',
-        'printable',
-        'thank',
-        'the',
-        'and',
-        'is',
-        'are',
-        'of',
-        'to',
-        'in',
-        'for',
-        'with',
-        'what',
-        'how',
-        'does',
-        'do',
-        'can',
-        'my',
-        'it',
-        'this',
-        'that',
-        'which',
-        'you',
-        'your',
-        'on',
-        'be',
-        'have',
-        'has',
-        'from',
-        'at',
-        'about',
-        'kit',
-        'include',
-        'includes',
-        'price',
-        'cost',
-        'much',
-        'child',
-        'kids',
-        'son',
-        'daughter',
-        'old',
-        'years',
-        'print',
-        'buy',
-        'payment',
-        'refund',
-        'guarantee',
-        'hello',
-        'hi',
-        'thanks',
-        'please',
-        'want',
-        'need',
-        'help',
-        'reading',
-        'read',
-        'write',
-        'letters',
-        'age',
-        'would',
-        'should',
-        'could',
-        'is',
-        'there',
-        'any',
-        'we',
-        'our',
-        'me',
-        'if',
-        'or',
-        'not',
+        "looking",
+        "something",
+        "like",
+        "know",
+        "best",
+        "old",
+        "kid",
+        "teacher",
+        "homeschooling",
+        "printable",
+        "thank",
+        "the",
+        "and",
+        "is",
+        "are",
+        "of",
+        "to",
+        "in",
+        "for",
+        "with",
+        "what",
+        "how",
+        "does",
+        "do",
+        "can",
+        "my",
+        "it",
+        "this",
+        "that",
+        "which",
+        "you",
+        "your",
+        "on",
+        "be",
+        "have",
+        "has",
+        "from",
+        "at",
+        "about",
+        "kit",
+        "include",
+        "includes",
+        "price",
+        "cost",
+        "much",
+        "child",
+        "kids",
+        "son",
+        "daughter",
+        "old",
+        "years",
+        "print",
+        "buy",
+        "payment",
+        "refund",
+        "guarantee",
+        "hello",
+        "hi",
+        "thanks",
+        "please",
+        "want",
+        "need",
+        "help",
+        "reading",
+        "read",
+        "write",
+        "letters",
+        "age",
+        "would",
+        "should",
+        "could",
+        "is",
+        "there",
+        "any",
+        "we",
+        "our",
+        "me",
+        "if",
+        "or",
+        "not",
     ]
 )
 # Frequent function words of languages we do not answer in (Portuguese, French, Italian, German).
 _OTHER = frozenset(
     [
-        'faço',
-        'faco',
-        'posso',
-        'preciso',
-        'gostaria',
-        'quero',
-        'um',
-        'uma',
-        'da',
-        'das',
-        'dos',
-        'você',
-        'voces',
-        'vocês',
-        'é',
-        'tem',
-        'ele',
-        'ela',
-        'obrigada',
-        'voce',
-        'você',
-        'não',
-        'nao',
-        'obrigado',
-        'obrigada',
-        'quanto',
-        'custa',
-        'meu',
-        'minha',
-        'filho',
-        'filha',
-        'anos',
-        'crianca',
-        'criança',
-        'livro',
-        'também',
-        'tambem',
-        'isso',
-        'esse',
-        'essa',
-        'est',
-        'le',
-        'les',
-        'des',
-        'une',
-        'pour',
-        'avec',
-        'mon',
-        'ma',
-        'fils',
-        'fille',
-        'ans',
-        'combien',
-        'coûte',
-        'coute',
-        'merci',
-        'bonjour',
-        'enfant',
-        'aussi',
-        'il',
-        'ist',
-        'und',
-        'der',
-        'die',
-        'das',
-        'ich',
-        'nicht',
-        'kind',
-        'wie',
-        'viel',
-        'kostet',
-        'danke',
-        'ciao',
-        'grazie',
-        'quanto',
-        'costa',
-        'mio',
-        'figlio',
-        'figlia',
-        'bambino',
-        'anni',
-        'anche',
-        'sono',
+        "faço",
+        "faco",
+        "posso",
+        "preciso",
+        "gostaria",
+        "quero",
+        "um",
+        "uma",
+        "da",
+        "das",
+        "dos",
+        "você",
+        "voces",
+        "vocês",
+        "é",
+        "tem",
+        "ele",
+        "ela",
+        "obrigada",
+        "voce",
+        "você",
+        "não",
+        "nao",
+        "obrigado",
+        "obrigada",
+        "quanto",
+        "custa",
+        "meu",
+        "minha",
+        "filho",
+        "filha",
+        "anos",
+        "crianca",
+        "criança",
+        "livro",
+        "também",
+        "tambem",
+        "isso",
+        "esse",
+        "essa",
+        "est",
+        "le",
+        "les",
+        "des",
+        "une",
+        "pour",
+        "avec",
+        "mon",
+        "ma",
+        "fils",
+        "fille",
+        "ans",
+        "combien",
+        "coûte",
+        "coute",
+        "merci",
+        "bonjour",
+        "enfant",
+        "aussi",
+        "il",
+        "ist",
+        "und",
+        "der",
+        "die",
+        "das",
+        "ich",
+        "nicht",
+        "kind",
+        "wie",
+        "viel",
+        "kostet",
+        "danke",
+        "ciao",
+        "grazie",
+        "quanto",
+        "costa",
+        "mio",
+        "figlio",
+        "figlia",
+        "bambino",
+        "anni",
+        "anche",
+        "sono",
     ]
 )
 # Words shared by Spanish and English (or product vocabulary) carry no signal.
-_NEUTRAL = frozenset(['a', 'no', 'kit', 'pdf', 'ok', 'usd', 'hotmart', 'pequeverso'])
+_NEUTRAL = frozenset(["a", "no", "kit", "pdf", "ok", "usd", "hotmart", "pequeverso"])
 
 # Output-language requests are different from the language of the visitor's sentence. A
 # visitor can write in English while explicitly asking for German; do not dispatch that to
 # the provider. This finite recognizer is deliberately not a general language classifier.
 _UNSUPPORTED_LANGUAGE_NAMES = (
-    'portugues|portuguese|aleman|german|deutsch|frances|french|francais|italiano|italian|'
-    'japones|japanese|ruso|russian|chino|chinese|mandarin|arabe|arabic|coreano|korean|'
-    'turco|turkish|hindi|bengali|holandes|dutch|polaco|polish|sueco|swedish|'
-    'noruego|norwegian|danes|danish|finlandes|finnish|griego|greek|hebreo|hebrew|'
-    'catalan|euskera|basque|quechua|guarani|latin|klingon|esperanto|swahili|'
-    'pt|de|fr|it|ja|zh|ru|ar|ko'
+    "portugues|portuguese|aleman|german|deutsch|frances|french|francais|italiano|italian|"
+    "japones|japanese|ruso|russian|chino|chinese|mandarin|arabe|arabic|coreano|korean|"
+    "turco|turkish|hindi|bengali|holandes|dutch|polaco|polish|sueco|swedish|"
+    "noruego|norwegian|danes|danish|finlandes|finnish|griego|greek|hebreo|hebrew|"
+    "catalan|euskera|basque|quechua|guarani|latin|klingon|esperanto|swahili|"
+    "pt|de|fr|it|ja|zh|ru|ar|ko"
 )
 _REPLY_VERB = (
-    r'(?:responde(?:r|me)?|respond(?:a|as|an|eme)?|contesta(?:r|me)?|'
-    r'habla(?:r|me)?|escribe(?:me)?|traduc(?:e|i|ir|ime)|traduzca(?:me)?|explica|explique|antworte|antworten|'
-    r'answer|reply|respond|speak|write|translate|explain|reponds|repondez)'
+    r"(?:responde(?:r|me)?|respond(?:a|as|an|eme)?|contesta(?:r|me)?|"
+    r"habla(?:r|me)?|escribe(?:me)?|traduc(?:e|i|ir|ime)|traduzca(?:me)?|explica|explique|antworte|antworten|"
+    r"answer|reply|respond|speak|write|translate|explain|reponds|repondez)"
 )
-_LANGUAGE_NAMES = rf'{_UNSUPPORTED_LANGUAGE_NAMES}|espanol|castellano|spanish|ingles|english|es|en'
+_LANGUAGE_NAMES = rf"{_UNSUPPORTED_LANGUAGE_NAMES}|espanol|castellano|spanish|ingles|english|es|en"
 _OUTPUT_LANGUAGE_REQUEST = re.compile(
-    rf'\b{_REPLY_VERB}\b'
-    r'(?:\s+(?:only|exclusively|just|all|every|my|your|the|this|that|a|an|question|questions|'
-    r'answer|answers|response|responses|reply|replies|everything|shopping|solo|solamente|'
-    r'unicamente|todo|toda|todas|todos|informacion|information|contenido|content|mis|mi|tu|tus|la|las|el|los|esta|este|respuesta|respuestas|'
-    r'pregunta|preguntas|mensaje|mensajes|por|favor|porfa|please|about|sobre|kit|product|producto)){0,8}'
-    r'\s+(?:en|in|to|a|al|using|usando|em|auf)\s+'
-    rf'(?:(?:el idioma|idioma|the language)\s+)?(?:brazilian\s+|european\s+)?'
-    rf'(?P<language>{_LANGUAGE_NAMES})\b'
+    rf"\b{_REPLY_VERB}\b"
+    r"(?:\s+(?:only|exclusively|just|all|every|my|your|the|this|that|a|an|question|questions|"
+    r"answer|answers|response|responses|reply|replies|everything|shopping|solo|solamente|"
+    r"unicamente|todo|toda|todas|todos|informacion|information|contenido|content|mis|mi|tu|tus|la|las|el|los|esta|este|respuesta|respuestas|"
+    r"pregunta|preguntas|mensaje|mensajes|por|favor|porfa|please|about|sobre|kit|product|producto)){0,8}"
+    r"\s+(?:en|in|to|a|al|using|usando|em|auf)\s+"
+    rf"(?:(?:el idioma|idioma|the language)\s+)?(?:brazilian\s+|european\s+)?"
+    rf"(?P<language>{_LANGUAGE_NAMES})\b"
 )
 _OUTPUT_LANGUAGE_FIRST = re.compile(
-    rf'\b(?:en|in)\s+(?P<language>{_LANGUAGE_NAMES})\s*,\s*'
-    rf'(?:por favor\s+|please\s+)?{_REPLY_VERB}\b'
+    rf"\b(?:en|in)\s+(?P<language>{_LANGUAGE_NAMES})\s*,\s*"
+    rf"(?:por favor\s+|please\s+)?{_REPLY_VERB}\b"
 )
 _OUTPUT_LANGUAGE_USE = re.compile(
-    r'(?:^|[.!?;:,\n]\s*|\b(?:and|y)\s+)\s*(?:please\s+|por favor\s+)?'
-    rf'(?:use|usa|utiliza)\s+(?P<language>{_LANGUAGE_NAMES})\b'
+    r"(?:^|[.!?;:,\n]\s*|\b(?:and|y)\s+)\s*(?:please\s+|por favor\s+)?"
+    rf"(?:use|usa|utiliza)\s+(?P<language>{_LANGUAGE_NAMES})\b"
 )
 _OUTPUT_LANGUAGE_SWITCH = re.compile(
-    r'(?:^|[.!?;:,\n]\s*|\b(?:and|y|then)\s+)\s*(?:please\s+|por favor\s+)?'
-    rf'switch\s+to\s+(?P<language>{_LANGUAGE_NAMES})\b'
+    r"(?:^|[.!?;:,\n]\s*|\b(?:and|y|then)\s+)\s*(?:please\s+|por favor\s+)?"
+    rf"switch\s+to\s+(?P<language>{_LANGUAGE_NAMES})\b"
 )
 _NEGATED_REQUEST_PREFIX = re.compile(r"(?:\bno|\bnot|\bnever|\bdon't|\bdo not)\s+(?:\w+\s+){0,4}$")
 _NATIVE_CONVERSATION_LANGUAGE = re.compile(
-    r'\b(?:conversemos|conversar|charlemos|charlar|hablemos|continuemos|sigamos|'
-    r'chat|talk|converse|continue)\b'
-    r'(?:\s+(?:only|solo|solamente|exclusively|por|favor|please)){0,4}'
-    r'\s+(?:en|in|using|usando)\s+(?:idioma\s+|the language\s+)?'
-    rf'(?P<language>{_LANGUAGE_NAMES})\b'
+    r"\b(?:conversemos|conversar|charlemos|charlar|hablemos|continuemos|sigamos|"
+    r"chat|talk|converse|continue)\b"
+    r"(?:\s+(?:only|solo|solamente|exclusively|por|favor|please)){0,4}"
+    r"\s+(?:en|in|using|usando)\s+(?:idioma\s+|the language\s+)?"
+    rf"(?P<language>{_LANGUAGE_NAMES})\b"
 )
 _NATIVE_LANGUAGE_USE = re.compile(
-    r'(?:^|[.!?;:,\n]\s*|\b(?:and|y|then|luego|despues)\s+)\s*'
-    r'(?:please\s+|por favor\s+)?'
-    rf'(?:use|usa|utiliza)\s+(?P<language>{_LANGUAGE_NAMES})\b'
+    r"(?:^|[.!?;:,\n]\s*|\b(?:and|y|then|luego|despues)\s+)\s*"
+    r"(?:please\s+|por favor\s+)?"
+    rf"(?:use|usa|utiliza)\s+(?P<language>{_LANGUAGE_NAMES})\b"
 )
 
 
 def _fold(text: str) -> str:
-    decomposed = unicodedata.normalize('NFKD', text.lower())
-    return ''.join(c for c in decomposed if not unicodedata.combining(c))
+    decomposed = unicodedata.normalize("NFKD", text.lower())
+    return "".join(c for c in decomposed if not unicodedata.combining(c))
 
 
 def visitor_words(text: str, product_names: Iterable[str] = ()) -> list[str]:
-    stripped = _CODE.sub(' ', text)
-    stripped = _QUOTED.sub(' ', stripped)
-    stripped = _URLISH.sub(' ', stripped)
+    stripped = _CODE.sub(" ", text)
+    stripped = _QUOTED.sub(" ", stripped)
+    stripped = _URLISH.sub(" ", stripped)
     lowered = stripped.lower()
     for name in product_names:
         if name:
-            lowered = lowered.replace(name.lower(), ' ')
+            lowered = lowered.replace(name.lower(), " ")
     return _WORD.findall(lowered)
 
 
 def _requested_reply_language(text: str) -> Detected | None:
-    stripped = _CODE.sub(' ', text)
-    stripped = _QUOTED.sub(' ', stripped)
-    stripped = _URLISH.sub(' ', stripped)
+    stripped = _CODE.sub(" ", text)
+    stripped = _QUOTED.sub(" ", stripped)
+    stripped = _URLISH.sub(" ", stripped)
     folded = _fold(stripped).strip()
     requests: list[tuple[int, Detected]] = []
     for pattern in (
@@ -399,11 +401,11 @@ def _requested_reply_language(text: str) -> Detected | None:
             prefix = folded[max(0, match.start() - 60) : match.start()]
             if _NEGATED_REQUEST_PREFIX.search(prefix):
                 continue
-            target = match.group('language')
-            if target in {'espanol', 'castellano', 'spanish', 'es'}:
-                requests.append((match.start('language'), Detected.ES))
-            elif target in {'ingles', 'english', 'en'}:
-                requests.append((match.start('language'), Detected.EN))
+            target = match.group("language")
+            if target in {"espanol", "castellano", "spanish", "es"}:
+                requests.append((match.start("language"), Detected.ES))
+            elif target in {"ingles", "english", "en"}:
+                requests.append((match.start("language"), Detected.EN))
             else:
                 return Detected.OTHER
     # Pattern traversal order is not conversation order. Only supported requests can change
@@ -418,9 +420,9 @@ def spanish_native_language(question: str) -> Language | None:
     legacy detector unchanged; the native recognizer is finite, not semantic verification of
     generated text or a classifier of the material's language.
     """
-    stripped = _CODE.sub(' ', question)
-    stripped = _QUOTED.sub(' ', stripped)
-    folded = _fold(_URLISH.sub(' ', stripped)).strip()
+    stripped = _CODE.sub(" ", question)
+    stripped = _QUOTED.sub(" ", stripped)
+    folded = _fold(_URLISH.sub(" ", stripped)).strip()
     for pattern in (
         _OUTPUT_LANGUAGE_REQUEST,
         _OUTPUT_LANGUAGE_FIRST,
@@ -433,7 +435,7 @@ def spanish_native_language(question: str) -> Language | None:
             prefix = folded[max(0, match.start() - 60) : match.start()]
             if _NEGATED_REQUEST_PREFIX.search(prefix):
                 continue
-            if match.group('language') not in {'espanol', 'castellano', 'spanish', 'es'}:
+            if match.group("language") not in {"espanol", "castellano", "spanish", "es"}:
                 return None
     return Language.ES
 
@@ -443,12 +445,12 @@ def detect(text: str, product_names: Iterable[str] = ()) -> Detected:
     if not words:
         return Detected.UNKNOWN
     folded = [_fold(w) for w in words]
-    es = sum(1 for w in folded if w in _ES) + sum(2 for w in words if any(c in w for c in 'ñ¿¡'))
+    es = sum(1 for w in folded if w in _ES) + sum(2 for w in words if any(c in w for c in "ñ¿¡"))
     en = sum(1 for w in folded if w in _EN)
     other = sum(1 for w in words if w in _OTHER or _fold(w) in _OTHER) + sum(
-        2 for w in words if any(c in w for c in 'çãõ')
+        2 for w in words if any(c in w for c in "çãõ")
     )
-    if text.lstrip().startswith(('¿', '¡')):
+    if text.lstrip().startswith(("¿", "¡")):
         es += 2
     best = max(es, en, other)
     if best == 0 or (best < 2 and len(words) > 2):

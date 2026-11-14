@@ -63,7 +63,9 @@ class SessionService:
             history = await self._messages.history(existing.id, self._limits.history_restore)
             refreshed = Session(existing.id, existing.csrf_token, existing.created_at, now, expires)
             return OpenedSession(refreshed, secret, history)
-        allowed = await self._rate.hit(f'bootstrap:{client_key}', 3600, self._limits.bootstraps_per_hour, now)
+        allowed = await self._rate.hit(
+            f"bootstrap:{client_key}", 3600, self._limits.bootstraps_per_hour, now
+        )
         if not allowed:
             raise RejectedError(FailureCode.RATE_LIMITED)
         new_secret = secrets.token_urlsafe(48)

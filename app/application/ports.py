@@ -37,10 +37,10 @@ class MessageStore(Protocol):
 
 
 class RunState(StrEnum):
-    ACTIVE = 'active'
-    COMPLETED = 'completed'
-    FAILED = 'failed'
-    CANCELLED = 'cancelled'
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,7 +59,9 @@ class RunStore(Protocol):
         """Insert a new active run, or return the run already recorded for this key."""
         ...
 
-    async def finish(self, run_id: str, state: RunState, assistant_message_id: str | None) -> None: ...
+    async def finish(
+        self, run_id: str, state: RunState, assistant_message_id: str | None
+    ) -> None: ...
     async def message(self, session_id: str, message_id: str) -> Message | None: ...
     async def abandon_active(self) -> int:
         """Mark runs left active by a previous process as failed (startup recovery)."""
@@ -87,12 +89,12 @@ class Ledger(Protocol):
 
 
 class RunOutcome(StrEnum):
-    COMPLETED = 'completed'
-    FAILED = 'failed'
-    CANCELLED = 'cancelled'
-    INTERRUPTED = 'interrupted'
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    INTERRUPTED = "interrupted"
     """The client went away (or the process stopped) before a terminal event was sent."""
-    REFUSED = 'refused'
+    REFUSED = "refused"
     """Refused before any stream opened (rate limit, busy, budget, invalid input)."""
 
 
@@ -162,9 +164,16 @@ class StoredSnapshot:
 class CatalogRepository(Protocol):
     async def active(self) -> StoredSnapshot | None: ...
     async def activate(
-        self, sha256: str, body: bytes, catalog: Catalog, verified_at: datetime, attempted_at: datetime
+        self,
+        sha256: str,
+        body: bytes,
+        catalog: Catalog,
+        verified_at: datetime,
+        attempted_at: datetime,
     ) -> None: ...
-    async def mark_verified(self, sha256: str, verified_at: datetime, attempted_at: datetime) -> None: ...
+    async def mark_verified(
+        self, sha256: str, verified_at: datetime, attempted_at: datetime
+    ) -> None: ...
     async def record_failure(self, reason: str, now: datetime) -> None: ...
 
 

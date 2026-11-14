@@ -8,7 +8,8 @@
         "**/*.md",
         "docs/**",
         "LICENSE",
-        ".markdownlint-cli2.jsonc"
+        ".markdownlint-cli2.jsonc",
+        ".git-blame-ignore-revs"
       ],
       "adds": [
         "docs",

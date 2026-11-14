@@ -55,7 +55,10 @@ class GraphPrepared:
 
     @property
     def generation_started(self) -> bool:
-        return isinstance(self.resolved, DispatchAwarePreparedTurn) and self.resolved.generation_started
+        return (
+            isinstance(self.resolved, DispatchAwarePreparedTurn)
+            and self.resolved.generation_started
+        )
 
 
 class _State(TypedDict):
@@ -70,11 +73,11 @@ class GraphAnswerComposer:
         self._retrieval = retrieval
         self._max_input_bytes = max_input_bytes
         builder = StateGraph(_State)
-        builder.add_node('retrieve', self._retrieve, retry_policy=())
-        builder.add_node('answer', self._answer, retry_policy=())
-        builder.add_edge(START, 'retrieve')
-        builder.add_edge('retrieve', 'answer')
-        builder.add_edge('answer', END)
+        builder.add_node("retrieve", self._retrieve, retry_policy=())
+        builder.add_node("answer", self._answer, retry_policy=())
+        builder.add_edge(START, "retrieve")
+        builder.add_edge("retrieve", "answer")
+        builder.add_edge("answer", END)
         # Private history/idempotency remains in application storage. No replay of a paid node.
         self._graph = builder.compile(checkpointer=False, store=None, cache=None, debug=False)
 
@@ -92,7 +95,7 @@ class GraphAnswerComposer:
         return GraphPrepared(turn, baseline, max(limit, baseline.input_size_bytes))
 
     async def _retrieve(self, state: _State) -> dict[str, GraphPrepared]:
-        prepared = state['prepared']
+        prepared = state["prepared"]
         turn = prepared.turn
         products = tuple(sorted(mentioned_products(turn.question, turn.active.catalog)))
         if not products:
@@ -104,7 +107,9 @@ class GraphAnswerComposer:
                 ),
                 (),
             )
-        knowledge = await self._retrieval.retrieve(turn.active, turn.question, products, turn.language)
+        knowledge = await self._retrieval.retrieve(
+            turn.active, turn.question, products, turn.language
+        )
         if knowledge.revision.catalog_sha256 != turn.active.sha256 or not knowledge.chunks:
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
         prepared.retrieval = knowledge
@@ -119,9 +124,9 @@ class GraphAnswerComposer:
             Document(
                 page_content=chunk.text,
                 metadata={
-                    'source_id': chunk.source_id,
-                    'sha256': chunk.sha256,
-                    'kind': chunk.kind.value,
+                    "source_id": chunk.source_id,
+                    "sha256": chunk.sha256,
+                    "kind": chunk.kind.value,
                 },
                 id=chunk.id,
             )
@@ -134,19 +139,20 @@ class GraphAnswerComposer:
             document_ids = frozenset(
                 source_id
                 for document in proposed
-                if document.metadata.get('kind') == ChunkKind.DOCUMENT.value
-                and isinstance(source_id := document.metadata.get('source_id'), str)
+                if document.metadata.get("kind") == ChunkKind.DOCUMENT.value
+                and isinstance(source_id := document.metadata.get("source_id"), str)
             )
             payload = json.dumps(
                 {
-                    'version': knowledge.revision.version,
-                    'catalog_sha256': knowledge.revision.catalog_sha256,
-                    'passages': [
-                        {'id': item.id, 'text': item.page_content, **item.metadata} for item in proposed
+                    "version": knowledge.revision.version,
+                    "catalog_sha256": knowledge.revision.catalog_sha256,
+                    "passages": [
+                        {"id": item.id, "text": item.page_content, **item.metadata}
+                        for item in proposed
                     ],
                 },
                 ensure_ascii=False,
-                separators=(',', ':'),
+                separators=(",", ":"),
             )
             trial = self._grounded.prepare_selected(
                 replace(turn, web_evidence=prepared.baseline.web_evidence), document_ids, payload
@@ -164,11 +170,13 @@ class GraphAnswerComposer:
             resolved = prepared.baseline
             prepared.catalog_only = True
         prepared.resolved = resolved
-        prepared.sent_chunk_ids = tuple(document.id for document in selected if document.id is not None)
-        return {'prepared': prepared}
+        prepared.sent_chunk_ids = tuple(
+            document.id for document in selected if document.id is not None
+        )
+        return {"prepared": prepared}
 
     async def _answer(self, state: _State) -> dict[str, GraphPrepared]:
-        prepared = state['prepared']
+        prepared = state["prepared"]
         if prepared.resolved is None:
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
         writer = get_stream_writer()
@@ -178,21 +186,21 @@ class GraphAnswerComposer:
                 writer(event)
         finally:
             await stream.aclose()
-        return {'prepared': prepared}
+        return {"prepared": prepared}
 
     async def compose(self, prepared: PreparedTurn) -> AsyncGenerator[ComposerEvent]:
         if not isinstance(prepared, GraphPrepared):
-            raise TypeError('graph composer requires its own prepared turn')
+            raise TypeError("graph composer requires its own prepared turn")
         # Override ambient LANGSMITH/LANGCHAIN tracing variables for the whole async lifetime.
         # No client wrapping, evaluator uploads, callbacks or external tracing are configured.
         with tracing_context(enabled=False):
             stream = self._graph.astream(
-                {'prepared': prepared},
-                config={'recursion_limit': 4, 'callbacks': []},
-                stream_mode='custom',
+                {"prepared": prepared},
+                config={"recursion_limit": 4, "callbacks": []},
+                stream_mode="custom",
             )
             if not isinstance(stream, AsyncGenerator):
-                raise TypeError('graph stream must support explicit cancellation')
+                raise TypeError("graph stream must support explicit cancellation")
             try:
                 async for event in stream:
                     if not isinstance(event, (DeltaEvent, DraftEvent)):

@@ -22,9 +22,9 @@ from app.domain.knowledge import (
 )
 
 _CONSTRAINTS = (
-    'CREATE CONSTRAINT pv_chunk_version_id IF NOT EXISTS FOR (n:PVChunk) REQUIRE (n.version,n.id) IS UNIQUE',
-    'CREATE CONSTRAINT pv_entity_version_id IF NOT EXISTS FOR (n:PVEntity) REQUIRE (n.version,n.id) IS UNIQUE',
-    'CREATE CONSTRAINT pv_projection_version IF NOT EXISTS FOR (n:PVProjection) REQUIRE n.version IS UNIQUE',
+    "CREATE CONSTRAINT pv_chunk_version_id IF NOT EXISTS FOR (n:PVChunk) REQUIRE (n.version,n.id) IS UNIQUE",
+    "CREATE CONSTRAINT pv_entity_version_id IF NOT EXISTS FOR (n:PVEntity) REQUIRE (n.version,n.id) IS UNIQUE",
+    "CREATE CONSTRAINT pv_projection_version IF NOT EXISTS FOR (n:PVProjection) REQUIRE n.version IS UNIQUE",
 )
 _DELETE = """MATCH (n) WHERE (n:PVChunk OR n:PVEntity OR n:PVProjection) AND n.version=$version
 DETACH DELETE n"""
@@ -68,9 +68,11 @@ ORDER BY depth,id LIMIT $limit"""
 
 
 class Neo4jPublicGraph:
-    def __init__(self, driver: AsyncDriver, database: str = 'neo4j', timeout_seconds: float = 2.0) -> None:
+    def __init__(
+        self, driver: AsyncDriver, database: str = "neo4j", timeout_seconds: float = 2.0
+    ) -> None:
         if not database or not 0.1 <= timeout_seconds <= 5.0:
-            raise ValueError('graph database and bounded timeout are required')
+            raise ValueError("graph database and bounded timeout are required")
         self._driver = driver  # Borrowed. Only the composition root closes it.
         self._database = database
         self._timeout = timeout_seconds
@@ -87,15 +89,15 @@ class Neo4jPublicGraph:
                     result = await tx.run(_DELETE, version=version)
                     await result.consume()
                     for statement, rows in (
-                        (_CHUNKS, [{'id': c.id, 'sha256': c.sha256} for c in corpus.chunks]),
+                        (_CHUNKS, [{"id": c.id, "sha256": c.sha256} for c in corpus.chunks]),
                         (
                             _ENTITIES,
                             [
                                 {
-                                    'id': e.id,
-                                    'kind': e.kind.value,
-                                    'label': e.label,
-                                    'supports': list(e.supporting_chunk_ids),
+                                    "id": e.id,
+                                    "kind": e.kind.value,
+                                    "label": e.label,
+                                    "supports": list(e.supporting_chunk_ids),
                                 }
                                 for e in corpus.entities
                             ],
@@ -104,11 +106,11 @@ class Neo4jPublicGraph:
                             _RELATIONS,
                             [
                                 {
-                                    'subject': r.subject_id,
-                                    'object': r.object_id,
-                                    'predicate': r.predicate.value,
-                                    'support': r.supporting_chunk_id,
-                                    'pointer': r.source_pointer,
+                                    "subject": r.subject_id,
+                                    "object": r.object_id,
+                                    "predicate": r.predicate.value,
+                                    "support": r.supporting_chunk_id,
+                                    "pointer": r.source_pointer,
                                 }
                                 for r in corpus.relations
                             ],
@@ -123,7 +125,7 @@ class Neo4jPublicGraph:
                         len(corpus.entities),
                         len(corpus.relations),
                     ):
-                        raise ValueError('graph projection counts do not match the public corpus')
+                        raise ValueError("graph projection counts do not match the public corpus")
                     result = await tx.run(
                         _STAMP,
                         version=version,
@@ -134,21 +136,23 @@ class Neo4jPublicGraph:
                     )
                     await result.consume()
                     await tx.commit()
-        except (DriverError, Neo4jError, OSError, TimeoutError):
+        except DriverError, Neo4jError, OSError, TimeoutError:
             raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE) from None
 
     async def projection_stamp(self, version: str) -> ProjectionStamp | None:
         try:
             async with self._driver.session(database=self._database) as session:
-                result = await session.run(Query(_READ_STAMP, timeout=self._timeout), version=version)
+                result = await session.run(
+                    Query(_READ_STAMP, timeout=self._timeout), version=version
+                )
                 rows = await result.data()
                 if not rows:
                     return None
                 if len(rows) != 1:
-                    raise ValueError('graph projection stamp must be unique')
+                    raise ValueError("graph projection stamp must be unique")
                 row = rows[0]
                 stamp = ProjectionStamp(
-                    self._text(row, 'version'), self._text(row, 'sha256'), *self._counts(row)
+                    self._text(row, "version"), self._text(row, "sha256"), *self._counts(row)
                 )
                 # Metadata alone does not prove a complete projection after external damage.
                 result = await session.run(Query(_COUNTS, timeout=self._timeout), version=version)
@@ -160,7 +164,7 @@ class Neo4jPublicGraph:
                 ):
                     return None
                 return stamp
-        except (DriverError, Neo4jError, OSError, TimeoutError):
+        except DriverError, Neo4jError, OSError, TimeoutError:
             raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE) from None
 
     async def candidates(
@@ -170,7 +174,7 @@ class Neo4jPublicGraph:
         limit: int,
     ) -> tuple[KnowledgeHit, ...]:
         if not 1 <= limit <= 12 or len(supporting_chunk_ids) > 12:
-            raise ValueError('graph candidates must remain bounded')
+            raise ValueError("graph candidates must remain bounded")
         if not supporting_chunk_ids:
             return ()
         try:
@@ -183,66 +187,66 @@ class Neo4jPublicGraph:
                 )
                 rows = await result.data()
             if len(rows) > limit:
-                raise ValueError('graph returned more candidates than requested')
+                raise ValueError("graph returned more candidates than requested")
             hits: list[KnowledgeHit] = []
             seen: set[str] = set()
             for row in rows:
-                chunk_id = self._text(row, 'id')
+                chunk_id = self._text(row, "id")
                 if chunk_id in seen:
-                    raise ValueError('graph returned duplicate chunk candidates')
+                    raise ValueError("graph returned duplicate chunk candidates")
                 seen.add(chunk_id)
-                depth = row.get('depth')
-                relations = row.get('relations')
+                depth = row.get("depth")
+                relations = row.get("relations")
                 if type(depth) is not int or not 1 <= depth <= 2 or not isinstance(relations, list):
-                    raise ValueError('graph path must have one or two supported edges')
+                    raise ValueError("graph path must have one or two supported edges")
                 if len(relations) != depth:
-                    raise ValueError('graph path provenance is incomplete')
+                    raise ValueError("graph path provenance is incomplete")
                 path: list[KnowledgeRelation] = []
                 for relation in relations:
                     if not isinstance(relation, dict):
-                        raise TypeError('graph path provenance is malformed')
+                        raise TypeError("graph path provenance is malformed")
                     path.append(
                         KnowledgeRelation(
-                            self._text(relation, 'subject'),
-                            RelationKind(self._text(relation, 'predicate')),
-                            self._text(relation, 'object'),
-                            self._text(relation, 'support'),
-                            self._text(relation, 'pointer'),
+                            self._text(relation, "subject"),
+                            RelationKind(self._text(relation, "predicate")),
+                            self._text(relation, "object"),
+                            self._text(relation, "support"),
+                            self._text(relation, "pointer"),
                         )
                     )
                 hits.append(
                     KnowledgeHit(
                         version,
                         chunk_id,
-                        self._text(row, 'sha256'),
+                        self._text(row, "sha256"),
                         1.0 / depth,
                         RetrievalStrategy.GRAPH,
                         tuple(path),
                     )
                 )
             return tuple(hits)
-        except (DriverError, Neo4jError, OSError, TimeoutError):
+        except DriverError, Neo4jError, OSError, TimeoutError:
             raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE) from None
 
     @staticmethod
     def _text(row: Mapping[str, object], key: str) -> str:
         value = row.get(key)
         if not isinstance(value, str) or not value:
-            raise ValueError('graph returned invalid public provenance')
+            raise ValueError("graph returned invalid public provenance")
         return value
 
     @staticmethod
     def _counts(row: Mapping[str, object]) -> tuple[int, int, int]:
         return (
-            Neo4jPublicGraph._count(row.get('chunks')),
-            Neo4jPublicGraph._count(row.get('entities')),
-            Neo4jPublicGraph._count(row.get('relations')),
+            Neo4jPublicGraph._count(row.get("chunks")),
+            Neo4jPublicGraph._count(row.get("entities")),
+            Neo4jPublicGraph._count(row.get("relations")),
         )
 
     @staticmethod
     def _count(value: object) -> int:
         if not isinstance(value, int) or isinstance(value, bool):
-            raise TypeError('graph returned invalid projection counts')
+            raise TypeError("graph returned invalid projection counts")
         if value < 0:
-            raise ValueError('graph returned invalid projection counts')
+            raise ValueError("graph returned invalid projection counts")
         return value

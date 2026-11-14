@@ -31,10 +31,10 @@ class Pricing:
     output: Decimal
 
     def __post_init__(self) -> None:
-        for name in ('input', 'cached_input', 'cache_write', 'output'):
+        for name in ("input", "cached_input", "cache_write", "output"):
             value = getattr(self, name)
             if not value.is_finite() or value < 0:
-                raise ValueError(f'pricing.{name} must be a finite, non-negative amount')
+                raise ValueError(f"pricing.{name} must be a finite, non-negative amount")
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,11 +55,11 @@ class Usage:
             self.reasoning_tokens,
         )
         if min(counts) < 0:
-            raise ValueError('token counts cannot be negative')
+            raise ValueError("token counts cannot be negative")
         if self.reasoning_tokens > self.output_tokens:
-            raise ValueError('reasoning tokens are part of the output tokens')
+            raise ValueError("reasoning tokens are part of the output tokens")
         if self.cached_input_tokens + self.cache_write_tokens > self.input_tokens:
-            raise ValueError('cached and cache-write tokens are part of the input tokens')
+            raise ValueError("cached and cache-write tokens are part of the input tokens")
 
 
 def cost_micro(usage: Usage, pricing: Pricing) -> int:
@@ -76,7 +76,9 @@ def cost_micro(usage: Usage, pricing: Pricing) -> int:
 def worst_case_micro(max_input_tokens: int, max_output_tokens: int, pricing: Pricing) -> int:
     """Upper bound of one call: every input token at the most expensive input rate."""
     input_rate = max(pricing.input, pricing.cache_write)
-    usd = (Decimal(max_input_tokens) * input_rate + Decimal(max_output_tokens) * pricing.output) / PER_MILLION
+    usd = (
+        Decimal(max_input_tokens) * input_rate + Decimal(max_output_tokens) * pricing.output
+    ) / PER_MILLION
     return to_micro(usd)
 
 
@@ -88,9 +90,9 @@ class BudgetPolicy:
 
     def __post_init__(self) -> None:
         if self.monthly_limit_micro <= 0 or self.daily_limit_micro <= 0:
-            raise ValueError('budget limits must be positive')
+            raise ValueError("budget limits must be positive")
         if not Decimal(0) <= self.safety_margin < Decimal(1):
-            raise ValueError('safety margin must be in [0, 1)')
+            raise ValueError("safety margin must be in [0, 1)")
 
     @property
     def monthly_cutoff_micro(self) -> int:

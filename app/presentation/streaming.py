@@ -31,33 +31,37 @@ from app.presentation.events import (
 from app.presentation.schemas import MessageOut
 
 SSE_HEADERS = {
-    'Cache-Control': 'no-cache, no-store, no-transform',
-    'X-Accel-Buffering': 'no',
-    'Connection': 'keep-alive',
+    "Cache-Control": "no-cache, no-store, no-transform",
+    "X-Accel-Buffering": "no",
+    "Connection": "keep-alive",
 }
 STREAM_FAILURES = frozenset(
     {
-        'budget_exhausted',
-        'provider_unavailable',
-        'generation_failed',
-        'timeout',
-        'catalog_unavailable',
-        'busy',
+        "budget_exhausted",
+        "provider_unavailable",
+        "generation_failed",
+        "timeout",
+        "catalog_unavailable",
+        "busy",
     }
 )
 
 
 def encode(event: Any) -> bytes:
-    return f'id: {event.sequence}\nevent: {event.type}\ndata: {event.model_dump_json()}\n\n'.encode()
+    return (
+        f"id: {event.sequence}\nevent: {event.type}\ndata: {event.model_dump_json()}\n\n".encode()
+    )
 
 
 def _wire(event: RunEvent, run_id: str, sequence: int, clock: Clock) -> list[Any]:
-    base = {'run_id': run_id, 'timestamp': clock.now()}
+    base = {"run_id": run_id, "timestamp": clock.now()}
     match event:
         case RunStarted(user_message=message):
             return [
                 RunStartedEvent(
-                    **base, sequence=sequence, user_message=MessageOut.of(message) if message else None
+                    **base,
+                    sequence=sequence,
+                    user_message=MessageOut.of(message) if message else None,
                 )
             ]
         case AnswerDelta(text=text):
@@ -68,8 +72,14 @@ def _wire(event: RunEvent, run_id: str, sequence: int, clock: Clock) -> list[Any
                 RunCompletedEvent(**base, sequence=sequence + 1),
             ]
         case RunFailed(code=code):
-            wire_code = code.value if code.value in STREAM_FAILURES else FailureCode.GENERATION_FAILED.value
-            return [RunFailedEvent(**base, sequence=sequence, code=wire_code, retryable=code in RETRYABLE)]
+            wire_code = (
+                code.value if code.value in STREAM_FAILURES else FailureCode.GENERATION_FAILED.value
+            )
+            return [
+                RunFailedEvent(
+                    **base, sequence=sequence, code=wire_code, retryable=code in RETRYABLE
+                )
+            ]
         case RunCancelled():
             return [RunCancelledEvent(**base, sequence=sequence)]
     raise TypeError(type(event).__name__)
@@ -86,7 +96,7 @@ async def sse_body(run: Run, clock: Clock, heartbeat_seconds: float) -> AsyncGen
                 pending = asyncio.ensure_future(anext(events))
             done, _ = await asyncio.wait({pending}, timeout=heartbeat_seconds)
             if not done:
-                yield b': keep-alive\n\n'
+                yield b": keep-alive\n\n"
                 continue
             try:
                 event = pending.result()
@@ -96,14 +106,14 @@ async def sse_body(run: Run, clock: Clock, heartbeat_seconds: float) -> AsyncGen
                 pending = None
             for wire in _wire(event, run.id, sequence, clock):
                 sequence += 1
-                terminal = terminal or wire.type in ('run.completed', 'run.failed', 'run.cancelled')
+                terminal = terminal or wire.type in ("run.completed", "run.failed", "run.cancelled")
                 yield encode(wire)
         if not terminal:
             failed = RunFailedEvent(
                 run_id=run.id,
                 sequence=sequence,
                 timestamp=clock.now(),
-                code='generation_failed',
+                code="generation_failed",
                 retryable=True,
             )
             yield encode(failed)
@@ -115,7 +125,7 @@ async def sse_body(run: Run, clock: Clock, heartbeat_seconds: float) -> AsyncGen
 
 
 async def _aclose(events: AsyncIterator[RunEvent]) -> None:
-    close = getattr(events, 'aclose', None)
+    close = getattr(events, "aclose", None)
     if close is not None:
         await close()
 

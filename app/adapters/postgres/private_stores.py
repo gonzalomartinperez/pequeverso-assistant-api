@@ -29,7 +29,7 @@ from app.domain.errors import FailureCode, RejectedError
 
 def _encode(value: object) -> str:
     if isinstance(value, datetime):
-        return value.astimezone(UTC).isoformat(timespec='microseconds')
+        return value.astimezone(UTC).isoformat(timespec="microseconds")
     raise TypeError(type(value).__name__)
 
 
@@ -44,15 +44,15 @@ def _image(raw: dict[str, Any] | None) -> ImageRef | None:
 def details_from_json(raw: str) -> AnswerDetails:
     data: dict[str, Any] = json.loads(raw)
     products: list[ProductRef] = []
-    for item in data['products']:
-        price = item['price']
+    for item in data["products"]:
+        price = item["price"]
         products.append(
             ProductRef(
                 **{
                     **item,
-                    'image': _image(item['image']),
-                    'price': PriceRef(
-                        **{**price, 'verified_at': datetime.fromisoformat(price['verified_at'])}
+                    "image": _image(item["image"]),
+                    "price": PriceRef(
+                        **{**price, "verified_at": datetime.fromisoformat(price["verified_at"])}
                     )
                     if price
                     else None,
@@ -62,19 +62,23 @@ def details_from_json(raw: str) -> AnswerDetails:
     return AnswerDetails(
         products=tuple(products),
         resources=tuple(
-            ResourceRef(**{**item, 'image': _image(item['image'])}) for item in data['resources']
+            ResourceRef(**{**item, "image": _image(item["image"])}) for item in data["resources"]
         ),
-        links=tuple(LinkRef(**item) for item in data['links']),
-        sources=tuple(SourceRef(**item) for item in data['sources']),
-        follow_ups=tuple(data['follow_ups']),
-        notices=tuple(Notice(n) for n in data['notices']),
-        language=data.get('language', 'es'),
+        links=tuple(LinkRef(**item) for item in data["links"]),
+        sources=tuple(SourceRef(**item) for item in data["sources"]),
+        follow_ups=tuple(data["follow_ups"]),
+        notices=tuple(Notice(n) for n in data["notices"]),
+        language=data.get("language", "es"),
     )
 
 
 def message_from_row(row: Row) -> Message:
     return Message(
-        row['id'], Role(row['role']), row['content'], row['created_at'], details_from_json(row['details'])
+        row["id"],
+        Role(row["role"]),
+        row["content"],
+        row["created_at"],
+        details_from_json(row["details"]),
     )
 
 
@@ -85,8 +89,8 @@ class PostgresSessionStore:
     async def create(self, session: Session, secret_digest: bytes) -> None:
         async with self._db.pool.connection() as conn:
             await conn.execute(
-                'INSERT INTO assistant_private.sessions'
-                '(id,secret_digest,csrf_token,created_at,last_active_at,expires_at) VALUES(%s,%s,%s,%s,%s,%s)',
+                "INSERT INTO assistant_private.sessions"
+                "(id,secret_digest,csrf_token,created_at,last_active_at,expires_at) VALUES(%s,%s,%s,%s,%s,%s)",
                 (
                     session.id,
                     secret_digest,
@@ -101,12 +105,18 @@ class PostgresSessionStore:
         async with self._db.pool.connection() as conn:
             row = await (
                 await conn.execute(
-                    'SELECT * FROM assistant_private.sessions WHERE secret_digest=%s AND expires_at>%s',
+                    "SELECT * FROM assistant_private.sessions WHERE secret_digest=%s AND expires_at>%s",
                     (secret_digest, now),
                 )
             ).fetchone()
         return (
-            Session(row['id'], row['csrf_token'], row['created_at'], row['last_active_at'], row['expires_at'])
+            Session(
+                row["id"],
+                row["csrf_token"],
+                row["created_at"],
+                row["last_active_at"],
+                row["expires_at"],
+            )
             if row
             else None
         )
@@ -114,18 +124,20 @@ class PostgresSessionStore:
     async def touch(self, session_id: str, now: datetime, expires_at: datetime) -> None:
         async with self._db.pool.connection() as conn:
             await conn.execute(
-                'UPDATE assistant_private.sessions SET last_active_at=%s,expires_at=%s WHERE id=%s',
+                "UPDATE assistant_private.sessions SET last_active_at=%s,expires_at=%s WHERE id=%s",
                 (now, expires_at, session_id),
             )
 
     async def delete(self, session_id: str) -> None:
         async with self._db.pool.connection() as conn:
-            await conn.execute('DELETE FROM assistant_private.sessions WHERE id=%s', (session_id,))
+            await conn.execute("DELETE FROM assistant_private.sessions WHERE id=%s", (session_id,))
 
     async def purge_expired(self, now: datetime) -> int:
         async with self._db.pool.connection() as conn:
             return (
-                await conn.execute('DELETE FROM assistant_private.sessions WHERE expires_at<=%s', (now,))
+                await conn.execute(
+                    "DELETE FROM assistant_private.sessions WHERE expires_at<=%s", (now,)
+                )
             ).rowcount
 
 
@@ -136,8 +148,8 @@ class PostgresMessageStore:
     async def append(self, session_id: str, message: Message) -> None:
         async with self._db.pool.connection() as conn:
             await conn.execute(
-                'INSERT INTO assistant_private.messages(id,session_id,role,content,details,created_at)'
-                ' VALUES(%s,%s,%s,%s,%s,%s)',
+                "INSERT INTO assistant_private.messages(id,session_id,role,content,details,created_at)"
+                " VALUES(%s,%s,%s,%s,%s,%s)",
                 (
                     message.id,
                     session_id,
@@ -150,12 +162,12 @@ class PostgresMessageStore:
 
     async def history(self, session_id: str, limit: int) -> list[Message]:
         if type(limit) is not int or not 0 <= limit <= 500:
-            raise ValueError('history limit must be between zero and500')
+            raise ValueError("history limit must be between zero and500")
         async with self._db.pool.connection() as conn:
             rows = await (
                 await conn.execute(
-                    'SELECT * FROM (SELECT * FROM assistant_private.messages WHERE session_id=%s'
-                    ' ORDER BY seq DESC LIMIT %s) recent ORDER BY seq',
+                    "SELECT * FROM (SELECT * FROM assistant_private.messages WHERE session_id=%s"
+                    " ORDER BY seq DESC LIMIT %s) recent ORDER BY seq",
                     (session_id, limit),
                 )
             ).fetchall()
@@ -178,7 +190,7 @@ class PostgresRunStore:
             async with self._db.pool.connection() as conn:
                 row = await (
                     await conn.execute(
-                        'INSERT INTO assistant_private.runs(id,session_id,idempotency_key,request_hash,state,created_at)'
+                        "INSERT INTO assistant_private.runs(id,session_id,idempotency_key,request_hash,state,created_at)"
                         " VALUES(%s,%s,%s,%s,'active',%s) ON CONFLICT(session_id,idempotency_key) DO NOTHING RETURNING *",
                         (run_id, session_id, idempotency_key, request_hash, now),
                     )
@@ -186,18 +198,18 @@ class PostgresRunStore:
                 if row is None:
                     row = await (
                         await conn.execute(
-                            'SELECT * FROM assistant_private.runs WHERE session_id=%s AND idempotency_key=%s',
+                            "SELECT * FROM assistant_private.runs WHERE session_id=%s AND idempotency_key=%s",
                             (session_id, idempotency_key),
                         )
                     ).fetchone()
                 if row is None:
                     raise RejectedError(FailureCode.RUN_IN_PROGRESS)
                 return RunRecord(
-                    row['id'],
+                    row["id"],
                     session_id,
-                    row['request_hash'],
-                    RunState(row['state']),
-                    row['assistant_message_id'],
+                    row["request_hash"],
+                    RunState(row["state"]),
+                    row["assistant_message_id"],
                 )
         except UniqueViolation as error:
             raise RejectedError(FailureCode.RUN_IN_PROGRESS) from error
@@ -213,7 +225,7 @@ class PostgresRunStore:
         async with self._db.pool.connection() as conn:
             row = await (
                 await conn.execute(
-                    'SELECT * FROM assistant_private.messages WHERE session_id=%s AND id=%s',
+                    "SELECT * FROM assistant_private.messages WHERE session_id=%s AND id=%s",
                     (session_id, message_id),
                 )
             ).fetchone()
@@ -222,5 +234,7 @@ class PostgresRunStore:
     async def abandon_active(self) -> int:
         async with self._db.pool.connection() as conn:
             return (
-                await conn.execute("UPDATE assistant_private.runs SET state='failed' WHERE state='active'")
+                await conn.execute(
+                    "UPDATE assistant_private.runs SET state='failed' WHERE state='active'"
+                )
             ).rowcount

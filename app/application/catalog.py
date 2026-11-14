@@ -54,7 +54,9 @@ class CatalogService:
         except ValueError:
             log.warning('{"operation":"catalog_restore","outcome":"invalid_stored_snapshot"}')
             return
-        self._active = ActiveCatalog(catalog, stored.sha256, stored.verified_at, self._max_price_age)
+        self._active = ActiveCatalog(
+            catalog, stored.sha256, stored.verified_at, self._max_price_age
+        )
 
     async def refresh(self) -> bool:
         """Fetch, validate and activate. Returns True when a valid catalog is in force afterwards."""
@@ -75,7 +77,9 @@ class CatalogService:
                 await self._repository.mark_verified(sha, verified_at, now)
             else:
                 await self._repository.activate(sha, body, catalog, verified_at, now)
-                log.info('{"operation":"catalog_refresh","outcome":"activated","sha256":"%s"}', sha[:12])
+                log.info(
+                    '{"operation":"catalog_refresh","outcome":"activated","sha256":"%s"}', sha[:12]
+                )
         except Exception as error:  # noqa: BLE001 - binding failure cannot replace the active snapshot
             reason = type(error).__name__
             await self._repository.record_failure(reason, now)

@@ -13,74 +13,74 @@ from urllib.parse import urlsplit, urlunsplit
 
 
 class Violation(StrEnum):
-    UNLISTED_URL = 'unlisted_url'
-    UNLISTED_EMAIL = 'unlisted_email'
-    UNKNOWN_PRICE = 'unknown_price'
-    UNVERIFIED_PRICE = 'unverified_price'
-    DISCOUNT_CLAIM = 'discount_claim'
-    FORBIDDEN_TERM = 'forbidden_term'
-    PRESSURE_CLAIM = 'pressure_claim'
-    PAYMENT_DATA_REQUEST = 'payment_data_request'
-    UNAUTHORIZED_ACTION_CLAIM = 'unauthorized_action_claim'
-    UNSUPPORTED_OUTCOME_CLAIM = 'unsupported_outcome_claim'
-    UNSUPPORTED_POLICY_CLAIM = 'unsupported_policy_claim'
-    UNSUPPORTED_PAGE_CLAIM = 'unsupported_page_claim'
+    UNLISTED_URL = "unlisted_url"
+    UNLISTED_EMAIL = "unlisted_email"
+    UNKNOWN_PRICE = "unknown_price"
+    UNVERIFIED_PRICE = "unverified_price"
+    DISCOUNT_CLAIM = "discount_claim"
+    FORBIDDEN_TERM = "forbidden_term"
+    PRESSURE_CLAIM = "pressure_claim"
+    PAYMENT_DATA_REQUEST = "payment_data_request"
+    UNAUTHORIZED_ACTION_CLAIM = "unauthorized_action_claim"
+    UNSUPPORTED_OUTCOME_CLAIM = "unsupported_outcome_claim"
+    UNSUPPORTED_POLICY_CLAIM = "unsupported_policy_claim"
+    UNSUPPORTED_PAGE_CLAIM = "unsupported_page_claim"
 
 
 _URL = re.compile(
-    r'(?:https?://|www\.)[^\s)>\]]+|\b(?:[a-z0-9-]+\.)+(?:com|net|org|io|ar|es|mx|co|br|ai|app|link|ly)\b(?:/[^\s)>\]]*)?',
+    r"(?:https?://|www\.)[^\s)>\]]+|\b(?:[a-z0-9-]+\.)+(?:com|net|org|io|ar|es|mx|co|br|ai|app|link|ly)\b(?:/[^\s)>\]]*)?",
     re.IGNORECASE,
 )
-_MARKDOWN_LINK = re.compile(r'\[[^\]\n]{1,180}\]\(([^)\n]{0,512})\)')
-_EMAIL = re.compile(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
-_NUMBER = r'[+-]?[0-9](?:[0-9.,_]*[0-9])?(?:[eE][+-]?[0-9]+)?'
-_CURRENCY = r'US\$|U\$S|R\$|USD|EUR|ARS|MXN|BRL|GBP|JPY|CLP|COP|PEN|UYU|CHF|CAD|AUD|\$|€|£|¥'
-_CURRENCY_SUFFIX = rf'{_CURRENCY}|d[oó]lares|dollars|euros|pesos|reales|yen|pounds|libras'
+_MARKDOWN_LINK = re.compile(r"\[[^\]\n]{1,180}\]\(([^)\n]{0,512})\)")
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_NUMBER = r"[+-]?[0-9](?:[0-9.,_]*[0-9])?(?:[eE][+-]?[0-9]+)?"
+_CURRENCY = r"US\$|U\$S|R\$|USD|EUR|ARS|MXN|BRL|GBP|JPY|CLP|COP|PEN|UYU|CHF|CAD|AUD|\$|€|£|¥"
+_CURRENCY_SUFFIX = rf"{_CURRENCY}|d[oó]lares|dollars|euros|pesos|reales|yen|pounds|libras"
 _MONEY = re.compile(
-    rf'(?P<prefix>{_CURRENCY})\s*(?P<a>{_NUMBER})'
-    rf'(?:\s*(?P<trailing>{_CURRENCY_SUFFIX})(?![A-Za-z]))?'
-    rf'|(?P<b>{_NUMBER})\s*(?P<suffix>{_CURRENCY_SUFFIX})(?![A-Za-z])',
+    rf"(?P<prefix>{_CURRENCY})\s*(?P<a>{_NUMBER})"
+    rf"(?:\s*(?P<trailing>{_CURRENCY_SUFFIX})(?![A-Za-z]))?"
+    rf"|(?P<b>{_NUMBER})\s*(?P<suffix>{_CURRENCY_SUFFIX})(?![A-Za-z])",
     re.IGNORECASE,
 )
-_DECIMAL_PRICE = re.compile(r'[0-9]{1,6}(?:[.,][0-9]{1,2})?\Z')
+_DECIMAL_PRICE = re.compile(r"[0-9]{1,6}(?:[.,][0-9]{1,2})?\Z")
 _DISCOUNT = re.compile(
     r'\b(?:c[oó]digo|cup[oó]n)\s+(?:de\s+descuento\s+)?["“]?[A-Z0-9]{4,}\b'
-    r'|\d{1,2}\s?%\s?(?:de\s+)?(?:descuento|off|rebaja)'
-    r'|(?:descuento|rebaja)\s+(?:del?\s+)?\d{1,2}\s?%'
-    r'|\b(?:discount|promo|coupon)\s+code\b'
-    r'|\d{1,2}\s?%\s?(?:discount|off)\b',
+    r"|\d{1,2}\s?%\s?(?:de\s+)?(?:descuento|off|rebaja)"
+    r"|(?:descuento|rebaja)\s+(?:del?\s+)?\d{1,2}\s?%"
+    r"|\b(?:discount|promo|coupon)\s+code\b"
+    r"|\d{1,2}\s?%\s?(?:discount|off)\b",
     re.IGNORECASE,
 )
 _PRESSURE = (
-    'ultimas unidades',
-    'ultimos cupos',
-    'solo por hoy',
-    'solo hoy',
-    'oferta termina',
-    'quedan pocas',
-    'quedan pocos',
-    'antes de que se agote',
-    'el mas vendido',
-    'miles de familias',
-    'cientos de familias',
-    'last units',
-    'only today',
-    'today only',
-    'offer ends',
-    'selling out',
-    'before it sells out',
-    'best seller',
-    'best-selling',
-    'thousands of families',
-    'hundreds of families',
+    "ultimas unidades",
+    "ultimos cupos",
+    "solo por hoy",
+    "solo hoy",
+    "oferta termina",
+    "quedan pocas",
+    "quedan pocos",
+    "antes de que se agote",
+    "el mas vendido",
+    "miles de familias",
+    "cientos de familias",
+    "last units",
+    "only today",
+    "today only",
+    "offer ends",
+    "selling out",
+    "before it sells out",
+    "best seller",
+    "best-selling",
+    "thousands of families",
+    "hundreds of families",
 )
 _PAYMENT_REQUEST = re.compile(
-    r'\b(?:env[ií]a(?:me)?|escrib[ei](?:me)?|comparte|dime|indica(?:me)?|pasa(?:me)?)\b[^.?!]{0,40}'
-    r'\b(?:tarjeta|cvv|cvc|n[uú]mero de (?:la )?tarjeta|contraseña|clave)\b',
+    r"\b(?:env[ií]a(?:me)?|escrib[ei](?:me)?|comparte|dime|indica(?:me)?|pasa(?:me)?)\b[^.?!]{0,40}"
+    r"\b(?:tarjeta|cvv|cvc|n[uú]mero de (?:la )?tarjeta|contraseña|clave)\b",
     re.IGNORECASE,
 )
 _PAYMENT_REQUEST_EN = re.compile(
-    r'\b(?:send|give|share|tell|type|write)\b[^.?!]{0,40}\b(?:card number|credit card|debit card|cvv|cvc|password)\b',
+    r"\b(?:send|give|share|tell|type|write)\b[^.?!]{0,40}\b(?:card number|credit card|debit card|cvv|cvc|password)\b",
     re.IGNORECASE,
 )
 
@@ -88,76 +88,76 @@ _PAYMENT_REQUEST_EN = re.compile(
 # assertions. Published instructions and explicit refusals remain valid; no tool can execute
 # the transactions described below. General citation entailment still needs quality review.
 _ACTION_CLAIM = re.compile(
-    r'\b(?:he|hemos)\s+(?:ya\s+)?(?:procesado|emitido|realizado|enviado|modificado|cancelado|'
-    r'reservado|comprado|cobrado|devuelto|reembolsado)\b[^.!?;\n]{0,60}?'
-    r'\b(?:reembolso|devoluci[oó]n|pedido|compra|dinero|pago|tarjeta|reserva|correo|mensaje)\b'
-    r'|\b(?:procesé|reembolsé|devolví|cobré|reservé|compré|envié|modifiqué|cancelé|pagué)\b'
-    r'[^.!?;\n]{0,60}?\b(?:reembolso|devoluci[oó]n|pedido|compra|dinero|pago|tarjeta|reserva|correo|mensaje)\b'
-    r'|\b(?:ya|yo)\s+(?:procese|reembolse|devolvi|cobre|reserve|compre|envie|modifique|cancele|pague)\b'
-    r'[^.!?;\n]{0,60}?\b(?:reembolso|devoluci[oó]n|pedido|compra|dinero|pago|tarjeta|reserva|correo|mensaje)\b'
-    r'|\b(?:i|we)\s+(?:(?:have|already|just)\s+)*(?:processed|issued|sent|refunded|charged|'
-    r'purchased|reserved|cancelled|canceled|modified|updated|placed)\b[^.!?;\n]{0,60}?'
-    r'\b(?:refund|money|order|payment|card|purchase|booking|reservation|email|message)\b'
-    r'|\b(?:he|hemos)\s+(?:ya\s+)?reembolsado\b'
-    r'|\b(?:i|we)\s+(?:(?:have|already|just)\s+)*refunded\b'
-    r'|\b(?:tu|su)\s+(?:reembolso|devoluci[oó]n|pedido|compra|pago|reserva)\s+'
-    r'(?:(?:ya|ha|sido|fue|est[aá])\s+){1,4}(?:procesad[oa]|emitid[oa]|realizad[oa]|'
-    r'enviad[oa]|modificad[oa]|cancelad[oa]|reservad[oa]|reembolsad[oa]|cobrad[oa]|devuelt[oa])\b'
-    r'|\byour\s+(?:order|refund|purchase|payment|booking|reservation)\s+'
-    r'(?:(?:has|have|already|just|been|was|is)\s+){1,5}(?:processed|issued|sent|modified|'
-    r'updated|canceled|cancelled|refunded|reserved|charged|returned)\b',
+    r"\b(?:he|hemos)\s+(?:ya\s+)?(?:procesado|emitido|realizado|enviado|modificado|cancelado|"
+    r"reservado|comprado|cobrado|devuelto|reembolsado)\b[^.!?;\n]{0,60}?"
+    r"\b(?:reembolso|devoluci[oó]n|pedido|compra|dinero|pago|tarjeta|reserva|correo|mensaje)\b"
+    r"|\b(?:procesé|reembolsé|devolví|cobré|reservé|compré|envié|modifiqué|cancelé|pagué)\b"
+    r"[^.!?;\n]{0,60}?\b(?:reembolso|devoluci[oó]n|pedido|compra|dinero|pago|tarjeta|reserva|correo|mensaje)\b"
+    r"|\b(?:ya|yo)\s+(?:procese|reembolse|devolvi|cobre|reserve|compre|envie|modifique|cancele|pague)\b"
+    r"[^.!?;\n]{0,60}?\b(?:reembolso|devoluci[oó]n|pedido|compra|dinero|pago|tarjeta|reserva|correo|mensaje)\b"
+    r"|\b(?:i|we)\s+(?:(?:have|already|just)\s+)*(?:processed|issued|sent|refunded|charged|"
+    r"purchased|reserved|cancelled|canceled|modified|updated|placed)\b[^.!?;\n]{0,60}?"
+    r"\b(?:refund|money|order|payment|card|purchase|booking|reservation|email|message)\b"
+    r"|\b(?:he|hemos)\s+(?:ya\s+)?reembolsado\b"
+    r"|\b(?:i|we)\s+(?:(?:have|already|just)\s+)*refunded\b"
+    r"|\b(?:tu|su)\s+(?:reembolso|devoluci[oó]n|pedido|compra|pago|reserva)\s+"
+    r"(?:(?:ya|ha|sido|fue|est[aá])\s+){1,4}(?:procesad[oa]|emitid[oa]|realizad[oa]|"
+    r"enviad[oa]|modificad[oa]|cancelad[oa]|reservad[oa]|reembolsad[oa]|cobrad[oa]|devuelt[oa])\b"
+    r"|\byour\s+(?:order|refund|purchase|payment|booking|reservation)\s+"
+    r"(?:(?:has|have|already|just|been|was|is)\s+){1,5}(?:processed|issued|sent|modified|"
+    r"updated|canceled|cancelled|refunded|reserved|charged|returned)\b",
     re.IGNORECASE,
 )
 _OUTCOME_CLAIM = re.compile(
-    r'\b(?:garantiza(?:mos|n)?|garantizado|garantizada|asegura(?:mos|n)?|guarantees?|'
-    r'guaranteed|ensures?|will certainly|definitely)\b[^.!?;\n]{0,100}?'
-    r'\b(?:leer|lectura|escribir|aprend\w*|read(?:ing)?|learn\w*|cure|curar|trat\w*)\b'
-    r'|\b(?:aprendera(?:n)?|will learn|will be reading)\b[^.!?;\n]{0,50}?'
-    r'\b(?:en|in|within|after)\s+(?:\w+\s+){0,3}(?:dias?|days?|semanas?|weeks?|meses?|months?)\b'
-    r'|\b(?:cura|cures?|trata|treats?)\b[^.!?;\n]{0,50}?'
-    r'\b(?:dislexia|dyslexia|tdah|adhd|autismo|autism|trastorno|disorder)\b'
-    r'|\b(?:cura|cures?|previene|prevents?|evita|treats?|trata|elimina)\b[^.!?;\n]{0,55}?'
-    r'\b(?:anemia|alergias?|allergies|allergy|atragantamiento|choking|enfermedad|disease|desnutricion|malnutrition)\b'
+    r"\b(?:garantiza(?:mos|n)?|garantizado|garantizada|asegura(?:mos|n)?|guarantees?|"
+    r"guaranteed|ensures?|will certainly|definitely)\b[^.!?;\n]{0,100}?"
+    r"\b(?:leer|lectura|escribir|aprend\w*|read(?:ing)?|learn\w*|cure|curar|trat\w*)\b"
+    r"|\b(?:aprendera(?:n)?|will learn|will be reading)\b[^.!?;\n]{0,50}?"
+    r"\b(?:en|in|within|after)\s+(?:\w+\s+){0,3}(?:dias?|days?|semanas?|weeks?|meses?|months?)\b"
+    r"|\b(?:cura|cures?|trata|treats?)\b[^.!?;\n]{0,50}?"
+    r"\b(?:dislexia|dyslexia|tdah|adhd|autismo|autism|trastorno|disorder)\b"
+    r"|\b(?:cura|cures?|previene|prevents?|evita|treats?|trata|elimina)\b[^.!?;\n]{0,55}?"
+    r"\b(?:anemia|alergias?|allergies|allergy|atragantamiento|choking|enfermedad|disease|desnutricion|malnutrition)\b"
 )
 _NEGATED_CLAIM_PREFIX = re.compile(
     r"(?:\bno|\bnunca|\bnot|\bnever|\bcannot|\bcan't|\bdidn't|\bhaven't|\bunable to)"
-    r'\s+(?:\w+\s+){0,5}$'
+    r"\s+(?:\w+\s+){0,5}$"
 )
-_CONDITIONAL_CLAIM_PREFIX = re.compile(r'\b(?:si|if|cuando|when)\s+(?:\w+\s+){0,5}$')
+_CONDITIONAL_CLAIM_PREFIX = re.compile(r"\b(?:si|if|cuando|when)\s+(?:\w+\s+){0,5}$")
 
 
 def fold(text: str) -> str:
     """Lowercase, accent-free form used for term matching."""
-    decomposed = unicodedata.normalize('NFKD', text.lower())
-    return ''.join(char for char in decomposed if not unicodedata.combining(char))
+    decomposed = unicodedata.normalize("NFKD", text.lower())
+    return "".join(char for char in decomposed if not unicodedata.combining(char))
 
 
 # Bounded checkout-grouping claims, not general entailment. Product destinations do not
 # establish whether merchants require separate purchases or permit a shared checkout.
 _CHECKOUT_SUBJECT = re.compile(
-    r'\b(?:compras?|productos?|pedidos?|pagos?|carritos?|purchases?|products?|orders?|payments?|carts?|checkout|bonos?|bonuses)\b'
+    r"\b(?:compras?|productos?|pedidos?|pagos?|carritos?|purchases?|products?|orders?|payments?|carts?|checkout|bonos?|bonuses)\b"
 )
 _CHECKOUT_PREDICATE = re.compile(
-    r'\b(?:realiza\w*|completa\w*|compr\w*|pag(?!os?\b)\w*|cuestan?|costs?|vend\w*|requiere\w*|debes?|puede\w*|purchase\w*|buy|bought|paid|pay|sold|sell|requires?|must|can|cannot|share)\b'
+    r"\b(?:realiza\w*|completa\w*|compr\w*|pag(?!os?\b)\w*|cuestan?|costs?|vend\w*|requiere\w*|debes?|puede\w*|purchase\w*|buy|bought|paid|pay|sold|sell|requires?|must|can|cannot|share)\b"
 )
 _CHECKOUT_GROUPING = re.compile(
-    r'\b(?:aparte|por separado|separad[oa]s?|separately|separate|individualmente|individually|one at a time|uno a uno|junt[oa]s?|together|combina\w*|combin\w*|single (?:checkout|payment)|un (?:solo|unico) (?:pago|carrito)|same (?:cart|checkout))\b'
+    r"\b(?:aparte|por separado|separad[oa]s?|separately|separate|individualmente|individually|one at a time|uno a uno|junt[oa]s?|together|combina\w*|combin\w*|single (?:checkout|payment)|un (?:solo|unico) (?:pago|carrito)|same (?:cart|checkout))\b"
 )
 # One payment for a single product is a payment plan, not a multi-product rule.
-_CHECKOUT_SINGLE_PAYMENT = re.compile(r'(?:un (?:solo|unico) pago|single payment)')
+_CHECKOUT_SINGLE_PAYMENT = re.compile(r"(?:un (?:solo|unico) pago|single payment)")
 _CHECKOUT_MULTIPLE_PRODUCTS = re.compile(
-    r'\b(?:ambos|ambas|dos|varios|varias|productos|compras|both|two|multiple|products|purchases)\b'
+    r"\b(?:ambos|ambas|dos|varios|varias|productos|compras|both|two|multiple|products|purchases)\b"
 )
-_CHECKOUT_IMPLICIT_SALE = re.compile(r'\b(?:vend\w*|sold|sell|selling)\b')
+_CHECKOUT_IMPLICIT_SALE = re.compile(r"\b(?:vend\w*|sold|sell|selling)\b")
 # A qualifier must concern the grouping proposition, not an unrelated price or action.
 _CHECKOUT_UNCERTAIN = re.compile(
     r"\b(?:no (?:puedo|podemos) confirmar|no (?:se|sabemos)|cannot confirm|can't confirm|do not know|don't know|not confirmed|unknown)\s+(?:si|que|whether|if|that)\b"
-    r'|\bno (?:tengo|hay) (?:informacion|confirmacion)\s+(?:(?:sobre|de|acerca de)\s+)?(?:si|que)\b'
+    r"|\bno (?:tengo|hay) (?:informacion|confirmacion)\s+(?:(?:sobre|de|acerca de)\s+)?(?:si|que)\b"
 )
 _CHECKOUT_COORDINATE_CLAUSE = re.compile(
-    r'\b(?:y|and)\s+(?=(?:(?:los|las|el|la|the|both|ambos|ambas|cada|each|two|dos)\s+)?'
+    r"\b(?:y|and)\s+(?=(?:(?:los|las|el|la|the|both|ambos|ambas|cada|each|two|dos)\s+)?"
     + _CHECKOUT_SUBJECT.pattern
-    + r'|(?:debes?|deben|puedes?|pueden|tienes que|tienen que|you (?:must|can|cannot|need to))\b)'
+    + r"|(?:debes?|deben|puedes?|pueden|tienes que|tienen que|you (?:must|can|cannot|need to))\b)"
 )
 _CHECKOUT_SELF_REFUSAL = re.compile(
     r"^(?:no (?:puedo|podemos)|i (?:cannot|can't)|we (?:cannot|can't))\s+(?:agregar|anadir|combinar|comprar|gestionar|add|combine|buy|manage)\b"
@@ -166,12 +166,12 @@ _CHECKOUT_SELF_REFUSAL = re.compile(
 
 def _checkout_claims(text: str) -> frozenset[str]:
     # An independent coordinated product assertion cannot inherit a prior refusal.
-    separated = _CHECKOUT_COORDINATE_CLAUSE.sub(';', fold(text))
-    clauses = re.split(r'[!?;\n]|[.](?!\d)|\b(?:pero|but|however|porque|because)\b', separated)
+    separated = _CHECKOUT_COORDINATE_CLAUSE.sub(";", fold(text))
+    clauses = re.split(r"[!?;\n]|[.](?!\d)|\b(?:pero|but|however|porque|because)\b", separated)
     return frozenset(
         clause
         for raw in clauses
-        if (clause := ' '.join(raw.strip(' ,:').split()))
+        if (clause := " ".join(raw.strip(" ,:").split()))
         and (_CHECKOUT_SUBJECT.search(clause) or _CHECKOUT_IMPLICIT_SALE.search(clause))
         and _CHECKOUT_PREDICATE.search(clause)
         and any(
@@ -204,18 +204,25 @@ def _url_key(candidate: str) -> str | None:
     Bare domains use https for prose like 'consumer.hotmart.com'. Sentence punctuation and
     host casing are normalized; encoded paths, extra parameters and userinfo are not aliases.
     """
-    candidate = candidate.rstrip('.,;:!?\'"”')
-    if not re.match(r'^https?://', candidate, re.IGNORECASE):
-        candidate = f'https://{candidate}'
+    candidate = candidate.rstrip(".,;:!?'\"”")
+    if not re.match(r"^https?://", candidate, re.IGNORECASE):
+        candidate = f"https://{candidate}"
     try:
         parts = urlsplit(candidate)
-        if parts.scheme.lower() != 'https' or not parts.hostname or parts.username or parts.password:
+        if (
+            parts.scheme.lower() != "https"
+            or not parts.hostname
+            or parts.username
+            or parts.password
+        ):
             return None
         if parts.port is not None:
             return None
     except ValueError:
         return None
-    return urlunsplit(('https', parts.hostname.lower(), parts.path or '/', parts.query, parts.fragment))
+    return urlunsplit(
+        ("https", parts.hostname.lower(), parts.path or "/", parts.query, parts.fragment)
+    )
 
 
 def _amount(raw: str) -> Decimal | None:
@@ -224,7 +231,7 @@ def _amount(raw: str) -> Decimal | None:
     if not _DECIMAL_PRICE.fullmatch(raw):
         return None
     try:
-        return Decimal(raw.replace(',', '.'))
+        return Decimal(raw.replace(",", "."))
     except InvalidOperation:
         return None
 
@@ -245,26 +252,29 @@ def check_answer(text: str, rules: AnswerRules) -> list[Violation]:
     emails = {match.group().lower() for match in _EMAIL.finditer(text)}
     if emails - {email.lower() for email in rules.allowed_emails}:
         violations.append(Violation.UNLISTED_EMAIL)
-    without_emails = _EMAIL.sub(' ', text)
+    without_emails = _EMAIL.sub(" ", text)
     urls = {_url_key(match.group()) for match in _URL.finditer(without_emails)}
     # Plain-text rendering cannot turn model-authored links into authorized navigation.
     # Still reject relative/empty/fragment/dangerous Markdown targets as final prose.
-    urls.update(_url_key(match.group(1).strip()) for match in _MARKDOWN_LINK.finditer(without_emails))
+    urls.update(
+        _url_key(match.group(1).strip()) for match in _MARKDOWN_LINK.finditer(without_emails)
+    )
     allowed_urls = {_url_key(url) for url in rules.allowed_urls}
     if None in urls or any(url not in allowed_urls for url in urls):
         violations.append(Violation.UNLISTED_URL)
     prices: list[tuple[Decimal | None, str]] = []
     for match in _MONEY.finditer(text):
-        amount = _amount(match.group('a') or match.group('b'))
-        currency = _currency(match.group('prefix') or match.group('suffix'))
-        if match.group('trailing') and _currency(match.group('trailing')) != currency:
+        amount = _amount(match.group("a") or match.group("b"))
+        currency = _currency(match.group("prefix") or match.group("suffix"))
+        if match.group("trailing") and _currency(match.group("trailing")) != currency:
             amount = None
         prices.append((amount, currency))
     if prices:
         if not rules.prices_verified:
             violations.append(Violation.UNVERIFIED_PRICE)
         elif any(
-            amount is None or (amount, currency) not in rules.known_price_pairs for amount, currency in prices
+            amount is None or (amount, currency) not in rules.known_price_pairs
+            for amount, currency in prices
         ):
             violations.append(Violation.UNKNOWN_PRICE)
     if _DISCOUNT.search(text):
@@ -285,16 +295,16 @@ def check_answer(text: str, rules: AnswerRules) -> list[Violation]:
 
 def _currency(raw: str) -> str:
     folded = fold(raw)
-    if folded in {'us$', 'u$s', 'usd', '$', 'dolares', 'dollars'}:
-        return 'USD'
-    if folded in {'eur', '€', 'euros'}:
-        return 'EUR'
-    if folded in {'brl', 'r$', 'reales'}:
-        return 'BRL'
-    if folded in {'gbp', '£', 'pounds', 'libras'}:
-        return 'GBP'
-    if folded in {'jpy', '¥', 'yen'}:
-        return 'JPY'
+    if folded in {"us$", "u$s", "usd", "$", "dolares", "dollars"}:
+        return "USD"
+    if folded in {"eur", "€", "euros"}:
+        return "EUR"
+    if folded in {"brl", "r$", "reales"}:
+        return "BRL"
+    if folded in {"gbp", "£", "pounds", "libras"}:
+        return "GBP"
+    if folded in {"jpy", "¥", "yen"}:
+        return "JPY"
     return folded.upper()
 
 
@@ -302,7 +312,9 @@ def _positive_claim(pattern: re.Pattern[str], text: str) -> bool:
     for match in pattern.finditer(text):
         prefix = fold(text[max(0, match.start() - 100) : match.start()])
         # A negation in a previous sentence/contrast must not hide a new positive claim.
-        prefix = re.split(r'[.!?;,\n]|\b(?:pero|but|however|sin embargo|and|y)\b', prefix)[-1]
-        if not _NEGATED_CLAIM_PREFIX.search(prefix) and not _CONDITIONAL_CLAIM_PREFIX.search(prefix):
+        prefix = re.split(r"[.!?;,\n]|\b(?:pero|but|however|sin embargo|and|y)\b", prefix)[-1]
+        if not _NEGATED_CLAIM_PREFIX.search(prefix) and not _CONDITIONAL_CLAIM_PREFIX.search(
+            prefix
+        ):
             return True
     return False

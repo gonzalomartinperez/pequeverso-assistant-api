@@ -8,7 +8,7 @@ from app.adapters.postgres.database import PostgresDatabase
 from app.adapters.postgres.knowledge import PostgresKnowledgeStore
 from tests.test_postgres_knowledge import DSN, PARSE, SPEC, isolated_store, public_corpus, stage
 
-pytestmark = pytest.mark.skipif(not DSN, reason='requires explicitly isolated PG18.6 fixture')
+pytestmark = pytest.mark.skipif(not DSN, reason="requires explicitly isolated PG18.6 fixture")
 
 
 def test_indexer_role_stages_verifies_reuses_and_activates_without_chunk_update_privilege() -> None:
@@ -20,16 +20,16 @@ def test_indexer_role_stages_verifies_reuses_and_activates_without_chunk_update_
             await scoped.pool.resize(1, 1)
             try:
                 async with scoped.pool.connection() as conn:
-                    await conn.execute('SET ROLE pequeverso_knowledge_indexer')
+                    await conn.execute("SET ROLE pequeverso_knowledge_indexer")
                     row = await (
                         await conn.execute(
-                            'SELECT current_user AS role,has_table_privilege(current_user,'
+                            "SELECT current_user AS role,has_table_privilege(current_user,"
                             "'knowledge.chunks','UPDATE') AS can_update"
                         )
                     ).fetchone()
-                    assert row is not None and row['role'] == 'pequeverso_knowledge_indexer'
-                    assert row['can_update'] is False
-                store = PostgresKnowledgeStore(scoped, PARSE, SPEC, 'knowledge-v1')
+                    assert row is not None and row["role"] == "pequeverso_knowledge_indexer"
+                    assert row["can_update"] is False
+                store = PostgresKnowledgeStore(scoped, PARSE, SPEC, "knowledge-v1")
                 value = public_corpus()
                 # Do not hold the session indexing lock in the one-connection test pool:
                 # the production indexer uses a dedicated owner plus a second pool connection.
@@ -50,7 +50,7 @@ def test_indexer_role_stages_verifies_reuses_and_activates_without_chunk_update_
                             "'knowledge.chunks','UPDATE') AS can_update"
                         )
                     ).fetchone()
-                    assert row is not None and row['can_update'] is False
+                    assert row is not None and row["can_update"] is False
             finally:
                 await scoped.close()
 

@@ -47,8 +47,8 @@ class FixtureKnowledgeEvaluator:
         active: ActiveCatalog,
         revision: KnowledgeRevision,
     ) -> None:
-        if embeddings.spec.provider != 'fixture' or embeddings.spec != revision.embedding:
-            raise ValueError('strategy comparisons support explicit synthetic fixtures only')
+        if embeddings.spec.provider != "fixture" or embeddings.spec != revision.embedding:
+            raise ValueError("strategy comparisons support explicit synthetic fixtures only")
         self._store = store
         self._graph = graph
         self._embeddings = embeddings
@@ -74,7 +74,9 @@ class FixtureKnowledgeEvaluator:
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
         canonical_lexical = await self._retrieval.verify_hits(self._revision, lexical, allowed)
         lexical_chunks = self._ordered(lexical, canonical_lexical)
-        observations = [self._observation('lexical', lexical_chunks, lexical, started, expected_ids)]
+        observations = [
+            self._observation("lexical", lexical_chunks, lexical, started, expected_ids)
+        ]
 
         started = perf_counter()
         vectors = await self._embeddings.encode((question,), EmbeddingPurpose.QUERY)
@@ -87,7 +89,7 @@ class FixtureKnowledgeEvaluator:
         canonical_vector = await self._retrieval.verify_hits(self._revision, vector, allowed)
         observations.append(
             self._observation(
-                'vector_hash64_fixture',
+                "vector_hash64_fixture",
                 self._ordered(vector, canonical_vector),
                 vector,
                 started,
@@ -108,7 +110,7 @@ class FixtureKnowledgeEvaluator:
         )
         observations.append(
             self._observation(
-                'graph_lexical_seeded',
+                "graph_lexical_seeded",
                 self._ordered(graph, canonical_graph),
                 graph,
                 started,
@@ -122,7 +124,7 @@ class FixtureKnowledgeEvaluator:
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
         observations.append(
             self._observation(
-                'hybrid',
+                "hybrid",
                 hybrid.chunks,
                 (),
                 started,

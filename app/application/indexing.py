@@ -31,7 +31,7 @@ class KnowledgeIndexer:
 
     async def index(self, corpus: KnowledgeCorpus) -> IndexResult:
         if corpus.revision.embedding != self._embeddings.spec:
-            raise ValueError('corpus and index embedding identities must match')
+            raise ValueError("corpus and index embedding identities must match")
         expected = ProjectionStamp(
             corpus.revision.version,
             corpus.revision.catalog_sha256,
@@ -45,7 +45,7 @@ class KnowledgeIndexer:
             await self._recover()
             existing = await self._store.projection_stamp(corpus.revision.version)
             if existing is not None and existing != expected:
-                raise ValueError('staged knowledge does not match the requested corpus')
+                raise ValueError("staged knowledge does not match the requested corpus")
             vectors: tuple[tuple[float, ...], ...]
             if existing is not None:
                 vectors = await self._store.vectors_for_indexing(
@@ -56,7 +56,7 @@ class KnowledgeIndexer:
                 batches: list[list[str]] = [[]]
                 batch_bytes = 0
                 for chunk in corpus.chunks:
-                    size = len(chunk.text.encode('utf-8'))
+                    size = len(chunk.text.encode("utf-8"))
                     if batches[-1] and (len(batches[-1]) == 32 or batch_bytes + size > 240_000):
                         batches.append([])
                         batch_bytes = 0
@@ -65,11 +65,11 @@ class KnowledgeIndexer:
                 for batch in batches:
                     encoded = await self._embeddings.encode(tuple(batch), EmbeddingPurpose.INDEX)
                     if len(encoded) != len(batch):
-                        raise ValueError('index embedding cardinality mismatch')
+                        raise ValueError("index embedding cardinality mismatch")
                     collected.extend(encoded)
                 vectors = tuple(collected)
             if len(vectors) != len(corpus.chunks):
-                raise ValueError('staged embedding cardinality mismatch')
+                raise ValueError("staged embedding cardinality mismatch")
             for vector in vectors:
                 validate_vector(vector, corpus.revision.embedding)
             # Even reuse passes immutable manifest/vector validation; a matching count alone
@@ -77,8 +77,11 @@ class KnowledgeIndexer:
             await self._store.stage(corpus, vectors)
             await self._graph.stage(corpus)
             actual = await self._graph.projection_stamp(corpus.revision.version)
-            if actual != expected or await self._store.projection_stamp(corpus.revision.version) != expected:
-                raise ValueError('public projections did not produce the expected proof')
+            if (
+                actual != expected
+                or await self._store.projection_stamp(corpus.revision.version) != expected
+            ):
+                raise ValueError("public projections did not produce the expected proof")
             await self._store.mark_prepared(corpus.revision.version, actual)
             await self._store.activate_prepared(corpus.revision.version)
             return IndexResult(corpus.revision.version, actual, existing is not None)
