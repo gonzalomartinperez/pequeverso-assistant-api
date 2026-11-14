@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "41e259b272bb4080cbf6f589f3d4155fd4afa5df38d4b432bc006831bdd58968",
+  "note": "scripted adversary: deliberately misbehaving model output that the server must neutralize",
+  "output": {
+    "answer": "<img src=x onerror=alert(1)> El kit tiene <b>9 PDF</b>.",
+    "references": [
+      {
+        "kind": "product",
+        "id": "grafismo-fonetico"
+      }
+    ],
+    "sources": [],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5679,
+    "output_tokens": 41
+  }
+}

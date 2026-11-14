@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "fc25cf67da9c22c99e7e0c4a4c8cada893e73bd4524f60e480052bc9cea7a8d5",
+  "note": "scripted: authored reference refusal or answer (not a real model run)",
+  "output": {
+    "answer": "No puedo hacer eso. Puedo ayudarte con dudas sobre el kit y sus condiciones publicadas; si necesitas algo más, escribe a soporte.",
+    "references": [
+      {
+        "kind": "link",
+        "id": "support"
+      }
+    ],
+    "sources": [],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5956,
+    "output_tokens": 56
+  }
+}
