@@ -437,7 +437,6 @@ Removing an installer from inherited base layers uses whiteouts: it reduces expo
 files, not the physical bytes of shared image layers. Preserve shared layers and a rollback
 image; do not pursue size reduction by stripping required libraries.
 
-
 ## Optional application telemetry and historical Python candidate
 
 [Application observability](observability/README.md) owns the optional private JSON/Prometheus
@@ -465,14 +464,12 @@ and its exact candidate verification. Adoption still requires independently runn
 all checks, socket/model revalidation and exact-image hardening/restore/shutdown tests.
 Python uses its release support lifecycle; no separate "LTS" distribution is claimed.
 
-
 With optional tracing enabled, budget the15-second Uvicorn drain, up to10-second response
 cleanup and bounded exporter shutdown separately. Set a40-second container stop grace for
 this candidate; the30-second minimum above belongs to the historical tracing-off image.
 Validate the actual active-stream and unreachable-collector stop duration for the release
 image and under VPS load. Queued traces may be dropped during shutdown; application run
 persistence remains a separate requirement.
-
 
 ## Earlier application candidate on 2026-10-12 (superseded route classification)
 
@@ -506,7 +503,6 @@ review it again when vps-ops selects/builds/publishes its actual deployment dige
 No image was published and no VPS/proxy/collector stack deployed. Real-model development
 results and their separate cost/semantic limits are in
 [the evaluation record](verification/real-model-2026-10-12.md). They do not authorize activation.
-
 
 ## Historical route-classification candidate on 2026-10-12
 
@@ -577,7 +573,6 @@ that database. This inventory is not risk acceptance or a vulnerability-free gua
 vps-ops must review current findings and the separately selected PostgreSQL image before
 deployment. Application scans do not certify the host, shared services or production security.
 
-
 ## Verified final-corrections candidate on 2026-10-13
 
 [PR51](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/51) integrates explicit
@@ -606,6 +601,7 @@ One initial build used an incorrectly transcribed SERVICE_REVISION and was disca
 acceptance evidence before any smoke. The selected image above was rebuilt with the verified
 full Git SHA; its inspected SERVICE_REVISION matches that SHA exactly. No earlier digest is
 relabeled as this build. vps-ops must rebuild and smoke its exact approved release commit.
+
 ## Shared runtime baseline
 
 See [runtime-baseline.md](runtime-baseline.md) for the 2026-10-13 shared cohort and image
@@ -617,7 +613,6 @@ no production publication, deployment or live OAuth/provider check is implied.
 The historical SQLite procedure below predates ADR-0009. The new production profile stages
 both public projections and activates only the verified PostgreSQL pointer; its private database
 must never be restored over intervening writes. SQLite remains a non-destructive import source.
-
 
 HTTP revision1.5 is additive; the internal catalog is not forward compatible with older strict
 readers. Deploy the new reader before activating the two-product catalog. The new reader can
@@ -637,7 +632,6 @@ messages with defaults; the reverse requires an explicit, validated data migrati
 compatible reader. Do not promise image-only rollback, erase conversations/ledger, or restore
 an old full database over newer accounting. Validate rollback on an isolated copy and obtain
 a deliberate data-preservation plan before production activation.
-
 
 ## Historical pre-GraphRAG Python 3.15 cohort verification — 2026-10-17
 

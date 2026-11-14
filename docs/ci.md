@@ -26,17 +26,20 @@ the ruleset to `ci-gate` (owner-only, PVA-D11) remove the `checks` job and its t
 | Profile | Paths | Jobs added |
 | --- | --- | --- |
 | docs | `**/*.md`, `docs/**`, `LICENSE` | docs, secrets |
-| code | `app`, `tests`, `scripts`, `evals`, `tools`, `catalog`, `migrations`, skills, `deploy/monitoring`, lockfile and root config | static, secrets, security |
+| code | `app`, `tests`, `scripts`, `evals`, `tools`, `catalog`, `migrations`, skills, `deploy/monitoring`, lockfile, root config, `README.md`, `LICENSE`, `NOTICE.md` | static, secrets, security |
 | contract | `contracts/**` | static, secrets, security |
 | assistant-quality | answer policy, language, redaction, chat/answers/knowledge, `app/ai`, `evals`, `scripts/evaluate_*` | static, secrets, security |
-| container | `infra/docker/**`, lockfile, migrations, catalog, smoke scripts, image lint/scan config | static, container, database, secrets, security |
-| database | `app/adapters/{postgres,neo4j}`, `migrations`, `infra/docker/{postgres,neo4j}`, `scripts/smoke_*`, `pyproject.toml`, `uv.lock` | static, database |
-| workflow | `.github/**` | workflows, security, static, secrets |
+| container | `app/**`, `infra/docker/**`, `LICENSE`, `NOTICE.md`, lockfile, migrations, catalog, smoke scripts, image lint/scan config | static, container, database, secrets, security |
+| database | `app/**`, real-store tests, `migrations`, `infra/docker/{postgres,neo4j}`, `scripts/smoke_*`, `pyproject.toml`, `uv.lock` | static, database |
+| workflow | `.github/**` | workflows, security, static, secrets, container, database |
 | deps-weekly | branch `dependabot/**` or label `deps-weekly` | everything |
 | release | `develop` into `main`, or label `release` | everything |
 
 A PR gets the union of the profiles its files match. Golden replay joins `contract` and
-`assistant-quality` in M2. `app/**` alone does not run `container`; push and release runs do.
+`assistant-quality` in M2. Any `app/**` or `.github/**` change runs the image and real-store jobs;
+tests-only, scripts-only and docs-only changes do not (push and release runs always run everything).
+The shared `security` job skips gitleaks (the local `secrets` job runs it with
+`.github/gitleaks.toml`) and allows LGPL-3.0 for psycopg (ADR-0015).
 `tests/test_ci_profile.py` checks that every tracked file is in a profile and that a docs-only
 change skips static, database and container.
 

@@ -153,7 +153,7 @@ not authorization to deploy, publish images or activate the storefront assistant
 
 ## Quick start (clean checkout, no credentials)
 
-```
+```sh
 uv sync --frozen
 uv run uvicorn app.main:app --reload --port 8000      # fixture mode, bundled catalog, ./data/
 curl -s -c /tmp/j -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' \
@@ -162,7 +162,7 @@ curl -s -c /tmp/j -H 'Origin: http://localhost:3000' -H 'Content-Type: applicati
 
 Ask a question (replace `<csrf>` with `csrf_token` from the response):
 
-```
+```sh
 curl -N -b /tmp/j -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' \
   -H 'X-CSRF-Token: <csrf>' -H 'Idempotency-Key: local-0001' \
   -X POST localhost:8000/api/v1/messages -d '{"content":"¿Qué incluye el kit?"}'
@@ -170,7 +170,7 @@ curl -N -b /tmp/j -H 'Origin: http://localhost:3000' -H 'Content-Type: applicati
 
 ## Verify
 
-```
+```sh
 uv run ruff check . && uv run ruff format --check . && uv run mypy
 uv run pytest                                   # unit, HTTP/SSE contract, real-socket streaming, SQLite, budget races, evals
 uv run python -m contracts.export --check       # pinned contract artifacts are current

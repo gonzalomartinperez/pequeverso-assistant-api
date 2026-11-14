@@ -137,7 +137,7 @@ returns `409 idempotency_conflict`.
 SSE framing: `id: <sequence>`, `event: <type>`, `data: <json>`, blank line. `: keep-alive` comments
 arrive every 15 s of silence and carry no sequence. The response header `X-Run-ID` names the run.
 
-```
+```text
 run.started        {user_message: Message | null}
 message.delta*     {text}                         provisional; append to a draft
 message.completed  {message: Message}             authoritative; REPLACE the draft with message.content
@@ -170,7 +170,7 @@ gets `409 run_in_progress`.
 
 ## Message payload (`MessageOut`)
 
-`content` is plain text: it may contain `**bold**` and lines starting with `- `, nothing else.
+`content` is plain text: it may contain `**bold**` and lines starting with `-`, nothing else.
 Render it as text. The server strips markup-like tags, but the client must not interpret HTML or
 Markdown links either. The text is useful on its own; every other field is optional enrichment:
 
@@ -245,7 +245,6 @@ cannot be used against the public API.
 Within v1, fields may be added and new optional notices or error codes may appear; clients must
 ignore unknown fields and treat unknown codes as generic failures. Removing or renaming a field,
 changing an event's meaning or the terminal grammar requires v2 under `/api/v2`.
-
 
 ## Optional official platform evidence (2026-10-13)
 

@@ -153,7 +153,6 @@ evidence artifacts (selected id/title/text/hash/verification/scope), never whole
 Its citation gate accepts exact retrieved source metadata only; the legacy catalog URL gate
 stays unchanged. Freeze the new manifest before calls, preserving baseline manifests/artifacts.
 
-
 Merchant-policy recognizers run whether this optional reader is disabled, unavailable or
 returns selected evidence. General platform procedures cannot change the catalog's published
 buyer guarantee; their absence cannot disable that check. Narrow positive-reminder and negation

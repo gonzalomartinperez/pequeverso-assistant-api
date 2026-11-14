@@ -107,7 +107,10 @@ def validate(value):
     assert {'merge_group', 'workflow_dispatch'} <= events.keys()
     assert not ({'pull_request_target', 'workflow_run'} & events.keys())
     assert value['permissions'] == {}
-    assert 'pull_request' in str(value['concurrency']['cancel-in-progress'])
+    assert value['concurrency']['cancel-in-progress'] == "${{ github.event_name == 'pull_request' }}"
+    assert value['concurrency']['group'] == (
+        "ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}"
+    )
     assert value['env']['AI_PROVIDER'] == 'fixture'
     assert value['env']['ALLOW_PAID_AI'] == 'false'
     assert value['env']['LANGSMITH_TRACING'] == 'false'
@@ -183,7 +186,17 @@ def validate_shared(jobs):
         assert needs_of(jobs[key]) == ([] if key == 'classify' else ['classify'])
         assert jobs[key].get('if') == (None if key == 'classify' else SELECTED.format(key))
     assert jobs['classify']['permissions'] == {'contents': 'read', 'pull-requests': 'read'}
-    assert jobs['security']['with'] == {'dependency-review': True}
+    security = jobs['security']['with']
+    assert security['dependency-review'] is True
+    # gitleaks runs in the local `secrets` job with the repository's reviewed config.
+    assert security['gitleaks'] is False
+    licences = {item.strip() for item in security['allow-licenses'].split(',')}
+    # ADR-0015: the only copyleft additions are LGPL-3.0 (psycopg) and MPL-2.0.
+    assert {'LGPL-3.0-only', 'LGPL-3.0-or-later', 'MPL-2.0'} <= licences
+    assert not {item for item in licences if 'GPL' in item and not item.startswith('LGPL-3.0')}
+    assert jobs['security']['permissions'] == {'contents': 'read', 'pull-requests': 'read'}
+    assert jobs['docs']['permissions'] == {'contents': 'read'}
+    assert 'docs/verification' in jobs['docs']['with']['lychee-args']
     gate = jobs['ci-gate']
     assert gate['if'] == 'always()' and gate['permissions'] == {}
     assert gate['needs'] == ['classify', *GATED]
@@ -478,7 +491,7 @@ def test_every_standards_reference_is_pinned_to_one_commit():
 
 
 def test_docs_only_change_runs_docs_and_skips_code_database_and_container():
-    jobs = classify_paths(['docs/ci.md', 'README.md', 'CHANGELOG.md'])
+    jobs = classify_paths(['docs/ci.md', 'docs/security.md', 'CHANGELOG.md'])
     assert jobs == {'docs', 'secrets'}
     assert not {'static', 'database', 'container'} & jobs
 
@@ -486,11 +499,17 @@ def test_docs_only_change_runs_docs_and_skips_code_database_and_container():
 @pytest.mark.parametrize(
     ('paths', 'present', 'absent'),
     [
-        (['app/domain/language.py'], {'static', 'secrets', 'security'}, {'database', 'container'}),
-        (['app/adapters/postgres/knowledge.py'], {'static', 'database'}, {'container'}),
+        (['app/domain/language.py'], {'static', 'secrets', 'security', 'database', 'container'}, set()),
+        (['app/adapters/postgres/knowledge.py'], {'static', 'database', 'container'}, set()),
+        (['tests/test_skills.py'], {'static', 'secrets', 'security'}, {'database', 'container'}),
+        (['README.md'], {'docs', 'static'}, {'database', 'container'}),
         (['migrations/001_initial.sql'], {'static', 'database', 'container'}, set()),
         (['infra/docker/app/Dockerfile'], {'static', 'database', 'container'}, set()),
-        (['.github/workflows/ci.yml'], {'workflows', 'security', 'static', 'secrets'}, {'container'}),
+        (
+            ['.github/workflows/ci.yml'],
+            {'workflows', 'security', 'static', 'secrets', 'container', 'database'},
+            set(),
+        ),
         (['contracts/openapi.json'], {'static', 'secrets', 'security'}, {'docs', 'database'}),
         (['uv.lock'], {'static', 'database', 'container'}, set()),
         (['scripts/smoke_container.sh'], {'static', 'database', 'container'}, set()),

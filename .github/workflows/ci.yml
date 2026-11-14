@@ -40,6 +40,8 @@ jobs:
       contents: read
     with:
       readme-check: false # true once README.md follows the ecosystem template
+      # Dated evidence records under docs/verification are preserved as written.
+      lychee-args: "--offline --no-progress --include-fragments --exclude-path docs/verification './**/*.md'"
 
   security:
     needs: classify
@@ -50,6 +52,11 @@ jobs:
       pull-requests: read
     with:
       dependency-review: true # public repository
+      # The local `secrets` job runs gitleaks with .github/gitleaks.toml and its reviewed ignores;
+      # the shared job cannot read that path, so it would report the known false positives.
+      gitleaks: false
+      # Default allow-list plus the ADR-0015 exception (psycopg, LGPL-3.0, runtime, unmodified).
+      allow-licenses: "MIT, MIT-0, Apache-2.0, BSD-2-Clause, BSD-3-Clause, BSD-3-Clause-Clear, ISC, 0BSD, BlueOak-1.0.0, CC0-1.0, CC-BY-4.0, Unlicense, Python-2.0, PSF-2.0, Zlib, MPL-2.0, LGPL-3.0-only, LGPL-3.0-or-later"
 
   workflows:
     needs: classify
