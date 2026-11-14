@@ -1,0 +1,86 @@
+name: nightly
+
+# Nightly quality net (PVA-M2.12, testing.md section 7 "nightly" lane): full suite with branch
+# coverage, Hypothesis at 1000 examples, the golden replay, a 15-minute SSE load run with the fixture
+# provider, then scripts/scorecard.py writes scorecard.json and fails on any regression against the
+# committed ratchets. Scheduled and manual runs read this file from the default branch (`main`, M7), so
+# it also runs on every push to develop (where the scorecard is observable before M7) and on PRs
+# that change this workflow or the scorecard script.
+# No secrets, no network beyond package installation, never a paid model call.
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - ".github/workflows/nightly.yml"
+      - "scripts/scorecard.py"
+  schedule:
+    - cron: "0 7 * * *" # 04:00 America/Argentina/Buenos_Aires
+  workflow_dispatch:
+  push:
+    branches: [develop]
+
+permissions: {}
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_VERSION: 0.13.7 # keep equal to ci.yml
+  AI_PROVIDER: fixture
+  ALLOW_PAID_AI: "false"
+  LANGSMITH_TRACING: "false"
+
+jobs:
+  nightly:
+    name: Nightly quality scorecard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Install (frozen lockfile)
+        run: uv sync --frozen
+      - name: Full suite with branch coverage
+        run: |
+          uv run --frozen pytest -q -n auto --cov --cov-report=
+          uv run --frozen coverage json -q -o "$RUNNER_TEMP/coverage.json"
+      - name: Property tests, nightly profile (1000 examples)
+        env:
+          HYPOTHESIS_PROFILE: nightly
+        run: uv run --frozen pytest -q -n auto -p no:randomly tests/test_properties_*.py
+      - name: Golden set replay (report kept for the scorecard)
+        run: uv run --frozen python -m evals.runner golden --replay > "$RUNNER_TEMP/golden.json" || true
+      - name: SSE load, 12 streams for 15 minutes (fixture provider)
+        run: |
+          uv run --frozen python -m tests.load.sse_load --streams 12 --duration 900 --report "$RUNNER_TEMP/sse-load.json" \
+            || echo "::warning title=load::a load threshold was missed; the scorecard fails on it"
+      - name: Scorecard (fails on any regression against ratchets/)
+        run: |
+          uv run --frozen python -m scripts.scorecard \
+            --coverage "$RUNNER_TEMP/coverage.json" \
+            --golden "$RUNNER_TEMP/golden.json" \
+            --load "$RUNNER_TEMP/sse-load.json" \
+            --generated-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --out "$RUNNER_TEMP/scorecard.json"
+      - name: Upload scorecard and its inputs
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nightly-scorecard
+          path: |
+            ${{ runner.temp }}/scorecard.json
+            ${{ runner.temp }}/golden.json
+            ${{ runner.temp }}/sse-load.json
+            ${{ runner.temp }}/coverage.json
+          retention-days: 30
+          if-no-files-found: warn

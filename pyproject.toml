@@ -29,6 +29,7 @@ dev = [
     "coverage>=7.10",
     "hypothesis>=6.140",
     "import-linter>=2.5",
+    "jsonschema>=4.26.0",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
     "pytest-cov>=7",

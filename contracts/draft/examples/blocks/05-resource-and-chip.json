@@ -1,0 +1,35 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "text",
+      "markdown_lite": "Estos recursos son parte del cuadernillo.",
+      "claims": []
+    },
+    {
+      "id": "b2",
+      "type": "resource_card",
+      "resource_id": "grafismo-fonetico/trazos",
+      "title": "Hojas de trazos",
+      "pages": 24,
+      "image": null
+    },
+    {
+      "id": "b3",
+      "type": "link_chip",
+      "label": "Soporte",
+      "url": "https://example.com/soporte",
+      "kind": "support",
+      "icon_id": "help"
+    },
+    {
+      "id": "b4",
+      "type": "feedback",
+      "message_id": "m1",
+      "reasons": [
+        "helpful",
+        "not_helpful"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "memory_prompt",
+      "proposed_facts": [
+        {
+          "key": "child_name",
+          "value": "Sofía"
+        }
+      ]
+    }
+  ]
+}
