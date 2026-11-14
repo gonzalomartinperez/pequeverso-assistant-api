@@ -57,7 +57,7 @@ evaluations and vector manifests retain their actual source/hash identities.
 
 ## Updating
 
-```
+```sh
 git -C ../pequeverso fetch origin main
 uv run python scripts/sync_catalog.py --storefront ../pequeverso --revision <full sha on storefront main>
 uv run pytest tests/test_catalog.py tests/test_catalog_diff.py && uv run python -m contracts.export
@@ -102,7 +102,7 @@ newline. It compares paired facts after normalizing only generation time and
 source revision, checks attributed six-module/four-bonus evidence, and rejects incomplete/mixed
 layouts and registry import failures. Run with existing dependencies only:
 
-```
+```sh
 CATALOG_TEST_STOREFRONT=/path/to/pequeverso \
 CATALOG_TEST_NODE_MODULES=/path/to/existing/store/node_modules \
 node --test tools/catalog/export-layout.test.ts
@@ -154,13 +154,11 @@ the approved public storefront registry, never course videos, private course mat
 producer account information; the same text is already public in the storefront repository. This repository is public
 and grants no license. The owner has been asked to confirm this use (docs/business-questions.md).
 
-
 ## Optional official platform evidence (2026-10-13)
 
 The catalog remains the only authority for products, prices and merchant policies. Optional
 [official platform evidence](official-web-evidence.md) explains general buyer procedures only;
 its fetch time cannot refresh catalog price verification or change a merchant guarantee.
-
 
 ## Attributed producer detail export
 

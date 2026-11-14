@@ -11,6 +11,7 @@ metadata:
 
 **Release (develop → main).** Only when the owner asks for it (e.g. "mergeá todo en main" or
 "sincronizá main").
+
 1. Review the complete release diff at its exact full head SHA. `develop` CI is green and
    there are no open task PRs meant for the release.
 2. `gh pr create --base main --head develop --title "chore(release): ..."` listing the included PRs.
@@ -28,6 +29,7 @@ metadata:
 **Hotfix (directly into main).** Requires the owner's explicit authorization **in the current
 conversation, for this fix**. Earlier approvals, releases or urgency do not count. If there is no
 authorization, stop and ask.
+
 1. `git switch -c hotfix/<kebab-case> origin/main`: the smallest fix, with a test.
 2. PR into `main` stating the owner's authorization (date and wording). Review its exact full
    head SHA; after all required checks pass on that head, merge manually:

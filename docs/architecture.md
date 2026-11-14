@@ -17,7 +17,7 @@ Arrows show code dependencies, not network traffic. Domain and application remai
 only; concrete integrations are composed in bootstrap. Instrumentation must preserve those
 boundaries and export no messages, prompts, identities or credentials.
 
-```
+```text
 storefront (native assistant, cross-origin, CORS + cookie + CSRF) ──/api/v1──► presentation
 backoffice server (bearer token, private network) ──/internal/v1/ops──►   (FastAPI routes, SSE, middleware)
                                                      │
@@ -185,14 +185,12 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for review and reproducibility require
 - **Catalog from the storefront at a pinned commit.** The backend owns ingestion. The storefront
   stays the source of truth, read via `git archive` (docs/catalog.md).
 
-
 ## Optional official platform evidence (2026-10-13)
 
 Optional server-owned official platform retrieval supplies a bounded immutable evidence tuple before
 the same single model call. It is separate from merchant facts and private history. See
 [ADR-0008](decisions/ADR-0008-bounded-official-platform-evidence.md) and
 [its boundary](official-web-evidence.md). No model-callable tool loop or extra infrastructure is added.
-
 
 ## Operator and verification boundaries
 

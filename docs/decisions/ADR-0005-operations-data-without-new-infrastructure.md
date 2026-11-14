@@ -28,7 +28,6 @@ considered: Prometheus/OpenTelemetry exporters with Grafana, an external tracing
 - History starts at deployment of migration 002 (`metrics_since`); the backoffice must not
   invent earlier data.
 
-
 ## Extension on2026-10-12
 
 The owner explicitly requested optional OpenTelemetry/Prometheus/Grafana integration and a

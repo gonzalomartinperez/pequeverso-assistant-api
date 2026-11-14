@@ -13,7 +13,7 @@ permissions: {}
 
 jobs:
   guard:
-    if: github.event_name != 'pull_request' || github.actor == 'dependabot[bot]'
+    if: github.event_name != 'pull_request' || github.event.pull_request.user.login == 'dependabot[bot]'
     uses: gonzalomartinperez/engineering-standards/.github/workflows/deps-weekly-guard.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
     permissions:
       contents: read

@@ -24,7 +24,7 @@ The 2026-10-13 catalog provenance refresh to storefront `main` `18b6869` changes
 source revision and verification time; all kit facts remain identical to the prior snapshot.
 The frozen 258-query post-change matrix evaluates Grafismo Fonético and general Hotmart
 procedures, not the complete affiliate offering visible on the home. The newly recommended
-third-party video course is a known [catalog coverage gap](catalog.md#current-coverage-2026-10-13).
+third-party video course is a known [catalog coverage gap](catalog.md#current-coverage-2026-10-18).
 Do not interpret successful runs as support for that course, its price, producer policies or
 health outcomes.
 
@@ -45,6 +45,7 @@ it does not turn fixture quality scores into model evidence or certify every fut
 ## Bounded live evaluation (separate corpus phases not executed)
 
 Preconditions (owner):
+
 1. Create a separate OpenAI project for Pequeverso; verify its billing controls rather than
    assuming a project budget alert is a hard cap. Keep the application budget and the stricter
    evaluation ledger enforced independently.
@@ -278,7 +279,6 @@ accuracy, source entailment and tone now have dated agent-reviewed evidence; phy
 VPS and staged acceptance checks still gate activation. Legacy English replies remain supported
 by the API; the native storefront now requests Spanish only.
 
-
 ## Explicit opt-in socket evaluation
 
 Owner authorization on 2026-10-12 permits a bounded OpenAI evaluation; this procedure is not
@@ -334,7 +334,6 @@ commercial correctness, citation entailment, usefulness and actual output langua
 HTTP completion and automated heuristics do not certify response quality. Publish only reviewed
 metadata; full private responses and credentials never belong in Git.
 
-
 ## Native Spanish post-adjustment evaluation
 
 `evals/end_to_end_spanish_native_revalidation.json` freezes 53 development queries: 25
@@ -365,13 +364,11 @@ intermediate turn; it verified235 histories, with one additional terminal comple
 offline after interruption. The later53-query run checks history and replay for every turn.
 Original artifacts remain untouched. Full responses and usage receipts stay private.
 
-
 The final14-query matrix uses the same helper with
 `--manifest evals/end_to_end_final_quality_revalidation.json` and
 `--previous-run /absolute/private/spanish-native-post-adjustment`, retaining the same original
 baseline manifest and shared budget state. It repairs the six recorded quality observations
 without mutating either preceding run. See the dated report for results and actual code revisions.
-
 
 ## Optional official platform evidence (2026-10-13)
 
@@ -403,7 +400,6 @@ historical `first_content_seconds` meaning (first delta received) and adds
 content received. It measures client receipt, not provider token timing, browser paint or the
 later `run.completed` marker. Historical reports are not rewritten. The frozen real matrix
 remains evaluation input only; no questions are indexed and no new paid attempts are implied.
-
 
 The follow-up catalog-only fixture audit found a false 30-day guarantee could reach both
 checked deltas and the final answer when optional web evidence was absent. The same existing

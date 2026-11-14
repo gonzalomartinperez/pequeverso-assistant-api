@@ -66,7 +66,10 @@ def validate_guard(workflow: dict[str, Any], group_name: str) -> None:
     assert triggers['pull_request'] == {'types': ['opened', 'reopened', 'synchronize']}
     assert set(triggers) == {'schedule', 'pull_request', 'workflow_dispatch'}
     guard = workflow['jobs']['guard']
-    assert guard['if'] == "github.event_name != 'pull_request' || github.actor == 'dependabot[bot]'"
+    assert (
+        guard['if']
+        == "github.event_name != 'pull_request' || github.event.pull_request.user.login == 'dependabot[bot]'"
+    )
     assert guard['permissions'] == {
         'contents': 'read',
         'pull-requests': 'write',
