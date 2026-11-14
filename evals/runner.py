@@ -36,6 +36,11 @@ from scripts.evaluate_corpus import STALE_AFTER_DAYS, settings_for_eval
 
 ROOT = Path(__file__).resolve().parents[1]
 CASSETTES = ROOT / "evals" / "golden" / "cassettes"
+RED_TEAM_CASSETTES = ROOT / "evals" / "red-team" / "cassettes"
+SETS = {
+    "golden": (schema.GOLDEN, CASSETTES, schema.validate),
+    "red-team": (schema.RED_TEAM, RED_TEAM_CASSETTES, schema.validate_red_team),
+}
 DRAFT = "DRAFT"
 
 
@@ -250,7 +255,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Golden-set runner (cassette replay or authoring)."
     )
-    parser.add_argument("set", choices=["golden"])
+    parser.add_argument("set", choices=sorted(SETS))
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--replay", action="store_true", help="grade with cassettes, no network")
     mode.add_argument(
@@ -261,19 +266,20 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--only", nargs="*", help="item ids to run (default: all active items)")
     args = parser.parse_args(argv)
+    source, cassettes, validator = SETS[args.set]
+    everything = schema.load(source)
     items = [
-        i
-        for i in schema.load()
-        if i["status"] == "active" and (not args.only or i["id"] in args.only)
+        i for i in everything if i["status"] == "active" and (not args.only or i["id"] in args.only)
     ]
-    if problems := schema.validate(schema.load()):
+    if problems := validator(everything):
         print("\n".join(problems), file=sys.stderr)
         return 1
     with contextlib.redirect_stdout(sys.stderr):
         if args.author:
-            written = author(items, rekey=args.rekey)
+            written = author(items, cassettes, rekey=args.rekey)
         else:
-            report, unused = replay(items)
+            report, unused = replay(items, cassettes)
+            report["lane"] = f"{args.set}-replay"
     if args.author:
         print(json.dumps({"written": written}, indent=2))
         return 0

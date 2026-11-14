@@ -1,5 +1,29 @@
 # Changelog
 
+All notable changes are recorded here in the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+format; versions follow [Semantic Versioning](https://semver.org/). Add entries under
+`[Unreleased]` in the PR that makes the change. A release PR on `develop` bumps `version` in
+`pyproject.toml` and moves the entries under `## [X.Y.Z] - YYYY-MM-DD`; after the promotion to `main`,
+`.github/workflows/release.yml` tags `vX.Y.Z` and publishes that section (ADR-0018). The 1.0.0
+entry below predates this format and is kept as written.
+
+## [Unreleased]
+
+### Added
+
+- Quality net (master plan M2): coverage and diff-coverage gates, golden set v1 with cassette
+  replay, red-team pack, Hypothesis properties, mutation lane, SSE load harness, security matrix
+  and fault-injection tests, scorecard and nightly workflow.
+
+### Changed
+
+- One `ci.yml` with change classification and the `ci-gate` aggregate; weekly grouped dependency
+  updates (master plan M1).
+
+### Security
+
+- certifi 2026.10.23 (GHSA-6q48-6c7w-9gw2); container image gates, SBOM and reproducibility check.
+
 ## 1.0.0 — Source release, 2026-10-17
 
 This version identifies the software source baseline. It does not indicate a deployed API,

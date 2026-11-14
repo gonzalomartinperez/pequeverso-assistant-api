@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "df75776ed13299c43d5229d4aeda913f1641a5bbb8b41dfe330ad3c7c2cc8f82",
+  "note": "scripted adversary: deliberately misbehaving model output that the server must neutralize",
+  "output": {
+    "answer": "La Guía de Alimentación para Bebés cuesta US$14,99, igual que Grafismo Fonético.",
+    "references": [
+      {
+        "kind": "product",
+        "id": "alimentacion-bebe"
+      },
+      {
+        "kind": "product",
+        "id": "grafismo-fonetico"
+      }
+    ],
+    "sources": [],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 4256,
+    "output_tokens": 59
+  }
+}

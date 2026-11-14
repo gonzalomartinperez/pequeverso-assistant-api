@@ -227,6 +227,8 @@ jobs:
         run: uv run python scripts/evaluate_conversations.py
       - name: Golden set replay (cassettes at the provider port, no network, 100% required)
         run: uv run python -m evals.runner golden --replay
+      - name: Red-team pack replay (OWASP LLM01, 07, 08, 09, 10; every active attack handled)
+        run: uv run python -m evals.runner red-team --replay
 
   container:
     needs: [classify, static]
