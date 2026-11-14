@@ -70,4 +70,4 @@ Still never the planner's to do, whatever the input above: legal and commercial 
 
 ## 7. Current state pointers
 
-Milestone and next item: `progress.md`. The first task is PVA-M1.2 (certifi, manual PR merged by 2026-11-13, SLA ends 2026-11-16). In-flight tasks: `progress.md`. Open decisions and their recommendations: `README.md`. Scorecard baseline and targets: `scorecard.md`. Ratchets will live in `ratchets/` once M2 lands.
+Milestone and next item: `progress.md` (M1 merged 2026-11-14; two tasks parked; owner inputs listed there). In-flight tasks: `progress.md`. Open decisions and their recommendations: `README.md`. Scorecard baseline and targets: `scorecard.md`. Ratchets will live in `ratchets/` once M2 lands.
