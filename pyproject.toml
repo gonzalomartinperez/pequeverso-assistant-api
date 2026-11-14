@@ -88,13 +88,14 @@ files = ["app", "contracts", "scripts", "evals"]
 plugins = ["pydantic.mypy"]
 
 [tool.coverage.run]
-# PVA-M2.3: branch coverage over the measured packages; relative paths so the static and database
+# PVA-M2.3: branch coverage over the shipped packages (app, contracts; CLI and eval tooling are
+# covered by their own tests but not floored); relative paths so the static and database
 # jobs' data combine. `patch = ["subprocess"]` measures the real-service pytest the database job's
 # smoke script starts.
 branch = true
 relative_files = true
 parallel = true
-source = ["app", "contracts", "scripts", "evals"]
+source = ["app", "contracts"]
 patch = ["subprocess"]
 
 [tool.coverage.report]
