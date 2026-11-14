@@ -109,11 +109,12 @@ _ACTION_CLAIM = re.compile(
     re.IGNORECASE,
 )
 _OUTCOME_CLAIM = re.compile(
-    r"\b(?:garantiza(?:mos|n)?|garantizado|garantizada|asegura(?:mos|n)?|guarantees?|"
+    r"\b(?:garantiz(?:a|o|an|amos)|garantizado|garantizada|asegur(?:a|o|an|amos)|guarantees?|"
     r"guaranteed|ensures?|will certainly|definitely)\b[^.!?;\n]{0,100}?"
-    r"\b(?:leer|lectura|escribir|aprend\w*|read(?:ing)?|learn\w*|cure|curar|trat\w*)\b"
-    r"|\b(?:aprendera(?:n)?|will learn|will be reading)\b[^.!?;\n]{0,50}?"
-    r"\b(?:en|in|within|after)\s+(?:\w+\s+){0,3}(?:dias?|days?|semanas?|weeks?|meses?|months?)\b"
+    r"\b(?:leer\w*|lectura|escribir|aprend\w*|read(?:ing)?|learn\w*|cure|curar|trat\w*)\b"
+    r"|\b(?:aprendera(?:n)?|leera(?:n)?|va(?:n)? a leer|will learn|will read|will be reading)\b"
+    r"[^.!?;\n]{0,50}?\b(?:en|in|within|after)\s+(?:\w+\s+){0,3}"
+    r"(?:dias?|days?|semanas?|weeks?|mes(?:es)?|months?)\b"
     r"|\b(?:cura|cures?|trata|treats?)\b[^.!?;\n]{0,50}?"
     r"\b(?:dislexia|dyslexia|tdah|adhd|autismo|autism|trastorno|disorder)\b"
     r"|\b(?:cura|cures?|previene|prevents?|evita|treats?|trata|elimina)\b[^.!?;\n]{0,55}?"
