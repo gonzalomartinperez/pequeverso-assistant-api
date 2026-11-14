@@ -97,6 +97,7 @@ def run_items(
                     user_notices: set[str] = set()
                     for turn_index, turn in enumerate(item["turns"]):
                         counter += 1
+                        user_notices = set()  # notices belong to the turn that produced them
                         provider.position = Turn(item["id"], turn_index)
                         events, error = _ask(client, csrf, item, turn, counter)
                         if error:
@@ -135,7 +136,7 @@ def _bound(failures: int, n: int) -> float | None:
     if n == 0:
         return None
     return (
-        round(3 / n, 3)
+        round(min(1.0, 3 / n), 3)
         if failures == 0
         else round(min(1.0, (failures + 1.96 * math.sqrt(failures)) / n), 3)
     )
@@ -200,7 +201,11 @@ def replay(
         **summarize(results),
         "cassettes_served": len(provider.served),
     }
-    unused = sorted({p.name for p in directory.glob("*.json")} - set(provider.served))
+    selected = {item["id"] for item in items}
+    unused = sorted(
+        {p.name for p in directory.glob("*.json") if p.name.split(".")[0] in selected}
+        - set(provider.served)
+    )
     return report, unused
 
 
@@ -274,7 +279,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     report["unused_cassettes"] = unused
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0 if report["overall"]["passed"] == report["overall"]["items"] and not unused else 1
+    overall = report["overall"]
+    return 0 if overall["items"] > 0 and overall["passed"] == overall["items"] and not unused else 1
 
 
 if __name__ == "__main__":

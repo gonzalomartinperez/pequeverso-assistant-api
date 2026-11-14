@@ -167,3 +167,22 @@ def test_recording_provider_writes_a_replayable_recorded_cassette(tmp_path: Path
     assert document["usage"] == {"input_tokens": 10, "output_tokens": 3}
     replayed = collect(ReplayProvider(tmp_path, Turn("g-x", 0)))
     assert json.loads("".join(c.text for c in replayed if isinstance(c, TextChunk))) == OUTPUT
+
+
+def test_replay_fails_on_unused_and_missing_cassettes_and_on_zero_items(tmp_path: Path) -> None:
+    import shutil
+
+    from evals import runner, schema
+
+    item = next(i for i in schema.load() if i["id"] == "g-001")
+    shutil.copy(CASSETTES / "g-001.0.json", tmp_path / "g-001.0.json")
+    report, unused = runner.replay([item], tmp_path)
+    assert report["overall"] == {"items": 1, "passed": 1, "failure_rate_upper_95": 1.0}
+    assert unused == []
+    (tmp_path / "g-001.1.json").write_text("{}", encoding="utf-8")
+    assert runner.replay([item], tmp_path)[1] == ["g-001.1.json"]
+    (tmp_path / "g-001.1.json").unlink()
+    (tmp_path / "g-001.0.json").unlink()
+    report, _ = runner.replay([item], tmp_path)
+    assert report["overall"]["passed"] == 0
+    assert "pipeline.gates" in report["failures"]["g-001"]
