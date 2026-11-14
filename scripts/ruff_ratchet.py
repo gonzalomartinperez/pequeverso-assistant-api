@@ -143,12 +143,34 @@ def write(current: list[tuple[str, str]], *, init: bool = False) -> None:
     )
 
 
+def against_base(ref: str) -> list[str]:
+    """Compare the committed counts with those at `ref`: no new key, no growth (tamper check)."""
+    shown = subprocess.run(
+        ["git", "-C", str(ROOT), "show", f"{ref}:ratchets/ruff.json"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if shown.returncode != 0:
+        return []  # the base predates the ratchet: nothing to compare
+    base = json.loads(shown.stdout)
+    before = {
+        (path, code): int(n) for path, codes in base["by_file"].items() for code, n in codes.items()
+    }
+    return [
+        f"{path}: {code} ratchet raised from {before.get((path, code), 0)} to {n} against the base"
+        for (path, code), n in sorted(load_counts().items())
+        if n > before.get((path, code), 0)
+    ]
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run the ratchet check or regenerate the ratchet files."""
     parser = argparse.ArgumentParser(
         description="Ruff legacy ratchet: legacy findings only shrink."
     )
     parser.add_argument("--write", action="store_true", help="regenerate the ratchet files")
+    parser.add_argument("--base", metavar="REF", help="also refuse growth against this git ref")
     parser.add_argument(
         "--init", action="store_true", help="with --write: create the first baseline (review only)"
     )
@@ -158,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
         write(current, init=args.init)
         print(f"ruff ratchet written: {len(current)} legacy findings")
         return 0
-    problems = check(current)
+    problems = check(current) + (against_base(args.base) if args.base else [])
     for problem in problems:
         print(problem, file=sys.stderr)
     if not problems:

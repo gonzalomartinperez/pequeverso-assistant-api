@@ -97,3 +97,21 @@ def test_write_fails_closed_without_committed_counts(ratchet: Path) -> None:
         ruff_ratchet.write([*CURRENT, ("app/new.py", "ANN401")])
     ruff_ratchet.write(CURRENT, init=True)
     assert ruff_ratchet.check(CURRENT) == []
+
+
+def test_raising_the_committed_ratchet_fails_against_the_base(
+    ratchet: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    base = {"by_file": {"app/a.py": {"D101": 1, "TC003": 1}}}
+
+    class Shown:
+        returncode = 0
+        stdout = json.dumps(base)
+
+    monkeypatch.setattr(ruff_ratchet.subprocess, "run", lambda *a, **k: Shown())
+    assert ruff_ratchet.against_base("BASE") == [
+        "app/a.py: D101 ratchet raised from 1 to 2 against the base",
+        "app/b.py: TC003 ratchet raised from 0 to 1 against the base",
+    ]
+    Shown.returncode = 128
+    assert ruff_ratchet.against_base("BASE") == []
