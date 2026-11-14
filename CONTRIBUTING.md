@@ -12,10 +12,12 @@ just check         # the single local command; mirrors CI
 `just check` is exactly:
 
 ```bash
-uv run ruff check . && uv run ruff format --check . && uv run python -m scripts.ruff_ratchet && uv run mypy && uv run pytest -n auto && uv run python -m contracts.export --check
+uv run ruff check . && uv run ruff format --check . && uv run python -m scripts.ruff_ratchet && uv run lint-imports && uv run python -m scripts.complexity_ratchet && uv run vulture && uv run mypy && uv run pytest -n auto && uv run python -m contracts.export --check
 ```
 
 Ruff enforces the ecosystem rule families (`pyproject.toml`). Findings that predate them live in `ratchets/ruff-legacy.toml` (per-file ignores) and `ratchets/ruff.json` (counts per file and code); `scripts/ruff_ratchet.py` fails on any new finding and on any legacy entry that no longer occurs. After fixing legacy findings, run `uv run python -m scripts.ruff_ratchet --write` to shrink both files; it never adds entries. Run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once so `git blame` skips the mechanical reformat.
+
+Import contracts (`.importlinter`) must pass and run in parallel with the AST architecture tests, which stay the authority until PVA-M4.7 (ADR-0011). The complexity ratchet (`ratchets/complexity.json`) rejects new or increased C901 findings above ten; after a reduction, run `uv run python -m scripts.complexity_ratchet --write` to tighten it. Vulture scans application, contract and script code at 80% confidence (mostly unused arguments and imports); add only verified false positives to `ratchets/vulture-whitelist.py`, with a reason for each entry. Preserve suspected dead code for review with `# TODO(PVA-M2.2): candidate dead code, verify`.
 
 `just fmt` formats and applies safe lint fixes; `just test` and `just unit` run the full or the unit-only suite. CI runs the same commands; a PR merges only when the required check is green (`checks` today, becoming `ci-gate` with PVA-M1.4). Image changes also run `scripts/smoke_container.sh`.
 
