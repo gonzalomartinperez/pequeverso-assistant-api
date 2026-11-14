@@ -326,7 +326,7 @@ def build_router(
             return Response(status_code=429, headers={**headers, "Retry-After": "60"})
         except TimeoutError:
             return Response(status_code=408, headers=headers)
-        except Exception:  # noqa: BLE001 - database/client failure never exports payload or SQL
+        except Exception:  # broad catch: database/client failure never exports payload or SQL
             return Response(status_code=503, headers=headers)
 
     @router.get("/internal/v1/ops/product-analytics", include_in_schema=False)
@@ -374,7 +374,9 @@ def build_router(
                 value = await service.report(clock.now(), Selection(**selection.model_dump()))
                 output = ReportOut.model_validate(value)
                 return JSONResponse(output.model_dump(mode="json"), headers=headers)
-        except Exception:  # noqa: BLE001 - malformed upstream/dependency never exports private details
+        except (
+            Exception
+        ):  # broad catch: malformed upstream/dependency never exports private details
             return Response(status_code=503, headers=headers)
 
     return router

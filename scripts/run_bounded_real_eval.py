@@ -192,7 +192,7 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception as error:  # noqa: BLE001 -- redact all unexpected errors at secret boundary
+    except Exception as error:  # broad catch: redact all unexpected errors at secret boundary
         # Do not emit provider bodies, repr, str, tracebacks or private configuration.
         print(json.dumps({"outcome": "stopped", "error_type": type(error).__name__}))
         sys.exit(2)

@@ -54,8 +54,10 @@ COMMANDS = {
         "uv sync --frozen",
         "ruff check",
         "ruff format --check",
+        "python -m scripts.ruff_ratchet",
         "python -m scripts.validate_skills",
         "uv run mypy",
+        "pyrefly@",
         "uv run pytest -q",
         "contracts.export --check",
         "scripts/evaluate_retrieval.py",
@@ -261,7 +263,7 @@ def test_filtered_privileged_or_missing_work_cannot_pass(mode):
 def test_actual_aggregate_shell_fails_for_every_missing_or_unsuccessful_job():
     gate = workflow()["jobs"]["checks"]["steps"][0]
     assert set(gate["env"]) == {"CI_GATE_RESULT"}
-    green = {name: "success" for name in gate["env"]}
+    green = dict.fromkeys(gate["env"], "success")
     clean = {name: value for name, value in os.environ.items() if name not in green}
 
     def run(results):

@@ -61,7 +61,7 @@ Full guide: [`CONTRIBUTING.md`](CONTRIBUTING.md). To continue the refactor from 
 - The repository is public: never commit secrets, `.env*` files, customer data or real
   conversations (secret scanning and push protection are on).
 - Before a PR: `just check`, which is exactly
-  `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest -n auto && uv run python -m contracts.export --check`
+  `uv run ruff check . && uv run ruff format --check . && uv run python -m scripts.ruff_ratchet && uv run mypy && uv run pytest -n auto && uv run python -m contracts.export --check`
   (written out because `just` may not be installed). For image changes, also
   `scripts/smoke_container.sh`.
 - No deploys, DNS or production changes from this repository (vps-ops owns them).

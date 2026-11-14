@@ -52,7 +52,7 @@ def _text_format(request: ModelRequest) -> ResponseTextConfigParam:
 
 
 def _reasoning(effort: str) -> Reasoning:
-    return cast(Reasoning, {"effort": effort})
+    return cast("Reasoning", {"effort": effort})
 
 
 def usage_of(response: Any) -> Usage | None:

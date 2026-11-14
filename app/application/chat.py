@@ -495,7 +495,7 @@ class ChatService:
         """Operations data is best effort: a metrics failure never affects the visitor's answer."""
         try:
             await self.metrics.record(metric)
-        except Exception:  # noqa: BLE001
+        except Exception:
             log.warning('{"operation":"run_metric","outcome":"failed"}')
 
     async def _record_static(
@@ -542,7 +542,7 @@ class ChatService:
     async def _owns_runtime(self) -> bool:
         try:
             return self.runtime_ownership is None or await self.runtime_ownership()
-        except Exception:  # noqa: BLE001 - never expose connection details
+        except Exception:  # broad catch: never expose connection details
             return False
 
     async def _dependency_failure(self, active: ActiveCatalog) -> FailureCode | None:
@@ -553,7 +553,7 @@ class ChatService:
                 not self.catalog.synchronized or not await self.knowledge.ready(active)
             ):
                 return FailureCode.DEPENDENCY_UNAVAILABLE
-        except Exception:  # noqa: BLE001 - safe refusal without dependency error details
+        except Exception:  # broad catch: safe refusal without dependency error details
             return FailureCode.DEPENDENCY_UNAVAILABLE
         return None
 

@@ -337,6 +337,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception as error:  # noqa: BLE001 -- redact secret-bearing provider errors
+    except Exception as error:  # broad catch: redact secret-bearing provider errors
         print(json.dumps({"outcome": "stopped", "error_type": type(error).__name__}))
         sys.exit(2)

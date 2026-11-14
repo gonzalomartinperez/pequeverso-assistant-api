@@ -209,7 +209,7 @@ def _storage_vectors(
     vectors: tuple[tuple[float, ...], ...],
     spec: EmbeddingSpec,
 ) -> tuple[tuple[float, ...], ...]:
-    """pgvector stores IEEE754 float32; hash those actual bits, not SDK float64 JSON."""
+    """Hash the IEEE754 float32 bits pgvector actually stores, not SDK float64 JSON."""
     result: list[tuple[float, ...]] = []
     for vector in vectors:
         validate_vector(vector, spec)

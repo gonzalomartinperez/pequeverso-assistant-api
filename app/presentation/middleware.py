@@ -88,7 +88,8 @@ async def send_error(scope: Scope, send: Send, code: FailureCode) -> None:
 
 class RequestContextMiddleware:
     """Request id, baseline security headers and one log line per request (route template,
-    status and duration only: no path parameters, query, body, cookies or client address)."""
+    status and duration only: no path parameters, query, body, cookies or client address).
+    """
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -176,7 +177,8 @@ class BodyLimitMiddleware:
 
 class OriginMiddleware:
     """State-changing API requests must come from an allowlisted browser origin. This complements
-    (never replaces) the session CSRF token."""
+    (never replaces) the session CSRF token.
+    """
 
     def __init__(self, app: ASGIApp, allowed_origins: Iterable[str], prefix: str = "/api/") -> None:
         self.app = app

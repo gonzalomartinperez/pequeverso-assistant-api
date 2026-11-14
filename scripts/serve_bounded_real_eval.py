@@ -88,6 +88,6 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except Exception as error:  # noqa: BLE001 -- redact all errors at private-key boundary
+    except Exception as error:  # broad catch: redact all errors at private-key boundary
         print(json.dumps({"outcome": "stopped", "error_type": type(error).__name__}))
         sys.exit(2)

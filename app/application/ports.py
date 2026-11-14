@@ -71,7 +71,8 @@ class RunStore(Protocol):
 class Ledger(Protocol):
     """Spend in micro-dollars. A row is *pending* while its run is active, *settled* to the
     provider-reported usage, or *unreported* when the run ended without a usage report (the
-    worst-case reservation then stays counted as an estimate; absence never implies a refund)."""
+    worst-case reservation then stays counted as an estimate; absence never implies a refund).
+    """
 
     async def reserve(
         self, run_id: str, reservation_micro: int, month: str, day: str, allows: BudgetCheck
@@ -144,7 +145,8 @@ class CatalogSource(Protocol):
     @property
     def live(self) -> bool:
         """True when a successful fetch confirms the facts are current right now (a published
-        storefront document); False for a bundled snapshot, whose facts date from its export."""
+        storefront document); False for a bundled snapshot, whose facts date from its export.
+        """
         ...
 
     async def fetch(self) -> bytes: ...

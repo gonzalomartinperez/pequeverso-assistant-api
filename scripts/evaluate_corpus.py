@@ -149,7 +149,8 @@ MANUAL_REVIEW = frozenset({"invented_policy"})
 
 def assign_splits(family: str, groups: Iterable[str]) -> dict[str, str]:
     """Deterministic, group-preserving split: groups in sha256(family:group) order join dev when that
-    brings dev closer to 70 % of the family's cases; the others are holdout."""
+    brings dev closer to 70 % of the family's cases; the others are holdout.
+    """
     sizes: dict[str, int] = defaultdict(int)
     for group in groups:
         sizes[group] += 1
@@ -177,7 +178,8 @@ def load() -> list[dict[str, Any]]:
 
 def validate(cases: list[dict[str, Any]]) -> list[str]:
     """Structural problems: unknown keys, invalid values, ids that are not in the catalog, splits that
-    do not match the algorithm, and paraphrase groups spanning families or splits."""
+    do not match the algorithm, and paraphrase groups spanning families or splits.
+    """
     problems: list[str] = []
     known = {p.id for p in passages(conv.CATALOG)}
     ids: set[str] = set()
@@ -322,7 +324,8 @@ def _behavior(
 
 def _language(case: dict[str, Any], message: dict[str, Any]) -> list[str]:
     """The reply language is decided in code (app/domain/language.py), so this is deterministic in
-    every mode. Mixed-language messages have no single right answer and are not checked."""
+    every mode. Mixed-language messages have no single right answer and are not checked.
+    """
     if "language" not in message or case["group"] == "lang-mixed":
         return []
     expected = case["expect"]["language"]
@@ -565,6 +568,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except Exception as error:  # noqa: BLE001 -- redact secret-bearing provider errors
+    except Exception as error:  # broad catch: redact secret-bearing provider errors
         print(json.dumps({"outcome": "stopped", "error_type": type(error).__name__}))
         sys.exit(2)

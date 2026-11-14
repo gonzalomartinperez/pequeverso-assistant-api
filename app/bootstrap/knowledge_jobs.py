@@ -157,7 +157,9 @@ async def index_main() -> int:
                 receipt.truncate()
         print("Public projections verified and activated; content-free private receipt written.")
         return 0
-    except Exception as error:  # noqa: BLE001 - never print private connection details or SDK responses
+    except (
+        Exception
+    ) as error:  # broad catch: never print private connection details or SDK responses
         print(
             f"Indexing failed ({type(error).__name__}); inspect the private receipt and ledger before retrying."
         )
@@ -182,7 +184,7 @@ async def migrate_main() -> int:
             "Project PostgreSQL migrations completed; LOGIN identities remain an operator responsibility."
         )
         return 0
-    except Exception as error:  # noqa: BLE001 - SQL details can contain private data
+    except Exception as error:  # broad catch: SQL details can contain private data
         print(f"Migration failed ({type(error).__name__}); inspect private state before retrying.")
         return 1
     finally:
