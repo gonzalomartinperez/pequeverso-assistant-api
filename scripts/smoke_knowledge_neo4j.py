@@ -196,7 +196,7 @@ class GraphFixture:
         )
         started = monotonic()
         result = subprocess.run(
-            [sys.executable, '-m', 'pytest', *targets, '-q', '--tb=short'],
+            [sys.executable, '-m', 'pytest', '-p', 'no:randomly', *targets, '-q', '--tb=short'],
             check=False,
             cwd=ROOT,
             env=environment,

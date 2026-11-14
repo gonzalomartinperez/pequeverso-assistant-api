@@ -280,3 +280,15 @@ def test_pointer_fixture_regression_cannot_be_removed_or_unpinned(mutation):
         steps.append(setup)
     with pytest.raises(AssertionError):
         validate(value)
+
+
+def test_static_suite_runs_in_parallel_and_service_runs_keep_a_fixed_order():
+    steps = workflow()['jobs']['static']['steps']
+    assert any(step.get('run', '').strip() == 'uv run pytest -q -n auto' for step in steps)
+    for script in (
+        'scripts/smoke_knowledge_postgres.sh',
+        'scripts/smoke_knowledge_neo4j.py',
+        'scripts/smoke_graph_runtime.py',
+    ):
+        text = (ROOT / script).read_text()
+        assert 'no:randomly' in text, script

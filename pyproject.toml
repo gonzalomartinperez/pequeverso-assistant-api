@@ -28,7 +28,11 @@ dependencies = [
 dev = [
     "mypy>=2.4.0",
     "pytest>=9.1.1",
+    "pytest-randomly>=5",
+    "pytest-xdist>=3.8",
+    "pyyaml>=6.0.3",
     "ruff>=0.17.1",
+    "types-pyyaml>=6.0.12",
     "types-requests>=2.33.0.20261006",
 ]
 
@@ -63,7 +67,11 @@ plugins = ["pydantic.mypy"]
 pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
-markers = ["live: calls a paid provider; requires explicit authorization (never in CI)"]
+markers = [
+    "live: calls a paid provider; requires explicit authorization (never in CI)",
+    "unit: no external service; applied automatically by tests/conftest.py",
+    "services: needs an explicitly isolated PostgreSQL or Neo4j fixture; applied automatically",
+]
 filterwarnings = [
     "error",
     # langsmith 0.14.x calls asyncio.iscoroutinefunction at import (removal slated for Python 3.16).
