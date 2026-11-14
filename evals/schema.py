@@ -18,7 +18,7 @@ from typing import Any
 from app.ai.evidence import passages
 from evals.graders import GRADERS, behavior_tags
 from scripts import evaluate_conversations as conv
-from scripts.evaluate_corpus import NOTICES, assign_splits
+from scripts.evaluate_corpus import NOTICES, STALE_AFTER_DAYS, assign_splits
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / "evals" / "golden" / "golden.jsonl"
@@ -216,6 +216,11 @@ def _item_problems(item: dict[str, Any], known: set[str], catalog_sha: str) -> l
     offset = item.get("clock_offset_days")
     if type(offset) is not int or offset < 0:
         out.append(f"{iid}: clock_offset_days must be a non-negative integer")
+    elif 0 < offset <= STALE_AFTER_DAYS:
+        # The runner decides staleness as offset > 7 days; offsets near the boundary are ambiguous.
+        out.append(
+            f"{iid}: clock_offset_days must be 0 (fresh) or above {STALE_AFTER_DAYS} (stale)"
+        )
     status = item.get("status")
     if status not in STATUSES:
         out.append(f"{iid}: invalid status")
