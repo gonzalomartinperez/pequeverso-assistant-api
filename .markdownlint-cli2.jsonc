@@ -1,0 +1,21 @@
+{
+  // Same base as engineering-standards: prose lines are not wrapped; tables and long links allowed.
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD033": { "allowed_elements": ["div", "img", "h1", "p", "a", "picture", "source", "br", "details", "summary"] },
+    "MD041": false,
+    "MD060": false,
+    "MD024": { "siblings_only": true }
+  },
+  // Byte-matched standard copies, the archived master plan and dated evidence records are not
+  // rewritten to satisfy the linter.
+  "ignores": [
+    ".venv/**",
+    "node_modules/**",
+    "CODE_OF_CONDUCT.md",
+    "docs/master-plan/**",
+    "docs/verification/**",
+    "docs/handoffs/**"
+  ]
+}

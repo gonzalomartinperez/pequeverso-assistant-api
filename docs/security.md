@@ -80,7 +80,6 @@ nonzero configuration. An ambiguous connection timeout retains the reservation a
 silently dispatches another billed attempt. Custom gateways, regional endpoints or a different
 service tier require a new endpoint/security/pricing review before configuration changes.
 
-
 ## Optional official platform evidence (2026-10-13)
 
 Optional [official platform retrieval](official-web-evidence.md) is fixed-ID, default-off,

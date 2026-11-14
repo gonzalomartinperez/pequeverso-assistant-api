@@ -66,7 +66,6 @@ References: [manual Python instrumentation](https://opentelemetry.io/docs/langua
 [OTLP exporters](https://opentelemetry.io/docs/languages/python/exporters/),
 [Prometheus registries](https://prometheus.github.io/client_python/registry/).
 
-
 `deploy/monitoring/` contains transfer examples, not a running monitoring stack: authenticated
 private scrape configuration, four proposed alerts and an eight-panel Grafana dashboard.
 Replace targets and secret mount paths in vps-ops. For file provisioning replace the dashboard's
@@ -80,7 +79,7 @@ exporter-http-transport and exporter-otlp-common. The owner accepted this depend
 these packages are not claimed stable or LTS. Prometheus3.13 LTS and Grafana13.2 are target
 references for the infrastructure owner, not services deployed by this application.
 
-### Framework instrumentation boundary
+## Framework instrumentation boundary
 
 FastAPI native tracing, metrics, logs, operation spans and auto-configuration are
 explicitly disabled, including on FastAPI versions that enable them by default.

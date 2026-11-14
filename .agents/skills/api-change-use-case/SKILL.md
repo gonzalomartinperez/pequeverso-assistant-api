@@ -27,7 +27,6 @@ metadata:
   separate Pequeverso key. Never move a guarantee from code into the prompt only.
 - Evidence: `uv run pytest`, the fixture evaluations and, if authorized, the live report.
 
-
 ## Optional official public-source changes
 
 Follow ADR-0008 and docs/official-web-evidence.md: exact three source ids, read-only/default-off,

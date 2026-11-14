@@ -1,16 +1,47 @@
 # CI profile
 
-`Quality` validates PRs into develop/main (including target edits), pushes to both
-branches, merge groups and manual runs. The paired API graph is:
+`ci` validates PRs into develop/main (including target edits and label changes), pushes to
+both branches, merge groups and manual runs. `classify` (shared engineering-standards workflow,
+pinned by SHA) reads `.github/ci-profile.json` (the live path map; `docs/master-plan/ci-profile.json`
+is plan history) and selects the jobs. `ci-gate` fails if any selected job did not succeed.
 
 | Job | Check name | Depends on | Required work |
 | --- | --- | --- | --- |
-| workflows | Workflow validation | — | actionlint and zizmor |
-| secrets | Secret scan | — | Full-history redacted gitleaks |
-| static | Static checks | — | Frozen install, Ruff, strict Mypy, pinned Node24.22.0 local fixture regression (10s, no browser/network), full pytest, contract drift, retrieval and fixture conversation evaluations |
-| database | Database tests | static | Own exact PostgreSQL/Neo4j builds; scoped roles, indexing, private state, restore, actual HTTP/SSE and operator/evaluation probes |
-| container | Container verification | static | Hadolint, own application build and disposable SQLite fixture (readiness, session/stream, origin/auth enforcement, backup/restore, persistence, shutdown), container-structure-test, dockle, CycloneDX SBOM artifact, Grype and a twice-built reproducibility check |
-| checks | checks | all five above | Every prerequisite must be success |
+| classify | classify | - | Profile and job selection; unknown paths, push, merge group, dispatch run everything |
+| docs | docs / * | classify | Shared markdownlint, local links (README template check off for now) |
+| security | security / * | classify | Shared zizmor, actionlint, gitleaks, dependency-review |
+| workflows | Workflow validation | classify | actionlint and zizmor (overlaps `security`; kept for now) |
+| secrets | Secret scan | classify | Full-history redacted gitleaks (overlaps `security`; kept for now) |
+| static | Static checks | classify | Frozen install, Ruff, strict Mypy, pinned Node24.22.0 local fixture regression (10s, no browser/network), full pytest, contract drift, retrieval and fixture conversation evaluations |
+| database | Database tests | classify, static | Own exact PostgreSQL/Neo4j builds; scoped roles, indexing, private state, restore, actual HTTP/SSE and operator/evaluation probes |
+| container | Container verification | classify, static | Hadolint, own application build and disposable SQLite fixture (readiness, session/stream, origin/auth enforcement, backup/restore, persistence, shutdown), container-structure-test, dockle, CycloneDX SBOM artifact, Grype and a twice-built reproducibility check |
+| ci-gate | ci-gate | all above | Fail-closed aggregate: every job in the `classify` output must succeed; other skips pass |
+| checks | checks | ci-gate | Temporary alias, succeeds exactly when `ci-gate` succeeded |
+
+`checks` exists only because the current ruleset requires that context. After the owner switches
+the ruleset to `ci-gate` (owner-only, PVA-D11) remove the `checks` job and its test.
+
+## Profiles
+
+| Profile | Paths | Jobs added |
+| --- | --- | --- |
+| docs | `**/*.md`, `docs/**`, `LICENSE` | docs, secrets |
+| code | `app`, `tests`, `scripts`, `evals`, `tools`, `catalog`, `migrations`, skills, `deploy/monitoring`, lockfile, root config, `README.md`, `LICENSE`, `NOTICE.md` | static, secrets, security |
+| contract | `contracts/**` | static, secrets, security |
+| assistant-quality | answer policy, language, redaction, chat/answers/knowledge, `app/ai`, `evals`, `scripts/evaluate_*` | static, secrets, security |
+| container | `app/**`, `infra/docker/**`, `LICENSE`, `NOTICE.md`, lockfile, migrations, catalog, smoke scripts, image lint/scan config | static, container, database, secrets, security |
+| database | `app/**`, real-store tests, `migrations`, `infra/docker/{postgres,neo4j}`, `scripts/smoke_*`, `pyproject.toml`, `uv.lock` | static, database |
+| workflow | `.github/**` | workflows, security, static, secrets, container, database |
+| deps-weekly | branch `dependabot/**` or label `deps-weekly` | everything |
+| release | `develop` into `main`, or label `release` | everything |
+
+A PR gets the union of the profiles its files match. Golden replay joins `contract` and
+`assistant-quality` in M2. Any `app/**` or `.github/**` change runs the image and real-store jobs;
+tests-only, scripts-only and docs-only changes do not (push and release runs always run everything).
+The shared `security` job skips gitleaks (the local `secrets` job runs it with
+`.github/gitleaks.toml`) and allows LGPL-3.0 for psycopg (ADR-0015).
+`tests/test_ci_profile.py` checks that every tracked file is in a profile and that a docs-only
+change skips static, database and container.
 
 The source baseline is `0422c74aa25644978122232bcaae08fdf8c32310`. Its reported
 1143 offline passes and 40 service-dependent skips are historical inventory, not
@@ -82,14 +113,7 @@ job identities, dependencies, events, trust boundaries and substantive commands.
 Real database/container validation requires the hosted workflow or an explicitly
 authorized isolated service lease. CPU-only tests do not prove those checks.
 
-The protected context remains `checks`, now the display name of the real aggregate job
-`checks`. Its five dependencies, `always()` condition and five exact-success assertions
-are unchanged. The temporary seventh compatibility job has been removed with explicit
-owner authorization. No manual status, ruleset change or bypass is involved: all five
-substantive jobs still have to succeed before the protected context passes.
-
-The shared profile has six job IDs and the same dependency graph as the paired API
-standard. Portfolio's `Required checks` display name is a project compatibility difference;
-Pequeverso retains `checks` to satisfy its existing protected context directly. Display-name
-parity never authorizes protection changes. Exact-head hosted checks remain required before
+The protected context is still `checks` (a temporary alias of `ci-gate`, see above); `ci-gate`
+becomes the required context when the owner applies the ruleset. No manual status, ruleset change
+or bypass is involved. Display-name parity never authorizes protection changes. Exact-head hosted checks remain required before
 an authorized merge; source validation does not authorize deployment or activation.

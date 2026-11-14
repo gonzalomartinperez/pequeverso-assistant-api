@@ -11,7 +11,8 @@ import subprocess
 from pathlib import Path
 
 BUILD_INPUTS = (
-    '.github/workflows/quality.yml',
+    '.github/workflows/ci.yml',
+    '.github/ci-profile.json',
     '.python-version',
     '.dockerignore',
     '.grype.yaml',
