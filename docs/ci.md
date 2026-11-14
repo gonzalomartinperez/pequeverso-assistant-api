@@ -46,7 +46,7 @@ the smoke, then checks the built image: `infra/docker/app/structure-test.yaml` (
 labels, command, no pip, `/data` ownership, LICENSE), dockle CIS-DI (WARN or FATAL fail;
 CIS-DI-0008 and DKL-DI-0005 are accepted because both come from the pinned base), a Syft CycloneDX SBOM
 uploaded as `sbom-app-cyclonedx` (14 days) and Grype with `.grype.yaml` (only fixable High or
-Critical fail, no ignores). Reproducibility builds twice with `SOURCE_DATE_EPOCH` from the last
+Critical fail; each ignore carries a tracking issue and an expiry enforced by a test). Reproducibility builds twice with `SOURCE_DATE_EPOCH` from the last
 commit and BuildKit `rewrite-timestamp=true`, then compares the OCI manifest digests. dockle and
 container-structure-test are SHA-256 verified release binaries; the other tools are SHA-pinned
 actions. Nothing is published.

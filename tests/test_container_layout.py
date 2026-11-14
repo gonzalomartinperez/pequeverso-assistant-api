@@ -152,3 +152,20 @@ def test_app_dockerfile_keeps_canonical_reproducible_shape() -> None:
         assert (ROOT / config).is_file()
     grype = (ROOT / '.grype.yaml').read_text()
     assert 'fail-on-severity: high' in grype and 'only-fixed: true' in grype
+
+
+def test_grype_ignores_are_tracked_and_unexpired():
+    from datetime import date, timedelta
+
+    text = (ROOT / '.grype.yaml').read_text()
+    ignores = yaml.safe_load(text)['ignore']
+    blocks = text.split('\n  - vulnerability: ')[1:]
+    assert len(blocks) == len(ignores)
+    header = text.split('\nignore:', 1)[1]
+    comments = [chunk for chunk in header.split('\n  - vulnerability: ')][: len(ignores)]
+    today = date.today()
+    for entry, comment in zip(ignores, comments, strict=True):
+        assert entry['vulnerability'] in text
+        assert 'issue: https://github.com/gonzalomartinperez/pequeverso-assistant-api/issues/' in comment
+        expiry = date.fromisoformat(comment.split('# expires: ', 1)[1][:10])
+        assert today <= expiry <= today + timedelta(days=90), entry['vulnerability']
