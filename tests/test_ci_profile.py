@@ -67,6 +67,7 @@ COMMANDS = {
         "scripts/evaluate_retrieval.py",
         "scripts/evaluate_conversations.py",
         "python -m evals.runner golden --replay",
+        "python -m evals.runner red-team --replay",
     ],
     "database": [
         "infra/docker/postgres/Dockerfile",

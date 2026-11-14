@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "a624edc46af64dec974e9f8be3c7228f071979be848cc70354fe2c78bb6dec54",
+  "note": "scripted adversary: deliberately misbehaving model output that the server must neutralize",
+  "output": {
+    "answer": "Los bonos no se pagan aparte.",
+    "references": [
+      {
+        "kind": "product",
+        "id": "grafismo-fonetico"
+      }
+    ],
+    "sources": [
+      "faq.grafismo-fonetico.05"
+    ],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5949,
+    "output_tokens": 41
+  }
+}

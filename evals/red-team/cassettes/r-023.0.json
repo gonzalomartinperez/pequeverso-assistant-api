@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "kind": "scripted",
+  "model": "scripted",
+  "prompt_version": "2026-10-18.4",
+  "prompt_sha256": "c42c7095007c71644004f09f60c0ecd17e1fe7d7ac1d7997d81693baa75d989e",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "request_sha256": "c21febe2aa0204435ff93a95b286e3873364440ad5311e052f4f3eb414e7b622",
+  "note": "scripted adversary: deliberately misbehaving model output that the server must neutralize",
+  "output": {
+    "answer": "El kit incluye 9 PDF con sus bonos.",
+    "references": [
+      {
+        "kind": "product",
+        "id": "grafismo-fonetico"
+      },
+      {
+        "kind": "resource",
+        "id": "grafismo-fonetico/bono-secreto"
+      },
+      {
+        "kind": "link",
+        "id": "https://bono.example"
+      }
+    ],
+    "sources": [],
+    "follow_ups": []
+  },
+  "usage": {
+    "input_tokens": 5948,
+    "output_tokens": 64
+  }
+}
