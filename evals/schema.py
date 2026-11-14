@@ -22,6 +22,7 @@ from scripts.evaluate_corpus import NOTICES, STALE_AFTER_DAYS, assign_splits
 
 ROOT = Path(__file__).resolve().parents[1]
 GOLDEN = ROOT / "evals" / "golden" / "golden.jsonl"
+RED_TEAM = ROOT / "evals" / "red-team" / "attacks.jsonl"
 CATALOG_FILE = ROOT / "catalog" / "catalog.v1.json"
 
 SCHEMA_VERSION = 2
@@ -60,15 +61,23 @@ KEYS = frozenset(
         "expected_progress",
         "memory_fixture",
         "consent",
+        "owasp",
     }
 )
 # v2 optional keys (assistant-experience.md section 7): validated only when present.
 V2_OPTIONAL = frozenset({"expected_blocks", "expected_progress", "memory_fixture", "consent"})
-REQUIRED = KEYS - V2_OPTIONAL - {"judge_rubric_id", "status_reason", "owner", "deadline", "page"}
+REQUIRED = (
+    KEYS - V2_OPTIONAL - {"judge_rubric_id", "status_reason", "owner", "deadline", "page", "owasp"}
+)
 PROGRESS_PHASES = frozenset({"understanding", "reading", "writing", "verifying"})
 # Closed memory schema of Pequeverso (assistant-experience.md section 6.2).
 MEMORY_KEYS = frozenset({"audience_role", "child_age_band", "interests", "verbosity"})
-BEHAVIORS = frozenset({"answer", "clarify", "no_info", "decline", "refuse_payment_data"})
+BEHAVIORS = frozenset(
+    {"answer", "clarify", "no_info", "decline", "refuse_payment_data", "refused"}
+)  # refused: the API rejects the request itself (HTTP 4xx), red team LLM10 only
+OWASP = frozenset({"LLM01", "LLM07", "LLM08", "LLM09", "LLM10"})
+RED_TEAM_SIZE = (40, 60)
+RED_TEAM_MIN_PER_CLASS = 3
 LANGUAGES = frozenset({"es", "en", "unsupported"})
 LOCALES = frozenset({"es", "en", "mixed"})
 PAGES = frozenset({None, "home", "product", "support"})
@@ -119,7 +128,7 @@ def load(path: Path = GOLDEN) -> list[dict[str, Any]]:
     return items
 
 
-_ID = re.compile(r"g-\d{3}")
+_ID = re.compile(r"[gr]-\d{3}")
 _STRING_LISTS = (
     "strata",
     "turns",
@@ -184,14 +193,21 @@ def _item_problems(item: dict[str, Any], known: set[str], catalog_sha: str) -> l
     if item.get("schema_version") != SCHEMA_VERSION or item.get("assistant") != "pequeverso":
         out.append(f"{iid}: schema_version must be 2 and assistant pequeverso")
     turns = item.get("turns")
+    refused = item.get("expected_behavior") == "refused"
     if (
         not isinstance(turns, list)
         or not turns
-        or not all(isinstance(t, str) and t.strip() for t in turns)
+        or not all(isinstance(t, str) for t in turns)
+        or (not refused and not all(t.strip() for t in turns))
     ):
         out.append(f"{iid}: turns must be non-empty strings")
-    elif any(len(t) > 600 for t in turns):
+    elif not refused and any(len(t) > 600 for t in turns):
         out.append(f"{iid}: a turn exceeds the 600-character API limit")
+    if refused and not str(iid).startswith("r-"):
+        out.append(f"{iid}: refused is a red-team behaviour (LLM10)")
+    if refused and (len(turns or []) != 1 or item.get("assertions")):
+        # grade() checks only the refusal for these items, so nothing else may ride along.
+        out.append(f"{iid}: a refused item has exactly one turn and no assertions")
     strata = item.get("strata", [])
     primary = [s for s in strata if s in PRIMARY]
     if len(primary) != 1 or set(strata) - set(PRIMARY) - TAGS:
@@ -260,7 +276,12 @@ def _item_problems(item: dict[str, Any], known: set[str], catalog_sha: str) -> l
 
 
 def validate(
-    items: list[dict[str, Any]], *, full_set_ids: set[str] | None = None, counts: bool = True
+    items: list[dict[str, Any]],
+    *,
+    full_set_ids: set[str] | None = None,
+    counts: bool = True,
+    split_family: str = SPLIT_FAMILY,
+    id_prefix: str = "g-",
 ) -> list[str]:
     """Every structural problem of the golden set (empty list when valid)."""
     known = {p.id for p in passages(conv.CATALOG)}
@@ -270,13 +291,18 @@ def validate(
     problems += [f"{iid}: duplicate id" for iid, n in ids.items() if n > 1]
     if full_set_ids:
         problems += [f"{iid}: id collides with the full set" for iid in ids if iid in full_set_ids]
+    problems += [
+        f"{item.get('id')}: ids in this set start with {id_prefix}"
+        for item in items
+        if not str(item.get("id", "")).startswith(id_prefix)
+    ]
     for item in items:
         problems += _item_problems(item, known, catalog_sha)
     groups: dict[str, set[str]] = {}
     for item in items:
         groups.setdefault(item.get("group", ""), set()).add(item.get("split", ""))
     problems += [f"group {g!r} spans splits" for g, splits in groups.items() if len(splits) > 1]
-    expected = assign_splits(SPLIT_FAMILY, [item.get("group", "") for item in items])
+    expected = assign_splits(split_family, [item.get("group", "") for item in items])
     problems += [
         f"{item.get('id')}: split must be {expected[item.get('group', '')]} (group-preserving rule)"
         for item in items
@@ -306,4 +332,25 @@ def count_problems(items: list[dict[str, Any]]) -> list[str]:
     for name, want in ANSWERABLE_FAMILIES.items():
         if families.get(name, 0) != want:
             problems.append(f"answerable {name}: {families.get(name, 0)} items, plan says {want}")
+    return problems
+
+
+def validate_red_team(items: list[dict[str, Any]]) -> list[str]:
+    """Structural checks plus the pack rules: 40 to 60 attacks, each OWASP class at least 3."""
+    problems = validate(items, counts=False, split_family="red-team", id_prefix="r-")
+    problems += [
+        f"{item.get('id')}: owasp must be one of {sorted(OWASP)}"
+        for item in items
+        if item.get("owasp") not in OWASP
+    ]
+    active = [i for i in items if i.get("status") != "retired"]
+    low, high = RED_TEAM_SIZE
+    if not low <= len(active) <= high:
+        problems.append(f"red team has {len(active)} attacks, plan says {low} to {high}")
+    per_class = Counter(i.get("owasp") for i in active)
+    problems += [
+        f"OWASP {name}: {per_class.get(name, 0)} attacks, at least {RED_TEAM_MIN_PER_CLASS}"
+        for name in sorted(OWASP)
+        if per_class.get(name, 0) < RED_TEAM_MIN_PER_CLASS
+    ]
     return problems
