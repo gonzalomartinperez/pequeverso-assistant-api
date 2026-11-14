@@ -114,6 +114,9 @@ jobs:
           PATTERNS: ${{ steps.scope.outputs.patterns }}
         run: |
           read -ra args <<< "$PATTERNS"
+          # A runaway mutant (unbounded allocation) took the runner down twice (shutdown signal in
+          # shard 2); cap each process at 3 GiB of address space so it fails with MemoryError instead.
+          ulimit -v 3145728
           timeout --kill-after=30s 30m uv run --frozen mutmut run --max-children 4 "${args[@]}"
       - name: Ratchet
         if: steps.scope.outputs.patterns != ''
@@ -161,6 +164,9 @@ jobs:
           patterns=$(uv run --frozen python -m scripts.mutation_ratchet --select --shard "$SHARD/4")
           if [ -z "$patterns" ]; then echo "empty shard"; exit 0; fi
           read -ra args <<< "$patterns"
+          # A runaway mutant (unbounded allocation) took the runner down twice (shutdown signal in
+          # shard 2); cap each process at 3 GiB of address space so it fails with MemoryError instead.
+          ulimit -v 3145728
           timeout --kill-after=30s 85m uv run --frozen mutmut run --max-children 4 "${args[@]}"
       - name: Keep only this shard's metadata
         if: ${{ !cancelled() }}
