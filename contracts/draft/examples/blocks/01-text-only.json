@@ -1,0 +1,10 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "text",
+      "markdown_lite": "Hola, cuéntame qué edad tiene tu peque y te sugiero por dónde empezar.",
+      "claims": []
+    }
+  ]
+}

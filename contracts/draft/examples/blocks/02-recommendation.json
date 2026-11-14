@@ -1,0 +1,55 @@
+{
+  "blocks": [
+    {
+      "id": "b1",
+      "type": "text",
+      "markdown_lite": "Para 3 a 7 años te sirve este cuadernillo.",
+      "claims": [
+        {
+          "start": 0,
+          "end": 42,
+          "evidence_ids": [
+            "product:grafismo-fonetico"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "b2",
+      "type": "product_card",
+      "product_id": "grafismo-fonetico",
+      "name": "Grafismo Fonético",
+      "summary": "Cuadernillo para practicar trazos y sonidos.",
+      "age_range": "3 a 7 años",
+      "image": {
+        "url": "https://example.com/img/grafismo.webp",
+        "width": 800,
+        "height": 800,
+        "alt": "Portada del cuadernillo"
+      },
+      "price": {
+        "amount": "14.99",
+        "currency": "USD",
+        "display": "US$14,99",
+        "note": "Precio de referencia en dólares (USD).",
+        "tax_note": "+ impuestos aplicables según el país",
+        "verified_at": "2026-11-10T12:00:00Z"
+      },
+      "url": "https://example.com/productos/grafismo-fonetico",
+      "purchase_url": "https://example.com/productos/grafismo-fonetico#comprar",
+      "disclosure": null,
+      "kind": "core",
+      "format": null
+    },
+    {
+      "id": "b3",
+      "type": "citation",
+      "title": "Garantía de 7 días",
+      "url": "https://example.com/garantia",
+      "source_type": "doc",
+      "icon_id": "doc",
+      "origin": "first_party",
+      "quote": "Tienes 7 días para pedir el reembolso."
+    }
+  ]
+}
