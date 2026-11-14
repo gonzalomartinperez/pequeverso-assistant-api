@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 FIXTURES = json.loads(
     (Path(__file__).parent / "fixtures" / "injection_passages.json").read_text(encoding="utf-8")
@@ -44,4 +45,9 @@ def test_fixtures_hold_no_real_contact_data() -> None:
     blob = json.dumps(FIXTURES)
     assert not re.search(r"[\w.+-]+@[\w-]+\.[\w.]+", blob)
     assert not re.search(r"\+?\d[\d\s-]{8,}\d", blob)
-    assert all("evil.example.net" in f["text"] or "https://" not in f["text"] for f in FIXTURES)
+    hosts = {
+        urlsplit(url).hostname
+        for f in FIXTURES
+        for url in re.findall(r"https?://[^\s\"'<>)]+", f["text"])
+    }
+    assert hosts <= {"evil.example.net"}, hosts  # only the reserved example domain
