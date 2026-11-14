@@ -306,3 +306,16 @@ def test_pointer_fixture_regression_cannot_be_removed_or_unpinned(mutation):
         steps.append(setup)
     with pytest.raises(AssertionError):
         validate(value)
+
+
+def test_container_gate_pins_are_strict():
+    job = workflow()['jobs']['container']
+    for key in ('DOCKLE_SHA256', 'CST_SHA256'):
+        assert re.fullmatch(r'[0-9a-f]{64}', job['env'][key]), key
+    steps = {step.get('name', ''): step for step in job['steps']}
+    hadolint = next(step for step in job['steps'] if 'hadolint/hadolint-action@' in step.get('uses', ''))
+    assert hadolint['with']['failure-threshold'] == 'warning'
+    dockle = next(step['run'] for step in steps.values() if 'dockle' in step.get('run', ''))
+    assert set(re.findall(r'--ignore (\S+)', dockle)) == {'CIS-DI-0008', 'DKL-DI-0005'}
+    repro = next(step['run'] for step in steps.values() if 'rewrite-timestamp=true' in step.get('run', ''))
+    assert '--provenance=false' in repro and '--sbom=false' in repro

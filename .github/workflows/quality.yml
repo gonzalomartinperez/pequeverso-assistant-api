@@ -146,6 +146,8 @@ jobs:
         with:
           dockerfile: infra/docker/app/Dockerfile
           config: .hadolint.yaml
+          # The action exports its own threshold (default info) over the config file's value.
+          failure-threshold: warning
       - name: Build exact application candidate (no publication)
         run: docker build -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION="$GITHUB_SHA" -t "$IMAGE" .
       - name: Smoke the owned image and disposable SQLite fixture
@@ -203,7 +205,7 @@ jobs:
           export SOURCE_DATE_EPOCH
           docker buildx create --name repro --driver docker-container --use >/dev/null
           for n in 1 2; do
-            docker buildx build -f infra/docker/app/Dockerfile --no-cache \
+            docker buildx build -f infra/docker/app/Dockerfile --no-cache --provenance=false --sbom=false \
               --build-arg SERVICE_REVISION="$GITHUB_SHA" --build-arg SOURCE_DATE_EPOCH \
               --output "type=oci,dest=$RUNNER_TEMP/repro-$n.tar,rewrite-timestamp=true" .
             tar -xOf "$RUNNER_TEMP/repro-$n.tar" index.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["manifests"][0]["digest"])' > "$RUNNER_TEMP/digest-$n"
