@@ -89,3 +89,11 @@ def test_real_findings_match_the_committed_ratchet() -> None:
     assert all(not path.startswith(("/", "..")) for path, _ in current)
     assert not any(path.startswith("tests/") and code == "S101" for path, code in current)
     assert ruff_ratchet.check(current) == []
+
+
+def test_write_fails_closed_without_committed_counts(ratchet: Path) -> None:
+    (ratchet / "ruff.json").unlink()
+    with pytest.raises(SystemExit, match="refusing to create a new baseline"):
+        ruff_ratchet.write([*CURRENT, ("app/new.py", "ANN401")])
+    ruff_ratchet.write(CURRENT, init=True)
+    assert ruff_ratchet.check(CURRENT) == []

@@ -99,10 +99,16 @@ def check(current: list[tuple[str, str]]) -> list[str]:
     return problems
 
 
-def write(current: list[tuple[str, str]]) -> None:
-    """Regenerate the legacy base and counts; refuse any new entry or any count increase."""
+def write(current: list[tuple[str, str]], *, init: bool = False) -> None:
+    """Regenerate the legacy base and counts; refuse any new entry or any count increase.
+
+    Without `init` the committed counts must exist (fail closed): a deleted ratchet file never
+    turns into a fresh baseline that accepts new findings.
+    """
     now = Counter(current)
-    if COUNTS.exists():
+    if not init:
+        if not COUNTS.exists():
+            raise SystemExit(f"{COUNTS} is missing; refusing to create a new baseline")
         allowed = load_counts()
         grown = sorted(
             f"{path}: {code} {n} > {allowed.get((path, code), 0)}"
@@ -143,10 +149,13 @@ def main(argv: list[str] | None = None) -> int:
         description="Ruff legacy ratchet: legacy findings only shrink."
     )
     parser.add_argument("--write", action="store_true", help="regenerate the ratchet files")
+    parser.add_argument(
+        "--init", action="store_true", help="with --write: create the first baseline (review only)"
+    )
     args = parser.parse_args(argv)
     current = findings()
     if args.write:
-        write(current)
+        write(current, init=args.init)
         print(f"ruff ratchet written: {len(current)} legacy findings")
         return 0
     problems = check(current)
