@@ -66,3 +66,28 @@ def test_vuln_daily_calls_the_shared_job_with_issue_write_only():
 def test_settings_check_is_read_only():
     script = (ROOT / "scripts/check_repo_settings.sh").read_text()
     assert re.search(r"gh api [^\n]*-X|--method|PATCH|PUT|DELETE", script) is None
+
+
+def test_mutation_workflow_is_least_privilege_pinned_and_frozen():
+    value = load("mutation.yml")
+    assert value["permissions"] == {}
+    assert value["concurrency"]["cancel-in-progress"] == (
+        "${{ github.event_name == 'pull_request' }}"
+    )
+    for job in value["jobs"].values():
+        assert job["permissions"] == {"contents": "read"}
+        assert "secrets" not in job
+    assert all(PINNED.match(item) for item in raw_uses("mutation.yml"))
+    text = (WORKFLOWS / "mutation.yml").read_text()
+    assert text.count("persist-credentials: false") == len(value["jobs"])
+    assert "secrets." not in text
+    runs = [
+        line.strip()
+        for line in text.splitlines()
+        if "uv run" in line and not line.lstrip().startswith("#")
+    ]
+    assert runs and all("uv run --frozen" in line for line in runs)
+    assert value["env"]["AI_PROVIDER"] == "fixture"
+    assert value["env"]["ALLOW_PAID_AI"] == "false"
+    shard = value["jobs"]["mutation-shard"]["strategy"]["matrix"]["shard"]
+    assert shard == [1, 2, 3, 4]
