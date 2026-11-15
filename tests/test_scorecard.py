@@ -116,11 +116,14 @@ def test_nightly_workflow_is_pinned_least_privilege_and_secret_free() -> None:
     assert "secrets." not in text
     assert workflow["env"]["AI_PROVIDER"] == "fixture"
     assert workflow["env"]["ALLOW_PAID_AI"] == "false"
-    (job,) = workflow["jobs"].values()
-    assert job["permissions"] == {"contents": "read"}
-    for step in job["steps"]:
-        if "uses" in step:
-            assert re.fullmatch(r"[\w./-]+@[a-f0-9]{40}", step["uses"]), step["uses"]
+    assert set(workflow["jobs"]) == {"nightly", "schemathesis"}
+    for each in workflow["jobs"].values():
+        assert each["permissions"] == {"contents": "read"}
+        assert each["timeout-minutes"] <= 75
+        for step in each["steps"]:
+            if "uses" in step:
+                assert re.fullmatch(r"[\w./-]+@[a-f0-9]{40}", step["uses"]), step["uses"]
+    job = workflow["jobs"]["nightly"]
     runs = "\n".join(step.get("run", "") for step in job["steps"])
     for command in (
         "pytest -q -n auto --cov",

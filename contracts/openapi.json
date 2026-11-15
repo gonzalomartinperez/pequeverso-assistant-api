@@ -113,6 +113,29 @@
                   "$ref": "#/components/schemas/SessionOut"
                 }
               }
+            },
+            "links": {
+              "session_to_message": {
+                "operationId": "post_message_api_v1_messages_post",
+                "parameters": {
+                  "x-csrf-token": "$response.body#/csrf_token"
+                },
+                "description": "The session response carries the CSRF token this operation needs."
+              },
+              "session_to_cancel": {
+                "operationId": "cancel_run_api_v1_runs__run_id__cancel_post",
+                "parameters": {
+                  "x-csrf-token": "$response.body#/csrf_token"
+                },
+                "description": "The session response carries the CSRF token this operation needs."
+              },
+              "session_to_delete": {
+                "operationId": "delete_session_api_v1_session_delete",
+                "parameters": {
+                  "x-csrf-token": "$response.body#/csrf_token"
+                },
+                "description": "The session response carries the CSRF token this operation needs."
+              }
             }
           },
           "401": {
@@ -182,6 +205,29 @@
                 "schema": {
                   "$ref": "#/components/schemas/SessionOut"
                 }
+              }
+            },
+            "links": {
+              "session_to_message": {
+                "operationId": "post_message_api_v1_messages_post",
+                "parameters": {
+                  "x-csrf-token": "$response.body#/csrf_token"
+                },
+                "description": "The session response carries the CSRF token this operation needs."
+              },
+              "session_to_cancel": {
+                "operationId": "cancel_run_api_v1_runs__run_id__cancel_post",
+                "parameters": {
+                  "x-csrf-token": "$response.body#/csrf_token"
+                },
+                "description": "The session response carries the CSRF token this operation needs."
+              },
+              "session_to_delete": {
+                "operationId": "delete_session_api_v1_session_delete",
+                "parameters": {
+                  "x-csrf-token": "$response.body#/csrf_token"
+                },
+                "description": "The session response carries the CSRF token this operation needs."
               }
             }
           }

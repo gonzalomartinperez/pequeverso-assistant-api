@@ -52,7 +52,7 @@ jobs:
         run: uv sync --frozen
       - name: Full suite with branch coverage
         run: |
-          uv run --frozen pytest -q -n auto --cov --cov-report=
+          uv run --frozen pytest -q -n auto --cov --cov-report= -m "not schemathesis"
           uv run --frozen coverage json -q -o "$RUNNER_TEMP/coverage.json"
       - name: Property tests, nightly profile (1000 examples)
         env:
@@ -84,3 +84,28 @@ jobs:
             ${{ runner.temp }}/coverage.json
           retention-days: 30
           if-no-files-found: warn
+
+  schemathesis:
+    # Own job and timeout: 50 examples take about 2.5 min serially, 500 about ten times that, and a
+    # timeout here must not cancel the scorecard job.
+    name: Schemathesis contract suite (500 examples per operation)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Install (frozen lockfile)
+        run: uv sync --frozen
+      - name: Schemathesis contract suite, nightly budget
+        env:
+          SCHEMATHESIS_MAX_EXAMPLES: "500"
+        run: uv run --frozen pytest -q -m schemathesis tests/test_schemathesis_contract.py

@@ -27,6 +27,10 @@ Scorecard: `scripts/scorecard.py` turns measured inputs (static ratchets, covera
 
 `just fmt` formats and applies safe lint fixes; `just test` and `just unit` run the full or the unit-only suite. CI runs the same commands; a PR merges only when the required check is green (`checks` today, becoming `ci-gate` with PVA-M1.4). Image changes also run `scripts/smoke_container.sh`.
 
+## Contract gate
+
+`contracts/openapi.json` is generated (`uv run python -m contracts.export`). On every pull request CI runs `oasdiff breaking --fail-on ERR` between the base revision and the head (`scripts/contract_breaking.sh`); a breaking change fails unless the owner adds the PR label `contract-major` (v1 stays backward compatible, so use it only for a deliberate major step). Schemathesis checks the spec against the in-process fixture app, including three stateful flows declared as OpenAPI links (session to post message, cancel run, delete session): `uv run pytest tests/test_schemathesis_contract.py`. It runs 50 examples per operation; set `SCHEMATHESIS_MAX_EXAMPLES=500` for the nightly depth. A failure prints a `curl` reproduction. The run is slow on small hosts (a few minutes).
+
 ## Property-based tests
 
 Hypothesis defaults to the deterministic `ci` profile (100 examples); `nightly` runs 1000 examples:
