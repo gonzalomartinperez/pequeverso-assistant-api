@@ -1,5 +1,5 @@
-"""Evaluation corpus by intent family (evals/corpus/*.json): validation, retrieval and the full
-HTTP/SSE pipeline. Deterministic in fixture mode; never calls a paid model unless --live is given
+"""Full evaluation set by intent family (evals/full/*.jsonl, schema v2): validation, retrieval and the
+full HTTP/SSE pipeline. Deterministic in fixture mode; never calls a paid model unless --live is given
 with explicit authorization (same gate as evaluate_conversations.py).
 
     uv run python scripts/evaluate_corpus.py                 # validate + retrieval + fixture pipeline
@@ -7,19 +7,25 @@ with explicit authorization (same gate as evaluate_conversations.py).
     uv run python scripts/evaluate_corpus.py --split holdout --json
 
 What the results mean:
-- `retrieval`: lexical ranking (app/ai/evidence.py) puts an expected passage in the top 3 for the
-  evaluated turn. It decides whether ranking needs to improve (ADR-0002); it is not answer quality.
+- `retrieval`: lexical ranking (app/ai/evidence.py) puts a gold passage (`gold_evidence_ids`) in the
+  top 3 (recall@3, the historical hit rate) or top 5 for the evaluated turn; nDCG@5 (all gold ids)
+  and MRR as well. recall@k is a hit rate, not the share of gold ids found (ranx's recall).
+  Items with an explicit empty gold list are not scored. It decides whether ranking needs to
+  improve (ADR-0002); it is not answer quality.
 - `pipeline` in fixture mode: stream grammar, catalog-valid references, allowlisted URLs, answer
   rules, code-enforced notices (payment data refused, contact data redacted). These are gates.
 - `language`: the reply language is decided in code (app/domain/language.py), so it is checked
-  deterministically in every mode; known detector misses are listed in tests/test_evaluations.py.
+  deterministically in every mode; there are no accepted detector misses (tests/test_evaluations.py).
 - `behavior` (outcome, grounding, forbidden behaviors): string heuristics about what a real model
-  wrote. In fixture mode they are reported and say nothing about model quality. Some tags
-  (`invented_policy`) have no lexical check and are listed for manual review of live runs.
+  wrote. In fixture mode they are reported and say nothing about model quality. Items can also
+  list `assertions` (for example `claims.policy`), graded by `evals/graders.py`.
 
-Corpus rules: every case is hand-written; paraphrases of one question share a `group` and the
+Set rules: every case is hand-written; paraphrases of one question share a `group` and the
 same split, so a holdout question never has a paraphrase in dev. Paraphrases are evaluation
-inputs, never knowledge: the only facts are in catalog/catalog.v1.json.
+inputs, never knowledge: the only facts are in catalog/catalog.v1.json, which every case pins by
+`catalog_sha256`. Splits of the 288 cases of corpus v1 are frozen (history stays comparable); the
+items added in v2 are split per family by the same rule (salt `family:v2`). `locale` is the language of the visitor's
+text (`ui_locale` is the optional interface hint); `client: native` sends `response_language: es`.
 """
 
 from __future__ import annotations
@@ -27,6 +33,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import sys
@@ -51,28 +58,79 @@ from app.domain.catalog import PriceStatus
 from scripts import evaluate_conversations as conv
 from scripts.real_eval_budget import BoundedProvider, Envelope
 
-CORPUS = ROOT / "evals" / "corpus"
+CORPUS = ROOT / "evals" / "full"
+CORPUS_VERSION = "2.0.0"
+SCHEMA_VERSION = 2
 DEV_SHARE = 0.7
 K = 3
+K5 = 5
 STALE_AFTER_DAYS = 7
 OUTCOMES = frozenset({"answer", "clarify", "no_info", "decline", "refuse_payment_data"})
 LANGUAGES = frozenset({"es", "en", "unsupported"})
 NOTICES = frozenset(
     {"payment_data_refused", "contact_data_redacted", "answer_replaced", "language_unsupported"}
 )
-CASE_KEYS = frozenset(
-    {"id", "group", "split", "turns", "expect", "page", "locale", "clock_offset_days"}
-)
-EXPECT_KEYS = frozenset(
+FULL_LOCALES = frozenset({"es", "en", "mixed", "other"})
+UI_LOCALES = frozenset({"es", "en"})
+CLIENTS = frozenset({"legacy", "native"})
+# Why a case has no gold evidence: the abstention shape it expects (explicit, never implicit).
+ABSTAIN_REASONS = frozenset(
     {
-        "retrieval",
+        "out_of_scope",
+        "not_published",
+        "clarify",
+        "adversarial",
+        "sensitive_data",
+        "conversational",
+        "transactional",
+    }
+)
+CASE_KEYS = frozenset(
+    {
+        "id",
+        "schema_version",
+        "assistant",
+        "group",
+        "family",
+        "split",
+        "locale",
+        "ui_locale",
+        "client",
+        "page",
+        "turns",
+        "expected_behavior",
+        "response_language",
         "retrieval_query",
-        "language",
-        "outcome",
-        "forbid",
-        "forbid_terms",
+        "gold_evidence_ids",
+        "abstain_reason",
+        "forbidden_claims",
+        "assertions",
         "notices",
         "user_notices",
+        "tags",
+        "clock_offset_days",
+        "provenance",
+        "catalog_sha256",
+        "status",
+    }
+)
+REQUIRED_KEYS = frozenset(
+    {
+        "id",
+        "schema_version",
+        "assistant",
+        "group",
+        "family",
+        "split",
+        "locale",
+        "turns",
+        "expected_behavior",
+        "response_language",
+        "gold_evidence_ids",
+        "clock_offset_days",
+        "provenance",
+        "catalog_sha256",
+        "status",
     }
 )
 _MONEY = re.compile(r"(?:US\$|\$|USD|EUR|€)\s?\d|\d+[.,]\d{2}\b")
@@ -141,7 +199,6 @@ BEHAVIOR_TERMS: dict[str, tuple[str, ...]] = {
     # The post-purchase offer's names come from the catalog's own forbidden terms.
     "post_purchase_offer": tuple(fold(term) for term in conv.CATALOG.forbidden_terms),
 }
-MANUAL_REVIEW = frozenset({"invented_policy"})
 
 
 # --- loading and validation -----------------------------------------------------------------------
@@ -166,22 +223,96 @@ def assign_splits(family: str, groups: Iterable[str]) -> dict[str, str]:
 
 
 def load() -> list[dict[str, Any]]:
+    """Read every `evals/full/<family>.jsonl` (schema v2, one case per line) with the shared reader."""
+    from evals.schema import load as read_jsonl  # lazy: evals.schema imports this module
+
     cases: list[dict[str, Any]] = []
-    for path in sorted(CORPUS.glob("*.json")):
-        document = json.loads(path.read_text())
-        if document["family"] != path.stem:
-            raise ValueError(f"{path.name}: family {document['family']!r} must match the file name")
-        for case in document["cases"]:
-            cases.append({**case, "family": document["family"]})
+    for path in sorted(CORPUS.glob("*.jsonl")):
+        for case in read_jsonl(path):
+            if case.get("family") != path.stem:
+                raise ValueError(
+                    f"{path.name}: family {case.get('family')!r} must match the file name"
+                )
+            cases.append(case)
     return cases
+
+
+def catalog_sha256() -> str:
+    """sha256 of the bundled catalog snapshot that every case pins."""
+    return hashlib.sha256((ROOT / "catalog" / "catalog.v1.json").read_bytes()).hexdigest()
+
+
+def _case_problems(case: dict[str, Any], known: set[str], sha: str) -> list[str]:
+    cid = case.get("id", "?")
+    out: list[str] = []
+    if missing := REQUIRED_KEYS - set(case):
+        out.append(f"{cid}: missing keys {sorted(missing)}")
+    if extra := set(case) - CASE_KEYS:
+        out.append(f"{cid}: unknown keys {sorted(extra)}")
+    if case.get("schema_version") != SCHEMA_VERSION or case.get("assistant") != "pequeverso":
+        out.append(f"{cid}: schema_version must be 2 and assistant pequeverso")
+    turns = case.get("turns")
+    if (
+        not isinstance(turns, list)
+        or not turns
+        or not all(isinstance(t, str) and t.strip() for t in turns)
+    ):
+        out.append(f"{cid}: turns must be non-empty strings")
+    elif any(len(t) > 600 for t in turns):
+        out.append(f"{cid}: a turn exceeds the 600-character API limit")
+    if case.get("locale") not in FULL_LOCALES:
+        out.append(f"{cid}: invalid locale")
+    if case.get("ui_locale") not in (None, *UI_LOCALES):
+        out.append(f"{cid}: invalid ui_locale")
+    if case.get("client", "legacy") not in CLIENTS:
+        out.append(f"{cid}: invalid client")
+    if case.get("page") not in (None, "home", "product", "support"):
+        out.append(f"{cid}: invalid page")
+    if case.get("expected_behavior") not in OUTCOMES:
+        out.append(f"{cid}: invalid expected_behavior")
+    if case.get("response_language") not in LANGUAGES:
+        out.append(f"{cid}: invalid response_language")
+    if case.get("retrieval_query", "last") not in ("last", "all"):
+        out.append(f"{cid}: retrieval_query must be last or all")
+    gold = case.get("gold_evidence_ids")
+    if not isinstance(gold, list):
+        out.append(f"{cid}: gold_evidence_ids must be a list (empty is explicit)")
+        gold = []
+    out += [f"{cid}: gold id {ref!r} is not a catalog passage" for ref in gold if ref not in known]
+    if bool(gold) == bool(case.get("abstain_reason")):
+        out.append(f"{cid}: exactly one of gold_evidence_ids and abstain_reason")
+    if case.get("abstain_reason") and case["abstain_reason"] not in ABSTAIN_REASONS:
+        out.append(f"{cid}: unknown abstain_reason {case['abstain_reason']!r}")
+    for claim in case.get("forbidden_claims", []):
+        is_term = claim.startswith("term:") and claim[5:].strip()
+        if not is_term and claim not in BEHAVIOR_TERMS and claim != "unverified_price":
+            out.append(f"{cid}: unknown forbidden claim {claim!r}")
+    for notice in [*case.get("notices", []), *case.get("user_notices", [])]:
+        if notice not in NOTICES:
+            out.append(f"{cid}: unknown notice {notice!r}")
+    if case.get("provenance") not in ("corpus", "new"):
+        out.append(f"{cid}: invalid provenance")
+    if case.get("catalog_sha256") != sha:
+        out.append(f"{cid}: catalog_sha256 does not pin the bundled catalog (re-verify the case)")
+    offset = case.get("clock_offset_days")
+    if type(offset) is not int or offset < 0 or 0 < offset <= STALE_AFTER_DAYS:
+        out.append(
+            f"{cid}: clock_offset_days must be 0 (fresh) or above {STALE_AFTER_DAYS} (stale)"
+        )
+    if case.get("status") != "active":
+        out.append(f"{cid}: status must be active")
+    return out
 
 
 def validate(cases: list[dict[str, Any]]) -> list[str]:
     """Structural problems: unknown keys, invalid values, ids that are not in the catalog, splits that
     do not match the algorithm, and paraphrase groups spanning families or splits.
     """
+    from evals.graders import GRADERS  # lazy: evals.graders imports this module
+
     problems: list[str] = []
     known = {p.id for p in passages(conv.CATALOG)}
+    sha = catalog_sha256()
     ids: set[str] = set()
     group_family: dict[str, str] = {}
     by_family: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -191,49 +322,31 @@ def validate(cases: list[dict[str, Any]]) -> list[str]:
         if cid in ids:
             problems.append(f"{cid}: duplicate id")
         ids.add(cid)
-        if extra := set(case) - CASE_KEYS - {"family"}:
-            problems.append(f"{cid}: unknown keys {sorted(extra)}")
-        turns = case.get("turns")
-        if (
-            not isinstance(turns, list)
-            or not turns
-            or not all(isinstance(t, str) and t.strip() for t in turns)
-        ):
-            problems.append(f"{cid}: turns must be non-empty strings")
-        elif any(len(t) > 600 for t in turns):
-            problems.append(f"{cid}: a turn exceeds the 600-character API limit")
-        if case.get("locale") not in (None, "es", "en"):
-            problems.append(f"{cid}: invalid locale")
-        if case.get("page") not in (None, "home", "product", "support"):
-            problems.append(f"{cid}: invalid page")
-        expect = case.get("expect", {})
-        if extra := set(expect) - EXPECT_KEYS:
-            problems.append(f"{cid}: unknown expect keys {sorted(extra)}")
-        if expect.get("outcome") not in OUTCOMES:
-            problems.append(f"{cid}: invalid outcome")
-        if expect.get("language") not in LANGUAGES:
-            problems.append(f"{cid}: invalid language")
-        for ref in expect.get("retrieval", []):
-            if ref not in known:
-                problems.append(f"{cid}: retrieval target {ref!r} is not a catalog passage")
-        if expect.get("retrieval_query", "last") not in ("last", "all"):
-            problems.append(f"{cid}: retrieval_query must be last or all")
-        for tag in expect.get("forbid", []):
-            if tag not in BEHAVIOR_TERMS and tag not in MANUAL_REVIEW and tag != "unverified_price":
-                problems.append(f"{cid}: unknown behavior tag {tag!r}")
-        for notice in [*expect.get("notices", []), *expect.get("user_notices", [])]:
-            if notice not in NOTICES:
-                problems.append(f"{cid}: unknown notice {notice!r}")
+        problems += _case_problems(case, known, sha)
+        problems += [
+            f"{cid}: unknown grader {a!r}" for a in case.get("assertions", []) if a not in GRADERS
+        ]
         group = case.get("group", "")
         if group_family.setdefault(group, case["family"]) != case["family"]:
             problems.append(f"{cid}: group {group!r} spans families")
+    # Corpus v1 cases keep their historical per-family split; v2 additions are split per family with
+    # the same rule and a `:v2` salt.
     for family, members in by_family.items():
-        expected = assign_splits(family, [c["group"] for c in members])
-        for case in members:
+        old = [c for c in members if c.get("provenance") == "corpus"]
+        expected = assign_splits(family, [c["group"] for c in old])
+        for case in old:
             if case.get("split") != expected[case["group"]]:
                 problems.append(
                     f"{case['id']}: split {case.get('split')!r}, algorithm says {expected[case['group']]!r}"
                 )
+    for family, members in by_family.items():
+        added = [c for c in members if c.get("provenance") == "new"]
+        expected = assign_splits(f"{family}:v2", [c["group"] for c in added])
+        problems += [
+            f"{c['id']}: split {c.get('split')!r}, algorithm says {expected[c['group']]!r}"
+            for c in added
+            if c.get("split") != expected[c["group"]]
+        ]
     return problems
 
 
@@ -242,46 +355,72 @@ def validate(cases: list[dict[str, Any]]) -> list[str]:
 
 def _query(case: dict[str, Any]) -> str:
     turns: list[str] = case["turns"]
-    return " ".join(turns) if case["expect"].get("retrieval_query") == "all" else turns[-1]
+    return " ".join(turns) if case.get("retrieval_query") == "all" else turns[-1]
+
+
+def _ndcg(positions: list[int], relevant: int, k: int) -> float:
+    """Binary-relevance nDCG@k from the 1-based ranks of the gold ids that were retrieved."""
+    gain = sum(1 / math.log2(p + 1) for p in positions if p <= k)
+    return gain / sum(1 / math.log2(i + 1) for i in range(1, min(relevant, k) + 1))
 
 
 def _metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if not rows:
-        return {"cases": 0, f"recall_at_{K}": None, "mrr": None}
-    hits = sum(1 for r in rows if r["best_rank"] is not None and r["best_rank"] <= K)
-    mrr = sum(1 / r["best_rank"] for r in rows if r["best_rank"]) / len(rows)
-    return {"cases": len(rows), f"recall_at_{K}": round(hits / len(rows), 3), "mrr": round(mrr, 3)}
+        return {
+            "cases": 0,
+            f"recall_at_{K}": None,
+            f"recall_at_{K5}": None,
+            f"ndcg_at_{K5}": None,
+            "mrr": None,
+        }
+    n = len(rows)
+    ranks = [r["best_rank"] for r in rows]
+    mrr = sum(1 / b for b in ranks if b) / n
+    return {
+        "cases": n,
+        f"recall_at_{K}": round(sum(1 for b in ranks if b and b <= K) / n, 3),
+        f"recall_at_{K5}": round(sum(1 for b in ranks if b and b <= K5) / n, 3),
+        f"ndcg_at_{K5}": round(sum(r["ndcg_at_5"] for r in rows) / n, 3),
+        "mrr": round(mrr, 3),
+    }
 
 
 def retrieval(cases: list[dict[str, Any]]) -> dict[str, Any]:
     items = passages(conv.CATALOG)
     rows = []
     for case in cases:
-        relevant = case["expect"].get("retrieval")
+        relevant = case["gold_evidence_ids"]
         if not relevant:
             continue
         ranked = [p.id for p, score in rank(_query(case), items) if score > 0]
         positions = [ranked.index(r) + 1 for r in relevant if r in ranked]
+        best = min(positions) if positions else None
         rows.append(
             {
                 "id": case["id"],
                 "family": case["family"],
                 "split": case["split"],
-                "language": case["expect"]["language"],
+                "language": case["locale"],
                 "query": _query(case),
-                "best_rank": min(positions) if positions else None,
-                "top": ranked[:K],
+                "best_rank": best,
+                "ndcg_at_5": _ndcg(positions, len(relevant), K5),
+                "top": ranked[:K5],
             }
         )
-    families = sorted({r["family"] for r in rows})
+
+    def group(key: str, values: Iterable[str]) -> dict[str, Any]:
+        return {v: _metrics([r for r in rows if r[key] == v]) for v in values}
+
     return {
         "overall": _metrics(rows),
-        "by_split": {s: _metrics([r for r in rows if r["split"] == s]) for s in ("dev", "holdout")},
-        "by_family": {f: _metrics([r for r in rows if r["family"] == f]) for f in families},
-        "by_language": {
-            lang: _metrics([r for r in rows if r["language"] == lang]) for lang in sorted(LANGUAGES)
-        },
-        "misses": [r for r in rows if r["best_rank"] is None or r["best_rank"] > K],
+        "by_split": group("split", ("dev", "holdout")),
+        "by_family": group("family", sorted({r["family"] for r in rows})),
+        "by_language": group("language", sorted(FULL_LOCALES)),
+        "misses": [
+            {k: v for k, v in r.items() if k != "ndcg_at_5"}
+            for r in rows
+            if r["best_rank"] is None or r["best_rank"] > K
+        ],
     }
 
 
@@ -292,28 +431,31 @@ def _behavior(
     case: dict[str, Any], message: dict[str, Any], stale: bool
 ) -> tuple[list[str], list[str]]:
     """(problems, skipped) for model-dependent expectations."""
-    expect = case["expect"]
     problems: list[str] = []
     skipped: list[str] = []
     content = fold(message["content"])
-    for tag in expect.get("forbid", []):
-        if tag in MANUAL_REVIEW:
-            skipped.append(f"{tag}: manual review")
-        elif tag == "unverified_price":
+    for claim in case.get("forbidden_claims", []):
+        if claim.startswith("term:"):
+            if fold(claim[5:]) in content:
+                problems.append(f"repeats {claim[5:]!r}")
+        elif claim == "unverified_price":
             if stale and _MONEY.search(message["content"]):
                 problems.append("states an amount while prices are unverified")
-        elif hit := next((t for t in BEHAVIOR_TERMS[tag] if t in content), None):
-            problems.append(f"{tag}: {hit!r}")
-    for term in expect.get("forbid_terms", []):
-        if fold(term) in content:
-            problems.append(f"repeats {term!r}")
-    outcome = expect["outcome"]
+        elif hit := next((t for t in BEHAVIOR_TERMS[claim] if t in content), None):
+            problems.append(f"{claim}: {hit!r}")
+    if case.get("assertions"):
+        from evals.graders import GRADERS, GradeContext  # lazy: evals.graders imports this module
+
+        context = GradeContext(item=case, final=message, stale=stale)
+        for name in case["assertions"]:
+            problems += [f"{name}: {p}" for p in GRADERS[name](context)]
+    outcome = case["expected_behavior"]
     links = {link["id"] for link in message["links"]}
     if outcome == "clarify" and "?" not in message["content"]:
         problems.append("clarify: asks no question")
     if outcome in ("no_info", "decline") and "support" not in links and "soporte" not in content:
         problems.append(f"{outcome}: offers no support route")
-    if relevant := expect.get("retrieval"):
+    if relevant := case["gold_evidence_ids"]:
         used = {f"product:{p['id']}" for p in message["products"]}
         used |= {f"resource:{r['id']}" for r in message["resources"]}
         used |= {f"document:{s['id']}" for s in message["sources"]}
@@ -328,8 +470,8 @@ def _language(case: dict[str, Any], message: dict[str, Any]) -> list[str]:
     """
     if "language" not in message or case["group"] == "lang-mixed":
         return []
-    expected = case["expect"]["language"]
-    if case["expect"]["outcome"] == "refuse_payment_data":
+    expected = case["response_language"]
+    if case["expected_behavior"] == "refuse_payment_data":
         return []
     if expected == "unsupported":
         if "language_unsupported" not in message["notices"]:
@@ -345,8 +487,10 @@ def _ask(
 ) -> tuple[list[dict[str, Any]], Any]:
     headers = {**conv.HEADERS, "X-CSRF-Token": csrf, "Idempotency-Key": f"corpus-{n:08d}"}
     body: dict[str, Any] = {"content": content, "page": case.get("page", "product")}
-    if case.get("locale"):
-        body["locale"] = case["locale"]
+    if case.get("client") == "native":
+        body["response_language"] = "es"  # the native storefront assistant (v1 revision 1.4)
+    if case.get("ui_locale"):
+        body["locale"] = case["ui_locale"]
     with client.stream("POST", "/api/v1/messages", headers=headers, json=body) as response:
         text = "".join(response.iter_text())
     if response.status_code == 422 and "locale" in body:
@@ -409,16 +553,15 @@ def run_pipeline(
                             user_notices = set(started["user_message"]["notices"])
                         completed = [e for e in events if e["type"] == "message.completed"]
                         final = completed[0]["message"] if completed else None
-                    expect = case["expect"]
                     behavior: list[str] = []
                     skipped: list[str] = []
                     language: list[str] = []
                     if final is not None:
                         language = _language(case, final)
-                        for notice in expect.get("notices", []):
+                        for notice in case.get("notices", []):
                             if notice not in final["notices"]:
                                 gates.append(f"missing notice {notice}")
-                        for notice in expect.get("user_notices", []):
+                        for notice in case.get("user_notices", []):
                             if notice not in user_notices:
                                 gates.append(f"missing user-message notice {notice}")
                         behavior, skipped = _behavior(case, final, stale)

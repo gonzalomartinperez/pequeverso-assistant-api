@@ -42,6 +42,47 @@ HYPOTHESIS_PROFILE=nightly uv run pytest -q tests/test_properties_*.py
 Add a shrunk failure as an `@example` regression case before fixing the bug. The local
 Hypothesis example database (`.hypothesis/`) is ignored by Git.
 
+## Mutation testing
+
+Mutmut 3.8 runs the scoped unit selection in `pyproject.toml` with explicit `fork` isolation
+(on CPython 3.14). Run one module with
+`timeout --kill-after=10s 30m uv run mutmut run --max-children 2 'app.domain.budget.*'`, then
+`uv run python -m scripts.mutation_ratchet --changed app/domain/budget.py`.
+The ratchet reads ignored `mutants/**/*.py.meta` JSON files. Scores count
+killed / (killed + survived + timeout + suspicious). Exit 33 (no tests) counts as survived;
+skipped (34), no-test (5) and type-check-only (37) results are excluded but reported.
+Unchecked mutants (never run or interrupted: exit code null or 2) are not scored; a required
+module with any unchecked mutant is an incomplete run and fails, and `--write` refuses to record
+while any measured module has unchecked mutants. Equivalent mutants need individual reasons in
+`ratchets/mutation.json` and remain in the raw score. Reduce scope before lowering a threshold.
+
+Modes (`--mode {pr,full}`, default `pr`):
+
+- `pr`: required modules are the changed scoped modules that have mutants; the floor is
+  `max(pr_break 60, recorded score)`. Unchanged modules are ignored.
+- `full`: every scoped module with mutants is required; the floor is its recorded score (0 if
+  none) and the weekly target (75%) is printed. With an empty baseline it prints a
+  `::notice::` and does not fail for that reason (it still fails on unchecked or missing results).
+- Modules with zero mutants (no functions, `__init__.py`) are skipped; `--select` never emits
+  patterns for them.
+
+Changed paths come from `--changed PATH...` (local) or `--changed-file PATH` (NUL- or
+newline-separated, as written by `git diff -z --name-only`; never word-split). `--select
+--shard I/N` prints the full-scope patterns of shard I of N (round-robin by sorted path), and
+`--prune-meta --shard I/N` deletes the `.meta` files of modules outside the shard so shard
+artifacts merge as a plain union.
+
+CI (`.github/workflows/mutation.yml`): a `classify` job picks the lane. `pr` mutates only the
+changed scoped modules (30-minute budget). `full` runs 4 shards (85 minutes each, artifacts
+`mutation-shard-1..4`), then an aggregate job runs `--mode full` over the merged metadata and
+uploads it as `mutation-results-full`. The full lane runs weekly, on manual dispatch, on pushes
+to `develop` that touch the scope, and on PRs that change the workflow or the ratchet script.
+
+Recording the baseline: download the `mutation-results-full` artifact of a complete full run into
+a directory, then run
+`uv run python -m scripts.mutation_ratchet --mode full --results <dir> --write` and commit
+`ratchets/mutation.json`. `--write` only raises values.
+
 ## Branch flow
 
 - Branch from `develop` as `feat/…`, `fix/…`, `chore/…`, `docs/…` or `deps/…` (`type/kebab-case`) and open the PR with `--base develop`. `main` receives releases only (promotion at M7, a merge commit).

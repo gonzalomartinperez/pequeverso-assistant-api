@@ -1,0 +1,668 @@
+{
+  "schema_version": 1,
+  "corpus_version": "2.0.0",
+  "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
+  "catalog_revision": "7dde2968783c809205bd6ba16ec4a4661b936ca0",
+  "mode": "fixture",
+  "metrics_engine": "stdlib (scripts/evaluate_corpus.py); ranx spike not adopted, see docs/evaluation.md",
+  "retriever": "lexical (app/ai/evidence.py), before the part B retrieval repair",
+  "cases": {
+    "total": 318,
+    "scored": 241,
+    "unscored_by_reason": {
+      "adversarial": 11,
+      "clarify": 12,
+      "conversational": 2,
+      "not_published": 28,
+      "out_of_scope": 17,
+      "sensitive_data": 4,
+      "transactional": 3
+    },
+    "by_family": {
+      "age-fit": 16,
+      "ambiguous": 12,
+      "commercial-rules": 23,
+      "comparison-resources": 18,
+      "delivery-and-access": 16,
+      "follow-ups": 14,
+      "injection": 14,
+      "language": 30,
+      "out-of-scope": 18,
+      "price-and-currency": 16,
+      "printing-and-format": 16,
+      "product-contents": 21,
+      "purchase-process": 19,
+      "refunds-guarantee-withdrawal": 16,
+      "stale-data": 13,
+      "support": 16,
+      "typos-and-slang": 24,
+      "usage-and-start": 16
+    },
+    "by_split": {
+      "dev": 227,
+      "holdout": 91
+    },
+    "by_locale": {
+      "en": 11,
+      "es": 299,
+      "mixed": 3,
+      "other": 5
+    },
+    "by_response_language": {
+      "en": 8,
+      "es": 304,
+      "unsupported": 6
+    },
+    "by_behavior": {
+      "answer": 237,
+      "clarify": 14,
+      "decline": 35,
+      "no_info": 30,
+      "refuse_payment_data": 2
+    },
+    "by_provenance": {
+      "corpus": 288,
+      "new": 30
+    }
+  },
+  "retrieval": {
+    "overall": {
+      "cases": 241,
+      "recall_at_3": 0.656,
+      "recall_at_5": 0.718,
+      "ndcg_at_5": 0.545,
+      "mrr": 0.58
+    },
+    "by_split": {
+      "dev": {
+        "cases": 171,
+        "recall_at_3": 0.649,
+        "recall_at_5": 0.719,
+        "ndcg_at_5": 0.54,
+        "mrr": 0.568
+      },
+      "holdout": {
+        "cases": 70,
+        "recall_at_3": 0.671,
+        "recall_at_5": 0.714,
+        "ndcg_at_5": 0.559,
+        "mrr": 0.608
+      }
+    },
+    "by_family": {
+      "age-fit": {
+        "cases": 16,
+        "recall_at_3": 0.875,
+        "recall_at_5": 0.875,
+        "ndcg_at_5": 0.687,
+        "mrr": 0.844
+      },
+      "commercial-rules": {
+        "cases": 6,
+        "recall_at_3": 0.5,
+        "recall_at_5": 0.667,
+        "ndcg_at_5": 0.5,
+        "mrr": 0.533
+      },
+      "comparison-resources": {
+        "cases": 16,
+        "recall_at_3": 0.75,
+        "recall_at_5": 0.75,
+        "ndcg_at_5": 0.653,
+        "mrr": 0.705
+      },
+      "delivery-and-access": {
+        "cases": 15,
+        "recall_at_3": 0.8,
+        "recall_at_5": 0.8,
+        "ndcg_at_5": 0.544,
+        "mrr": 0.633
+      },
+      "follow-ups": {
+        "cases": 14,
+        "recall_at_3": 0.929,
+        "recall_at_5": 0.929,
+        "ndcg_at_5": 0.769,
+        "mrr": 0.857
+      },
+      "injection": {
+        "cases": 3,
+        "recall_at_3": 0.667,
+        "recall_at_5": 1.0,
+        "ndcg_at_5": 0.45,
+        "mrr": 0.528
+      },
+      "language": {
+        "cases": 27,
+        "recall_at_3": 0.296,
+        "recall_at_5": 0.444,
+        "ndcg_at_5": 0.27,
+        "mrr": 0.293
+      },
+      "price-and-currency": {
+        "cases": 15,
+        "recall_at_3": 0.8,
+        "recall_at_5": 0.8,
+        "ndcg_at_5": 0.703,
+        "mrr": 0.7
+      },
+      "printing-and-format": {
+        "cases": 13,
+        "recall_at_3": 0.769,
+        "recall_at_5": 1.0,
+        "ndcg_at_5": 0.719,
+        "mrr": 0.717
+      },
+      "product-contents": {
+        "cases": 21,
+        "recall_at_3": 0.81,
+        "recall_at_5": 0.857,
+        "ndcg_at_5": 0.731,
+        "mrr": 0.731
+      },
+      "purchase-process": {
+        "cases": 12,
+        "recall_at_3": 0.5,
+        "recall_at_5": 0.5,
+        "ndcg_at_5": 0.279,
+        "mrr": 0.317
+      },
+      "refunds-guarantee-withdrawal": {
+        "cases": 15,
+        "recall_at_3": 0.8,
+        "recall_at_5": 0.8,
+        "ndcg_at_5": 0.706,
+        "mrr": 0.667
+      },
+      "stale-data": {
+        "cases": 13,
+        "recall_at_3": 0.462,
+        "recall_at_5": 0.615,
+        "ndcg_at_5": 0.495,
+        "mrr": 0.474
+      },
+      "support": {
+        "cases": 15,
+        "recall_at_3": 0.467,
+        "recall_at_5": 0.467,
+        "ndcg_at_5": 0.352,
+        "mrr": 0.389
+      },
+      "typos-and-slang": {
+        "cases": 24,
+        "recall_at_3": 0.625,
+        "recall_at_5": 0.667,
+        "ndcg_at_5": 0.491,
+        "mrr": 0.538
+      },
+      "usage-and-start": {
+        "cases": 16,
+        "recall_at_3": 0.562,
+        "recall_at_5": 0.688,
+        "ndcg_at_5": 0.424,
+        "mrr": 0.424
+      }
+    },
+    "by_language": {
+      "en": {
+        "cases": 9,
+        "recall_at_3": 0.111,
+        "recall_at_5": 0.111,
+        "ndcg_at_5": 0.111,
+        "mrr": 0.111
+      },
+      "es": {
+        "cases": 225,
+        "recall_at_3": 0.689,
+        "recall_at_5": 0.751,
+        "ndcg_at_5": 0.572,
+        "mrr": 0.609
+      },
+      "mixed": {
+        "cases": 3,
+        "recall_at_3": 0.333,
+        "recall_at_5": 0.667,
+        "ndcg_at_5": 0.246,
+        "mrr": 0.194
+      },
+      "other": {
+        "cases": 4,
+        "recall_at_3": 0.25,
+        "recall_at_5": 0.25,
+        "ndcg_at_5": 0.25,
+        "mrr": 0.281
+      }
+    }
+  },
+  "misses_at_3": [
+    {
+      "id": "age-015",
+      "family": "age-fit",
+      "best_rank": null
+    },
+    {
+      "id": "age-016",
+      "family": "age-fit",
+      "best_rank": null
+    },
+    {
+      "id": "com-017",
+      "family": "commercial-rules",
+      "best_rank": 5
+    },
+    {
+      "id": "com-019",
+      "family": "commercial-rules",
+      "best_rank": null
+    },
+    {
+      "id": "com-020",
+      "family": "commercial-rules",
+      "best_rank": null
+    },
+    {
+      "id": "cmp-007",
+      "family": "comparison-resources",
+      "best_rank": null
+    },
+    {
+      "id": "cmp-009",
+      "family": "comparison-resources",
+      "best_rank": null
+    },
+    {
+      "id": "cmp-015",
+      "family": "comparison-resources",
+      "best_rank": 7
+    },
+    {
+      "id": "cmp-016",
+      "family": "comparison-resources",
+      "best_rank": 7
+    },
+    {
+      "id": "acc-005",
+      "family": "delivery-and-access",
+      "best_rank": null
+    },
+    {
+      "id": "acc-006",
+      "family": "delivery-and-access",
+      "best_rank": null
+    },
+    {
+      "id": "acc-014",
+      "family": "delivery-and-access",
+      "best_rank": null
+    },
+    {
+      "id": "fu-004",
+      "family": "follow-ups",
+      "best_rank": null
+    },
+    {
+      "id": "inj-007",
+      "family": "injection",
+      "best_rank": 4
+    },
+    {
+      "id": "lang-002",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-003",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-004",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-005",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-007",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-009",
+      "family": "language",
+      "best_rank": 4
+    },
+    {
+      "id": "lang-010",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-011",
+      "family": "language",
+      "best_rank": 4
+    },
+    {
+      "id": "lang-013",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-016",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-018",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-019",
+      "family": "language",
+      "best_rank": 8
+    },
+    {
+      "id": "lang-020",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-022",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-023",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-024",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-025",
+      "family": "language",
+      "best_rank": null
+    },
+    {
+      "id": "lang-029",
+      "family": "language",
+      "best_rank": 5
+    },
+    {
+      "id": "lang-030",
+      "family": "language",
+      "best_rank": 4
+    },
+    {
+      "id": "pri-001",
+      "family": "price-and-currency",
+      "best_rank": null
+    },
+    {
+      "id": "pri-005",
+      "family": "price-and-currency",
+      "best_rank": null
+    },
+    {
+      "id": "pri-016",
+      "family": "price-and-currency",
+      "best_rank": null
+    },
+    {
+      "id": "prn-001",
+      "family": "printing-and-format",
+      "best_rank": 5
+    },
+    {
+      "id": "prn-013",
+      "family": "printing-and-format",
+      "best_rank": 5
+    },
+    {
+      "id": "prn-014",
+      "family": "printing-and-format",
+      "best_rank": 4
+    },
+    {
+      "id": "pc-003",
+      "family": "product-contents",
+      "best_rank": null
+    },
+    {
+      "id": "pc-004",
+      "family": "product-contents",
+      "best_rank": 4
+    },
+    {
+      "id": "pc-005",
+      "family": "product-contents",
+      "best_rank": 9
+    },
+    {
+      "id": "pc-020",
+      "family": "product-contents",
+      "best_rank": null
+    },
+    {
+      "id": "buy-001",
+      "family": "purchase-process",
+      "best_rank": null
+    },
+    {
+      "id": "buy-010",
+      "family": "purchase-process",
+      "best_rank": null
+    },
+    {
+      "id": "buy-014",
+      "family": "purchase-process",
+      "best_rank": null
+    },
+    {
+      "id": "buy-015",
+      "family": "purchase-process",
+      "best_rank": 6
+    },
+    {
+      "id": "buy-017",
+      "family": "purchase-process",
+      "best_rank": 7
+    },
+    {
+      "id": "buy-019",
+      "family": "purchase-process",
+      "best_rank": null
+    },
+    {
+      "id": "ref-002",
+      "family": "refunds-guarantee-withdrawal",
+      "best_rank": null
+    },
+    {
+      "id": "ref-003",
+      "family": "refunds-guarantee-withdrawal",
+      "best_rank": null
+    },
+    {
+      "id": "ref-015",
+      "family": "refunds-guarantee-withdrawal",
+      "best_rank": null
+    },
+    {
+      "id": "stl-001",
+      "family": "stale-data",
+      "best_rank": null
+    },
+    {
+      "id": "stl-002",
+      "family": "stale-data",
+      "best_rank": null
+    },
+    {
+      "id": "stl-005",
+      "family": "stale-data",
+      "best_rank": null
+    },
+    {
+      "id": "stl-007",
+      "family": "stale-data",
+      "best_rank": 4
+    },
+    {
+      "id": "stl-008",
+      "family": "stale-data",
+      "best_rank": null
+    },
+    {
+      "id": "stl-009",
+      "family": "stale-data",
+      "best_rank": 6
+    },
+    {
+      "id": "stl-013",
+      "family": "stale-data",
+      "best_rank": 4
+    },
+    {
+      "id": "sup-001",
+      "family": "support",
+      "best_rank": null
+    },
+    {
+      "id": "sup-002",
+      "family": "support",
+      "best_rank": null
+    },
+    {
+      "id": "sup-004",
+      "family": "support",
+      "best_rank": null
+    },
+    {
+      "id": "sup-008",
+      "family": "support",
+      "best_rank": null
+    },
+    {
+      "id": "sup-010",
+      "family": "support",
+      "best_rank": null
+    },
+    {
+      "id": "sup-011",
+      "family": "support",
+      "best_rank": null
+    },
+    {
+      "id": "sup-012",
+      "family": "support",
+      "best_rank": null
+    },
+    {
+      "id": "sup-016",
+      "family": "support",
+      "best_rank": null
+    },
+    {
+      "id": "typ-001",
+      "family": "typos-and-slang",
+      "best_rank": 4
+    },
+    {
+      "id": "typ-002",
+      "family": "typos-and-slang",
+      "best_rank": null
+    },
+    {
+      "id": "typ-005",
+      "family": "typos-and-slang",
+      "best_rank": null
+    },
+    {
+      "id": "typ-006",
+      "family": "typos-and-slang",
+      "best_rank": null
+    },
+    {
+      "id": "typ-007",
+      "family": "typos-and-slang",
+      "best_rank": null
+    },
+    {
+      "id": "typ-012",
+      "family": "typos-and-slang",
+      "best_rank": null
+    },
+    {
+      "id": "typ-013",
+      "family": "typos-and-slang",
+      "best_rank": null
+    },
+    {
+      "id": "typ-015",
+      "family": "typos-and-slang",
+      "best_rank": null
+    },
+    {
+      "id": "typ-020",
+      "family": "typos-and-slang",
+      "best_rank": null
+    },
+    {
+      "id": "use-003",
+      "family": "usage-and-start",
+      "best_rank": 6
+    },
+    {
+      "id": "use-004",
+      "family": "usage-and-start",
+      "best_rank": 4
+    },
+    {
+      "id": "use-006",
+      "family": "usage-and-start",
+      "best_rank": 5
+    },
+    {
+      "id": "use-009",
+      "family": "usage-and-start",
+      "best_rank": null
+    },
+    {
+      "id": "use-012",
+      "family": "usage-and-start",
+      "best_rank": null
+    },
+    {
+      "id": "use-013",
+      "family": "usage-and-start",
+      "best_rank": 6
+    },
+    {
+      "id": "use-016",
+      "family": "usage-and-start",
+      "best_rank": null
+    }
+  ],
+  "reference": {
+    "recorded_2026_11_09": {
+      "cases": 190,
+      "recall_at_3": 0.689,
+      "recall_at_5": 0.737,
+      "mrr": 0.603
+    },
+    "remeasured_v1_labels_at_m2_6": {
+      "cases": 190,
+      "recall_at_3": 0.689,
+      "recall_at_5": 0.737,
+      "mrr": 0.603
+    }
+  }
+}

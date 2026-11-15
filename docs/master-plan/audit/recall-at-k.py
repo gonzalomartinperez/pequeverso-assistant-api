@@ -11,12 +11,12 @@ items = passages(ec.conv.CATALOG)
 print(len(items), "passages")
 rows = []
 for c in cases:
-    rel = c["expect"].get("retrieval")
+    rel = c["gold_evidence_ids"]
     if not rel:
         continue
     ranked = [p.id for p, s in rank(ec._query(c), items) if s > 0]
     pos = [ranked.index(r) + 1 for r in rel if r in ranked]
-    rows.append((c["family"], c["expect"]["language"], min(pos) if pos else None))
+    rows.append((c["family"], c["locale"], min(pos) if pos else None))
 
 
 def rk(rs, k):

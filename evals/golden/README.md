@@ -34,7 +34,7 @@ and 18 `holdout`.
   Splits are recomputed by the rule from the groups; paraphrases and items that share a turn share a
   group, so they always land in the same split. Rotation re-runs the rule and records the new splits
   in the PR.
-- `provenance` is `corpus` when a turn is taken verbatim from `evals/corpus`, otherwise `new`.
+- `provenance` is `corpus` when a turn is taken verbatim from the full set (`evals/full`), otherwise `new`.
 - Items tagged `scripted-adversary` replay a deliberately misbehaving model output and expect
   `answer_replaced`; the live lane drops that one expectation (a model that refuses cleanly is not
   replaced) and keeps every forbidden claim.

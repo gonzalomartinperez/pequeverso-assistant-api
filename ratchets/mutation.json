@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "pr_break": 60,
+  "weekly_target": 75,
+  "modules": {},
+  "equivalent_mutants": {}
+}
