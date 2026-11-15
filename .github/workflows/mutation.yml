@@ -1,0 +1,219 @@
+name: mutation
+
+# PVA-M2.9 (testing.md sections 1 and 2): mutmut 3.8 over the scoped modules in pyproject.toml.
+# Lanes (decided by the `classify` job): `pr` mutates only the changed scoped modules (break 60, or
+# below a recorded module score; 30-minute budget); `full` splits the whole scope over 4 shards
+# (85 minutes each) and an aggregate job runs `ratchet --mode full` over the merged metadata.
+# The full lane runs on the weekly schedule, workflow_dispatch, pushes to develop that touch the
+# scope, and PRs that change this workflow or scripts/mutation_ratchet.py (that is how
+# ratchets/mutation.json gets its measured baseline: download `mutation-results-full`, then
+# `--mode full --write`). Each shard uploads only the .meta files of its own modules so the merge
+# is a plain union. Scheduled runs read this file from the default branch (`main`, M7).
+# No secrets, no network beyond installation.
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+    paths:
+      - "app/domain/**"
+      - "app/application/answers.py"
+      - "app/application/sessions.py"
+      - "app/application/embedding_budget.py"
+      - "app/ai/prompt.py"
+      - "app/ai/evidence.py"
+      - "app/ai/output.py"
+      - "ratchets/mutation.json"
+      - "scripts/mutation_ratchet.py"
+      - ".github/workflows/mutation.yml"
+  schedule:
+    - cron: "0 8 * * 0" # Sunday 05:00 America/Argentina/Buenos_Aires
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_VERSION: 0.13.7 # keep equal to ci.yml
+  AI_PROVIDER: fixture
+  ALLOW_PAID_AI: "false"
+  LANGSMITH_TRACING: "false"
+
+jobs:
+  classify:
+    name: Mutation classify
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    outputs:
+      lane: ${{ steps.lane.outputs.lane }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Decide the lane (pr, full or none)
+        id: lane
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            lane=full
+          else
+            git diff -z --name-only "$BASE_SHA...HEAD" > "$RUNNER_TEMP/changed"
+            patterns=$(uv run --frozen --no-project python -m scripts.mutation_ratchet --select --changed-file="$RUNNER_TEMP/changed")
+            if [ "$patterns" = "*" ]; then lane=full; elif [ -z "$patterns" ]; then lane=none; else lane="pr"; fi
+          fi
+          echo "lane=$lane" >> "$GITHUB_OUTPUT"
+          echo "mutation lane: $lane"
+
+  mutation-pr:
+    name: Mutation (changed modules)
+    needs: classify
+    if: needs.classify.outputs.lane == 'pr'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Install (frozen lockfile)
+        run: uv sync --frozen
+      - name: Select the changed scoped modules
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git diff -z --name-only "$BASE_SHA...HEAD" > "$RUNNER_TEMP/changed"
+          patterns=$(uv run --frozen python -m scripts.mutation_ratchet --select --changed-file="$RUNNER_TEMP/changed")
+          echo "patterns=$patterns" >> "$GITHUB_OUTPUT"
+          echo "mutation scope: ${patterns:-none}"
+      - name: Run mutmut (30 minute budget)
+        if: steps.scope.outputs.patterns != ''
+        env:
+          PATTERNS: ${{ steps.scope.outputs.patterns }}
+        run: |
+          read -ra args <<< "$PATTERNS"
+          # A runaway mutant (unbounded allocation) took the runner down twice (shutdown signal in
+          # shard 2); cap each process at 3 GiB of address space so it fails with MemoryError instead.
+          ulimit -v 3145728
+          timeout --kill-after=30s 30m uv run --frozen mutmut run --max-children 4 "${args[@]}"
+      - name: Ratchet
+        if: steps.scope.outputs.patterns != ''
+        run: uv run --frozen python -m scripts.mutation_ratchet --mode pr --changed-file="$RUNNER_TEMP/changed"
+      - name: Upload mutation metadata
+        if: ${{ !cancelled() && steps.scope.outputs.patterns != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-results-pr
+          path: |
+            mutants/**/*.py.meta
+            mutants/mutmut-stats.json
+          retention-days: 30
+          if-no-files-found: warn
+
+  mutation-shard:
+    name: Mutation shard ${{ matrix.shard }}/4
+    needs: classify
+    if: needs.classify.outputs.lane == 'full'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 95
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Install (frozen lockfile)
+        run: uv sync --frozen
+      - name: Run mutmut on this shard (85 minute budget)
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          patterns=$(uv run --frozen python -m scripts.mutation_ratchet --select --shard "$SHARD/4")
+          if [ -z "$patterns" ]; then echo "empty shard"; exit 0; fi
+          read -ra args <<< "$patterns"
+          # A runaway mutant (unbounded allocation) took the runner down twice (shutdown signal in
+          # shard 2); cap each process at 3 GiB of address space so it fails with MemoryError instead.
+          ulimit -v 3145728
+          timeout --kill-after=30s 85m uv run --frozen mutmut run --max-children 4 "${args[@]}"
+      - name: Keep only this shard's metadata
+        if: ${{ !cancelled() }}
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: uv run --frozen python -m scripts.mutation_ratchet --prune-meta --shard "$SHARD/4"
+      - name: Upload shard metadata
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-shard-${{ matrix.shard }}
+          path: mutants/**/*.py.meta
+          retention-days: 30
+          if-no-files-found: warn
+
+  mutation-full:
+    name: Mutation (full scope)
+    needs: [classify, mutation-shard]
+    if: ${{ !cancelled() && needs.classify.outputs.lane == 'full' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Setup uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Download shard metadata
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: mutation-shard-*
+          merge-multiple: true
+          path: mutants
+      - name: Ratchet (full scope, merged shards)
+        run: uv run --frozen --no-project python -m scripts.mutation_ratchet --mode full
+      - name: Upload merged metadata
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mutation-results-full
+          path: mutants/**/*.py.meta
+          retention-days: 30
+          if-no-files-found: warn
