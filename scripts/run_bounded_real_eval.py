@@ -54,7 +54,7 @@ def run_case(case: dict[str, Any], provider: Any) -> dict[str, Any]:
                 before = time.monotonic()
                 events, error = (
                     corpus._ask(client, csrf, case, turn, n)
-                    if "expect" in case
+                    if "gold_evidence_ids" in case
                     else conv._ask(client, csrf, turn, n)
                 )
                 row["turns"].append(
@@ -74,7 +74,7 @@ def run_case(case: dict[str, Any], provider: Any) -> dict[str, Any]:
                     row["answers"].append(final)
                 started = next((e for e in events if e["type"] == "run.started"), {})
                 user_notices = started.get("user_message", {}).get("notices", [])
-                for notice in case.get("expect", {}).get("user_notices", []):
+                for notice in case.get("user_notices", []):
                     if notice not in user_notices:
                         row["gates"].append(f"missing user-message notice {notice}")
                 if row["gates"] or (
@@ -82,10 +82,10 @@ def run_case(case: dict[str, Any], provider: Any) -> dict[str, Any]:
                     and provider.envelope.snapshot()["stop_reason"]
                 ):
                     break
-            if "expect" in case and final:
+            if "gold_evidence_ids" in case and final:
                 row["language"] = corpus._language(case, final)
                 row["behavior"], row["skipped"] = corpus._behavior(case, final, offset > 7)
-                for notice in case["expect"].get("notices", []):
+                for notice in case.get("notices", []):
                     if notice not in final["notices"]:
                         row["gates"].append(f"missing notice {notice}")
             else:

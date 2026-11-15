@@ -2,7 +2,7 @@
   "schema_version": 1,
   "description": "Legacy ruff findings; every count only decreases (PVA-M2.1).",
   "target": "0 for every code by PVA-M4.11",
-  "total": 621,
+  "total": 615,
   "findings": {
     "ANN401": 17,
     "ARG001": 1,
@@ -18,7 +18,7 @@
     "D401": 11,
     "DTZ011": 1,
     "E402": 4,
-    "PERF401": 15,
+    "PERF401": 9,
     "PTH101": 5,
     "S101": 24,
     "T201": 12,
@@ -370,7 +370,6 @@
       "ANN401": 2,
       "D205": 4,
       "D401": 1,
-      "PERF401": 6,
       "TC003": 1
     },
     "scripts/evaluate_end_to_end.py": {

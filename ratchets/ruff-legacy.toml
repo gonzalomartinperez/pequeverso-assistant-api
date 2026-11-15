@@ -79,7 +79,7 @@
 "../scripts/compare_oci_images.py" = ["PERF401"]
 "../scripts/container_fixture_probe.py" = ["ARG002"]
 "../scripts/evaluate_conversations.py" = ["ANN401", "D301", "PERF401", "TC003"]
-"../scripts/evaluate_corpus.py" = ["ANN401", "D205", "D401", "PERF401", "TC003"]
+"../scripts/evaluate_corpus.py" = ["ANN401", "D205", "D401", "TC003"]
 "../scripts/evaluate_end_to_end.py" = ["PTH101", "S101", "TC001", "TC003", "TRY301"]
 "../scripts/evaluate_graph_end_to_end.py" = ["TC001", "TC003"]
 "../scripts/postgres_fixture_identity.py" = ["TRY301"]
