@@ -1,3 +1,5 @@
+> Archived 2026-11-21 (PVA-M3.4): historical plan, superseded by docs/master-plan/.
+
 # Execution plan and status
 
 | Step | Status |
@@ -8,7 +10,7 @@
 | Backend: domain, use cases, AI composer, SQLite, providers, HTTP/SSE, bootstrap | Merged, PR #1 (`0750524`) |
 | Catalog export from pinned storefront commit, freshness policy | Merged, PR #1 |
 | Tests (unit, contract, real-socket streaming, persistence, budget races, security, architecture) and evaluations | Merged, PR #1 |
-| Contract v1 artifacts + frontend handoff; deployment contract; security; skills; CI | Merged, PR #1; web handoff pinned in `docs/handoffs/backoffice.md` |
+| Contract v1 artifacts + frontend handoff; deployment contract; security; skills; CI | Merged, PR #1; web handoff pinned in `docs/reference/handoffs/backoffice.md` |
 | Ownership update: frontend moved to `pequeverso-assistant-web`; storefront integration deferred | Applied (no storefront changes existed) |
 | Dependabot assessment | Read-only manual profile (2026-10-17); native updates/rebase and alerts remain enabled. Historical PR #2/#3 did not prove eligible auto-arming |
 | Real-model evaluation | Owner-authorized 2026-10-12:236 baseline +53 post-adjustment queries; dated evidence in docs/verification/real-model-2026-10-12.md |

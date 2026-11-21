@@ -14,7 +14,7 @@ LangGraph and LangChain 1.x have their own published support policy; Python and 
 use support schedules without the LTS label. LangSmith is a separately versioned dependency;
 local SDK beta/deprecation warnings are explicitly scoped, not globally ignored. OTel's locked
 tree includes beta components. No version badge establishes production security or deployment.
-See [operator gates](knowledge-operations.md) and [GraphRAG component evidence](graph-retrieval.md).
+See [operator gates](../how-to/knowledge-operations.md) and [GraphRAG component evidence](../explanation/graph-retrieval.md).
 The dated earlier baseline below remains historical evidence and is not relabeled.
 
 Current container recipes are `infra/docker/{app,postgres,neo4j}/Dockerfile`, built with the
@@ -62,7 +62,7 @@ Python dependency graph has candidate CP315-compatible wheels on Linux amd64. Fr
 and runtime tests remain required. Mypy targets 3.15; Ruff keeps the pre-existing conservative
 `py313` syntax target to avoid unrelated rewrites.
 
-See [candidate verification](verification/runtime-cohort-2026-10-17.md) for release-note review,
+See [candidate verification](../verification/runtime-cohort-2026-10-17.md) for release-note review,
 configuration and actual-SDK transport regressions, measured checks and outstanding gates.
 
 ## Image and operations boundaries

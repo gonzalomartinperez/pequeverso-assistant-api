@@ -5,7 +5,7 @@ registry), `docs/master-plan/assistant-quality.md` section 9.
 
 ## Context and problem statement
 
-`app/ai/prompt.py` carries `PROMPT_VERSION`, bumped by hand, and `docs/evaluation.md` asks authors to
+`app/ai/prompt.py` carries `PROMPT_VERSION`, bumped by hand, and `docs/reference/evaluation.md` asks authors to
 bump it. Nothing enforced the bump: a change to `INSTRUCTIONS` or `OUTPUT_SCHEMA` could ship under an
 old version, so evaluation reports, cassettes and the composer cache key (`pequeverso-assistant:
 <version>:...`) would name a prompt that no longer exists. The golden cassette lane (PVA-M2.5) also

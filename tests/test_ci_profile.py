@@ -531,7 +531,7 @@ def test_every_standards_reference_is_pinned_to_one_commit():
 
 
 def test_docs_only_change_runs_docs_and_skips_code_database_and_container():
-    jobs = classify_paths(["docs/ci.md", "docs/security.md", "CHANGELOG.md"])
+    jobs = classify_paths(["docs/reference/ci.md", "docs/explanation/security.md", "CHANGELOG.md"])
     assert jobs == {"docs", "secrets"}
     assert not {"static", "database", "container"} & jobs
 
@@ -567,7 +567,8 @@ def test_path_changes_select_the_expected_jobs(paths, present, absent):
 
 
 @pytest.mark.parametrize(
-    "paths", [["unmapped/file.bin"], ["docs/ci.md", "surprise.txt"], [".github/ci-profile.json"]]
+    "paths",
+    [["unmapped/file.bin"], ["docs/reference/ci.md", "surprise.txt"], [".github/ci-profile.json"]],
 )
 def test_unknown_paths_and_profile_edits_run_everything(paths):
     assert classify_paths(paths) is None

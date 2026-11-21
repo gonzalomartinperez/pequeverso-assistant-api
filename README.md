@@ -37,11 +37,11 @@ development happens on `develop`.
   legacy ES/EN behavior and stored history; the existing wire enum is preserved.
 - `gpt-6-luna` at **medium** reasoning effort when paid use is authorized; budget USD 10/month
   (configurable) with atomic reservations and confirmed / estimated / pending spend.
-- Optional [official Hotmart procedure evidence](docs/official-web-evidence.md) is server-owned,
+- Optional [official Hotmart procedure evidence](docs/explanation/official-web-evidence.md) is server-owned,
   bounded to three public articles and disabled by default; no autonomous searches or buyer-account tools.
 - Grounded in a catalog exported from the storefront at a pinned commit; every product,
   link and price shown is server-validated.
-- [Architecture and resource ownership](docs/architecture.md) keep SDK/HTTP/storage details outside
+- [Architecture and resource ownership](docs/explanation/architecture.md) keep SDK/HTTP/storage details outside
   the use cases. [Contributing](CONTRIBUTING.md) defines the check command, branch flow, review
   evidence, reproducible locks/digests and supported-version policies.
 
@@ -77,14 +77,14 @@ original sources; none is relabeled as a later run or production acceptance.
 
 <p align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture/system-dark.svg">
-  <img src="docs/architecture/system-light.svg" alt="Assistant API boundaries: public session and CSRF, validated evidence, separate public/private PostgreSQL, public Neo4j projection, bounded OpenAI generation, separate backoffice PostgreSQL identity and future private vps-ops observability.">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/explanation/architecture/system-dark.svg">
+  <img src="docs/explanation/architecture/system-light.svg" alt="Assistant API boundaries: public session and CSRF, validated evidence, separate public/private PostgreSQL, public Neo4j projection, bounded OpenAI generation, separate backoffice PostgreSQL identity and future private vps-ops observability.">
 </picture>
 </p>
 
-[Open full-size diagram](docs/architecture/system-light.svg) ·
-[Dark version](docs/architecture/system-dark.svg) ·
-[Editable relationships and SVG provenance](docs/architecture/README.md).
+[Open full-size diagram](docs/explanation/architecture/system-light.svg) ·
+[Dark version](docs/explanation/architecture/system-dark.svg) ·
+[Editable relationships and SVG provenance](docs/explanation/architecture/README.md).
 
 The production API owns separate PostgreSQL public-catalog and private-application schemas;
 Neo4j is a rebuildable public projection. The backoffice owns a separate PostgreSQL identity
@@ -106,12 +106,12 @@ vps-ops, not evidence of deployment, VPS capacity or production readiness.
 There are no payment/order tools, routing LLM, generated SQL/Cypher, Redis or automatic model
 retries. Structured catalog facts remain mandatory. Verified passages and old model-context
 text fit the unchanged 24KB bound. Component retrieval, semantic quality, HTTP correctness and
-conversion are different measurements. See [GraphRAG evidence](docs/graph-retrieval.md) and
-[operator jobs, roles and remaining deployment gates](docs/knowledge-operations.md).
+conversion are different measurements. See [GraphRAG evidence](docs/explanation/graph-retrieval.md) and
+[operator jobs, roles and remaining deployment gates](docs/how-to/knowledge-operations.md).
 
 ## One question, one accountable generation
 
-The [editable request sequence](docs/architecture/request-flow.mmd) details session/CSRF,
+The [editable request sequence](docs/explanation/architecture/request-flow.mmd) details session/CSRF,
 one accountable generation, retrieval, canonical validation and terminal persistence. The
 centered system diagram above shows the same application and data boundaries.
 
@@ -183,25 +183,15 @@ scripts/smoke_container.sh                      # image: non-root, read-only, SS
 
 | Topic | Doc |
 |---|---|
-| Public contract (sessions, SSE, references, freshness, errors, languages) and private ops API | `docs/api-contract.md` + `contracts/`; handoffs `docs/handoffs/storefront-transition.md` (native assistant) and `docs/handoffs/backoffice.md` (backoffice) |
-| Architecture and decisions | `docs/architecture.md`, `docs/decisions/` |
-| Security, privacy, retention | `docs/security.md` |
-| Catalog source, sync, freshness | `docs/catalog.md`, `docs/graph-retrieval.md`, `docs/knowledge-operations.md` |
-| Evaluation and live procedure | [Procedures](docs/evaluation.md), [historical real-model evidence](docs/verification/real-model-2026-10-12.md), [post-tool verification and limits](docs/verification/post-tools-2026-10-13.md) |
-| Optional private telemetry, metrics and traces | `docs/observability/README.md` |
-| Deployment handoff (vps-ops/Coolify) | `docs/deployment-contract.md` |
-| Dependency updates and manual review | `docs/dependency-updates.md` |
-| Reference adoption (portfolio-assistant-api) | `docs/reference-adoption.md` |
-| Storefront transition, vps-ops handoff, open business questions | `docs/handoffs/storefront-transition.md`, `docs/handoffs/vps-ops.md`, `docs/business-questions.md` |
-| Agent instructions and skills | `AGENTS.md`, [paired skill discovery](docs/agent-skills.md), `.agents/skills/` canonical and `.claude/skills/` per-skill links |
+| Documentation | Index: [Diátaxis guide](docs/README.md); [how-to](docs/how-to/), [reference](docs/reference/), [explanation](docs/explanation/), [decisions](docs/decisions/), [evidence](docs/verification/) |
 
 ## Verification and operational limits
 
 - Fixture suites verify the pipeline, guards and persistence; they do not measure model quality.
   Real model reports must distinguish usage-derived cost estimates from invoices and retain
-  interrupted requests. See [evaluation](docs/evaluation.md).
+  interrupted requests. See [evaluation](docs/reference/evaluation.md).
 - A catalog's Git revision proves provenance, not deployment or the final merchant checkout
-  total. Expired prices are withheld. See [catalog freshness](docs/catalog.md).
+  total. Expired prices are withheld. See [catalog freshness](docs/reference/catalog.md).
 - Logical deletion does not guarantee erasure from database pages, WAL or backups. Retention,
   encrypted off-server backup and an operational restore drill remain activation gates.
 - Containers are non-root, read-only and resource-limited. Smoke the exact selected image,
@@ -226,7 +216,7 @@ separate owner authorization and a protected merge commit. The software license 
 authorize deployment or access to private data. Never commit secrets, private evaluations
 or customer conversations.
 
-Shared runtime/version acceptance: [runtime baseline](docs/runtime-baseline.md).
+Shared runtime/version acceptance: [runtime baseline](docs/reference/runtime-baseline.md).
 
 ### Affiliate product coverage (2026-10-18)
 
@@ -238,7 +228,7 @@ The course overview attributes six modules and four bonuses to its producer desc
 The course has no authorized published price, PDFs or page counts: those remain null. Its published
 seven-day guarantee and affiliate disclosure stay product-scoped; the kit policy cannot transfer
 to the course. Revision1.5 adds optional card kind/format/disclosure fields, with core defaults
-for historical messages. See [catalog](docs/catalog.md) and [contract](docs/api-contract.md).
+for historical messages. See [catalog](docs/reference/catalog.md) and [contract](docs/reference/api-contract.md).
 Fixture tests prove transport, grounded metadata, history and replay; they do not establish
 real-model quality, a functioning affiliate redirect or readiness of an undeployed VPS.
 
@@ -254,7 +244,7 @@ the 24KB input limit and public wire contracts remain unchanged. Any further pai
 needs explicit authorization within the remaining original audited budget.
 The [exact-image PostgreSQL report](docs/verification/postgres-alpine-2026-10-18.md) distinguishes
 the patched local engine from historical images and retains the complete API/Neo4j findings.
-The [current security handoff](docs/security.md#dependency-and-image-findings-in-the-deployment-handoff)
+The [current security handoff](docs/explanation/security.md#dependency-and-image-findings-in-the-deployment-handoff)
 treats dependency/image CVEs as advisory and nonblocking for future deployment. Historical scan
 results remain unchanged; health, secrets, data and identity checks still apply. The VPS has not
 yet been purchased, and deployment or assistant activation still requires explicit owner direction.

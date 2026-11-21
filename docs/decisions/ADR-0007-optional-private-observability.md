@@ -41,7 +41,7 @@ Fixture tests cover private authorization, exact metrics/JSON, safe span attribu
 export failure and shutdown. Actual local OTLP capture and active-stream container termination
 are recorded with exact images; neither proves deployed receiver ingestion, VPS capacity,
 production availability or privacy after proxy misconfiguration. See
-[the operational contract](../observability/README.md) and [deployment](../deployment-contract.md).
+[the operational contract](../reference/observability.md) and [deployment](../reference/deployment-contract.md).
 
 ## Confirmation
 

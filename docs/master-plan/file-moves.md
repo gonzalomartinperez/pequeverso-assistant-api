@@ -10,9 +10,9 @@ Source of truth is `file-index.csv` (412 tracked files at develop `6912579`). Th
 | `.github/workflows/dependency-policy.yml` | `.github/workflows/deps-weekly-guard.yml` | rewrite | pull_request_target policy workflow removed; replaced by the shared weekly guard (no PR-head trust) | M1 |
 | `.github/workflows/quality.yml` | `.github/workflows/ci.yml` | rewrite | one ci.yml: classify job, shared reusable workflows, ci-gate (renamed from checks via ruleset script), profiles per ecosystem 6.0 | M1 |
 | `app/ai/prompt.py` | `app/ai/prompt.py (+ app/ai/prompt.lock.json)` | edit | formalize PROMPT_VERSION: content hash lock, bump test, prompt changelog (assistant-quality.md section 9) | M2 |
-| `docs/ci.md` | `docs/reference/ci.md` | rewrite | describes the five-job aggregate named checks; rewrite for profiles and ci-gate | M3 |
-| `docs/dependency-updates.md` | `docs/how-to/dependency-updates.md` | rewrite | describes the retired classifier; rewrite for the weekly single PR and the vulnerability SLA | M3 |
-| `docs/evaluation.md` | `docs/reference/evaluation.md` | rewrite | counts are stale (23 retrieval, 24 conversation, 22 guard cases vs 20/19/14 stated); numbers generated from reports (no volatile facts) | M3 |
+| `docs/reference/ci.md` | `docs/reference/ci.md` | rewrite | describes the five-job aggregate named checks; rewrite for profiles and ci-gate | M3 |
+| `docs/how-to/dependency-updates.md` | `docs/how-to/dependency-updates.md` | rewrite | describes the retired classifier; rewrite for the weekly single PR and the vulnerability SLA | M3 |
+| `docs/reference/evaluation.md` | `docs/reference/evaluation.md` | rewrite | counts are stale (23 retrieval, 24 conversation, 22 guard cases vs 20/19/14 stated); numbers generated from reports (no volatile facts) | M3 |
 | `tests/test_architecture.py` | `tests/test_architecture.py (+ .importlinter)` | edit | layer and third-party rules move to import-linter contracts; AST keeps banned-call and SQL/Cypher location rules; negative fixtures kept | M2 |
 | `.agents/skills/api-change-contract` | `.claude/skills/api-change-contract` | move | symlink direction inverted with the canonical move | M1 |
 | `.agents/skills/api-change-use-case` | `.claude/skills/api-change-use-case` | move | symlink direction inverted with the canonical move | M1 |
@@ -28,25 +28,25 @@ Source of truth is `file-index.csv` (412 tracked files at develop `6912579`). Th
 | `.github/dependabot-policy.json` | `-` | delete | allowlist for the retired classifier | M1 |
 | `app/application/chat.py` | `app/application/chat.py (+chat_steps.py)` | split | start (29) and events (17) become named steps behind characterisation tests and golden cassettes; no behaviour change | M4 |
 | `app/bootstrap/container.py` | `app/bootstrap/container.py (+wiring.py, lifespan.py, routes.py)` | split | create_app has cyclomatic complexity 36; split into wiring, lifespan and route installation, each <= 10 (PVA-D4) | M4 |
-| `docs/agent-skills.md` | `docs/reference/agent-skills.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
-| `docs/api-contract.md` | `docs/reference/api-contract.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
-| `docs/architecture.md` | `docs/explanation/architecture.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
-| `docs/business-questions.md` | `docs/explanation/business-questions.md` | move | open owner questions with defaults; owner-only decisions list links here | M3 |
-| `docs/catalog.md` | `docs/reference/catalog.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
-| `docs/deployment-contract.md` | `docs/reference/deployment-contract.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/reference/agent-skills.md` | `docs/reference/agent-skills.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/reference/api-contract.md` | `docs/reference/api-contract.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/explanation/architecture.md` | `docs/explanation/architecture.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/explanation/business-questions.md` | `docs/explanation/business-questions.md` | move | open owner questions with defaults; owner-only decisions list links here | M3 |
+| `docs/reference/catalog.md` | `docs/reference/catalog.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/reference/deployment-contract.md` | `docs/reference/deployment-contract.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
 | `docs/engineering-standards.md` | `CONTRIBUTING.md` | merge | review standard and four-session ownership fold into CONTRIBUTING.md and AGENTS.md; ecosystem.md is the standard; file deleted after merge | M1 |
-| `docs/execution-plan.md` | `docs/archive/execution-plan-2026-09.md` | move | historical status table; superseded by docs/master-plan/roadmap.md | M3 |
-| `docs/graph-retrieval.md` | `docs/explanation/graph-retrieval.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
-| `docs/handoffs/backoffice.md` | `docs/reference/handoffs/backoffice.md` | move | cross-repo contract handoff; reference | M3 |
-| `docs/handoffs/storefront-transition.md` | `docs/reference/handoffs/storefront-transition.md` | move | cross-repo contract handoff; reference | M3 |
-| `docs/handoffs/vps-ops.md` | `docs/reference/handoffs/vps-ops.md` | move | 195-line handoff; trim volatile measurements in the move PR; reference | M3 |
-| `docs/knowledge-operations.md` | `docs/how-to/knowledge-operations.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
-| `docs/observability/README.md` | `docs/reference/observability.md` | move | one file does not need a folder | M3 |
-| `docs/official-web-evidence.md` | `docs/explanation/official-web-evidence.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
-| `docs/product-analytics.md` | `docs/reference/product-analytics.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
-| `docs/reference-adoption.md` | `docs/explanation/reference-adoption.md` | move | provenance record of ideas adapted from portfolio-assistant-api (licence evidence); keep | M3 |
-| `docs/runtime-baseline.md` | `docs/reference/runtime-baseline.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
-| `docs/security.md` | `docs/explanation/security.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/archive/execution-plan.md` | `docs/archive/execution-plan-2026-09.md` | move | historical status table; superseded by docs/master-plan/roadmap.md | M3 |
+| `docs/explanation/graph-retrieval.md` | `docs/explanation/graph-retrieval.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/reference/handoffs/backoffice.md` | `docs/reference/handoffs/backoffice.md` | move | cross-repo contract handoff; reference | M3 |
+| `docs/reference/handoffs/storefront-transition.md` | `docs/reference/handoffs/storefront-transition.md` | move | cross-repo contract handoff; reference | M3 |
+| `docs/reference/handoffs/vps-ops.md` | `docs/reference/handoffs/vps-ops.md` | move | 195-line handoff; trim volatile measurements in the move PR; reference | M3 |
+| `docs/how-to/knowledge-operations.md` | `docs/how-to/knowledge-operations.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/reference/observability.md` | `docs/reference/observability.md` | move | one file does not need a folder | M3 |
+| `docs/explanation/official-web-evidence.md` | `docs/explanation/official-web-evidence.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/reference/product-analytics.md` | `docs/reference/product-analytics.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/explanation/reference-adoption.md` | `docs/explanation/reference-adoption.md` | move | provenance record of ideas adapted from portfolio-assistant-api (licence evidence); keep | M3 |
+| `docs/reference/runtime-baseline.md` | `docs/reference/runtime-baseline.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
+| `docs/explanation/security.md` | `docs/explanation/security.md` | move | Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee | M3 |
 | `evals/conversations.json` | `evals/archive/conversations.json` | move | 24 live scenarios: best ones promoted to golden items, file retired after promotion | M2 |
 | `evals/guards.json` | `evals/red-team/guards.json` | move | 22 scripted misbehaving outputs become the seed of the PR red-team pack (target 40-60) | M2 |
 | `evals/reports/corpus-fixture.json` | `evals/full/baseline/corpus-fixture.json` | move | becomes the committed baseline report (ratchet input), regenerated by the full-set job | M2 |

@@ -73,7 +73,7 @@ Screenshot or GIF (light/dark), live link, and 2-4 measured results
 (latency, eval pass rate, cost per run, test count). Numbers carry a date and a command to reproduce.
 
 ## Architecture
-C4 level 1 or 2 as Mermaid (see section 3). Two sentences on boundaries. Link to `docs/architecture.md`.
+C4 level 1 or 2 as Mermaid (see section 3). Two sentences on boundaries. Link to `docs/explanation/architecture.md`.
 
 ## Quickstart
 Prereqs (versions from `.nvmrc` / `pyproject.toml`), then at most 5 copy-pasteable commands.
@@ -114,7 +114,7 @@ Rules: 60-150 lines; every section present in every repo (write "n/a: reason" ra
 
 ### 3.1 Diataxis
 
-Four forms: tutorials, how-to guides, reference, explanation ([34]). Apply it as a folder convention (`docs/{tutorials,how-to,reference,explanation}`) only once a repo has more than about 6 doc files; otherwise one `docs/architecture.md` and `docs/decisions/` suffice. The site itself advises incremental adoption rather than a big restructure. Diataxis maps cleanly to agent docs too: AGENTS.md = reference for agents; skills = how-to for agents.
+Four forms: tutorials, how-to guides, reference, explanation ([34]). Apply it as a folder convention (`docs/{tutorials,how-to,reference,explanation}`) only once a repo has more than about 6 doc files; otherwise one `docs/explanation/architecture.md` and `docs/decisions/` suffice. The site itself advises incremental adoption rather than a big restructure. Diataxis maps cleanly to agent docs too: AGENTS.md = reference for agents; skills = how-to for agents.
 
 ### 3.2 C4 and diagrams as code
 

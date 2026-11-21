@@ -3,7 +3,7 @@
 Deterministic fixture suites run in CI. The owner-authorized real-model socket evaluation
 completed on 2026-10-12: 236 initial queries,53 post-adjustment queries and14 final targeted
 queries. See
-[the dated evidence and limits](verification/real-model-2026-10-12.md); automated completion
+[the dated evidence and limits](../verification/real-model-2026-10-12.md); automated completion
 is distinct from semantic correctness, and agent review is not human review.
 
 | Suite | Command | What it proves | Latest result (fixture) |
@@ -17,7 +17,7 @@ is distinct from semantic correctness, and agent review is not human review.
 `tests/test_evaluations.py` gates CI on retrieval ≥ 0.9 recall@3, zero safety failures, zero
 guard failures, zero full-set gate failures, zero reply-language misses and the corpus retrieval floors
 and the per-family and per-language retrieval ratchet (`ratchets/retrieval.json`,
-`scripts/retrieval_ratchet.py`; baseline report in `evals/full/baseline/`). `docs/verification/fixture-eval.json` holds the latest full fixture report.
+`scripts/retrieval_ratchet.py`; baseline report in `evals/full/baseline/`). `docs/../verification/fixture-eval.json` holds the latest full fixture report.
 
 ## Post-change evaluation scope
 
@@ -91,7 +91,7 @@ uv run python scripts/run_bounded_real_eval.py --live --phase holdout \
   contracts, deployment settings or storefront activation.
 - Review each scenario's `quality` list and the answers by hand. Adjust `app/ai/prompt.py` (bump
   `PROMPT_VERSION`, run `uv run python -m scripts.prompt_lock --append` and add a row to
-  [`reference/prompt-changelog.md`](reference/prompt-changelog.md); ADR-0017), then rerun. Commit the
+  [`prompt-changelog.md`](prompt-changelog.md); ADR-0017), then rerun. Commit the
   report with the model name and date.
 - Before launch, also run 3–5 manual chats through the native storefront assistant against an isolated staging deployment.
 
@@ -401,7 +401,7 @@ The optional official-source increment has deterministic mocked-source tests and
 frozen real-model development matrix. The earlier 303-query evidence predates it. Its initial
 203-request phase halted safely on a follow-up context gate; original results remain unchanged.
 The subsequent 74-request phase and final seven targeted regressions are documented in the
-[post-tool report](verification/post-tools-2026-10-13.md), including semantic findings and the
+[post-tool report](../verification/post-tools-2026-10-13.md), including semantic findings and the
 limited introductory external excerpts actually sent. These phases are not independent holdouts.
 The initial 400-attempt/USD 1 envelope retained 282 prior attempts; the owner explicitly authorized
 650 accumulated attempts on 2026-10-13 without changing the USD 1 cap. No count reset or bypass
@@ -439,7 +439,7 @@ A resource-window interruption is not a provider failure or permission to retry.
 the original run and independently reviewing its accounting, the operator may explicitly call
 `Envelope.acknowledge_known_interruption` on the same private ledger. It accepts only one active
 `interrupted` stop, exact attempt/spend counts, zero pending usage, remaining budget and exact
-code/verification/new-phase-manifest hashes. It takes the stable ownership lock and an immediate
+code/../verification/new-phase-manifest hashes. It takes the stable ownership lock and an immediate
 transaction, verifies the effective allowance and its historical audit prefix, and appends one
 `gate_resolutions` record. Every original stop, attempt, settlement and allowance row remains.
 

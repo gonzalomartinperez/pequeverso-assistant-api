@@ -62,7 +62,7 @@ def env_schema() -> dict[str, Any]:
         "description": (
             "variables: API runtime settings. required_in_production applies to an answering "
             "production deployment (ASSISTANT_ENABLED=true, AI_PROVIDER=openai); other values "
-            "follow docs/deployment-contract.md. jobs: secrets read only by explicit operator "
+            "follow docs/reference/deployment-contract.md. jobs: secrets read only by explicit operator "
             "jobs, never by the API container."
         ),
         "variables": variables,

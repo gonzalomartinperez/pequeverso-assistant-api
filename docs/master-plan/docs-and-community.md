@@ -35,11 +35,11 @@ The screenshots and the dated galleries move out of the README into `docs/verifi
 | Decisions | `docs/decisions/ADR-0001..0019` (stable paths, MADR 4 with Confirmation) |
 | Evidence | `docs/verification/` (dated, immutable) |
 
-Moves are listed in `file-moves.md`; every inbound link is fixed in the same PR and checked by lychee (also weekly). `docs/engineering-standards.md` is folded into `CONTRIBUTING.md` and AGENTS.md and deleted; `docs/execution-plan.md` is archived.
+Moves are listed in `file-moves.md`; every inbound link is fixed in the same PR and checked by lychee (also weekly). `docs/engineering-standards.md` is folded into `CONTRIBUTING.md` and AGENTS.md and deleted; `docs/archive/execution-plan.md` is archived.
 
 ## 3. C4 and diagrams
 
-Mermaid C4 level 1 and 2 in the README and `docs/explanation/architecture.md`; existing `.mmd` sources and generated SVGs are kept, with a CI check that the SVGs are regenerated from the `.mmd` (manifest at `docs/architecture/manifest.json` already records provenance). Structurizr is not adopted (no shared model yet).
+Mermaid C4 level 1 and 2 in the README and `docs/explanation/architecture.md`; existing `.mmd` sources and generated SVGs are kept, with a CI check that the SVGs are regenerated from the `.mmd` (manifest at `docs/explanation/architecture/manifest.json` already records provenance). Structurizr is not adopted (no shared model yet).
 
 ## 4. Community files (public repo; per-repo copies synced from `engineering-standards`)
 

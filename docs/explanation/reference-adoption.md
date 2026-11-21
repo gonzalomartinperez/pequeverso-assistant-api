@@ -6,7 +6,7 @@ current license. Ideas were adapted; no code was copied. References below were i
 read-only with `git show` and the GitHub API on immutable commits, never its working tree.
 
 The initial GraphRAG rejection below is historical. The later owner-authorized
-[ADR-0009](decisions/ADR-0009-versioned-commercial-graphrag.md) supersedes it with the current
+[ADR-0009](../decisions/ADR-0009-versioned-commercial-graphrag.md) supersedes it with the current
 PostgreSQL/pgvector, Neo4j and bounded LangGraph production profile; it does not grant source
 reuse, deployment, provider spending or access to private reference data.
 
@@ -25,7 +25,7 @@ reuse, deployment, provider spending or access to private reference data.
 | `44f70ed` | Concurrency test for reservations | Adopted | Plus a 4-process test on one SQLite file |
 | `b7d33fb` (merged as #22) | Bound serialized provider input before the call | Adopted (already) | Input byte size is the token upper bound for the reservation; over `MAX_INPUT_TOKENS` → rejected before any call |
 | `5742961` (#23) | Preserve conversational topic across follow-ups | Adapted | Assistant turns in history carry `referenced_ids` so "the second one" resolves |
-| `c085b93` / `4186664` (#23) | Embedded-first handoff: `/api` prefix preserved, empty `root_path`, host-only Lax cookies, no Domain cookies or `SameSite=None`, iframe kept mounted on minimize, exact frame-ancestors | Adopted | Matches this contract (docs/api-contract.md) |
+| `c085b93` / `4186664` (#23) | Embedded-first handoff: `/api` prefix preserved, empty `root_path`, host-only Lax cookies, no Domain cookies or `SameSite=None`, iframe kept mounted on minimize, exact frame-ancestors | Adopted | Matches this contract (docs/reference/api-contract.md) |
 
 Next check: before the release-candidate PR and whenever a new reference PR touches security,
 sessions or budgets.
@@ -35,6 +35,6 @@ sessions or budgets.
 The earlier rejection of the physical Claude layout above records the decision at that time.
 The owner-authorized paired standard now supersedes that layout choice: six existing API
 procedures live in `.agents/skills/` (canonical since PVA-M1.9, 2026-11) and per-skill
-directory links expose the same files in `.claude/skills/`. See [agent skills](agent-skills.md). Portfolio API commit
+directory links expose the same files in `.claude/skills/`. See [agent skills](../reference/agent-skills.md). Portfolio API commit
 `33c544dead74e0d30283516b6653b0e0aea84bca` was read as a layout reference; no Portfolio
 business procedures, runtime code or authority were imported.

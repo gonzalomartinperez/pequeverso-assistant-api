@@ -40,7 +40,7 @@ classify ─┬─> static ─────────────┐
                                                              all ─> ci-gate
 ```
 
-Mapping from today: `workflows` becomes the `workflow` profile jobs; `secrets` joins `security`; `static` splits into `static` and `unit`; `database` and `container` keep their logic (their probes are product-specific and stay in this repo, `docs/ci.md`); `checks` becomes `ci-gate`.
+Mapping from today: `workflows` becomes the `workflow` profile jobs; `secrets` joins `security`; `static` splits into `static` and `unit`; `database` and `container` keep their logic (their probes are product-specific and stay in this repo, `docs/reference/ci.md`); `checks` becomes `ci-gate`.
 
 ## 4. Rulesets and the rename of the required check
 
@@ -91,7 +91,7 @@ The `ignore` on the Python image keeps 3.14.x until the fleet policy moves (ecos
 
 `deps-weekly-guard` (shared workflow, Monday 10:30 ART and on Dependabot PR events): at most one open Dependabot PR; older ones closed with a pointer; survivor rebased or recreated; red CI opens a tracking issue and labels `needs-fix`; also fails if a pinned base-image digest is older than 30 days.
 
-Retirement: `dependency-policy.yml`, `scripts/dependabot_policy.py`, `.github/dependabot-policy.json`, `tests/test_dependabot_policy.py` and the eligibility text of `docs/dependency-updates.md` are deleted in the same PR (750 lines: 47 + 379 + 8 + 316); the owner merges the one weekly PR manually, so a per-PR classifier adds no decision and removes a `pull_request_target` workflow (PVA-D9).
+Retirement: `dependency-policy.yml`, `scripts/dependabot_policy.py`, `.github/dependabot-policy.json`, `tests/test_dependabot_policy.py` and the eligibility text of `docs/how-to/dependency-updates.md` are deleted in the same PR (750 lines: 47 + 379 + 8 + 316); the owner merges the one weekly PR manually, so a per-PR classifier adds no decision and removes a `pull_request_target` workflow (PVA-D9).
 
 ### P0 path (certifi)
 
@@ -183,7 +183,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--worker
      "--timeout-graceful-shutdown", "15", "--timeout-keep-alive", "5", "--limit-concurrency", "200"]
 ```
 
-Differences from today, with reasons: `--locked --no-editable` (ecosystem 8.2) instead of `--frozen`; OCI labels and `SOURCE_DATE_EPOCH` for reproducibility; the apt `liblzma5` patch layer removed once the base digest includes the fix (it needs network at build and a hand-maintained version string); cache id renamed (it said `vps-ops`); `UV_PYTHON_DOWNLOADS=0` spelling per the standard; health stays on `/health/live` from PVA-M1.7 and switches to `/healthz` in the same PR that adds the alias (PVA-M3.3 acceptance; the old paths stay served until `vps-ops` moves). Kept: one worker (in-process run registry and the private runtime ownership lease, `docs/deployment-contract.md`), UID 65532, no shell tooling added, no `ARG` secrets. Dependabot cannot resolve ARG-substituted `FROM` reliably (unverified), so `FROM` lines stay literal.
+Differences from today, with reasons: `--locked --no-editable` (ecosystem 8.2) instead of `--frozen`; OCI labels and `SOURCE_DATE_EPOCH` for reproducibility; the apt `liblzma5` patch layer removed once the base digest includes the fix (it needs network at build and a hand-maintained version string); cache id renamed (it said `vps-ops`); `UV_PYTHON_DOWNLOADS=0` spelling per the standard; health stays on `/health/live` from PVA-M1.7 and switches to `/healthz` in the same PR that adds the alias (PVA-M3.3 acceptance; the old paths stay served until `vps-ops` moves). Kept: one worker (in-process run registry and the private runtime ownership lease, `docs/reference/deployment-contract.md`), UID 65532, no shell tooling added, no `ARG` secrets. Dependabot cannot resolve ARG-substituted `FROM` reliably (unverified), so `FROM` lines stay literal.
 
 Runtime hardening (compose or Coolify custom options, enforced in `scripts/smoke_container.sh`): `read_only: true`, `tmpfs: /tmp`, `cap_drop: [ALL]`, `security_opt: [no-new-privileges:true]`, `pids_limit`, `mem_limit` with equal `memswap_limit`, `restart: unless-stopped`, `stop_grace_period` ≥ 20 s (uvicorn drain is 15 s). `/data` stays a writable mounted volume only for the SQLite fixture and import profile.
 

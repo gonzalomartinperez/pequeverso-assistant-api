@@ -47,7 +47,7 @@ def test_server_side_guards_hold_against_a_misbehaving_model() -> None:
 # --- full evaluation set (evals/full) -------------------------------------------------------------
 
 # Regression floors only for families where lexical ranking already meets them (measured
-# 2026-10-05: 0.80-0.93 recall@3). Other families are reported, not gated: see docs/evaluation.md.
+# 2026-10-05: 0.80-0.93 recall@3). Other families are reported, not gated: see docs/reference/evaluation.md.
 FAMILY_RECALL_FLOORS = {
     "age-fit": 0.75,
     "comparison-resources": 0.75,

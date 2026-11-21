@@ -26,7 +26,7 @@ Three to five sentences: the problem, who it serves, what makes it different.
 
 ## Architecture
 
-Mermaid C4 context or container diagram (≤ 15 nodes) + two sentences on the dependency rule. Link: docs/architecture.md.
+Mermaid C4 context or container diagram (≤ 15 nodes) + two sentences on the dependency rule. Link: docs/explanation/architecture.md.
 
 ## Quickstart
 

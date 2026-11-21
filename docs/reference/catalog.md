@@ -41,12 +41,12 @@ support promises. Retrieval keeps both product records for comparisons, scopes s
 to explicit product mentions, and uses the latest assistant's structured product references for
 follow-ups. A genuinely ambiguous question is clarified. Conversations are never indexed as
 knowledge. Prices remain subject to freshness and null prices cannot borrow the kit price.
-Bounded positive-claim recognizers reject explicit patterns such as curing anemia or preventing allergies/choking; this is not complete semantic verification. The prompt adds medical boundaries; the dated real-model evaluation and its remaining defects are recorded in [the evaluation report](verification/real-evaluation-2026-10-18.md);
+Bounded positive-claim recognizers reject explicit patterns such as curing anemia or preventing allergies/choking; this is not complete semantic verification. The prompt adds medical boundaries; the dated real-model evaluation and its remaining defects are recorded in [the evaluation report](../verification/real-evaluation-2026-10-18.md);
 the assistant may describe course topics, not prescribe personal diets or medical treatment.
 
 The initial affiliate-catalog increment closed the earlier coverage gap without adding a
 vector store or graph database; that architecture decision was subsequently superseded by
-[the production GraphRAG profile](decisions/ADR-0009-versioned-commercial-graphrag.md).
+[the production GraphRAG profile](../decisions/ADR-0009-versioned-commercial-graphrag.md).
 The latest October 18 refresh adds the published, attributed six-module/four-bonus course
 overview and updates two affiliate topic labels. Prices, policies, resource counts and links
 are unchanged. Public verification at 23:11 UTC confirmed this exact main in Hostinger
@@ -144,7 +144,7 @@ performed or inferred from that comparison.
 on an allowlisted host, with no redirects, a 256 KiB cap and refresh every 15 min. A failed or
 invalid fetch keeps the last good snapshot (content-addressed in SQLite; last 5 kept). It would
 need a storefront change, owned by the storefront team; see
-docs/handoffs/storefront-transition.md.
+docs/reference/handoffs/storefront-transition.md.
 
 ## Content rights
 
@@ -152,12 +152,12 @@ Storefront copy and media are © Pequeverso, all rights reserved (storefront
 `LICENSE-CONTENT.md`). Core copy is used to answer product questions; affiliate metadata and disclosure use only
 the approved public storefront registry, never course videos, private course material or
 producer account information; the same text is already public in the storefront repository. This repository is public
-and grants no license. The owner has been asked to confirm this use (docs/business-questions.md).
+and grants no license. The owner has been asked to confirm this use (docs/explanation/business-questions.md).
 
 ## Optional official platform evidence (2026-10-13)
 
 The catalog remains the only authority for products, prices and merchant policies. Optional
-[official platform evidence](official-web-evidence.md) explains general buyer procedures only;
+[official platform evidence](../explanation/official-web-evidence.md) explains general buyer procedures only;
 its fetch time cannot refresh catalog price verification or change a merchant guarantee.
 
 ## Attributed producer detail export
