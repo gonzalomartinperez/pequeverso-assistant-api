@@ -99,7 +99,7 @@ class RequestContextMiddleware:
             await self.app(scope, receive, send)
             return
         incoming = dict(scope["headers"]).get(b"x-request-id", b"").decode("latin-1")
-        generated = not _REQUEST_ID.match(incoming)
+        generated = not _REQUEST_ID.fullmatch(incoming)
         request_id = secrets.token_hex(8) if generated else incoming
         scope.setdefault("state", {})["request_id"] = request_id
         started = time.monotonic()

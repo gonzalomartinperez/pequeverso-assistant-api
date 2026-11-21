@@ -234,7 +234,7 @@ _external: ExternalEventCounter | None = None
 
 
 class ExternalEventCounter(logging.Filter):
-    """Third-party records carry no allowlisted content, so repeats are only counted.
+    """Third-party records below WARNING carry no allowlisted content, so they are only counted.
 
     The count is flushed as one `external_events` line when a window elapsed (checked on the
     next external record) and at shutdown. It is content-free: a number only.
@@ -249,8 +249,12 @@ class ExternalEventCounter(logging.Filter):
         self._lock = threading.Lock()
 
     def filter(self, record: logging.LogRecord) -> bool:
-        if record.name in _EVENTS or record.name == "uvicorn.error":
-            return True
+        if (
+            record.name in _EVENTS
+            or record.name == "uvicorn.error"
+            or record.levelno >= logging.WARNING
+        ):
+            return True  # warnings and errors keep their content-free `external` line
         with self._lock:
             self._count += 1
             due = time.monotonic() - self._since >= self._window

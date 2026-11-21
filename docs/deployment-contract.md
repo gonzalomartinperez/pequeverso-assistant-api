@@ -153,7 +153,7 @@ latency percentiles, token usage and spend (confirmed / estimated / pending) to 
 | Variable | Production value | Kind |
 |---|---|---|
 | `ENVIRONMENT` | `production` (enables fail-closed validation) | config |
-| `LOG_STREAM` | `stdout` (default) or `stderr`; CLIs and evaluations force `stderr` | config |
+| `LOG_STREAM` | `stdout` (default) or `stderr`. CLIs and evaluations always log to `stderr`, including the import and knowledge jobs (they logged to stdout before PVA-M3.2) | config |
 | `ASSISTANT_ENABLED` | `true`, or `false` as a kill switch (API answers `assistant_disabled`; the store is unaffected) | config |
 | `AI_PROVIDER` / `ALLOW_PAID_AI` | `openai` / `true`: only after the owner authorizes paid use. Production refuses fixture answers while enabled | config |
 | `OPENAI_API_KEY` | Key of a **separate Pequeverso OpenAI project** (never the portfolio's) | **secret** |

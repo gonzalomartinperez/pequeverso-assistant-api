@@ -163,7 +163,7 @@ def test_external_event_counter_suppresses_records_and_flushes_only_nonzero_coun
     handler = _RecordingHandler()
     counter = app_logging.ExternalEventCounter(handler, window=float("inf"))
     handler.addFilter(counter)
-    external = logging.LogRecord("httpx", logging.WARNING, "", 0, "suppressed", (), None)
+    external = logging.LogRecord("httpx", logging.INFO, "", 0, "suppressed", (), None)
     request = logging.LogRecord(
         "app.request", logging.INFO, "", 0, '{"operation":"request"}', (), None
     )
@@ -182,6 +182,31 @@ def test_external_event_counter_suppresses_records_and_flushes_only_nonzero_coun
     ]
     counter.flush()
     assert len(handler.records) == 2
+
+
+def test_external_warnings_pass_and_an_elapsed_window_emits_on_the_next_record() -> None:
+    handler = _RecordingHandler()
+    counter = app_logging.ExternalEventCounter(handler, window=0.0)
+    handler.addFilter(counter)
+    warning = logging.LogRecord("httpx", logging.WARNING, "", 0, "kept", (), None)
+    handler.handle(warning)
+    assert handler.records == [warning]
+    handler.handle(logging.LogRecord("httpcore", logging.INFO, "", 0, "x", (), None))
+    assert json.loads(handler.records[-1].getMessage()) == {
+        "operation": "external_events",
+        "count": 1,
+    }
+
+
+def test_reconfiguring_flushes_the_previous_counter(isolated_logging, capsys) -> None:
+    app_logging.configure_logging(stream="stdout")
+    logging.getLogger("some.library").setLevel(logging.INFO)
+    logging.getLogger("some.library").info("counted, not printed")
+    app_logging.configure_logging(stream="stderr")
+    lines = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert [line for line in lines if line.get("operation") == "external_events"] == [
+        {**lines[-1], "operation": "external_events", "count": 1}
+    ]
 
 
 @pytest.mark.parametrize(
