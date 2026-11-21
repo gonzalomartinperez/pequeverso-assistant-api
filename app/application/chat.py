@@ -264,7 +264,8 @@ class _ModelRun(Run):
         elif isinstance(error, TimeoutError):
             code = FailureCode.TIMEOUT
         else:
-            log.error('{"operation":"run","outcome":"unexpected_error"}', exc_info=error)
+            # Called only from the `except` block in `events`, so the exception is active.
+            log.exception('{"operation":"run","outcome":"unexpected_error"}')  # noqa: LOG004
             code = FailureCode.GENERATION_FAILED
         await self._finish(RunState.FAILED, code)
         return code
