@@ -2,7 +2,7 @@
 
 Audience: the **native assistant of the storefront** `pequeverso` (the only public conversation
 UI). The former `pequeverso-assistant-web` chat shells were removed; that repository is now the
-private backoffice `pequeverso-backoffice` (previously `pequeverso-assistant-backoffice`). Current revision: **1.5**, additive within v1
+private backoffice `pequeverso-backoffice` (previously `pequeverso-assistant-backoffice`). Current revision: **1.6**, additive within v1
 (`contract_revision` in `SessionOut` and `contracts/manifest.json`). Revision **1.1** added: `starters`, `locale`, `language`, notice `language_unsupported`,
 and the private operations API. Revision **1.2** adds `pricing` (the rate source used for
 estimates) and `recent` (up to 50 latest runs with opaque ids) to the private ops summary only;
@@ -18,7 +18,13 @@ and clients remain valid. Product price was already nullable; an affiliate price
 because the source does not publish it. Summary also carries the disclosure so older clients
 can preserve the relationship. No request fields, routes or private ops schemas change.
 
-Pinned artifacts: `contracts/openapi.json`, `contracts/sse.schema.json`, `contracts/examples/*`,
+Revision **1.6** documents `POST /api/v1/analytics/events` in `contracts/openapi.json` and
+exports health and private operations in `contracts/openapi.internal.json`. The ingest
+request example is `contracts/examples/product-analytics.event.json`. Existing wire
+behavior stays the same apart from the advertised revision.
+
+Pinned artifacts: `contracts/openapi.json`, `contracts/openapi.internal.json`,
+`contracts/sse.schema.json`, `contracts/examples/*`,
 hashed in `contracts/manifest.json` (`contract_version: "1"`). They are generated from the code
 (`uv run python -m contracts.export`) and CI fails if they drift. Consume them from an exact
 commit of this repository, never from a working tree.

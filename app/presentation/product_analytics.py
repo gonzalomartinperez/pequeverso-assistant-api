@@ -29,6 +29,7 @@ from app.domain.analytics_country import COUNTRIES
 from app.domain.product_analytics import LAYOUT, PROFILE, PROFILE_SOURCE, Event, Selection, window
 from app.presentation.analytics_country import country_from_edge
 from app.presentation.middleware import BodyLimitMiddleware
+from app.presentation.schemas import ErrorOut
 
 PUBLIC_PATH: Final = "/api/v1/analytics/events"
 
@@ -286,7 +287,38 @@ def build_router(
     router = APIRouter()
     headers = {"Cache-Control": "no-store"}
 
-    @router.post(PUBLIC_PATH, include_in_schema=False)
+    @router.post(
+        PUBLIC_PATH,
+        status_code=204,
+        response_class=Response,
+        summary="Ingest a product analytics event",
+        description="Accepts one UTF-8 JSON event up to 1024 bytes from an allowed origin.",
+        responses={
+            204: {"description": "Event accepted"},
+            403: {
+                "description": "Origin denied or credentials supplied. Only middleware origin "
+                "rejections carry a JSON error body.",
+                "model": ErrorOut,
+            },
+            404: {"description": "Product analytics disabled or unavailable in this configuration"},
+            408: {"description": "Request timed out"},
+            413: {"description": "Body exceeds 1024 bytes"},
+            415: {"description": "Expected application/json with optional UTF-8 charset"},
+            422: {"description": "Invalid event or malformed JSON"},
+            429: {
+                "description": "Ingest quota exceeded",
+                "headers": {"Retry-After": {"schema": {"type": "integer", "const": 60}}},
+            },
+            503: {"description": "Analytics storage unavailable"},
+        },
+        # Keep body parsing and validation in the streaming handler.
+        openapi_extra={
+            "requestBody": {
+                "required": True,
+                "content": {"application/json": {"schema": EventIn.model_json_schema()}},
+            }
+        },
+    )
     async def ingest(request: Request) -> Response:
         if not enabled or service is None:
             return Response(status_code=404, headers=headers)
@@ -329,7 +361,24 @@ def build_router(
         except Exception:  # broad catch: database/client failure never exports payload or SQL
             return Response(status_code=503, headers=headers)
 
-    @router.get("/internal/v1/ops/product-analytics", include_in_schema=False)
+    @router.get(
+        "/internal/v1/ops/product-analytics",
+        include_in_schema=False,
+        summary="Read the product analytics report",
+        responses={
+            200: {"model": ReportOut},
+            401: {"description": "Missing or invalid operations token"},
+            404: {"description": "Product analytics or operations authentication disabled"},
+            422: {"description": "Invalid report selection"},
+            503: {"description": "Analytics report unavailable"},
+        },
+        openapi_extra={
+            "parameters": [
+                {"name": name, "in": "query", "schema": schema}
+                for name, schema in SelectionOut.model_json_schema()["properties"].items()
+            ]
+        },
+    )
     async def report(request: Request) -> Response:
         if not enabled or service is None or token_digest is None:
             return Response(status_code=404, headers=headers)

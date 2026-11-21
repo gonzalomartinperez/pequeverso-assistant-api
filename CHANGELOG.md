@@ -22,6 +22,10 @@ entry below predates this format and is kept as written.
   generated environment schema `contracts/env.schema.json` (ADR-0019). The image `HEALTHCHECK` now
   calls `/healthz`; `/health/live` and `/health/ready` are unchanged.
 
+- Contract revision 1.6: `contracts/openapi.json` documents the product-analytics ingest
+  operation, and the new `contracts/openapi.internal.json` covers health and private operations;
+  the oasdiff gate checks both. No wire change apart from the advertised revision.
+
 ### Changed
 
 - `httpx`, `httpcore` and `openai` loggers run at WARNING, and third-party records below WARNING

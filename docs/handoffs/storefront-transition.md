@@ -4,6 +4,12 @@ The storefront (`gonzalomartinperez/pequeverso`) renders the only public convers
 natively (no iframe), **disabled by default** behind its own build-time flag. It calls this API
 cross-origin. This repository does not edit the storefront.
 
+## Contract 1.6
+
+The public OpenAPI spec now documents the product analytics ingest endpoint. Refresh the
+storefront's pinned `contracts/openapi.json` snapshot from the exact merged API commit and
+regenerate its types. Revision 1.6 preserves existing request and response shapes.
+
 ## What the storefront needs from this API
 
 | Need | Contract |

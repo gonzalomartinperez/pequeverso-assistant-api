@@ -188,7 +188,7 @@ def test_native_policy_flows_over_real_sse_socket(tmp_path: Path):
         httpx.Client(base_url=url, trust_env=False) as http,
     ):
         session = http.post("/api/v1/session", headers=JSON_HEADERS, json={"locale": "en"}).json()
-        assert session["contract_revision"] == "1.5"
+        assert session["contract_revision"] == "1.6"
         with http.stream(
             "POST",
             "/api/v1/messages",

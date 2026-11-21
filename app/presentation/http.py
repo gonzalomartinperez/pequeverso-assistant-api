@@ -11,7 +11,7 @@ import ipaddress
 import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Annotated, Literal
+from typing import Annotated, Literal, NotRequired, TypedDict
 
 from fastapi import APIRouter, Depends, FastAPI, Header, Request, Response
 from fastapi.exceptions import RequestValidationError
@@ -284,6 +284,26 @@ async def cancel_run(run_id: str, session: SessionDep, s: ServicesDep) -> Respon
 health = APIRouter(prefix="/health", include_in_schema=False)
 
 
+class _ProbeCatalog(TypedDict):
+    revision: str
+    price_status: Literal["verified", "unverified"]
+
+
+class _Readiness(TypedDict):
+    status: Literal["ready", "not_ready"]
+    catalog: NotRequired[_ProbeCatalog]
+
+
+class _VersionedReadiness(_Readiness):
+    version: str
+    schema_version: str
+
+
+class _VersionedLiveness(TypedDict):
+    status: Literal["ok"]
+    version: str
+
+
 @health.get("/live")
 async def live() -> dict[str, str]:
     return {"status": "ok"}
@@ -301,7 +321,13 @@ async def _readiness(s: Services) -> tuple[dict[str, object], int]:
     return body, 200 if ok else 503
 
 
-@health.get("/ready")
+@health.get(
+    "/ready",
+    responses={
+        200: {"model": _Readiness, "description": "Ready"},
+        503: {"model": _Readiness, "description": "Dependencies not ready"},
+    },
+)
 async def ready(s: ServicesDep) -> JSONResponse:
     body, status = await _readiness(s)
     return JSONResponse(body, status_code=status)
@@ -311,13 +337,19 @@ async def ready(s: ServicesDep) -> JSONResponse:
 probes = APIRouter(include_in_schema=False)
 
 
-@probes.get("/healthz")
+@probes.get("/healthz", responses={200: {"model": _VersionedLiveness}})
 async def healthz(s: ServicesDep) -> dict[str, str]:
     """Liveness: no dependency is checked."""
     return {"status": "ok", "version": s.settings.version}
 
 
-@probes.get("/readyz")
+@probes.get(
+    "/readyz",
+    responses={
+        200: {"model": _VersionedReadiness, "description": "Ready"},
+        503: {"model": _VersionedReadiness, "description": "Dependencies not ready"},
+    },
+)
 async def readyz(s: ServicesDep) -> JSONResponse:
     """Readiness: the /health/ready checks plus the build version and shipped schema level."""
     body, status = await _readiness(s)

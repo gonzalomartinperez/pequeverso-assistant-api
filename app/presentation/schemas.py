@@ -83,7 +83,7 @@ Notice = Literal[
     "answer_replaced", "payment_data_refused", "contact_data_redacted", "language_unsupported"
 ]
 Locale = Literal["es", "en"]
-CONTRACT_REVISION = "1.5"
+CONTRACT_REVISION = "1.6"
 
 
 class MessageOut(_Out):

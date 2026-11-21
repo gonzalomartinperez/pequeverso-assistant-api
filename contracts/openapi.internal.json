@@ -1,0 +1,2239 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Pequeverso assistant API (internal)",
+    "version": "1"
+  },
+  "paths": {
+    "/health/live": {
+      "get": {
+        "summary": "Live",
+        "operationId": "live_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Live Health Live Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "summary": "Ready",
+        "operationId": "ready_health_ready_get",
+        "responses": {
+          "200": {
+            "description": "Ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_Readiness"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependencies not ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_Readiness"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "summary": "Healthz",
+        "description": "Liveness: no dependency is checked.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_VersionedLiveness",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Healthz Healthz Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "summary": "Readyz",
+        "description": "Readiness: the /health/ready checks plus the build version and shipped schema level.",
+        "operationId": "readyz_readyz_get",
+        "responses": {
+          "200": {
+            "description": "Ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_VersionedReadiness"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependencies not ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/_VersionedReadiness"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/v1/ops/product-analytics": {
+      "get": {
+        "summary": "Read the product analytics report",
+        "operationId": "report_internal_v1_ops_product_analytics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid operations token"
+          },
+          "404": {
+            "description": "Product analytics or operations authentication disabled"
+          },
+          "422": {
+            "description": "Invalid report selection"
+          },
+          "503": {
+            "description": "Analytics report unavailable"
+          }
+        },
+        "parameters": [
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "day",
+                "week",
+                "month"
+              ],
+              "title": "Period",
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "maximum": 2,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "name": "route",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "all",
+                "/",
+                "/grafismo-fonetico/"
+              ],
+              "title": "Route",
+              "type": "string"
+            }
+          },
+          {
+            "name": "section_id",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "all",
+                "hero",
+                "leer",
+                "bebe",
+                "preguntas",
+                "incluye",
+                "metodo"
+              ],
+              "title": "Section Id",
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewport_bucket",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "all",
+                "mobile",
+                "tablet",
+                "desktop"
+              ],
+              "title": "Viewport Bucket",
+              "type": "string"
+            }
+          },
+          {
+            "name": "locale",
+            "in": "query",
+            "schema": {
+              "const": "es",
+              "title": "Locale",
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "OpsBearer": []
+          }
+        ]
+      }
+    },
+    "/internal/v1/ops/summary": {
+      "get": {
+        "summary": "Summary",
+        "operationId": "summary_internal_v1_ops_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpsSummaryOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid operations token",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string",
+                  "const": "Bearer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OpsBearer": []
+          }
+        ]
+      }
+    },
+    "/internal/v1/ops/telemetry": {
+      "get": {
+        "summary": "Runtime Telemetry",
+        "operationId": "runtime_telemetry_internal_v1_ops_telemetry_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OpsTelemetryOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid operations token",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string",
+                  "const": "Bearer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OpsBearer": []
+          }
+        ]
+      }
+    },
+    "/internal/v1/ops/metrics": {
+      "get": {
+        "summary": "Metrics",
+        "operationId": "metrics_internal_v1_ops_metrics_get",
+        "responses": {
+          "200": {
+            "description": "Prometheus exposition format",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid operations token",
+            "headers": {
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string",
+                  "const": "Bearer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OpsBearer": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BudgetOut": {
+        "properties": {
+          "month": {
+            "type": "string",
+            "title": "Month"
+          },
+          "day": {
+            "type": "string",
+            "title": "Day"
+          },
+          "monthly_limit": {
+            "type": "string",
+            "title": "Monthly Limit"
+          },
+          "monthly_cutoff": {
+            "type": "string",
+            "title": "Monthly Cutoff"
+          },
+          "daily_limit": {
+            "type": "string",
+            "title": "Daily Limit"
+          },
+          "month_spend": {
+            "$ref": "#/components/schemas/SpendOut"
+          },
+          "day_spend": {
+            "$ref": "#/components/schemas/SpendOut"
+          },
+          "remaining_month": {
+            "type": "string",
+            "title": "Remaining Month"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "month",
+          "day",
+          "monthly_limit",
+          "monthly_cutoff",
+          "daily_limit",
+          "month_spend",
+          "day_spend",
+          "remaining_month"
+        ],
+        "title": "BudgetOut"
+      },
+      "CatalogOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "missing"
+            ],
+            "title": "Status"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "bundled",
+              "live"
+            ],
+            "title": "Source"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sha256"
+          },
+          "generated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generated At"
+          },
+          "verified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified At"
+          },
+          "activated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activated At"
+          },
+          "price_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "verified",
+                  "unverified"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Status"
+          },
+          "price_max_age_hours": {
+            "type": "integer",
+            "title": "Price Max Age Hours"
+          },
+          "last_attempt_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Attempt At"
+          },
+          "last_failure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Failure"
+          },
+          "last_failure_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Failure At"
+          },
+          "products": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Products"
+          },
+          "documents": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Documents"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "source",
+          "revision",
+          "sha256",
+          "generated_at",
+          "verified_at",
+          "activated_at",
+          "price_status",
+          "price_max_age_hours",
+          "last_attempt_at",
+          "last_failure",
+          "last_failure_at",
+          "products",
+          "documents"
+        ],
+        "title": "CatalogOut"
+      },
+      "Cell": {
+        "properties": {
+          "x": {
+            "type": "integer",
+            "maximum": 7.0,
+            "minimum": 0.0,
+            "title": "X"
+          },
+          "y": {
+            "type": "integer",
+            "maximum": 7.0,
+            "minimum": 0.0,
+            "title": "Y"
+          },
+          "count": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 3.0,
+            "title": "Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "x",
+          "y",
+          "count"
+        ],
+        "title": "Cell"
+      },
+      "Country": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "AD",
+              "AE",
+              "AF",
+              "AG",
+              "AI",
+              "AL",
+              "AM",
+              "AO",
+              "AQ",
+              "AR",
+              "AS",
+              "AT",
+              "AU",
+              "AW",
+              "AX",
+              "AZ",
+              "BA",
+              "BB",
+              "BD",
+              "BE",
+              "BF",
+              "BG",
+              "BH",
+              "BI",
+              "BJ",
+              "BL",
+              "BM",
+              "BN",
+              "BO",
+              "BQ",
+              "BR",
+              "BS",
+              "BT",
+              "BV",
+              "BW",
+              "BY",
+              "BZ",
+              "CA",
+              "CC",
+              "CD",
+              "CF",
+              "CG",
+              "CH",
+              "CI",
+              "CK",
+              "CL",
+              "CM",
+              "CN",
+              "CO",
+              "CR",
+              "CU",
+              "CV",
+              "CW",
+              "CX",
+              "CY",
+              "CZ",
+              "DE",
+              "DJ",
+              "DK",
+              "DM",
+              "DO",
+              "DZ",
+              "EC",
+              "EE",
+              "EG",
+              "EH",
+              "ER",
+              "ES",
+              "ET",
+              "FI",
+              "FJ",
+              "FK",
+              "FM",
+              "FO",
+              "FR",
+              "GA",
+              "GB",
+              "GD",
+              "GE",
+              "GF",
+              "GG",
+              "GH",
+              "GI",
+              "GL",
+              "GM",
+              "GN",
+              "GP",
+              "GQ",
+              "GR",
+              "GS",
+              "GT",
+              "GU",
+              "GW",
+              "GY",
+              "HK",
+              "HM",
+              "HN",
+              "HR",
+              "HT",
+              "HU",
+              "ID",
+              "IE",
+              "IL",
+              "IM",
+              "IN",
+              "IO",
+              "IQ",
+              "IR",
+              "IS",
+              "IT",
+              "JE",
+              "JM",
+              "JO",
+              "JP",
+              "KE",
+              "KG",
+              "KH",
+              "KI",
+              "KM",
+              "KN",
+              "KP",
+              "KR",
+              "KW",
+              "KY",
+              "KZ",
+              "LA",
+              "LB",
+              "LC",
+              "LI",
+              "LK",
+              "LR",
+              "LS",
+              "LT",
+              "LU",
+              "LV",
+              "LY",
+              "MA",
+              "MC",
+              "MD",
+              "ME",
+              "MF",
+              "MG",
+              "MH",
+              "MK",
+              "ML",
+              "MM",
+              "MN",
+              "MO",
+              "MP",
+              "MQ",
+              "MR",
+              "MS",
+              "MT",
+              "MU",
+              "MV",
+              "MW",
+              "MX",
+              "MY",
+              "MZ",
+              "NA",
+              "NC",
+              "NE",
+              "NF",
+              "NG",
+              "NI",
+              "NL",
+              "NO",
+              "NP",
+              "NR",
+              "NU",
+              "NZ",
+              "OM",
+              "PA",
+              "PE",
+              "PF",
+              "PG",
+              "PH",
+              "PK",
+              "PL",
+              "PM",
+              "PN",
+              "PR",
+              "PS",
+              "PT",
+              "PW",
+              "PY",
+              "QA",
+              "RE",
+              "RO",
+              "RS",
+              "RU",
+              "RW",
+              "SA",
+              "SB",
+              "SC",
+              "SD",
+              "SE",
+              "SG",
+              "SH",
+              "SI",
+              "SJ",
+              "SK",
+              "SL",
+              "SM",
+              "SN",
+              "SO",
+              "SR",
+              "SS",
+              "ST",
+              "SV",
+              "SX",
+              "SY",
+              "SZ",
+              "TC",
+              "TD",
+              "TF",
+              "TG",
+              "TH",
+              "TJ",
+              "TK",
+              "TL",
+              "TM",
+              "TN",
+              "TO",
+              "TR",
+              "TT",
+              "TV",
+              "TW",
+              "TZ",
+              "UA",
+              "UG",
+              "UM",
+              "US",
+              "UY",
+              "UZ",
+              "VA",
+              "VC",
+              "VE",
+              "VG",
+              "VI",
+              "VN",
+              "VU",
+              "WF",
+              "WS",
+              "YE",
+              "YT",
+              "ZA",
+              "ZM",
+              "ZW",
+              "unknown",
+              "withheld"
+            ],
+            "title": "Code"
+          },
+          "count": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 1.0,
+            "title": "Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "count"
+        ],
+        "title": "Country"
+      },
+      "Counts": {
+        "properties": {
+          "page_views": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 0.0,
+            "title": "Page Views"
+          },
+          "section_views": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 0.0,
+            "title": "Section Views"
+          },
+          "public_clicks": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 0.0,
+            "title": "Public Clicks"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "page_views",
+          "section_views",
+          "public_clicks"
+        ],
+        "title": "Counts"
+      },
+      "Daily": {
+        "properties": {
+          "page_views": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 0.0,
+            "title": "Page Views"
+          },
+          "section_views": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 0.0,
+            "title": "Section Views"
+          },
+          "public_clicks": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 0.0,
+            "title": "Public Clicks"
+          },
+          "day": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Day"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "page_views",
+          "section_views",
+          "public_clicks",
+          "day"
+        ],
+        "title": "Daily"
+      },
+      "DailyOut": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "title": "Day"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "cancelled": {
+            "type": "integer",
+            "title": "Cancelled"
+          },
+          "interrupted": {
+            "type": "integer",
+            "title": "Interrupted"
+          },
+          "refused": {
+            "type": "integer",
+            "title": "Refused"
+          },
+          "confirmed": {
+            "type": "string",
+            "title": "Confirmed"
+          },
+          "estimated": {
+            "type": "string",
+            "title": "Estimated"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
+          },
+          "reasoning_tokens": {
+            "type": "integer",
+            "title": "Reasoning Tokens"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "day",
+          "completed",
+          "failed",
+          "cancelled",
+          "interrupted",
+          "refused",
+          "confirmed",
+          "estimated",
+          "input_tokens",
+          "output_tokens",
+          "reasoning_tokens"
+        ],
+        "title": "DailyOut"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "English, for developers; localize from `code`."
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "request_id"
+        ],
+        "title": "ErrorBody"
+      },
+      "ErrorOut": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorOut"
+      },
+      "Grid": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "visible_clicks": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 0.0,
+            "title": "Visible Clicks"
+          },
+          "withheld_clicks": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 0.0,
+            "title": "Withheld Clicks"
+          },
+          "unselected_clicks": {
+            "type": "integer",
+            "maximum": 310000.0,
+            "minimum": 0.0,
+            "title": "Unselected Clicks"
+          },
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/Cell"
+            },
+            "type": "array",
+            "maxItems": 64,
+            "title": "Cells"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "available",
+          "visible_clicks",
+          "withheld_clicks",
+          "unselected_clicks",
+          "cells"
+        ],
+        "title": "Grid"
+      },
+      "HttpTelemetryOut": {
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Requests"
+          },
+          "server_errors": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Server Errors"
+          },
+          "inflight": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Inflight"
+          },
+          "window": {
+            "type": "string",
+            "const": "since_process_start",
+            "title": "Window",
+            "default": "since_process_start"
+          },
+          "error_scope": {
+            "type": "string",
+            "const": "http_5xx_only_not_sse_run_outcomes",
+            "title": "Error Scope",
+            "default": "http_5xx_only_not_sse_run_outcomes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "requests",
+          "server_errors",
+          "inflight"
+        ],
+        "title": "HttpTelemetryOut"
+      },
+      "LatencyOut": {
+        "properties": {
+          "first_delta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PercentilesOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Request accepted → first answer text (model runs)."
+          },
+          "total": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PercentilesOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Request accepted → authoritative answer (completed model runs)."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "first_delta",
+          "total"
+        ],
+        "title": "LatencyOut"
+      },
+      "OpsAvailabilityOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "reason"
+        ],
+        "title": "OpsAvailabilityOut"
+      },
+      "OpsSummaryOut": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1",
+            "title": "Schema Version",
+            "default": "1"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "service": {
+            "$ref": "#/components/schemas/ServiceOut"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/OpsAvailabilityOut"
+          },
+          "catalog": {
+            "$ref": "#/components/schemas/CatalogOut"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetOut"
+          },
+          "windows": {
+            "items": {
+              "$ref": "#/components/schemas/WindowOut"
+            },
+            "type": "array",
+            "title": "Windows"
+          },
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/DailyOut"
+            },
+            "type": "array",
+            "title": "Daily",
+            "description": "Only days with records (no zero-filled gaps), oldest first."
+          },
+          "metrics_since": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrics Since",
+            "description": "First recorded run; earlier periods are unknown."
+          },
+          "pricing": {
+            "$ref": "#/components/schemas/PricingOut"
+          },
+          "recent": {
+            "items": {
+              "$ref": "#/components/schemas/RecentRunOut"
+            },
+            "type": "array",
+            "title": "Recent",
+            "description": "Up to 50 latest runs, newest first."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "generated_at",
+          "service",
+          "availability",
+          "catalog",
+          "budget",
+          "windows",
+          "daily",
+          "metrics_since",
+          "pricing",
+          "recent"
+        ],
+        "title": "OpsSummaryOut"
+      },
+      "OpsTelemetryOut": {
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "const": "1",
+            "title": "Schema Version",
+            "default": "1"
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "process_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Process Started At"
+          },
+          "process_uptime_seconds": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Process Uptime Seconds",
+            "description": "Current process lifetime, not availability percentage."
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic",
+            "description": "Fixture provider configuration; HTTP/resource measurements remain real."
+          },
+          "readiness": {
+            "$ref": "#/components/schemas/ReadinessOut"
+          },
+          "provider_observation": {
+            "$ref": "#/components/schemas/ProviderObservationOut"
+          },
+          "active_runs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Active Runs"
+          },
+          "max_concurrent_runs": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Max Concurrent Runs"
+          },
+          "resources": {
+            "$ref": "#/components/schemas/ResourcesOut"
+          },
+          "http": {
+            "$ref": "#/components/schemas/HttpTelemetryOut"
+          },
+          "traces": {
+            "$ref": "#/components/schemas/TracesOut"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "generated_at",
+          "process_started_at",
+          "process_uptime_seconds",
+          "synthetic",
+          "readiness",
+          "provider_observation",
+          "active_runs",
+          "max_concurrent_runs",
+          "resources",
+          "http",
+          "traces"
+        ],
+        "title": "OpsTelemetryOut"
+      },
+      "PercentilesOut": {
+        "properties": {
+          "p50": {
+            "type": "integer",
+            "title": "P50"
+          },
+          "p95": {
+            "type": "integer",
+            "title": "P95"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "p50",
+          "p95",
+          "count"
+        ],
+        "title": "PercentilesOut"
+      },
+      "PricingOut": {
+        "properties": {
+          "revision": {
+            "type": "string",
+            "title": "Revision",
+            "description": "Source of the rates used for estimates; not the provider invoice."
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "input_per_million": {
+            "type": "string",
+            "title": "Input Per Million"
+          },
+          "cached_input_per_million": {
+            "type": "string",
+            "title": "Cached Input Per Million"
+          },
+          "cache_write_per_million": {
+            "type": "string",
+            "title": "Cache Write Per Million"
+          },
+          "output_per_million": {
+            "type": "string",
+            "title": "Output Per Million",
+            "description": "Also applies to reasoning tokens."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "model",
+          "input_per_million",
+          "cached_input_per_million",
+          "cache_write_per_million",
+          "output_per_million"
+        ],
+        "title": "PricingOut"
+      },
+      "ProviderObservationOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "unknown",
+            "title": "Status",
+            "default": "unknown"
+          },
+          "reason": {
+            "type": "string",
+            "const": "not_probed",
+            "title": "Reason",
+            "default": "not_probed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ProviderObservationOut"
+      },
+      "ReadinessOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "not_ready"
+            ],
+            "title": "Status"
+          },
+          "checked_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Checked At"
+          },
+          "measurement": {
+            "type": "string",
+            "const": "point_in_time",
+            "title": "Measurement",
+            "default": "point_in_time"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "checked_at"
+        ],
+        "title": "ReadinessOut"
+      },
+      "RecentRunOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Opaque: a digest of the run id, not usable against the public API."
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "failed",
+              "cancelled",
+              "interrupted",
+              "refused"
+            ],
+            "title": "Outcome"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "model_call": {
+            "type": "boolean",
+            "title": "Model Call"
+          },
+          "replaced": {
+            "type": "boolean",
+            "title": "Replaced"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "es",
+                  "en"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "first_delta_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Delta Ms"
+          },
+          "total_ms": {
+            "type": "integer",
+            "title": "Total Ms"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "started_at",
+          "outcome",
+          "code",
+          "model_call",
+          "replaced",
+          "language",
+          "first_delta_ms",
+          "total_ms"
+        ],
+        "title": "RecentRunOut"
+      },
+      "ReportOut": {
+        "properties": {
+          "schema_version": {
+            "type": "integer",
+            "const": 1,
+            "title": "Schema Version",
+            "default": 1
+          },
+          "project": {
+            "type": "string",
+            "const": "pequeverso",
+            "title": "Project",
+            "default": "pequeverso"
+          },
+          "layout_revision": {
+            "type": "string",
+            "const": "pequeverso-v1",
+            "title": "Layout Revision",
+            "default": "pequeverso-v1"
+          },
+          "profile_source_revision": {
+            "type": "string",
+            "const": "88d6d0add414261e5ccf5bd3e2b21285e1a33179",
+            "title": "Profile Source Revision",
+            "default": "88d6d0add414261e5ccf5bd3e2b21285e1a33179"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic"
+          },
+          "coverage": {
+            "type": "string",
+            "const": "received_events_only",
+            "title": "Coverage",
+            "default": "received_events_only"
+          },
+          "timezone": {
+            "type": "string",
+            "const": "UTC",
+            "title": "Timezone",
+            "default": "UTC"
+          },
+          "country_collection": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "trusted_proxy_header"
+            ],
+            "title": "Country Collection",
+            "default": "disabled"
+          },
+          "retention_days": {
+            "type": "integer",
+            "const": 93,
+            "title": "Retention Days",
+            "default": 93
+          },
+          "min_bucket": {
+            "type": "integer",
+            "const": 3,
+            "title": "Min Bucket",
+            "default": 3
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/SelectionOut"
+          },
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End"
+          },
+          "partial": {
+            "type": "boolean",
+            "title": "Partial"
+          },
+          "first_observed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Observed At"
+          },
+          "last_observed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Observed At"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/Counts"
+          },
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/Daily"
+            },
+            "type": "array",
+            "maxItems": 31,
+            "title": "Daily"
+          },
+          "countries": {
+            "items": {
+              "$ref": "#/components/schemas/Country"
+            },
+            "type": "array",
+            "maxItems": 250,
+            "title": "Countries"
+          },
+          "grid": {
+            "$ref": "#/components/schemas/Grid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "schema_version",
+          "project",
+          "layout_revision",
+          "profile_source_revision",
+          "synthetic",
+          "coverage",
+          "timezone",
+          "country_collection",
+          "retention_days",
+          "min_bucket",
+          "generated_at",
+          "selection",
+          "start",
+          "end",
+          "partial",
+          "first_observed_at",
+          "last_observed_at",
+          "totals",
+          "daily",
+          "countries",
+          "grid"
+        ],
+        "title": "ReportOut"
+      },
+      "ResourcesOut": {
+        "properties": {
+          "process_rss_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Process Rss Bytes"
+          },
+          "process_peak_rss_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Process Peak Rss Bytes"
+          },
+          "cgroup_memory_current_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cgroup Memory Current Bytes"
+          },
+          "cgroup_memory_limit_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cgroup Memory Limit Bytes"
+          },
+          "cgroup_cpu_limit_cores": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cgroup Cpu Limit Cores"
+          },
+          "cgroup_pids_current": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cgroup Pids Current"
+          },
+          "cgroup_pids_limit": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cgroup Pids Limit"
+          },
+          "cgroup_scope": {
+            "type": "string",
+            "const": "enclosing_cgroup_may_be_shared",
+            "title": "Cgroup Scope",
+            "default": "enclosing_cgroup_may_be_shared"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "process_rss_bytes",
+          "process_peak_rss_bytes",
+          "cgroup_memory_current_bytes",
+          "cgroup_memory_limit_bytes",
+          "cgroup_cpu_limit_cores",
+          "cgroup_pids_current",
+          "cgroup_pids_limit"
+        ],
+        "title": "ResourcesOut"
+      },
+      "RunCountsOut": {
+        "properties": {
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "cancelled": {
+            "type": "integer",
+            "title": "Cancelled"
+          },
+          "interrupted": {
+            "type": "integer",
+            "title": "Interrupted"
+          },
+          "refused": {
+            "type": "integer",
+            "title": "Refused"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "completed",
+          "failed",
+          "cancelled",
+          "interrupted",
+          "refused"
+        ],
+        "title": "RunCountsOut"
+      },
+      "SelectionOut": {
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": [
+              "day",
+              "week",
+              "month"
+            ],
+            "title": "Period"
+          },
+          "offset": {
+            "type": "integer",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "route": {
+            "type": "string",
+            "enum": [
+              "all",
+              "/",
+              "/grafismo-fonetico/"
+            ],
+            "title": "Route"
+          },
+          "section_id": {
+            "type": "string",
+            "enum": [
+              "all",
+              "hero",
+              "leer",
+              "bebe",
+              "preguntas",
+              "incluye",
+              "metodo"
+            ],
+            "title": "Section Id"
+          },
+          "viewport_bucket": {
+            "type": "string",
+            "enum": [
+              "all",
+              "mobile",
+              "tablet",
+              "desktop"
+            ],
+            "title": "Viewport Bucket"
+          },
+          "locale": {
+            "type": "string",
+            "const": "es",
+            "title": "Locale"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "period",
+          "offset",
+          "route",
+          "section_id",
+          "viewport_bucket",
+          "locale"
+        ],
+        "title": "SelectionOut"
+      },
+      "ServiceOut": {
+        "properties": {
+          "environment": {
+            "type": "string",
+            "title": "Environment"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revision"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "fixture",
+              "openai"
+            ],
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "reasoning_effort": {
+            "type": "string",
+            "title": "Reasoning Effort"
+          },
+          "assistant_enabled": {
+            "type": "boolean",
+            "title": "Assistant Enabled"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic",
+            "description": "True in fixture mode: every number comes from simulated answers."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "environment",
+          "revision",
+          "provider",
+          "model",
+          "reasoning_effort",
+          "assistant_enabled",
+          "started_at",
+          "synthetic"
+        ],
+        "title": "ServiceOut"
+      },
+      "SpendOut": {
+        "properties": {
+          "confirmed": {
+            "type": "string",
+            "title": "Confirmed",
+            "description": "USD settled to provider-reported usage."
+          },
+          "estimated": {
+            "type": "string",
+            "title": "Estimated",
+            "description": "USD kept as worst-case estimate: the run ended without a usage report."
+          },
+          "pending": {
+            "type": "string",
+            "title": "Pending",
+            "description": "USD reserved by runs still in progress."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "confirmed",
+          "estimated",
+          "pending"
+        ],
+        "title": "SpendOut"
+      },
+      "TokensOut": {
+        "properties": {
+          "input": {
+            "type": "integer",
+            "title": "Input"
+          },
+          "cached_input": {
+            "type": "integer",
+            "title": "Cached Input"
+          },
+          "output": {
+            "type": "integer",
+            "title": "Output"
+          },
+          "reasoning": {
+            "type": "integer",
+            "title": "Reasoning"
+          },
+          "runs_with_usage": {
+            "type": "integer",
+            "title": "Runs With Usage"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "input",
+          "cached_input",
+          "output",
+          "reasoning",
+          "runs_with_usage"
+        ],
+        "title": "TokensOut"
+      },
+      "TracesOut": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "sampling_ratio": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Sampling Ratio"
+          },
+          "export_successes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Export Successes"
+          },
+          "export_failures": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Export Failures"
+          },
+          "last_export_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Export At"
+          },
+          "last_export_success": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Export Success"
+          },
+          "durable": {
+            "type": "boolean",
+            "const": false,
+            "title": "Durable",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled",
+          "sampling_ratio",
+          "export_successes",
+          "export_failures",
+          "last_export_at",
+          "last_export_success"
+        ],
+        "title": "TracesOut"
+      },
+      "WindowOut": {
+        "properties": {
+          "hours": {
+            "type": "integer",
+            "title": "Hours"
+          },
+          "runs": {
+            "$ref": "#/components/schemas/RunCountsOut"
+          },
+          "replaced": {
+            "type": "integer",
+            "title": "Replaced"
+          },
+          "failures": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Failures"
+          },
+          "latency_ms": {
+            "$ref": "#/components/schemas/LatencyOut"
+          },
+          "tokens": {
+            "$ref": "#/components/schemas/TokensOut"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "hours",
+          "runs",
+          "replaced",
+          "failures",
+          "latency_ms",
+          "tokens"
+        ],
+        "title": "WindowOut"
+      },
+      "_ProbeCatalog": {
+        "properties": {
+          "revision": {
+            "type": "string",
+            "title": "Revision"
+          },
+          "price_status": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "unverified"
+            ],
+            "title": "Price Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revision",
+          "price_status"
+        ],
+        "title": "_ProbeCatalog"
+      },
+      "_Readiness": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "not_ready"
+            ],
+            "title": "Status"
+          },
+          "catalog": {
+            "$ref": "#/components/schemas/_ProbeCatalog"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "_Readiness"
+      },
+      "_VersionedLiveness": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version"
+        ],
+        "title": "_VersionedLiveness"
+      },
+      "_VersionedReadiness": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "not_ready"
+            ],
+            "title": "Status"
+          },
+          "catalog": {
+            "$ref": "#/components/schemas/_ProbeCatalog"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "schema_version"
+        ],
+        "title": "_VersionedReadiness"
+      }
+    },
+    "securitySchemes": {
+      "OpsBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
