@@ -1,6 +1,7 @@
 # ADR-0001: Modular monolith on SQLite, single process
 
-Status: accepted (2026-09-27); partly superseded by ADR-0009 (production storage)
+Status: accepted (2026-09-27); partly superseded by ADR-0009 (production storage); the SQLite
+fixture profile is kept by ADR-0020
 
 **Context.** One product, low traffic, a USD 10/month model budget, and deployment on a shared VPS
 managed by vps-ops/Coolify. We need sessions (24 h), messages, idempotent runs, an atomic budget
