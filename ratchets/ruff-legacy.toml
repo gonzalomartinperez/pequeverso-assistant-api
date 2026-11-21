@@ -49,7 +49,7 @@
 "../app/application/sessions.py" = ["D205", "TC001", "TC003"]
 "../app/application/telemetry.py" = ["TC003"]
 "../app/bootstrap/config.py" = ["D205"]
-"../app/bootstrap/container.py" = ["S101", "TC001"]
+"../app/bootstrap/container.py" = ["S101"]
 "../app/bootstrap/evaluation_index.py" = ["TC001", "TC002"]
 "../app/bootstrap/import_database.py" = ["T201", "TRY300"]
 "../app/bootstrap/knowledge_evaluation.py" = ["D401", "T201", "TC003", "TRY301"]
