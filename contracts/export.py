@@ -33,6 +33,7 @@ from app.application.ports import Draft, DraftReference
 from app.application.starters import starters
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import create_app
+from app.bootstrap.env_schema import env_schema
 from app.domain.catalog import ActiveCatalog, PriceStatus
 from app.domain.conversation import AnswerDetails, Message, Notice, Role
 from app.domain.errors import FailureCode
@@ -284,6 +285,7 @@ def build() -> dict[str, bytes]:
         "ops.telemetry.schema.json": _dump(OpsTelemetryOut.model_json_schema()),
         "examples/ops.telemetry.json": _dump(_telemetry_example().model_dump(mode="json")),
         "ops.schema.json": _dump(OpsSummaryOut.model_json_schema()),
+        "env.schema.json": _dump(env_schema()),
         "examples/ops.summary.json": _dump(_ops_example().model_dump(mode="json")),
         "examples/errors.json": _dump(
             {code.value: error_payload(code, "req_EXAMPLE") for code in FailureCode}

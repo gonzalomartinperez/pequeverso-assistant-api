@@ -274,6 +274,8 @@ jobs:
           echo "${CST_SHA256}  $tool" | sha256sum -c -
           chmod +x "$tool"
           "$tool" test --image "$IMAGE" --config infra/docker/app/structure-test.yaml
+          # container-structure-test has no HEALTHCHECK assertion; read the image config instead.
+          docker inspect -f '{{json .Config.Healthcheck.Test}}' "$IMAGE" | grep -q "127.0.0.1:8000/healthz'"
       - name: Image CIS benchmark (dockle)
         run: |
           set -euo pipefail

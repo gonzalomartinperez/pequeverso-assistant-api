@@ -125,8 +125,10 @@ are not proof of physical erasure or disk reclamation.
 
 | Endpoint | Contract |
 | --- | --- |
-| API `/health/live` | Internal process liveness |
-| API `/health/ready` | Internal private DB + ownership + synchronized catalog + matching public PG/Neo knowledge readiness |
+| API `/healthz` | Internal process liveness, `{status, version}`; the image `HEALTHCHECK` uses it (ADR-0019) |
+| API `/readyz` | Same readiness as `/health/ready` plus `version` and `schema_version` |
+| API `/health/live`, `/health/ready` | Kept unchanged; removing them would be a contract-major change, not planned |
+| API env schema | `contracts/env.schema.json`: every variable, `secret`, `required_in_production`; validate the deploy environment against it |
 | API `/api/v1/*` | Public session/chat contract **v1 revision 1.5**, no prefix stripping |
 | API `/internal/v1/ops/summary` | Private bearer-token, content-free aggregates, schema revision **1.2** |
 | API `/internal/v1/ops/telemetry`, `/internal/v1/ops/metrics` | Private, opt-in telemetry schema **1.0** and Prometheus metrics; default off |

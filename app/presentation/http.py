@@ -67,6 +67,9 @@ class HttpSettings:
     heartbeat_seconds: float
     max_message_chars: int
     messages_per_day: int
+    # Deploy contract (ecosystem 8.5, ADR-0019): build revision and the schema level it ships.
+    version: str = "unknown"
+    schema_version: str = "unknown"
 
 
 @dataclass(frozen=True, slots=True)
@@ -286,8 +289,7 @@ async def live() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@health.get("/ready")
-async def ready(s: ServicesDep) -> JSONResponse:
+async def _readiness(s: Services) -> tuple[dict[str, object], int]:
     ok = await s.ready()
     active = s.catalog.active
     body: dict[str, object] = {"status": "ready" if ok else "not_ready"}
@@ -296,7 +298,31 @@ async def ready(s: ServicesDep) -> JSONResponse:
             "revision": active.catalog.source_revision[:12],
             "price_status": active.price_status(s.clock.now()).value,
         }
-    return JSONResponse(body, status_code=200 if ok else 503)
+    return body, 200 if ok else 503
+
+
+@health.get("/ready")
+async def ready(s: ServicesDep) -> JSONResponse:
+    body, status = await _readiness(s)
+    return JSONResponse(body, status_code=status)
+
+
+# Ecosystem deploy-contract aliases (ADR-0019). The /health/* paths stay served.
+probes = APIRouter(include_in_schema=False)
+
+
+@probes.get("/healthz")
+async def healthz(s: ServicesDep) -> dict[str, str]:
+    """Liveness: no dependency is checked."""
+    return {"status": "ok", "version": s.settings.version}
+
+
+@probes.get("/readyz")
+async def readyz(s: ServicesDep) -> JSONResponse:
+    """Readiness: the /health/ready checks plus the build version and shipped schema level."""
+    body, status = await _readiness(s)
+    body |= {"version": s.settings.version, "schema_version": s.settings.schema_version}
+    return JSONResponse(body, status_code=status)
 
 
 def install_error_handlers(app: FastAPI) -> None:
