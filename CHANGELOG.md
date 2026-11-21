@@ -11,6 +11,8 @@ entry below predates this format and is kept as written.
 
 ### Added
 
+- ADR-0013 (v1 error envelope and RFC 9457 mapping) and ADR-0014 (allowlist JSON log formatter);
+  Confirmation sections in ADR-0001 to ADR-0009.
 - Quality net (master plan M2): coverage and diff-coverage gates, golden set v1 with cassette
   replay, red-team pack, Hypothesis properties, mutation lane, SSE load harness, security matrix
   and fault-injection tests, scorecard and nightly workflow.
