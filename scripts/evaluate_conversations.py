@@ -37,6 +37,7 @@ from app.ai.provider import ModelChunk, ModelRequest, TextChunk, UsageChunk
 from app.application.answers import answer_rules
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import create_app
+from app.bootstrap.logging import use_stderr
 from app.domain.answer_policy import check_answer, fold
 from app.domain.budget import Usage
 from app.domain.catalog import PriceStatus
@@ -246,6 +247,7 @@ def run_guards(settings: Settings) -> list[dict[str, Any]]:
 
 
 def main() -> int:
+    use_stderr()
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
