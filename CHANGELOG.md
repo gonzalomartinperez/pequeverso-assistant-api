@@ -11,9 +11,13 @@ entry below predates this format and is kept as written.
 
 ### Added
 
+- ADR-0013 (v1 error envelope and RFC 9457 mapping) and ADR-0014 (allowlist JSON log formatter);
+  Confirmation sections in ADR-0001 to ADR-0009.
 - Quality net (master plan M2): coverage and diff-coverage gates, golden set v1 with cassette
   replay, red-team pack, Hypothesis properties, mutation lane, SSE load harness, security matrix
   and fault-injection tests, scorecard and nightly workflow.
+- `LOG_STREAM` setting; evaluation and operator CLIs (including the import and knowledge jobs)
+  now log to stderr so their stdout stays machine output. The `run` event carries `prompt_version`.
 - Internal health aliases `/healthz` and `/readyz` with `version` and `schema_version`, and the
   generated environment schema `contracts/env.schema.json` (ADR-0019). The image `HEALTHCHECK` now
   calls `/healthz`; `/health/live` and `/health/ready` are unchanged.
@@ -24,6 +28,10 @@ entry below predates this format and is kept as written.
 
 ### Changed
 
+- `httpx`, `httpcore` and `openai` loggers run at WARNING, and third-party records below WARNING
+  are counted into one content-free `external_events` line instead of being printed. The
+  official help reader and the span exporter take the injected `Clock` (no `datetime.now`
+  outside bootstrap).
 - One `ci.yml` with change classification and the `ci-gate` aggregate; weekly grouped dependency
   updates (master plan M1).
 

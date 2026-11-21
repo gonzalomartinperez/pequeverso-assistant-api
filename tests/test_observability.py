@@ -17,6 +17,14 @@ from app.application.operations import RunWindow
 from app.bootstrap.config import Settings
 from app.bootstrap.container import create_app
 
+
+class _FixedClock:
+    def now(self) -> datetime:
+        return datetime(2026, 1, 1, tzinfo=UTC)
+
+
+_CLOCK = _FixedClock()
+
 TOKEN = "test-only-" + "0" * 32  # Explicit dummy bearer; never a deployable credential.
 AUTH = {"Authorization": f"Bearer {TOKEN}"}
 
@@ -112,6 +120,7 @@ def test_manual_traces_drop_inbound_context_raw_paths_headers_and_body():
         return RunWindow({}, {}, 0, [], [])
 
     telemetry = RuntimeTelemetry(
+        clock=_CLOCK,
         started_at=datetime.now(UTC),
         synthetic=True,
         revision="abcdef0",
@@ -191,6 +200,7 @@ def test_export_failure_is_content_free_and_never_changes_http_status(caplog):
         return RunWindow({}, {}, 0, [], [])
 
     telemetry = RuntimeTelemetry(
+        clock=_CLOCK,
         started_at=datetime.now(UTC),
         synthetic=True,
         revision=None,
@@ -245,6 +255,7 @@ def test_only_authenticated_exact_private_routes_inherit_bounded_traceparent(pat
         return RunWindow({}, {}, 0, [], [])
 
     telemetry = RuntimeTelemetry(
+        clock=_CLOCK,
         started_at=datetime.now(UTC),
         synthetic=True,
         revision=None,
@@ -312,6 +323,7 @@ def test_database_outage_keeps_readiness_metrics_and_unknown_run_window(caplog):
         raise RuntimeError("private-database-path-sentinel")
 
     telemetry = RuntimeTelemetry(
+        clock=_CLOCK,
         started_at=datetime.now(UTC),
         synthetic=True,
         revision=None,
@@ -360,6 +372,7 @@ def test_actual_otlp_http_export_ignores_proxy_and_contains_safe_protobuf_only(m
         return RunWindow({}, {}, 0, [], [])
 
     telemetry = RuntimeTelemetry(
+        clock=_CLOCK,
         started_at=datetime.now(UTC),
         synthetic=True,
         revision="abcdef0",
@@ -423,6 +436,7 @@ def test_exporter_shutdown_drops_queued_batches_without_repeating_timeouts():
 
     exporter = SlowBoundedExporter()
     telemetry = RuntimeTelemetry(
+        clock=_CLOCK,
         started_at=datetime.now(UTC),
         synthetic=True,
         revision=None,
@@ -456,6 +470,7 @@ def test_sdk_cleanup_exception_is_redacted_and_does_not_break_runtime_shutdown(c
         return RunWindow({}, {}, 0, [], [])
 
     telemetry = RuntimeTelemetry(
+        clock=_CLOCK,
         started_at=datetime.now(UTC),
         synthetic=True,
         revision=None,
@@ -499,6 +514,7 @@ def test_actual_export_header_stall_has_overall_deadline_and_runtime_can_stop():
         return RunWindow({}, {}, 0, [], [])
 
     telemetry = RuntimeTelemetry(
+        clock=_CLOCK,
         started_at=datetime.now(UTC),
         synthetic=True,
         revision=None,

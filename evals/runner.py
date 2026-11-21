@@ -28,6 +28,7 @@ from fastapi.testclient import TestClient
 
 from app.adapters.providers.fixture_provider import FixtureProvider
 from app.bootstrap.container import create_app
+from app.bootstrap.logging import use_stderr
 from app.domain.catalog import PriceStatus
 from evals import graders, schema
 from evals.cassette import CaptureProvider, CassetteError, ReplayProvider, Turn
@@ -252,6 +253,7 @@ def author(
 
 def main(argv: list[str] | None = None) -> int:
     """Command line entry point."""
+    use_stderr()
     parser = argparse.ArgumentParser(
         description="Golden-set runner (cassette replay or authoring)."
     )

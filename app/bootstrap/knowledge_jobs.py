@@ -62,7 +62,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 async def index_main() -> int:
-    configure_logging()
+    configure_logging(stream="stderr")
     args = _parser().parse_args()
     descriptor: int | None = None
     try:
@@ -171,7 +171,7 @@ async def index_main() -> int:
 
 async def migrate_main() -> int:
     """Explicit privileged SQL job. vps-ops provisions LOGIN identities separately."""
-    configure_logging()
+    configure_logging(stream="stderr")
     dsn = os.environ.get("POSTGRES_MIGRATION_DSN")
     if not dsn:
         print("POSTGRES_MIGRATION_DSN is required; no credentials are accepted in arguments.")

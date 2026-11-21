@@ -54,3 +54,17 @@ without removing legacy ES/EN clients or rewriting history. Owner-authorized soc
 used the real model and medium effort; [dated evidence](../verification/real-model-2026-10-12.md)
 distinguishes model usage estimates, agent review, fixtures and unverified VPS activation gates.
 The 2026-10-10 statement above remains historical rather than current authorization status.
+
+## Confirmation
+
+`tests/test_language.py` covers the detector and the directive rules (`test_detect`,
+`test_quoted_text_and_code_do_not_switch_the_language`,
+`test_explicit_unsupported_output_language_abstains_before_provider`,
+`test_unsupported_directive_does_not_become_a_supported_fallback`), and
+`tests/test_properties_language.py` adds properties. `tests/test_operations.py` covers the reply
+language and the no-spend notice (`test_english_question_gets_an_english_answer_flagged_as_such`,
+`test_unsupported_language_answers_briefly_without_a_model_call_or_spend`) and the settlement of
+incomplete responses (`test_ledger_settles_reported_usage_even_when_the_response_is_incomplete`,
+`test_failure_without_usage_keeps_the_reservation_as_an_estimate`). The medium reasoning effort
+and the 4000-token cap are configuration values; no test pins the number itself, and live cost
+and quality are manual checks that need the owner's authorization.
