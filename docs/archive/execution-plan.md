@@ -19,5 +19,3 @@
 | Evaluation corpus by intent family with dev/holdout split | PR #20 |
 | Native storefront assistant (cross-origin, disabled by default); backoffice consuming private ops | In pequeverso and pequeverso-backoffice (previously pequeverso-assistant-backoffice); native Spanish policy requires v1.4 |
 | Real-model medium-effort usage, latency and persistence | Executed via isolated HTTP/SSE; usage estimates are not invoices and shared WSL timings are not VPS capacity |
-# Archived 2026-11-21 (PVA-M3.4): historical plan, superseded by docs/master-plan/.
-
