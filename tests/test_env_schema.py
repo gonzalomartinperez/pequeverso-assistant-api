@@ -58,6 +58,9 @@ def test_schema_lists_every_setting_with_flags_and_no_values() -> None:
     assert {"OPENAI_API_KEY", "CLIENT_HASH_KEY", "NEO4J_PASSWORD", "OPS_READ_TOKEN"} <= secrets
     assert "ENVIRONMENT" not in secrets
     assert {n for n, v in variables.items() if v["required_in_production"]} == PRODUCTION_REQUIRED
+    jobs = {j["name"] for j in env_schema()["jobs"]}
+    assert jobs == {"POSTGRES_MIGRATION_DSN", "POSTGRES_IMPORT_DSN"}
+    assert not jobs & set(variables)
 
 
 def test_published_file_matches_the_generator() -> None:

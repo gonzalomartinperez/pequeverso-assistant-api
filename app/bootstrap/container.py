@@ -66,6 +66,15 @@ from app.presentation.product_analytics import build_router as build_analytics_r
 from app.presentation.streaming import ResponseCleanups
 
 log = logging.getLogger(__name__)
+
+
+def expected_schema_version(settings: Settings) -> str:
+    """Highest migration this configuration needs, reported by /readyz (ADR-0019)."""
+    if settings.application_storage == "postgres":
+        return f"postgres-{schema_level(analytics=settings.product_analytics_enabled)}"
+    return f"sqlite-{SQLITE_SCHEMA_LEVEL}"
+
+
 MAINTENANCE_SECONDS = 600
 
 
@@ -428,11 +437,7 @@ def create_app(
             max_message_chars=settings.max_message_chars,
             messages_per_day=settings.messages_per_session_per_day,
             version=settings.service_revision or "unknown",
-            schema_version=(
-                f"postgres-{schema_level(analytics=settings.product_analytics_enabled)}"
-                if settings.application_storage == "postgres"
-                else f"sqlite-{SQLITE_SCHEMA_LEVEL}"
-            ),
+            schema_version=expected_schema_version(settings),
         ),
     )
     app.include_router(router)

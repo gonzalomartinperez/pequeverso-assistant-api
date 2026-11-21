@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
+import pytest
+
 from app.adapters.sqlite.database import SCHEMA_LEVEL
+from app.bootstrap.container import expected_schema_version
 from tests.support import client
 
 if TYPE_CHECKING:
@@ -40,8 +44,16 @@ def test_aliases_stay_out_of_the_public_openapi(tmp_path: Path) -> None:
     assert "/healthz" not in paths and "/readyz" not in paths
 
 
-def test_postgres_schema_level_counts_analytics_only_when_enabled() -> None:
-    from app.adapters.postgres.database import schema_level
-
-    assert schema_level(analytics=False) == "004"
-    assert schema_level(analytics=True) == "006"
+@pytest.mark.parametrize(
+    ("storage", "analytics", "expected"),
+    [
+        ("sqlite", False, f"sqlite-{SCHEMA_LEVEL}"),
+        ("postgres", False, "postgres-004"),
+        ("postgres", True, "postgres-006"),
+    ],
+)
+def test_expected_schema_version_follows_storage_and_analytics(
+    storage: str, analytics: bool, expected: str
+) -> None:
+    settings = SimpleNamespace(application_storage=storage, product_analytics_enabled=analytics)
+    assert expected_schema_version(settings) == expected  # type: ignore[arg-type]

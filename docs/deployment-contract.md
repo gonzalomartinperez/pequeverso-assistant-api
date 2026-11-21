@@ -77,7 +77,7 @@ silent takeover. A shared database alone does not make this runtime HA or multi-
 | Endpoint | Meaning | Use |
 |---|---|---|
 | `GET /healthz` | Process is up; no dependency checked. Body `{status, version}` (`version` is `SERVICE_REVISION` or `unknown`) | Liveness, Docker `HEALTHCHECK` (built in) |
-| `GET /readyz` | Same checks and body as `/health/ready`, plus `version` and `schema_version` (highest migration this build ships, `postgres-NNN` or `sqlite-NNN`); 200 or 503 | Readiness, deploy verification |
+| `GET /readyz` | Same checks and body as `/health/ready`, plus `version` and `schema_version` (highest migration this configuration expects, `postgres-NNN` or `sqlite-NNN`; core PostgreSQL migrations are not re-checked at runtime, ADR-0019); 200 or 503 | Readiness, deploy verification |
 | `GET /health/live` | Process is up | Liveness (kept, ADR-0019) |
 | `GET /health/ready` | Private database reachable, runtime ownership alive and matching synchronized public knowledge/graph ready (SQLite fixture: valid active catalog). Body adds `catalog.revision` and `catalog.price_status` | Readiness (kept, ADR-0019) |
 

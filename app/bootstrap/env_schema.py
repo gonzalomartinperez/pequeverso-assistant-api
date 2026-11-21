@@ -35,6 +35,13 @@ PRODUCTION_REQUIRED = frozenset(
 )
 
 
+# Read directly by explicit operator jobs, never by the API runtime (`Settings`).
+JOB_VARIABLES = (
+    ("POSTGRES_MIGRATION_DSN", "python -m app.bootstrap.knowledge_jobs migrate"),
+    ("POSTGRES_IMPORT_DSN", "python -m app.bootstrap.import_database"),
+)
+
+
 def _is_secret(annotation: object) -> bool:
     return annotation is SecretStr or SecretStr in get_args(annotation)
 
@@ -53,8 +60,11 @@ def env_schema() -> dict[str, Any]:
         "schema_version": "1",
         "service": "pequeverso-assistant-api",
         "description": (
-            "Environment variables read by the service. Production values beyond these "
-            "requirements follow docs/deployment-contract.md."
+            "variables: API runtime settings. required_in_production applies to an answering "
+            "production deployment (ASSISTANT_ENABLED=true, AI_PROVIDER=openai); other values "
+            "follow docs/deployment-contract.md. jobs: secrets read only by explicit operator "
+            "jobs, never by the API container."
         ),
         "variables": variables,
+        "jobs": [{"name": n, "secret": True, "job": job} for n, job in JOB_VARIABLES],
     }

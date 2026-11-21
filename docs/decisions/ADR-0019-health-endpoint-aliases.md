@@ -25,16 +25,18 @@ Option 2.
 - `/readyz` runs the same checks as `/health/ready` and returns its body plus `version` and
   `schema_version`. `schema_version` is the highest migration this build needs for its
   configuration: `sqlite-NNN` (SQLite applies its migrations at startup), or `postgres-NNN`, where
-  the optional product-analytics migrations count only when analytics is enabled. A 200 means that
-  level is in place: readiness fails when the database is unreachable and, with analytics on, when
-  the analytics schema markers or checksums are missing. Core PostgreSQL migrations run as the
-  explicit pre-deploy job, so `vps-ops` compares the value with the job it ran.
+  the optional product-analytics migrations count only when analytics is enabled. It is the level
+  the build expects. Readiness verifies only part of it: it fails when the database is unreachable
+  and, with analytics on, when the analytics markers or checksums are missing. Core PostgreSQL
+  migrations (001 to 004) are not re-checked at runtime; they run as the explicit pre-deploy job,
+  and `vps-ops` compares this value with the job it ran.
 - The image `HEALTHCHECK` moves to `/healthz`: liveness must not depend on the database.
 - Neither alias is in the public OpenAPI; all health paths stay internal (the proxy routes only
   `/api/*`). The old paths stay served; removing them is a contract-major change and is not planned.
 - `contracts/env.schema.json` is generated from `Settings` by `contracts.export`: name, `secret`
   and `required_in_production`, never a value or a default. The production requirements are the
-  ones `Settings.fail_closed` enforces for an answering deployment.
+  ones `Settings.fail_closed` enforces for an answering deployment (assistant enabled, OpenAI
+  answers). A `jobs` list names the secrets read only by the explicit migration and import jobs.
 
 ### Consequences
 
