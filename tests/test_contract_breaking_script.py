@@ -43,6 +43,7 @@ def _run(
     oasdiff_status: int | None,
     labels: str,
     failing_spec: str = PUBLIC,
+    extra: tuple[tuple[str, int], ...] = (),
 ):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(exist_ok=True)
@@ -57,6 +58,7 @@ def _run(
             f'cat "$4" >> "{log}"\n'
             f'echo >> "{log}"\n'
             f'if [ "$5" = "{failing_spec}" ]; then exit {oasdiff_status}; fi\n'
+            + "".join(f'if [ "$5" = "{name}" ]; then exit {code}; fi\n' for name, code in extra)
         )
         fake.chmod(0o755)
         args.append(str(fake))
@@ -83,6 +85,12 @@ def _run(
 @pytest.mark.parametrize("spec", [PUBLIC, INTERNAL])
 def test_label_overrides_only_breaking_changes(repo, tmp_path, status, labels, expected, spec):
     assert _run(repo, tmp_path, "HEAD", status, labels, spec).returncode == expected
+
+
+@pytest.mark.parametrize(("internal", "expected"), [(102, 102), (0, 0), (1, 0)])
+def test_a_labelled_public_break_still_checks_the_internal_spec(repo, tmp_path, internal, expected):
+    result = _run(repo, tmp_path, "HEAD", 1, LABEL, PUBLIC, extra=((INTERNAL, internal),))
+    assert result.returncode == expected
 
 
 def test_missing_binary_is_a_hard_failure_even_with_the_label(repo, tmp_path):
