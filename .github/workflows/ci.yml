@@ -159,6 +159,26 @@ jobs:
         run: uv run lint-imports
       - name: Dead code (vulture)
         run: uv run vulture
+      - name: Contract gate (oasdiff breaking changes against the base, label contract-major allows)
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          OASDIFF_VERSION: 1.38.0
+          OASDIFF_SHA256: 613037fd6a1d3362a1b742d6d86c338c0eb5ab3511f4942ce3948e78720ea2da
+        run: |
+          # Pushes (develop, main) and merge queues skip: the pull request already passed this gate.
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "::notice title=contract::skipped for $EVENT; checked on the pull request"
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/oasdiff"
+          archive="oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/oasdiff/$archive" \
+            "https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}/$archive"
+          (cd "$RUNNER_TEMP/oasdiff" && echo "$OASDIFF_SHA256  $archive" | sha256sum -c - && tar -xzf "$archive" oasdiff)
+          git fetch --no-tags --depth=1 origin "$BASE_SHA"
+          scripts/contract_breaking.sh FETCH_HEAD "$RUNNER_TEMP/oasdiff/oasdiff"
       - name: Validate paired skill discovery
         run: uv run python -m scripts.validate_skills
       - name: Mypy (strict)
@@ -175,7 +195,9 @@ jobs:
       - name: Local analytics pointer fixture regression (no browser or network)
         run: timeout 10s node --test tests/fixtures/product-analytics-pointer.test.cjs
       - name: Tests (branch coverage)
-        run: uv run pytest -q -n auto --cov --cov-report=
+        run: uv run pytest -q -n auto --cov --cov-report= -m "not schemathesis"
+      - name: Schemathesis contract suite (slow, outside coverage)
+        run: uv run pytest -q -m schemathesis tests/test_schemathesis_contract.py
       - name: Coverage gate (static floor, diff coverage against the base revision)
         env:
           EVENT: ${{ github.event_name }}

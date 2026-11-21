@@ -10,6 +10,7 @@ Examples are built deterministically through the real answer validation and wire
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import sys
@@ -113,6 +114,29 @@ def _transcript(user: Message | None, answer: Message, chunks: int = 3) -> list[
     return events
 
 
+# Additive OpenAPI links for the stateful Schemathesis flows (PVA-M2.10): the session response
+# supplies the CSRF token that the three follow-up operations require. No wire change.
+_SESSION_LINKS = {
+    "session_to_message": "post_message_api_v1_messages_post",
+    "session_to_cancel": "cancel_run_api_v1_runs__run_id__cancel_post",
+    "session_to_delete": "delete_session_api_v1_session_delete",
+}
+
+
+def _with_links(spec: dict[str, Any]) -> dict[str, Any]:
+    responses = spec["paths"]["/api/v1/session"]["post"]["responses"]
+    for status in ("200", "201"):
+        responses[status]["links"] = {
+            name: {
+                "operationId": operation,
+                "parameters": {"x-csrf-token": "$response.body#/csrf_token"},
+                "description": "The session response carries the CSRF token this operation needs.",
+            }
+            for name, operation in _SESSION_LINKS.items()
+        }
+    return spec
+
+
 def build() -> dict[str, bytes]:
     active = _catalog()
     recommendation = _answer(
@@ -199,7 +223,7 @@ def build() -> dict[str, bytes]:
 
     app = create_app(Settings(_env_file=None, database_path=":memory:"))
     artifacts: dict[str, bytes] = {
-        "openapi.json": _dump(app.openapi()),
+        "openapi.json": _dump(_with_links(copy.deepcopy(app.openapi()))),
         "sse.schema.json": _dump(TypeAdapter(StreamEvent).json_schema()),
         "examples/session.created.json": _dump(session.model_dump(mode="json")),
         "examples/stream.recommendation.sse": _sse(

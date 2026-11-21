@@ -63,6 +63,7 @@ COMMANDS = {
         "uv run mypy",
         "pyrefly@",
         "uv run pytest -q -n auto --cov",
+        "uv run pytest -q -m schemathesis tests/test_schemathesis_contract.py",
         "scripts.coverage_gate",
         "--floor static_branch_floor --base FETCH_HEAD",
         "contracts.export --check",
@@ -418,7 +419,8 @@ def test_container_gate_pins_are_strict():
 def test_static_suite_runs_in_parallel_and_service_runs_keep_a_fixed_order():
     steps = workflow()["jobs"]["static"]["steps"]
     assert any(
-        step.get("run", "").strip() == "uv run pytest -q -n auto --cov --cov-report="
+        step.get("run", "").strip()
+        == 'uv run pytest -q -n auto --cov --cov-report= -m "not schemathesis"'
         for step in steps
     )
     for script in (
