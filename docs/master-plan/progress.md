@@ -131,7 +131,7 @@ PVA-M1.1 after the Monday observation (update ADR-0016), then M2 starting with P
 |---|---|
 | Milestone | M3 Phase A polish: every task merged or parked; `checkpoint/M3` is tagged by the orchestrator after verification |
 | Date | 2026-11-21 |
-| develop SHA | `2675e7d` (merge of #151) plus the docs PRs #156 and #159 before this PR |
+| develop SHA | `2675e7d` (merge of #151) plus the docs PRs #156 and #159 before #160 |
 
 | Task | PR | Result |
 |---|---|---|
@@ -141,7 +141,7 @@ PVA-M1.1 after the Monday observation (update ADR-0016), then M2 starting with P
 | PVA-M3.3 | #148 | `/healthz` and `/readyz` with `version` and `schema_version`; generated `contracts/env.schema.json`; HEALTHCHECK on `/healthz`; ADR-0019 |
 | PVA-M3.4 | #153, #155, #156, #158 | ADR Confirmation sections, ADR-0013 (RFC 9457 mapping, table tested) and ADR-0014; Diátaxis layout with a link guard; README on the template with the README check on; generated evaluation numbers with a `--check`; rewritten `ci.md` and `dependency-updates.md` |
 | PVA-M3.5 | #151, #157 | per-family recall@5 at or above the M2 baseline; eight catalog content gaps as owner questions in `docs/explanation/business-questions.md` |
-| PVA-M3.6 | this PR | first independent re-score, `scorecard.md` section "M3 independent re-score (2026-11-21)" |
+| PVA-M3.6 | #160 | first independent re-score, `scorecard.md` section "M3 independent re-score (2026-11-21)" |
 | PVA-M3.8 | #159 | every operation of revision 1.6 documented with examples validated against the specs |
 
 Parked: PVA-M3.7 (real golden cassettes and a live pass^3 need the owner's authorization and spend).
