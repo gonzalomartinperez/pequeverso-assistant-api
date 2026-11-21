@@ -33,6 +33,7 @@
         "pyproject.toml",
         "uv.lock",
         ".python-version",
+        ".nvmrc",
         ".importlinter",
         ".env.example",
         ".gitignore",

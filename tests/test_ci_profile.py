@@ -175,12 +175,12 @@ def validate(value):
     ]
     assert len(setup) == 1
     assert setup[0]["uses"] == "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1"
-    assert setup[0]["with"] == {"node-version": "24.22.0", "package-manager-cache": False}
+    assert setup[0]["with"] == {"node-version-file": ".nvmrc", "package-manager-cache": False}
+    assert (ROOT / ".nvmrc").read_text(encoding="utf-8").strip() == "24.22.0"
     fixture = [
         step
         for step in static_steps
-        if step.get("run")
-        == "timeout 10s node --test tests/fixtures/product-analytics-pointer.test.cjs"
+        if step.get("run") == "timeout 10s node --test tests/js/product-analytics-pointer.test.mts"
     ]
     assert len(fixture) == 1
     assert static_steps.index(setup[0]) < static_steps.index(fixture[0])
@@ -572,3 +572,18 @@ def test_path_changes_select_the_expected_jobs(paths, present, absent):
 )
 def test_unknown_paths_and_profile_edits_run_everything(paths):
     assert classify_paths(paths) is None
+
+
+def test_no_commonjs_and_the_node_26_lane_never_gates():
+    # PVA-M4.8 (ecosystem 10.1): Node tooling is TypeScript run by type stripping, never `.cjs`.
+    assert [f for f in tracked_files() if f.endswith((".cjs", ".mjs", ".js"))] == []
+    compat = yaml.safe_load((ROOT / ".github/workflows/compat.yml").read_text(encoding="utf-8"))
+    assert compat["permissions"] == {}
+    for job in compat["jobs"].values():
+        assert job["continue-on-error"] is True
+        assert job["permissions"] == {"contents": "read"}
+    steps = compat["jobs"]["node-next"]["steps"]
+    node = next(step for step in steps if step.get("uses", "").startswith("actions/setup-node@"))
+    assert node["with"]["node-version"] == "26"
+    assert "tests/js/product-analytics-pointer.test.mts" in steps[-1]["run"]
+    assert "compat" not in workflow()["jobs"]
