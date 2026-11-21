@@ -198,7 +198,7 @@ Each successful attack becomes a golden item (adversarial stratum). A full garak
 
 ## 9. Prompt versioning (formalize the existing `PROMPT_VERSION`)
 
-Today: `app/ai/prompt.py` carries `PROMPT_VERSION = '2026-10-18.4'`, bumped by hand, and `docs/evaluation.md` tells the author to bump it. The plan adds machine enforcement; git is the registry (no prompt hub, decision PVA-D18).
+Today: `app/ai/prompt.py` carries `PROMPT_VERSION = '2026-10-18.4'`, bumped by hand, and `docs/reference/evaluation.md` tells the author to bump it. The plan adds machine enforcement; git is the registry (no prompt hub, decision PVA-D18).
 
 | Element | Rule |
 |---|---|

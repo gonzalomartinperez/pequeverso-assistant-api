@@ -10,7 +10,7 @@ projection. SQLite remains the isolated fixture/import profile. The native store
 stays disabled; deployment and shared observability belong to vps-ops. Images describe application
 boundaries, not a deployed topology, VPS capacity or security approval.
 
-See [operator capabilities and gates](../knowledge-operations.md),
+See [operator capabilities and gates](../../how-to/knowledge-operations.md),
 [the semantic and fixture distinction](../graph-retrieval.md) and
 [resource ownership](../architecture.md). The manifest retains exact asset hashes and visual
 review status. Earlier Mermaid-rendered baseline diagrams remain in Git history.

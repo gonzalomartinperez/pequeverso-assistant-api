@@ -1,7 +1,7 @@
 {
   "skill": "api-release-and-hotfix",
   "status": "stub",
-  "protocol": "docs/agent-skills.md#activation-evals",
+  "protocol": "docs/reference/agent-skills.md#activation-evals",
   "queries": [
     {
       "query": "promote develop to main",

@@ -41,7 +41,7 @@ Only `docs/master-plan/` is added (planning). No code, deploy, spend or producti
 - Local coverage understates PostgreSQL adapter coverage (service-gated tests); the combined value is unknown until M2.3.
 - No live model evidence exists for `develop`; the last real runs used the 2026-10-18 and 2026-10-19 sources.
 - `AGENTS.md` still says `main` is the default branch and requires the check named `checks`.
-- `docs/evaluation.md` case counts are stale (see `audit.md` P2-3).
+- `docs/reference/evaluation.md` case counts are stale (see `audit.md` P2-3).
 
 ### Pending owner decisions
 

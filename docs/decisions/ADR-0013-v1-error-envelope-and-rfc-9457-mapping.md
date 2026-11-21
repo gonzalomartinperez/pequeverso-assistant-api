@@ -7,7 +7,7 @@ Status: accepted (2026-11-21). Master-plan task PVA-M3.4.
 Every non-stream error of the v1 API is the JSON envelope
 `{"error": {code, message, retryable, request_id}}` (`error_payload` in
 `app/presentation/middleware.py`, codes in `FailureCode` in `app/domain/errors.py`, examples in
-`contracts/examples/errors.json`, section "Errors" of `docs/api-contract.md`). The storefront
+`contracts/examples/errors.json`, section "Errors" of `docs/reference/api-contract.md`). The storefront
 assistant depends on it. RFC 9457 defines `application/problem+json` as the standard shape for HTTP
 API errors. We want the envelope to stay stable in v1 and a future v2 to adopt the standard without
 a redesign.

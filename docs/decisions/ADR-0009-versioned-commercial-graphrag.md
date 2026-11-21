@@ -11,7 +11,7 @@ The commercial objective remains helping an adult choose the appropriate product
 authorized landing. More infrastructure does not establish better answers, scalability or sales.
 
 The read-only reference is Portfolio API commit
-`02b6f2784564669597fe8a4c2adf53bf807737a6`, especially `docs/graph-retrieval.md` and its
+`02b6f2784564669597fe8a4c2adf53bf807737a6`, especially `docs/explanation/graph-retrieval.md` and its
 embedding, indexing and graph adapters. Adapt its invariants, not its career entities or identity.
 Its hash64 fixtures are not semantic embeddings; its Neo4j security findings are not accepted
 production artifacts. This decision supersedes the no-embedding choice in ADR-0002 only when

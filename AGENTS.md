@@ -51,7 +51,7 @@ Full guide: [`CONTRIBUTING.md`](CONTRIBUTING.md). To continue the refactor from 
   Flow: `hotfix/<kebab-case>` from `main` → PR into `main` (merge commit) → PR `main` → `develop`
   (merge commit). Skill: `.agents/skills/api-release-and-hotfix/SKILL.md`.
 - Both branches are protected: PR required, strict required status `checks` (the full
-  five-prerequisite aggregate; see `docs/ci.md`), becoming `ci-gate` once the owner applies the
+  five-prerequisite aggregate; see `docs/reference/ci.md`), becoming `ci-gate` once the owner applies the
   ruleset; no force push or deletion, no bypass. The agent uses the owner's GitHub account, so the
   hotfix authorization is this written rule, not a GitHub setting: never use `--admin`, never push
   to `main`, never change the protection to get a merge through.
@@ -66,7 +66,7 @@ Full guide: [`CONTRIBUTING.md`](CONTRIBUTING.md). To continue the refactor from 
   `scripts/smoke_container.sh`.
 - No deploys, DNS or production changes from this repository (vps-ops owns them).
 - Dependabot opens one weekly multi-ecosystem PR into `develop`; the owner merges it manually.
-  `deps-weekly-guard` keeps at most one open and never merges. Follow `docs/dependency-updates.md`.
+  `deps-weekly-guard` keeps at most one open and never merges. Follow `docs/how-to/dependency-updates.md`.
   Nothing here authorizes merging anything into `main`.
 
 ## Skills
@@ -75,12 +75,12 @@ Canonical skills are real directories in `.agents/skills/<name>/` (Codex reads t
 `.claude/skills/` is a real directory containing one relative directory symlink per skill to the
 same canonical content (Claude Code reads this root).
 Automatic/default discovery remains enabled; load only the skill matching the task. See
-`docs/agent-skills.md`. Validate with `python -m scripts.validate_skills`; skills never add
+`docs/reference/agent-skills.md`. Validate with `python -m scripts.validate_skills`; skills never add
 authority for paid calls, deployment, cross-repository edits or protected-branch mutations.
 
 ## Optional product analytics channel
 
-See [`docs/product-analytics.md`](docs/product-analytics.md), including its "Agent rules".
+See [`docs/reference/product-analytics.md`](docs/reference/product-analytics.md), including its "Agent rules".
 
 ## Master plan (2026-11)
 

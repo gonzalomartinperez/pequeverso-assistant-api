@@ -162,19 +162,19 @@ contracts/sse.schema.json,contracts,contract,684,contracts/sse.schema.json,contr
 deploy/monitoring/alerts.yml,ops-config,config,33,deploy/monitoring/alerts.yml,ops-config,keep,application-owned monitoring artefacts; promtool check in CI; vps-ops owns collectors
 deploy/monitoring/grafana-api-runtime.json,ops-config,config,302,deploy/monitoring/grafana-api-runtime.json,ops-config,keep,application-owned monitoring artefacts; promtool check in CI; vps-ops owns collectors
 deploy/monitoring/prometheus-scrape.example.yml,ops-config,config,12,deploy/monitoring/prometheus-scrape.example.yml,ops-config,keep,application-owned monitoring artefacts; promtool check in CI; vps-ops owns collectors
-docs/agent-skills.md,docs,doc,50,docs/reference/agent-skills.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
-docs/api-contract.md,docs,doc,263,docs/reference/api-contract.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
-docs/architecture.md,docs-diagram,doc,204,docs/explanation/architecture.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
-docs/architecture/README.md,docs-diagram,doc,16,docs/architecture/README.md,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
-docs/architecture/manifest.json,docs-diagram,diagram,19,docs/architecture/manifest.json,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
-docs/architecture/request-flow.mmd,docs-diagram,diagram,21,docs/architecture/request-flow.mmd,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
-docs/architecture/system-dark.mmd,docs-diagram,diagram,10,docs/architecture/system-dark.mmd,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
-docs/architecture/system-dark.svg,docs-diagram,diagram,50,docs/architecture/system-dark.svg,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
-docs/architecture/system-light.mmd,docs-diagram,diagram,10,docs/architecture/system-light.mmd,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
-docs/architecture/system-light.svg,docs-diagram,diagram,50,docs/architecture/system-light.svg,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
-docs/business-questions.md,docs,doc,12,docs/explanation/business-questions.md,docs,move,open owner questions with defaults; owner-only decisions list links here
-docs/catalog.md,docs,doc,178,docs/reference/catalog.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
-docs/ci.md,docs,doc,66,docs/reference/ci.md,docs,rewrite,describes the five-job aggregate named checks; rewrite for profiles and ci-gate
+docs/reference/agent-skills.md,docs,doc,50,docs/reference/agent-skills.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/reference/api-contract.md,docs,doc,263,docs/reference/api-contract.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/explanation/architecture.md,docs-diagram,doc,204,docs/explanation/architecture.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/explanation/architecture/README.md,docs-diagram,doc,16,docs/explanation/architecture/README.md,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/explanation/architecture/manifest.json,docs-diagram,diagram,19,docs/explanation/architecture/manifest.json,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/explanation/architecture/request-flow.mmd,docs-diagram,diagram,21,docs/explanation/architecture/request-flow.mmd,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/explanation/architecture/system-dark.mmd,docs-diagram,diagram,10,docs/explanation/architecture/system-dark.mmd,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/explanation/architecture/system-dark.svg,docs-diagram,diagram,50,docs/explanation/architecture/system-dark.svg,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/explanation/architecture/system-light.mmd,docs-diagram,diagram,10,docs/explanation/architecture/system-light.mmd,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/explanation/architecture/system-light.svg,docs-diagram,diagram,50,docs/explanation/architecture/system-light.svg,docs-diagram,keep,C4 diagrams; regenerate SVG from .mmd in CI check
+docs/explanation/business-questions.md,docs,doc,12,docs/explanation/business-questions.md,docs,move,open owner questions with defaults; owner-only decisions list links here
+docs/reference/catalog.md,docs,doc,178,docs/reference/catalog.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/reference/ci.md,docs,doc,66,docs/reference/ci.md,docs,rewrite,describes the five-job aggregate named checks; rewrite for profiles and ci-gate
 docs/decisions/ADR-0001-modular-monolith-sqlite.md,docs-adr,doc,17,docs/decisions/ADR-0001-modular-monolith-sqlite.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
 docs/decisions/ADR-0002-grounding-without-embeddings.md,docs-adr,doc,18,docs/decisions/ADR-0002-grounding-without-embeddings.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
 docs/decisions/ADR-0003-structured-streaming-and-final-validation.md,docs-adr,doc,27,docs/decisions/ADR-0003-structured-streaming-and-final-validation.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
@@ -184,22 +184,22 @@ docs/decisions/ADR-0006-native-spanish-compatible-policy.md,docs-adr,doc,37,docs
 docs/decisions/ADR-0007-optional-private-observability.md,docs-adr,doc,44,docs/decisions/ADR-0007-optional-private-observability.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
 docs/decisions/ADR-0008-bounded-official-platform-evidence.md,docs-adr,doc,24,docs/decisions/ADR-0008-bounded-official-platform-evidence.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
 docs/decisions/ADR-0009-versioned-commercial-graphrag.md,docs-adr,doc,163,docs/decisions/ADR-0009-versioned-commercial-graphrag.md,docs-adr,keep,ADR kept at stable path (ecosystem 14.2 stable paths); MADR Confirmation section added
-docs/dependency-updates.md,docs,doc,72,docs/how-to/dependency-updates.md,docs,rewrite,describes the retired classifier; rewrite for the weekly single PR and the vulnerability SLA
-docs/deployment-contract.md,docs,doc,649,docs/reference/deployment-contract.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/how-to/dependency-updates.md,docs,doc,72,docs/how-to/dependency-updates.md,docs,rewrite,describes the retired classifier; rewrite for the weekly single PR and the vulnerability SLA
+docs/reference/deployment-contract.md,docs,doc,649,docs/reference/deployment-contract.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
 docs/engineering-standards.md,docs,doc,92,CONTRIBUTING.md,docs,merge,review standard and four-session ownership fold into CONTRIBUTING.md and AGENTS.md; ecosystem.md is the standard; file deleted after merge
-docs/evaluation.md,docs,doc,488,docs/reference/evaluation.md,docs,rewrite,"counts are stale (23 retrieval, 24 conversation, 22 guard cases vs 20/19/14 stated); numbers generated from reports (no volatile facts)"
-docs/execution-plan.md,docs,doc,19,docs/archive/execution-plan-2026-09.md,docs,move,historical status table; superseded by docs/master-plan/roadmap.md
-docs/graph-retrieval.md,docs,doc,139,docs/explanation/graph-retrieval.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
-docs/handoffs/backoffice.md,docs,doc,35,docs/reference/handoffs/backoffice.md,docs,move,cross-repo contract handoff; reference
-docs/handoffs/storefront-transition.md,docs,doc,46,docs/reference/handoffs/storefront-transition.md,docs,move,cross-repo contract handoff; reference
-docs/handoffs/vps-ops.md,docs,doc,195,docs/reference/handoffs/vps-ops.md,docs,move,195-line handoff; trim volatile measurements in the move PR; reference
-docs/knowledge-operations.md,docs,doc,197,docs/how-to/knowledge-operations.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
-docs/observability/README.md,docs,doc,90,docs/reference/observability.md,docs,move,one file does not need a folder
-docs/official-web-evidence.md,docs,doc,160,docs/explanation/official-web-evidence.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
-docs/product-analytics.md,docs,doc,166,docs/reference/product-analytics.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
-docs/reference-adoption.md,docs,doc,40,docs/explanation/reference-adoption.md,docs,move,provenance record of ideas adapted from portfolio-assistant-api (licence evidence); keep
-docs/runtime-baseline.md,docs,doc,90,docs/reference/runtime-baseline.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
-docs/security.md,docs,doc,104,docs/explanation/security.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/reference/evaluation.md,docs,doc,488,docs/reference/evaluation.md,docs,rewrite,"counts are stale (23 retrieval, 24 conversation, 22 guard cases vs 20/19/14 stated); numbers generated from reports (no volatile facts)"
+docs/archive/execution-plan.md,docs,doc,19,docs/archive/execution-plan-2026-09.md,docs,move,historical status table; superseded by docs/master-plan/roadmap.md
+docs/explanation/graph-retrieval.md,docs,doc,139,docs/explanation/graph-retrieval.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/reference/handoffs/backoffice.md,docs,doc,35,docs/reference/handoffs/backoffice.md,docs,move,cross-repo contract handoff; reference
+docs/reference/handoffs/storefront-transition.md,docs,doc,46,docs/reference/handoffs/storefront-transition.md,docs,move,cross-repo contract handoff; reference
+docs/reference/handoffs/vps-ops.md,docs,doc,195,docs/reference/handoffs/vps-ops.md,docs,move,195-line handoff; trim volatile measurements in the move PR; reference
+docs/how-to/knowledge-operations.md,docs,doc,197,docs/how-to/knowledge-operations.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/reference/observability.md,docs,doc,90,docs/reference/observability.md,docs,move,one file does not need a folder
+docs/explanation/official-web-evidence.md,docs,doc,160,docs/explanation/official-web-evidence.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/reference/product-analytics.md,docs,doc,166,docs/reference/product-analytics.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/explanation/reference-adoption.md,docs,doc,40,docs/explanation/reference-adoption.md,docs,move,provenance record of ideas adapted from portfolio-assistant-api (licence evidence); keep
+docs/reference/runtime-baseline.md,docs,doc,90,docs/reference/runtime-baseline.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
+docs/explanation/security.md,docs,doc,104,docs/explanation/security.md,docs,move,Diataxis (ecosystem 14.2); inbound links fixed in the same PR and checked by lychee
 docs/verification/api-evidence-2026-10-18.json,docs-evidence,doc,61,docs/verification/api-evidence-2026-10-18.json,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
 docs/verification/api-evidence-2026-10-18.md,docs-evidence,doc,80,docs/verification/api-evidence-2026-10-18.md,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"
 docs/verification/assistant/2026-10-18/01-Desktop-Panel-Bienvenida.png,docs-evidence,binary,155,docs/verification/assistant/2026-10-18/01-Desktop-Panel-Bienvenida.png,docs-evidence,keep,"dated evidence with provenance hashes; immutable history, never relabelled"

@@ -58,7 +58,7 @@ class ProductRef:
     purchase_url: str
     image: ImageRef | None
     price: PriceRef | None
-    """None when the price could not be confirmed as current (see docs/api-contract.md)."""
+    """None when the price could not be confirmed as current (see docs/reference/api-contract.md)."""
     kind: Literal["core", "affiliate"] = "core"
     format: str | None = None
     disclosure: str | None = None

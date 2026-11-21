@@ -23,7 +23,7 @@ from the exact merged API commit. Existing private requests and responses stay c
 Rendering rules: unknown values are `null` → "no disponible", never 0; `daily` has only days
 with records and `metrics_since` marks the start of history (do not draw gaps as zeros);
 `service.synthetic` must be shown prominently; money is USD decimal strings; spend is
-confirmed / estimated / pending (definitions in docs/api-contract.md).
+confirmed / estimated / pending (definitions in docs/reference/api-contract.md).
 
 
 ## Optional telemetry extension (2026-10-12)
@@ -38,4 +38,4 @@ provider availability from readiness or historical uptime from one process's lif
 Prometheus text metrics are private and authenticated; OTLP only exports safe manual attributes.
 The backoffice's own metrics token is separate from the API ops token; neither reaches client
 props, browser code or URLs. The backoffice owns its authorization, private endpoint and SDK
-contract. vps-ops owns shared receivers and scrapes. See [observability](../observability/README.md).
+contract. vps-ops owns shared receivers and scrapes. See [observability](../observability.md).

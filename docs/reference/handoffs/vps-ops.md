@@ -5,7 +5,7 @@ SQLite production handoff. Dated image measurements and legacy SQLite recovery p
 remain in [the deployment contract](../deployment-contract.md) and Git history; they are
 not current production topology or approval. No images are published and no API/backoffice
 service is deployed by this work. vps-ops owns Coolify, proxy, DNS, secrets, infrastructure
-allocation, monitored backups and deployment. The storefront assistant remains disabled. The [October19 native image handoff](../verification/final-native-images-2026-10-19.md)
+allocation, monitored backups and deployment. The storefront assistant remains disabled. The [October19 native image handoff](../../verification/final-native-images-2026-10-19.md)
 identifies exact local images, retained findings and outstanding acceptance work.
 
 ## Current topology and project isolation
@@ -33,7 +33,7 @@ grant each runtime only its own CONNECT and documented schema/table capabilities
 BO18 and BO51 browser tests, independent database restores with matching row hashes, and
 separate least-privilege role probes. The full suites used fixture administrative connections;
 this is not a production-runtime-role browser test or VPS-capacity approval. Follow the
-[bootstrap custody and acceptance steps](../knowledge-operations.md#one-project-engine-two-database-bootstrap). This
+[bootstrap custody and acceptance steps](../../how-to/knowledge-operations.md#one-project-engine-two-database-bootstrap). This
 choice is not provisioning approval. **Never share a PostgreSQL or Neo4j
 instance with Portfolio or another project.**
 SQLite remains an isolated fixture profile and a quiescent, non-destructive historical import
@@ -49,7 +49,7 @@ is implemented here, and production composition remains owned by vps-ops/Coolify
 
 - Build from the approved exact application commit with `infra/docker/app/Dockerfile` and the frozen
   lockfile; use immutable image digests for rollout. Local IDs in
-  [the dated evidence](../verification/graphrag-2026-10-17.md) are not published manifests or
+  [the dated evidence](../../verification/graphrag-2026-10-17.md) are not published manifests or
   final release identities. API/backoffice `main` merges do not deploy; storefront `main`
   merges publish through Hostinger, so its disabled-build and post-deploy checks are mandatory.
 - API: port **8000/tcp**, UID/GID **65532**, read-only root, cap-drop ALL, no-new-privileges,
@@ -80,7 +80,7 @@ remain vps-ops gates. Do not add these figures and label the result production c
 
 ## Migration, indexing, backup and rollback custody
 
-Use [knowledge operations](../knowledge-operations.md) for exact commands and capabilities:
+Use [knowledge operations](../../how-to/knowledge-operations.md) for exact commands and capabilities:
 
 1. Run the explicit `python -m app.bootstrap.knowledge_jobs migrate` job from the selected
    application image with **`POSTGRES_MIGRATION_DSN`**, then provision distinct LOGIN identities
@@ -165,7 +165,7 @@ do not establish deployed edge provenance. Migration006 restore remains a separa
 ## Secrets, budgets and activation
 
 All secrets are injected privately by vps-ops/Coolify, never build args, browser code, URLs,
-logs or screenshots. [Knowledge operations](../knowledge-operations.md) lists database role
+logs or screenshots. [Knowledge operations](../../how-to/knowledge-operations.md) lists database role
 custody. Runtime secret names include **`OPENAI_API_KEY`**, **`CLIENT_HASH_KEY`**,
 **`OPS_READ_TOKEN`**, the two runtime DSNs and **`NEO4J_PASSWORD`**; job-only migration/import/
 index-accounting credentials must not be supplied to HTTP. Backoffice owns its separate auth,
@@ -174,7 +174,7 @@ IAM and OAuth secrets. Share only the ops read token between API and backoffice 
 The only generation configuration is GPT-6 Luna / medium; semantic embeddings use
 text-embedding-3-small /1536. No model fallback, automatic generation retry or arbitrary web
 search. Optional Hotmart procedural retrieval is server-owned, default off and limited to
-[three exact public articles](../official-web-evidence.md), without buyer/account credentials.
+[three exact public articles](../../explanation/official-web-evidence.md), without buyer/account credentials.
 Python **3.14.8** is intentional: the CP315 frozen graph-dependency install failed on missing
 wheels for **PyYAML 6.0.3, uuid-utils 0.17.1 and zstandard 0.25.0**. This is not a Docker/Python
 3.15 availability claim and Pequeverso has no Lingua dependency. Locks/digests are authoritative.
@@ -185,7 +185,7 @@ reserved. These are conservative application estimates, not provider invoices or
 account-level hard cap. Local evaluations use a separately owner-authorized append-only envelope; historical
 USD1/650-attempt receipts are dated evidence, not the current evaluation allowance or a
 production spending authorization. Keep their original counters and
-[source-specific scope](../verification/graphrag-2026-10-17.md).
+[source-specific scope](../../verification/graphrag-2026-10-17.md).
 
 Storefront activation requires a separate owner-approved rebuild after VPS acceptance:
 `NEXT_PUBLIC_ASSISTANT_ENABLED` stays absent/false now, with no launcher, runtime or API traffic.

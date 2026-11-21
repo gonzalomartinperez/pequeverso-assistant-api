@@ -17,7 +17,7 @@ metadata:
 3. Run `uv run pytest` and `uv run python scripts/evaluate_conversations.py`. Safety and guard
    failures must be zero.
 4. Live evaluation only with explicit owner authorization and a separate Pequeverso key:
-   follow `docs/evaluation.md`. Otherwise state in the PR that live quality is unverified.
+   follow `docs/reference/evaluation.md`. Otherwise state in the PR that live quality is unverified.
 5. Never weaken a rule to make an evaluation pass, and never put ideal answers in application
    code.
 
@@ -29,7 +29,7 @@ metadata:
 
 ## Optional official public-source changes
 
-Follow ADR-0008 and docs/official-web-evidence.md: exact three source ids, read-only/default-off,
+Follow ADR-0008 and docs/explanation/official-web-evidence.md: exact three source ids, read-only/default-off,
 no visitor data in requests, fixture network off, no model tools or extra attempts. Regressions
 belong in tests/test_official_help.py. Source changes do not authorize paid calls or refresh
 merchant price/policy facts; preserve prior evaluation artifacts and reconcile its shared cap.

@@ -88,7 +88,7 @@ Every external source behind a decision. All were read or verified by the resear
 | Audit measurements | planner `audit/pequeverso-assistant-api/` (pytest, coverage, mypy, ruff, Trivy, corpus, retrieval) and the copies under `audit/` here | all baseline numbers |
 | Real-model evaluation records | `docs/verification/real-model-2026-10-12.md`, `real-evaluation-2026-10-18.md`, `real-evaluation-2026-10-19.md` at develop `6912579` | acceptance baseline, cost per generation |
 | ADR-0002, ADR-0003, ADR-0006, ADR-0008, ADR-0009 | `docs/decisions/` | architecture and language constraints |
-| `AGENTS.md`, `docs/security.md`, `docs/evaluation.md`, `docs/ci.md`, `docs/dependency-updates.md` | develop `6912579` | rules and drift findings |
+| `AGENTS.md`, `docs/explanation/security.md`, `docs/reference/evaluation.md`, `docs/reference/ci.md`, `docs/how-to/dependency-updates.md` | develop `6912579` | rules and drift findings |
 | Owner requirements and decisions | `owner-decisions.md`, `shared/ecosystem.md` section 2 (copied here as `ecosystem.md`) | binding constraints |
 | Retrieval recall@k, ruff families | `audit/recall-at-k.txt`, `audit/ruff-ecosystem-families.txt` (measured by the planner on a `git archive` of develop `6912579`) | weak-family analysis, migration size |
 

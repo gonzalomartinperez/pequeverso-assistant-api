@@ -122,7 +122,7 @@ to 650 attempts while retaining USD 1. That history is preserved.
 On 2026-10-18 the owner explicitly authorized 1100 attempts/USD 6 **accumulated**, with the same
 USD 10 monthly project limit and no reset. The current 628 attempts/860869 microUSD/zero pending
 snapshot is Root's operator evidence, not a read performed by this documentation change.
-The [offline audited migration](evaluation.md#explicit-audited-extension-of-one-existing-evaluation-ledger-2026-10-18)
+The [offline audited migration](../reference/evaluation.md#explicit-audited-extension-of-one-existing-evaluation-ledger-2026-10-18)
 preserves all legacy rows and 650/USD 1 metadata; constructors/default 400/USD 1 remain unchanged.
 A fresh raised ledger is not allowed. Root alone executes the real migration after review and
 checks; an audit hash records provenance and integrity, not cryptographic owner authorization.

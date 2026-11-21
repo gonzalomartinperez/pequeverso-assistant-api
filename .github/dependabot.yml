@@ -1,6 +1,6 @@
 # One weekly Dependabot PR for every ecosystem (multi-ecosystem group `weekly-all`), Monday 09:00 ART,
 # targeting develop. Security-update PRs are disabled in the repository settings; alerts stay on and
-# criticals ride the weekly PR. See docs/dependency-updates.md. Every merge remains manual.
+# criticals ride the weekly PR. See docs/how-to/dependency-updates.md. Every merge remains manual.
 version: 2
 multi-ecosystem-groups:
   weekly-all:

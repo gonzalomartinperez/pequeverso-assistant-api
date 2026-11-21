@@ -6,15 +6,15 @@ Nothing here is deployed; no Compose file in this repository is a production aut
 
 ## Current production-profile contract
 
-[ADR-0009](decisions/ADR-0009-versioned-commercial-graphrag.md) replaces the earlier production
+[ADR-0009](../decisions/ADR-0009-versioned-commercial-graphrag.md) replaces the earlier production
 SQLite design with PostgreSQL/pgvector public/private schemas and a public-only Neo4j projection.
-Read [the operator jobs, capability roles, migration and finite gates](knowledge-operations.md)
+Read [the operator jobs, capability roles, migration and finite gates](../how-to/knowledge-operations.md)
 before using this candidate. Main merging is not deployment or activation. All dated measurements
 below retain their historical source/image identities and are not acceptance of the new profile.
 
 ## Dependency/image findings and remaining deployment gates
 
-The [current security handoff](security.md#dependency-and-image-findings-in-the-deployment-handoff)
+The [current security handoff](../explanation/security.md#dependency-and-image-findings-in-the-deployment-handoff)
 records owner direction received on 2026-10-19: dependency and image CVEs are advisory and
 nonblocking for future deployment. Preserve every dated scan finding and raw policy result,
 including `policy_pass: false`; do not rewrite historical reports or infer a new clean scan.
@@ -40,7 +40,7 @@ fixture pass, image scan or advisory finding alone authorizes no deployment or p
 Historical local acceptance below belongs to combined application commit
 `cf19c3beac8e51bcb4ed805af7d92a99c42f8ce6`, image
 `sha256:0691367b0a86087d2fc0904f7507e16aa77d8599d6bcd8b953343fc5472cde8d`.
-See [the phased exact-image evidence](verification/post-tools-2026-10-13.md).
+See [the phased exact-image evidence](../verification/post-tools-2026-10-13.md).
 The combined head normally merges reviewed runtime/dependency PR52 and the finite final
 language/citation fix. Later squash integrations or documentation changes do not relabel this
 local image as a main release build. BuildKit is required by the pinned Dockerfile frontend and
@@ -83,7 +83,7 @@ silent takeover. A shared database alone does not make this runtime HA or multi-
 
 Health paths are internal; the public proxy routes only `/api/*`. No health body carries secrets,
 session ids or visitor content. The environment variables, their secret flag and what production
-requires are published in [`contracts/env.schema.json`](../contracts/env.schema.json), generated
+requires are published in [`contracts/env.schema.json`](../../contracts/env.schema.json), generated
 from `Settings` by `uv run python -m contracts.export`.
 
 The PostgreSQL image probes TCP at `127.0.0.1`, not its Unix socket. The official entrypoint
@@ -112,7 +112,7 @@ The fixture tools accept only the exact declared pairs `70:70` (Alpine candidate
 (historical Debian), rejecting root, missing or other identities before resource creation.
 They derive the socket tmpfs owner from that validated pair; they never repair an existing
 volume. Alpine3.24 main is supported until2028-06-01; this is not a claimed LTS designation.
-[Candidate evidence and remaining gates](verification/postgres-alpine-2026-10-18.md) distinguish
+[Candidate evidence and remaining gates](../verification/postgres-alpine-2026-10-18.md) distinguish
 source review from exact-image, restore, scan and deployment acceptance. No deployment or
 security waiver follows from changing the base image.
 
@@ -177,7 +177,7 @@ latency percentiles, token usage and spend (confirmed / estimated / pending) to 
 | `DATABASE_PATH` | `/data/assistant.sqlite3` only for explicit SQLite fixtures/import | config |
 | `CATALOG_URL` | unset (bundled snapshot). Set only if the storefront publishes the catalog document | config |
 | `CATALOG_PRICE_MAX_AGE_HOURS` | `168` | config |
-| `OFFICIAL_HELP_ENABLED` | `false` (default). Optional three fixed public Hotmart procedure reads; fixture mode never uses their network adapter. Review [source/egress limits](official-web-evidence.md) before a separately authorized enablement | config |
+| `OFFICIAL_HELP_ENABLED` | `false` (default). Optional three fixed public Hotmart procedure reads; fixture mode never uses their network adapter. Review [source/egress limits](../explanation/official-web-evidence.md) before a separately authorized enablement | config |
 
 Validation refuses to start with unsafe combinations: a paid provider without opt-in and key,
 fixture answers in production, non-https or localhost origins, insecure cookies, a missing or
@@ -188,7 +188,7 @@ short `CLIENT_HASH_KEY`, or a daily budget above the monthly one.
 **Production GraphRAG:** PostgreSQL owns application state and public knowledge in separate
 schemas/roles. Neo4j owns only a rebuildable public projection. Migrations and indexing are
 explicit operator jobs using the same selected image; HTTP startup does no PostgreSQL DDL or
-paid indexing. Follow [knowledge operations](knowledge-operations.md), including separate
+paid indexing. Follow [knowledge operations](../how-to/knowledge-operations.md), including separate
 migration/indexer/accounting identities, verified import and restore, active-pointer rollback
 and the singleton ownership lock. A rolling overlap or restoring over new writes is unsupported.
 
@@ -212,7 +212,7 @@ The following SQLite recipes apply only to the historical/fixture profile:
 ## Rollout and rollback
 
 The production PostgreSQL/GraphRAG profile uses the explicit jobs in
-[knowledge operations](knowledge-operations.md), not SQLite startup migrations.
+[knowledge operations](../how-to/knowledge-operations.md), not SQLite startup migrations.
 
 - **Deploy:** stop the previous API writer and confirm its ownership connection is released.
   Run the reviewed explicit PostgreSQL migration job with its separate migration identity.
@@ -305,7 +305,7 @@ verified, and the VPS proxy belongs to vps-ops.
 ## Historical SQLite runtime and disk operations (2026-10-10)
 
 These dated SQLite-specific commands are fixture/import references. PostgreSQL/Neo4j production
-uses the capability, persistence and explicit-job contract in [knowledge operations](knowledge-operations.md).
+uses the capability, persistence and explicit-job contract in [knowledge operations](../how-to/knowledge-operations.md).
 No example here provisions shared infrastructure or authorizes running production maintenance.
 
 The application image does not set host quotas. vps-ops must carry the tested runtime policy
@@ -445,7 +445,7 @@ image; do not pursue size reduction by stripping required libraries.
 
 ## Optional application telemetry and historical Python candidate
 
-[Application observability](observability/README.md) owns the optional private JSON/Prometheus
+[Application observability](observability.md) owns the optional private JSON/Prometheus
 endpoints, manual traces and provisioning transfer artifacts. Infrastructure owns the collector,
 Grafana, Prometheus, private scrape credentials and deployment. Observability is off by default;
 never route `/internal/*` publicly. A telemetry-off API remains fully functional. Provider
@@ -508,7 +508,7 @@ review it again when vps-ops selects/builds/publishes its actual deployment dige
 
 No image was published and no VPS/proxy/collector stack deployed. Real-model development
 results and their separate cost/semantic limits are in
-[the evaluation record](verification/real-model-2026-10-12.md). They do not authorize activation.
+[the evaluation record](../verification/real-model-2026-10-12.md). They do not authorize activation.
 
 ## Historical route-classification candidate on 2026-10-12
 
@@ -584,7 +584,7 @@ deployment. Application scans do not certify the host, shared services or produc
 [PR51](https://github.com/gonzalomartinperez/pequeverso-assistant-api/pull/51) integrates explicit
 page-count validation, exact request packing, effective-source citation filtering, local recognition
 of confirmed French reply commands and processing-window safeguards. Public schemas and v1
-revision1.4 remain unchanged. The [post-tool evidence](verification/post-tools-2026-10-13.md)
+revision1.4 remain unchanged. The [post-tool evidence](../verification/post-tools-2026-10-13.md)
 preserves the original halted evaluation separately from fixes and subsequent phases.
 
 Source `3f230f46524011fe34a3fe14715bb342d75c2d32`; exact local image
@@ -641,7 +641,7 @@ a deliberate data-preservation plan before production activation.
 
 ## Historical pre-GraphRAG Python 3.15 cohort verification — 2026-10-17
 
-The [current runtime candidate report](verification/runtime-cohort-2026-10-17.md) separates
+The [current runtime candidate report](../verification/runtime-cohort-2026-10-17.md) separates
 754-test compatibility evidence, exact local image identity, hardened smoke/restore and
 active-stream shutdown from historical Python 3.14 measurements above. The initial Python
 3.15 candidate measured 70.01 MiB idle / 87,961,600-byte cgroup peak under 256 MiB and

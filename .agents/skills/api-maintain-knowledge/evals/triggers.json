@@ -1,7 +1,7 @@
 {
   "skill": "api-maintain-knowledge",
   "status": "stub",
-  "protocol": "docs/agent-skills.md#activation-evals",
+  "protocol": "docs/reference/agent-skills.md#activation-evals",
   "queries": [
     {
       "query": "re-sync the catalog from a pinned storefront commit",

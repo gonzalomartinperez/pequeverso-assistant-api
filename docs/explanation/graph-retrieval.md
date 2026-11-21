@@ -107,7 +107,7 @@ restored stamp/counts. It never retries a model generation or rebuilds data to m
 Only resources created by that invocation are removed; synthetic auth is deleted and full
 service/test logs and the public-only dump remain under a private host directory.
 
-The [dated verification record](verification/graphrag-2026-10-17.md) preserves original and
+The [dated verification record](../verification/graphrag-2026-10-17.md) preserves original and
 subsequent retrieval results, exact image identities, real CI and remaining semantic/security gates.
 
 ## Strategy evidence

@@ -34,7 +34,7 @@ commit of this repository, never from a working tree.
 Proposed (pending DNS and vps-ops approval): the API is served at its own HTTPS origin,
 `https://assistant.pequeverso.com/api/*`, through the vps-ops reverse proxy. The storefront
 (`https://pequeverso.com`, static) calls it **cross-origin** with `fetch(..., {credentials:
-'include'})`. See docs/deployment-contract.md ("Browser and origin assumptions") for CORS,
+'include'})`. See docs/reference/deployment-contract.md ("Browser and origin assumptions") for CORS,
 cookies and CSRF.
 
 - The API's routes **include** the `/api` prefix (`/api/v1/...`) and FastAPI's `root_path` is empty.
@@ -254,7 +254,7 @@ changing an event's meaning or the terminal grammar requires v2 under `/api/v2`.
 
 ## Optional official platform evidence (2026-10-13)
 
-Optional [official platform evidence](official-web-evidence.md) can populate the existing
+Optional [official platform evidence](../explanation/official-web-evidence.md) can populate the existing
 `sources[{id,title,url}]` fields with the three server-owned `hotmart:<article_id>` references.
 Only a source actually supplied for that turn can resolve. Their scope is general platform
 procedures, not merchant price/policy verification or order access. No wire revision or new

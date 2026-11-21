@@ -29,7 +29,7 @@ third-party material is not claimed as Pequeverso property. Public availability 
 this software license do not grant permission to redistribute products or to present
 another business using Pequeverso's identity. The storefront's
 [content and media notice](https://github.com/gonzalomartinperez/pequeverso/blob/main/LICENSE-CONTENT.md)
-and this repository's [catalog provenance](docs/catalog.md) document those boundaries.
+and this repository's [catalog provenance](docs/reference/catalog.md) document those boundaries.
 
 ## Third-party attribution and distribution
 

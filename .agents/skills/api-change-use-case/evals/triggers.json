@@ -1,7 +1,7 @@
 {
   "skill": "api-change-use-case",
   "status": "stub",
-  "protocol": "docs/agent-skills.md#activation-evals",
+  "protocol": "docs/reference/agent-skills.md#activation-evals",
   "queries": [
     {
       "query": "tighten the answer rules so prices are never invented",

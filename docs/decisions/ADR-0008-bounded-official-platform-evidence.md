@@ -21,7 +21,7 @@ The source API is used by the official public client but lacks a located stable 
 contract. Fail closed on source/schema/content changes, no stale-on-error or unapproved fallback.
 Fixed-host TLS uses trusted DNS rather than IP pinning; vps-ops must review egress. This residual
 and semantic citation support remain explicit activation gates. See
-[the exact boundary and tests](../official-web-evidence.md).
+[the exact boundary and tests](../explanation/official-web-evidence.md).
 
 ## Confirmation
 

@@ -4,7 +4,7 @@
   "catalog_sha256": "54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b",
   "catalog_revision": "7dde2968783c809205bd6ba16ec4a4661b936ca0",
   "mode": "fixture",
-  "metrics_engine": "stdlib (scripts/evaluate_corpus.py); ranx spike not adopted, see docs/evaluation.md",
+  "metrics_engine": "stdlib (scripts/evaluate_corpus.py); ranx spike not adopted, see docs/reference/evaluation.md",
   "retriever": "lexical (app/ai/evidence.py), before the part B retrieval repair",
   "cases": {
     "total": 318,
