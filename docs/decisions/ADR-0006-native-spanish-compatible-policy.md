@@ -35,3 +35,19 @@ Unit, HTTP/SSE and replay tests cover legacy compatibility, policy conflicts and
 The [dated real-model evidence](../verification/real-model-2026-10-12.md) records the53-query
 Spanish revalidation separately from the original bilingual baseline. Agent review is not
 human review, and the storefront remains disabled until separate activation after VPS checks.
+
+## Confirmation
+
+`tests/test_spanish_native.py` covers the decision: local Spanish notice for other reply
+languages (`test_native_other_reply_language_is_local_spanish_notice`), data that is not a language
+request (`test_native_selects_spanish_without_treating_data_as_a_language_request`), rejection of
+an invalid policy before dispatch (`test_invalid_native_policy_is_rejected_before_dispatch`),
+the idempotency fingerprint and preserved English history
+(`test_native_policy_conflicts_with_legacy_replay_and_preserves_english_history`), legacy
+behavior (`test_legacy_unsupported_notice_remains_bilingual`), the real SSE socket
+(`test_native_policy_flows_over_real_sse_socket`) and the explicit limit
+(`test_native_does_not_claim_semantic_validation_of_generated_language`).
+`tests/test_properties_fingerprint.py` and `tests/test_language.py` add properties and detector
+cases. The wire field is pinned by `contracts/` under `uv run python -m contracts.export --check`
+(CI `static` job) and `tests/test_contract.py::test_committed_artifacts_match_the_code`. Whether
+generated prose is actually Spanish is a manual evaluation (the dated evidence file above).

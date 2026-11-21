@@ -16,3 +16,14 @@ synonym gap that the model resolves anyway, since it sees the whole catalog.
 **Revisit when** the catalog passes about 40k characters, or a live evaluation shows grounding
 misses. Then add hybrid retrieval with provenance, a versioned index and atomic swaps, and
 evaluate before and after.
+
+## Confirmation
+
+The CI `static` job runs `uv run python scripts/evaluate_retrieval.py` (the 20-case
+`evals/retrieval.json` figures above) and `uv run python -m scripts.retrieval_ratchet` through
+`tests/test_retrieval_ratchet.py`, which fails when recall@3, recall@5, nDCG@5 or MRR drop below
+`ratchets/retrieval.json`. `tests/test_request_packing.py` covers the packed evidence, including
+`test_old_context_compacts_but_latest_exchange_and_structured_catalog_survive` and
+`test_valid_but_unsent_catalog_document_cannot_become_final_citation`. The cache-friendly stable
+order of the catalog has no dedicated test; it is checked by review and by the golden-set replay
+(`uv run python -m evals.runner golden --replay`), whose cassettes are keyed on the request.

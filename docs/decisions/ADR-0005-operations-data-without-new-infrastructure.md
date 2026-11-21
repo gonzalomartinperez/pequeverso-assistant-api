@@ -35,3 +35,16 @@ clear custom backoffice dashboard. [ADR-0007](ADR-0007-optional-private-observab
 supersedes only the original decision to omit exporters/endpoints. The ledger, run metrics,
 SQLite and private server-side summary remain authoritative; no shared monitoring server or
 additional runtime database is introduced by the applications.
+
+## Confirmation
+
+`tests/test_operations.py` checks the private summary: it requires a configured token
+(`test_ops_summary_requires_a_configured_token`), carries aggregates without content
+(`test_ops_summary_reports_aggregates_without_content`), is read-only
+(`test_the_read_token_cannot_mutate_anything`), and the ledger states
+(`test_pending_reservations_of_a_dead_process_become_estimates`,
+`test_roll_forward_maps_old_pending_rows_by_actual_spend`). `tests/test_budget_concurrency.py` covers
+the ledger. `tests/test_security_matrix.py` (`test_internal_route_matrix`) covers `/internal/*`
+authorization. The content-free guarantee for logs is covered by `tests/test_security.py`
+(`test_logs_never_contain_conversation_content_or_ips`). That no exporter or collector exists was
+the original decision only; it is superseded by ADR-0007 and has no check.
