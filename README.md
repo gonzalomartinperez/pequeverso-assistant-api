@@ -138,5 +138,5 @@ vulnerabilities as described in [SECURITY.md](SECURITY.md). Questions go through
 
 ## License
 
-Software is MIT-licensed ([LICENSE](LICENSE)); brand, content, media and data are reserved,
+Software is under the [MIT License](LICENSE); brand, content, media and data are reserved,
 see [NOTICE.md](NOTICE.md).
