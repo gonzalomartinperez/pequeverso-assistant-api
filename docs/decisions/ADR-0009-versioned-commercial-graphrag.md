@@ -1,6 +1,7 @@
 # ADR-0009: Versioned commercial GraphRAG and bounded orchestration
 
 Status: implementation in progress, 2026-10-17. Not deployment or activation authorization.
+Supersedes ADR-0001's production storage choice (SQLite); SQLite remains the fixture profile.
 
 ## Context and reference
 
@@ -161,3 +162,25 @@ This amendment records the owner's separate decision; the ADR itself grants no a
 
 These links explain capabilities and controls. Their presence is not evidence that this
 implementation or a VPS deployment has passed the gates above.
+
+## Confirmation
+
+Layer and SDK confinement: `.importlinter` contracts `postgres`, `neo4j`, `graph` and `stdlib`
+(`uv run lint-imports`, CI `static` job) and `tests/test_architecture.py`
+(`test_external_runtime_sdks_stay_in_exact_adapters`, `test_cypher_stays_in_neo4j_adapter`,
+`test_postgres_folder_name_cannot_bypass_sql_boundary`). Real-database behavior runs in the CI
+`database` job (`scripts/smoke_knowledge_postgres.sh`, the Neo4j smoke step and the combined
+coverage step) over `tests/test_postgres_private.py`
+(`test_database_roles_keep_public_and_private_authorities_separate`,
+`test_atomic_budget_across_independent_pools_and_embedding_generation_purposes`),
+`tests/test_postgres_knowledge.py` (`test_immutable_revision_rejects_different_vectors_and_detects_tampered_metadata`,
+`test_failed_graph_stage_preserves_active_and_prepared_version_can_roll_back`) and
+`tests/test_neo4j_public_graph.py`. Indexing and activation: `tests/test_knowledge_indexing.py`
+(`test_indexing_recovers_inside_lock_and_activates_only_after_both_proofs`). Retrieval
+verification: `tests/test_hybrid_knowledge.py`
+(`test_unverified_graph_or_index_evidence_is_rejected`,
+`test_stale_or_incoherent_snapshot_is_rejected_before_embedding`). The explicit import:
+`tests/test_postgres_import.py` (`test_import_refuses_partial_existing_target_without_deleting_anything`,
+`test_mid_transaction_constraint_failure_rolls_back_every_imported_table`). Not automated: answer
+quality, scalability, sales impact, deployment and activation; these remain the owner's acceptance
+gates above.
