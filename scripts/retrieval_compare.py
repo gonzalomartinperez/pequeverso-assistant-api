@@ -54,7 +54,10 @@ def compare(
 ) -> dict[str, Any]:
     old = {r["id"]: r for r in before if split in (None, r["split"])}
     new = {r["id"]: r for r in after if split in (None, r["split"])}
-    ids = sorted(old.keys() & new.keys())
+    if old.keys() != new.keys():
+        missing = sorted(old.keys() ^ new.keys())
+        raise ValueError(f"before and after differ in cases: {missing[:10]}")
+    ids = sorted(old)
     out: dict[str, Any] = {"cases": len(ids), "split": split or "all"}
     metrics: tuple[tuple[str, Callable[[dict[str, Any]], float]], ...] = (
         ("recall_at_5", lambda r: _hit(r, 5)),

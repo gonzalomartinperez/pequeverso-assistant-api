@@ -30,7 +30,7 @@ QUERY_ALIASES = (
     ),
     (
         "pago página segura",
-        "checkout|carrito|pantalla de pago|botón de compra|enlace de compra|link de pago|clic|click",
+        "checkout|carrito|pantalla de pago|botón de compra|enlace de compra|link de pago|clic para comprar|click para comprar|clic en comprar",
     ),
     ("pago", "pagar|pagarlo|pagué|paga|pagamos|abonar|aboné"),
     ("página pago", "cómo comprar|cómo se compra|para comprarlo|para comprarla|dónde compro"),
@@ -47,15 +47,15 @@ QUERY_ALIASES = (
     # Refunds and withdrawal
     (
         "reembolso",
-        "devolución|devoluciones|devolver|devuelven|devuelvan|devuelve|reintegro|reembolsar|rembolso|reenbolso",
+        "devolución|devoluciones|devolver el dinero|devuelven el dinero|reintegro|reembolsar|rembolso|reenbolso",
     ),
     (
         "reembolso dinero",
-        "devolver la plata|recuperar el dinero|recuperar la plata|devolución del dinero|plata de vuelta",
+        "devolver la plata|recuperar el dinero|recuperar la plata|devolución del dinero|plata de vuelta|me devuelven|me devuelvan|devuelvan la plata|devuelvan el dinero",
     ),
     (
         "revocar arrepentimiento reembolso",
-        "cancelar la compra|anular la compra|desistir|desistimiento|revocación|me arrepentí|me arrepiento",
+        "cancelar la compra|anular la compra|desistir|desistimiento|revocación|me arrepentí de la compra|me arrepentí de comprar",
     ),
     ("transacción", "número de operación|identificador de la compra|código de compra"),
     # Delivery and access

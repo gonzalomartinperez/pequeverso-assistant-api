@@ -6,8 +6,8 @@
   "overall": {
     "cases": 241,
     "recall_at_3": 0.838,
-    "recall_at_5": 0.884,
-    "ndcg_at_5": 0.695,
+    "recall_at_5": 0.888,
+    "ndcg_at_5": 0.697,
     "mrr": 0.739
   },
   "by_family": {
@@ -83,17 +83,17 @@
     },
     "purchase-process": {
       "cases": 12,
-      "recall_at_3": 0.75,
+      "recall_at_3": 0.667,
       "recall_at_5": 0.833,
-      "ndcg_at_5": 0.519,
-      "mrr": 0.562
+      "ndcg_at_5": 0.49,
+      "mrr": 0.495
     },
     "refunds-guarantee-withdrawal": {
       "cases": 15,
-      "recall_at_3": 0.933,
-      "recall_at_5": 0.933,
-      "ndcg_at_5": 0.839,
-      "mrr": 0.811
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "ndcg_at_5": 0.906,
+      "mrr": 0.867
     },
     "stale-data": {
       "cases": 13,
@@ -135,8 +135,8 @@
     "es": {
       "cases": 225,
       "recall_at_3": 0.862,
-      "recall_at_5": 0.907,
-      "ndcg_at_5": 0.72,
+      "recall_at_5": 0.911,
+      "ndcg_at_5": 0.723,
       "mrr": 0.769
     },
     "mixed": {

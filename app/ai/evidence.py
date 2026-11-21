@@ -46,6 +46,8 @@ _STOPWORDS = frozenset(
     """.split()  # noqa: SIM905 - one readable word block
 )
 _STEM_ES_AFTER = frozenset("rlndzj")
+# Plurals in -ses the general rule would cut to a non-word ('meses' -> 'mese').
+_STEM_EXCEPTIONS = {"meses": "mes", "paises": "pais"}
 _ALIAS_WEIGHT = 0.75
 
 
@@ -54,9 +56,15 @@ def tokens(text: str) -> list[str]:
     return list(_tokens(text))
 
 
-@lru_cache(maxsize=4096)
 def _tokens(text: str) -> tuple[str, ...]:
+    # Never cached: queries carry visitor text, which must not outlive its session in memory.
     return tuple(_stem(word) for word in _WORD.findall(fold(text)) if _keep(word))
+
+
+@lru_cache(maxsize=4096)
+def _passage_tokens(text: str) -> tuple[str, ...]:
+    """Catalog passage text only (public, bounded): safe to memoize."""
+    return _tokens(text)
 
 
 def _keep(word: str) -> bool:
@@ -67,6 +75,8 @@ def _stem(word: str) -> str:
     """Spanish plural folding: 'silabas' -> 'silaba', 'lugares' -> 'lugar', 'veces' -> 'vez'."""
     if len(word) <= 3 or not word.endswith("s") or word.isdigit():
         return word
+    if word in _STEM_EXCEPTIONS:
+        return _STEM_EXCEPTIONS[word]
     if len(word) == 4 and word.endswith("es"):  # 'tres', 'mies': not a plural of a 2-letter stem
         return word
     if word.endswith("ces"):
@@ -144,7 +154,7 @@ def passages(catalog: Catalog) -> list[Passage]:
 def rank(query: str, items: Sequence[Passage]) -> list[tuple[Passage, float]]:
     """BM25-style lexical scores, highest first; ties keep catalog order."""
     query_terms = _query_weights(query)
-    docs = [list(_tokens(item.text)) for item in items]
+    docs = [list(_passage_tokens(item.text)) for item in items]
     if not query_terms or not items:
         return [(item, 0.0) for item in items]
     avg_len = sum(len(d) for d in docs) / len(docs) or 1.0

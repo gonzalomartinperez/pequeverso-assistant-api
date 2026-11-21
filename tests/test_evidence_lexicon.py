@@ -47,3 +47,48 @@ def test_exact_terms_keep_length_normalization_and_stable_ties() -> None:
 
     assert [passage for passage, _ in results] == [first, last, longer]
     assert results[0][1] == results[1][1] > results[2][1] > 0
+
+
+def _passage(pid: str, text: str) -> Passage:
+    return Passage(pid, text)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "¿En qué hago clic para imprimir las fichas?",
+        "¿Puede mi hijo devolver las tarjetas a la caja?",
+        "Me arrepentí de imprimir en color",
+    ],
+)
+def test_ambiguous_words_do_not_pull_payment_or_refund_policy(query: str) -> None:
+    items = [
+        _passage(
+            "policy", "Pago en página segura. Reembolso y arrepentimiento: revocar la compra."
+        ),
+        _passage(
+            "faq", "Puedes imprimir las fichas y tarjetas en casa, en color o en blanco y negro."
+        ),
+    ]
+    assert rank(query, items)[0][0].id == "faq"
+
+
+def test_refund_phrases_still_expand() -> None:
+    items = [
+        _passage("other", "Fichas para imprimir."),
+        _passage("refund", "Reembolso del dinero."),
+    ]
+    assert rank("Quiero que me devuelvan la plata", items)[0][0].id == "refund"
+
+
+def test_irregular_plurals_fold_to_the_singular() -> None:
+    from app.ai.evidence import tokens
+
+    assert tokens("meses países") == tokens("mes país")
+
+
+def test_query_text_is_never_memoized() -> None:
+    from app.ai import evidence
+
+    assert not hasattr(evidence._tokens, "cache_info")
+    assert hasattr(evidence._passage_tokens, "cache_info")
