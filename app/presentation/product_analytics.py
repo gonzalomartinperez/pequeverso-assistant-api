@@ -197,6 +197,15 @@ class ReportOut(_Closed):
 
     @model_validator(mode="after")
     def consistent(self) -> Self:
+        selection = self._check_window()
+        self._check_daily()
+        total = sum((self.totals.page_views, self.totals.section_views, self.totals.public_clicks))
+        self._check_countries(total)
+        self._check_observations(total)
+        self._check_grid(selection)
+        return self
+
+    def _check_window(self) -> Selection:
         times = [
             self.generated_at,
             self.start,
@@ -215,6 +224,9 @@ class ReportOut(_Closed):
             start <= self.generated_at < end
         ):
             raise ValueError("inconsistent calendar window")
+        return selection
+
+    def _check_daily(self) -> None:
         daily_days = [row.day for row in self.daily]
         if daily_days != sorted(set(daily_days)):
             raise ValueError("daily buckets must be ordered and unique")
@@ -228,7 +240,8 @@ class ReportOut(_Closed):
         for name in ("page_views", "section_views", "public_clicks"):
             if sum(getattr(row, name) for row in self.daily) != getattr(self.totals, name):
                 raise ValueError("daily totals do not reconcile")
-        total = sum((self.totals.page_views, self.totals.section_views, self.totals.public_clicks))
+
+    def _check_countries(self, total: int) -> None:
         if sum(row.count for row in self.countries) != total:
             raise ValueError("country totals do not reconcile")
         codes = [row.code for row in self.countries]
@@ -236,6 +249,8 @@ class ReportOut(_Closed):
             ["withheld"] if "withheld" in codes else []
         ):
             raise ValueError("country buckets must be unique and ordered")
+
+    def _check_observations(self, total: int) -> None:
         if total == 0:
             if self.first_observed_at is not None or self.last_observed_at is not None:
                 raise ValueError("empty report has no observations")
@@ -246,6 +261,8 @@ class ReportOut(_Closed):
             or self.last_observed_at > self.generated_at
         ):
             raise ValueError("invalid observed interval")
+
+    def _check_grid(self, selection: Selection) -> None:
         grid = self.grid
         available = selection.route != "all" and selection.section_id != "all"
         coordinates = [(cell.x, cell.y) for cell in grid.cells]
@@ -262,7 +279,6 @@ class ReportOut(_Closed):
             not available and (grid.cells or grid.visible_clicks or grid.withheld_clicks)
         ):
             raise ValueError("unselected regions cannot produce a blended grid")
-        return self
 
 
 def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -272,6 +288,32 @@ def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
             raise ValueError("duplicate field")
         result[key] = value
     return result
+
+
+def _ingest_header_error(request: Request, origins: tuple[str, ...]) -> int | None:
+    if (
+        "cookie" in request.headers
+        or "authorization" in request.headers
+        or len(request.headers.getlist("origin")) != 1
+        or request.headers.get("origin") not in origins
+    ):
+        return 403
+    content_type = request.headers.get("content-type", "").lower().replace(" ", "")
+    if len(request.headers.getlist("content-type")) != 1 or content_type not in (
+        "application/json",
+        "application/json;charset=utf-8",
+    ):
+        return 415
+    return None
+
+
+async def _read_ingest_body(request: Request) -> bytearray | None:
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > 1024:
+            return None
+        body.extend(chunk)
+    return body
 
 
 def build_router(
@@ -286,7 +328,33 @@ def build_router(
 ) -> APIRouter:
     router = APIRouter()
     headers = {"Cache-Control": "no-store"}
+    _register_ingest(
+        router,
+        service,
+        headers=headers,
+        enabled=enabled,
+        origins=origins,
+        clock=clock,
+        country_enabled=country_enabled,
+        country_proxy_ips=country_proxy_ips,
+    )
+    _register_report(
+        router, service, headers=headers, enabled=enabled, token_digest=token_digest, clock=clock
+    )
+    return router
 
+
+def _register_ingest(
+    router: APIRouter,
+    service: AnalyticsService | None,
+    *,
+    headers: dict[str, str],
+    enabled: bool,
+    origins: tuple[str, ...],
+    clock: Clock,
+    country_enabled: bool,
+    country_proxy_ips: str,
+) -> None:
     @router.post(
         PUBLIC_PATH,
         status_code=204,
@@ -322,26 +390,14 @@ def build_router(
     async def ingest(request: Request) -> Response:
         if not enabled or service is None:
             return Response(status_code=404, headers=headers)
-        if (
-            "cookie" in request.headers
-            or "authorization" in request.headers
-            or len(request.headers.getlist("origin")) != 1
-            or request.headers.get("origin") not in origins
-        ):
-            return Response(status_code=403, headers=headers)
-        content_type = request.headers.get("content-type", "").lower().replace(" ", "")
-        if len(request.headers.getlist("content-type")) != 1 or content_type not in (
-            "application/json",
-            "application/json;charset=utf-8",
-        ):
-            return Response(status_code=415, headers=headers)
+        header_error = _ingest_header_error(request, origins)
+        if header_error is not None:
+            return Response(status_code=header_error, headers=headers)
         try:
             async with asyncio.timeout(10):
-                body = bytearray()
-                async for chunk in request.stream():
-                    if len(body) + len(chunk) > 1024:
-                        return Response(status_code=413, headers=headers)
-                    body.extend(chunk)
+                body = await _read_ingest_body(request)
+                if body is None:
+                    return Response(status_code=413, headers=headers)
                 value = json.loads(body.decode("utf-8"), object_pairs_hook=_unique_object)
                 event = EventIn.model_validate(value).event(
                     country=country_from_edge(
@@ -361,6 +417,16 @@ def build_router(
         except Exception:  # broad catch: database/client failure never exports payload or SQL
             return Response(status_code=503, headers=headers)
 
+
+def _register_report(
+    router: APIRouter,
+    service: AnalyticsService | None,
+    *,
+    headers: dict[str, str],
+    enabled: bool,
+    token_digest: bytes | None,
+    clock: Clock,
+) -> None:
     @router.get(
         "/internal/v1/ops/product-analytics",
         include_in_schema=False,
@@ -427,5 +493,3 @@ def build_router(
             Exception
         ):  # broad catch: malformed upstream/dependency never exports private details
             return Response(status_code=503, headers=headers)
-
-    return router
