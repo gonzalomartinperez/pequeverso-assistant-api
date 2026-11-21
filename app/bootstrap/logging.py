@@ -119,6 +119,8 @@ _ROUTES = frozenset(
         "unmatched",
         "/health/live",
         "/health/ready",
+        "/healthz",
+        "/readyz",
         "/api/v1/availability",
         "/api/v1/analytics/events",
         "/api/v1/session",

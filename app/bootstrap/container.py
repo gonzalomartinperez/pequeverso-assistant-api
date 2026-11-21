@@ -26,12 +26,13 @@ from app.adapters.catalog_schema import CatalogParser
 from app.adapters.catalog_source import FileCatalogSource, HttpCatalogSource
 from app.adapters.graph.composer import GraphAnswerComposer
 from app.adapters.official_help import OfficialHelpReader
-from app.adapters.postgres.database import PostgresDatabase
+from app.adapters.postgres.database import PostgresDatabase, schema_level
 from app.adapters.postgres.knowledge import PostgresKnowledgeStore
 from app.adapters.postgres.product_analytics import PostgresProductAnalytics
 from app.adapters.providers.fixture_provider import FixtureProvider
 from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
 from app.adapters.providers.openai_provider import OpenAIResponsesProvider
+from app.adapters.sqlite.database import SCHEMA_LEVEL as SQLITE_SCHEMA_LEVEL
 from app.ai.composer import ComposerSettings, GroundedComposer
 from app.ai.provider import ModelProvider
 from app.application.catalog import CatalogService
@@ -55,6 +56,7 @@ from app.presentation.http import (
     Services,
     health,
     install_error_handlers,
+    probes,
     router,
 )
 from app.presentation.middleware import OriginMiddleware, RequestContextMiddleware
@@ -425,10 +427,17 @@ def create_app(
             heartbeat_seconds=settings.heartbeat_seconds,
             max_message_chars=settings.max_message_chars,
             messages_per_day=settings.messages_per_session_per_day,
+            version=settings.service_revision or "unknown",
+            schema_version=(
+                f"postgres-{schema_level(analytics=settings.product_analytics_enabled)}"
+                if settings.application_storage == "postgres"
+                else f"sqlite-{SQLITE_SCHEMA_LEVEL}"
+            ),
         ),
     )
     app.include_router(router)
     app.include_router(health)
+    app.include_router(probes)
     analytics_digest = (
         hashlib.sha256(settings.ops_read_token.get_secret_value().encode()).digest()
         if settings.ops_read_token is not None

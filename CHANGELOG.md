@@ -14,6 +14,9 @@ entry below predates this format and is kept as written.
 - Quality net (master plan M2): coverage and diff-coverage gates, golden set v1 with cassette
   replay, red-team pack, Hypothesis properties, mutation lane, SSE load harness, security matrix
   and fault-injection tests, scorecard and nightly workflow.
+- Internal health aliases `/healthz` and `/readyz` with `version` and `schema_version`, and the
+  generated environment schema `contracts/env.schema.json` (ADR-0019). The image `HEALTHCHECK` now
+  calls `/healthz`; `/health/live` and `/health/ready` are unchanged.
 
 ### Changed
 
