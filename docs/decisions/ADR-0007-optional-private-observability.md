@@ -42,3 +42,18 @@ export failure and shutdown. Actual local OTLP capture and active-stream contain
 are recorded with exact images; neither proves deployed receiver ingestion, VPS capacity,
 production availability or privacy after proxy misconfiguration. See
 [the operational contract](../observability/README.md) and [deployment](../deployment-contract.md).
+
+## Confirmation
+
+`tests/test_observability.py` covers the decision: off by default with the legacy summary
+unchanged (`test_observability_is_disabled_by_default_and_legacy_summary_is_unchanged`), bearer
+authorization of private routes (`test_private_metrics_and_telemetry_require_bearer_and_do_not_probe_provider`),
+unsafe endpoints (`test_otlp_endpoint_rejects_unsafe_configuration`), ambient SDK configuration
+(`test_ambient_sdk_headers_are_rejected_before_any_exporter_is_created`), bounded trace context
+(`test_only_authenticated_exact_private_routes_inherit_bounded_traceparent`), safe attributes
+(`test_manual_traces_drop_inbound_context_raw_paths_headers_and_body`), and content-free,
+non-blocking export failure and shutdown (`test_export_failure_is_content_free_and_never_changes_http_status`,
+`test_exporter_shutdown_drops_queued_batches_without_repeating_timeouts`). The import-linter
+`stdlib` contract keeps `opentelemetry` and `prometheus_client` out of the inner layers.
+Ingestion by a deployed receiver, VPS capacity and proxy configuration are not tested here; they
+are vps-ops checks.

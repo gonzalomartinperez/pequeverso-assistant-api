@@ -53,6 +53,7 @@ from fastapi.testclient import TestClient
 from app.ai.evidence import passages, rank
 from app.bootstrap.config import Settings
 from app.bootstrap.container import create_app
+from app.bootstrap.logging import use_stderr
 from app.domain.answer_policy import fold
 from app.domain.catalog import PriceStatus
 from scripts import evaluate_conversations as conv
@@ -615,6 +616,7 @@ def settings_for_eval(**overrides: Any) -> Settings:
 
 
 def main() -> int:
+    use_stderr()
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )

@@ -24,6 +24,14 @@ from tests.support import ScriptedProvider, answer_json, ask, client, mutation_h
 NOW = datetime(2026, 10, 13, tzinfo=UTC)
 
 
+class _FixedClock:
+    def now(self) -> datetime:
+        return NOW
+
+
+_CLOCK = _FixedClock()
+
+
 async def public_dns() -> tuple[str, ...]:
     return ("8.8.8.8",)  # synthetic preflight result; no DNS query or connection is made
 
@@ -119,10 +127,10 @@ def test_fixed_requests_singleflight_expiry_cooldown_and_no_private_headers() ->
 
     async def run() -> None:
         reader = OfficialHelpReader(
+            clock=_CLOCK,
             transport=httpx.MockTransport(handler),
             dns_resolver=public_dns,
             monotonic=lambda: ticks[0],
-            now=lambda: NOW,
         )
         results = await asyncio.gather(*(reader.read((HelpTopic.DELIVERY,)) for _ in range(10)))
         assert len(calls) == 1 and all(result == results[0] for result in results)
@@ -169,7 +177,9 @@ def test_http_failures_are_optional_and_never_followed(kind: str) -> None:
         return httpx.Response(200, headers={"content-type": "application/json"}, content=b"{bad")
 
     async def run() -> None:
-        reader = OfficialHelpReader(transport=httpx.MockTransport(handler), dns_resolver=public_dns)
+        reader = OfficialHelpReader(
+            clock=_CLOCK, transport=httpx.MockTransport(handler), dns_resolver=public_dns
+        )
         assert await reader.read((HelpTopic.DELIVERY,)) == ()
         assert len(calls) == 1
 
@@ -191,7 +201,7 @@ def test_history_and_idempotent_replay_keep_only_retrieved_citations(tmp_path: P
     )
     with client(tmp_path, provider=provider) as c:
         reader = OfficialHelpReader(
-            transport=httpx.MockTransport(handler), dns_resolver=public_dns, now=lambda: NOW
+            clock=_CLOCK, transport=httpx.MockTransport(handler), dns_resolver=public_dns
         )
         c.app.state.services.chat.official_help = reader
         csrf = open_session(c)
@@ -229,7 +239,7 @@ def test_refusals_and_sensitive_scope_never_request_external_sources(
 
     with client(tmp_path) as c:
         c.app.state.services.chat.official_help = OfficialHelpReader(
-            transport=httpx.MockTransport(handler), dns_resolver=public_dns
+            clock=_CLOCK, transport=httpx.MockTransport(handler), dns_resolver=public_dns
         )
         csrf = open_session(c)
         ask(c, csrf, question, "web-refusal-001")
@@ -262,7 +272,7 @@ def test_external_source_cannot_authorize_merchant_price_policy_or_transaction_c
     provider = ScriptedProvider(answer_json(answer, sources=["hotmart:360061973392"]))
     with client(tmp_path, provider=provider) as c:
         c.app.state.services.chat.official_help = OfficialHelpReader(
-            transport=httpx.MockTransport(handler), dns_resolver=public_dns
+            clock=_CLOCK, transport=httpx.MockTransport(handler), dns_resolver=public_dns
         )
         csrf = open_session(c)
         status, events, _ = ask(c, csrf, "¿Cómo solicitar un reembolso?", "web-poison-001")
@@ -289,7 +299,9 @@ def test_cancelled_source_read_releases_singleflight_lock() -> None:
         return httpx.Response(200, json=payload())
 
     async def run() -> None:
-        reader = OfficialHelpReader(transport=httpx.MockTransport(handler), dns_resolver=public_dns)
+        reader = OfficialHelpReader(
+            clock=_CLOCK, transport=httpx.MockTransport(handler), dns_resolver=public_dns
+        )
         task = asyncio.create_task(reader.read((HelpTopic.DELIVERY,)))
         await started.wait()
         task.cancel()
@@ -330,7 +342,7 @@ def test_optional_evidence_keeps_only_complete_paragraphs_within_request_budget(
         chat = c.app.state.services.chat
         chat.limits = replace(chat.limits, max_input_tokens=base_bytes + 600)
         chat.official_help = OfficialHelpReader(
-            transport=httpx.MockTransport(handler), dns_resolver=public_dns
+            clock=_CLOCK, transport=httpx.MockTransport(handler), dns_resolver=public_dns
         )
         status, events, _ = ask(c, csrf, "¿Cómo solicitar un reembolso?", "web-small-001")
         assert status == 200 and len(provider.calls) == 2
@@ -358,6 +370,7 @@ def test_cross_session_history_never_acquires_other_visitors_external_citations(
     )
     with client(tmp_path, provider=provider) as c:
         reader = OfficialHelpReader(
+            clock=_CLOCK,
             transport=httpx.MockTransport(lambda _: httpx.Response(200, json=payload(1))),
             dns_resolver=public_dns,
         )
@@ -401,6 +414,7 @@ def test_private_dns_prevents_http_dispatch() -> None:
 
     async def run() -> None:
         reader = OfficialHelpReader(
+            clock=_CLOCK,
             transport=httpx.MockTransport(lambda request: calls.append(request)),
             dns_resolver=private_dns,
         )

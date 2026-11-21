@@ -12,9 +12,8 @@ import resource
 import threading
 import time
 from collections.abc import Awaitable, Callable, Sequence
-from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 import requests
@@ -31,6 +30,11 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.application.operations import RunWindow
 from app.application.telemetry import RuntimeResources, TelemetrySnapshot
+
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    from app.application.ports import Clock
 
 log = logging.getLogger(__name__)
 PRIVATE_PATHS = frozenset(
@@ -149,8 +153,9 @@ class DeadlineSession(requests.Session):
 class SafeExporter(SpanExporter):
     """Keep content-free export outcomes; failures never change application requests."""
 
-    def __init__(self, delegate: SpanExporter) -> None:
+    def __init__(self, delegate: SpanExporter, clock: Clock) -> None:
         self.delegate = delegate
+        self.clock = clock
         self.successes = 0
         self.failures = 0
         self.last_at: datetime | None = None
@@ -171,7 +176,7 @@ class SafeExporter(SpanExporter):
             succeeded = result == SpanExportResult.SUCCESS
             self.successes += int(succeeded)
             self.failures += int(not succeeded)
-            self.last_at = datetime.now(UTC)
+            self.last_at = self.clock.now()
             self.last_success = succeeded
         return result
 
@@ -194,6 +199,7 @@ class RuntimeTelemetry:
     def __init__(
         self,
         *,
+        clock: Clock,
         started_at: datetime,
         synthetic: bool,
         revision: str | None,
@@ -206,6 +212,7 @@ class RuntimeTelemetry:
         export_timeout: float = 2,
         exporter: SpanExporter | None = None,
     ) -> None:
+        self.clock = clock
         self.started_at = started_at
         self.monotonic_start = time.monotonic()
         self.synthetic = synthetic
@@ -267,7 +274,7 @@ class RuntimeTelemetry:
                     headers={},
                     max_request_size=256 * 1024,
                 )
-            self.exporter = SafeExporter(exporter)
+            self.exporter = SafeExporter(exporter, clock)
             self.trace_provider = TracerProvider(
                 resource=Resource(
                     {
@@ -297,7 +304,7 @@ class RuntimeTelemetry:
             self.exporter.state() if self.exporter else (0, 0, None, None)
         )
         return TelemetrySnapshot(
-            generated_at=datetime.now(UTC),
+            generated_at=self.clock.now(),
             process_started_at=self.started_at,
             process_uptime_seconds=max(0, time.monotonic() - self.monotonic_start),
             synthetic=self.synthetic,

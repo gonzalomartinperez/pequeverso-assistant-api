@@ -26,6 +26,7 @@ from fastapi.testclient import TestClient
 
 from app.adapters.providers.fixture_provider import FixtureProvider
 from app.bootstrap.container import create_app
+from app.bootstrap.logging import use_stderr
 from app.domain.catalog import PriceStatus
 from scripts import evaluate_conversations as conv
 from scripts import evaluate_corpus as corpus
@@ -101,6 +102,7 @@ def write_report(path: Path, report: dict[str, Any]) -> None:
 
 
 def main() -> int:
+    use_stderr()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--phase", choices=["conversations", "dev", "holdout"], required=True)

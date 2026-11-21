@@ -5,10 +5,13 @@ so conversation content, secrets and exception details never reach the log strea
 
 from __future__ import annotations
 
+import atexit
 import json
 import logging
 import re
 import sys
+import threading
+import time
 from datetime import UTC, datetime
 
 from app.domain.answer_policy import Violation
@@ -18,7 +21,10 @@ from app.domain.web_evidence import HelpTopic
 
 # Logger ownership and event schemas are explicit; being JSON is never a trust signal.
 _EVENTS: dict[str, dict[str, frozenset[str]]] = {
-    "app.request": {"request": frozenset({"method", "route", "status", "duration_ms"})},
+    "app.request": {
+        "request": frozenset({"method", "route", "status", "duration_ms", "request_id"})
+    },
+    "app.bootstrap.logging": {"external_events": frozenset({"count"})},
     "app.application.chat": {
         "run": frozenset(
             {
@@ -31,6 +37,7 @@ _EVENTS: dict[str, dict[str, frozenset[str]]] = {
                 "output_tokens",
                 "reasoning_tokens",
                 "language",
+                "prompt_version",
                 "first_delta_ms",
                 "latency_ms",
             }
@@ -144,8 +151,11 @@ _NUMBERS = frozenset(
         "reasoning_tokens",
         "sessions_deleted",
         "abandoned_runs",
+        "count",
     }
 )
+_REQUEST_ID = re.compile(r"[A-Za-z0-9-]{8,64}")
+_PROMPT_VERSION = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\.[0-9]{1,3}")
 
 
 def _safe_field(name: str, value: object) -> bool:
@@ -175,8 +185,13 @@ def _safe_field(name: str, value: object) -> bool:
         "error": _ERROR_NAMES,
         "reason": _ERROR_NAMES | {"max_output_tokens", "content_filter", "none"},
     }
-    if name == "sha256":
-        return re.fullmatch("[0-9a-f]{12}", value) is not None
+    patterns = {
+        "sha256": re.compile("[0-9a-f]{12}"),
+        "request_id": _REQUEST_ID,
+        "prompt_version": _PROMPT_VERSION,
+    }
+    if name in patterns:
+        return patterns[name].fullmatch(value) is not None
     return value in allowed.get(name, frozenset())
 
 
@@ -215,9 +230,83 @@ class SafeJsonFormatter(logging.Formatter):
         return json.dumps(entry, ensure_ascii=False)
 
 
-def configure_logging(level: str = "INFO") -> None:
-    handler = logging.StreamHandler(sys.stdout)
+EXTERNAL_FLUSH_SECONDS = 60.0
+_use_stderr = False
+_external: ExternalEventCounter | None = None
+
+
+class ExternalEventCounter(logging.Filter):
+    """Third-party records below WARNING carry no allowlisted content, so they are only counted.
+
+    The count is flushed as one `external_events` line when a window elapsed (checked on the
+    next external record) and at shutdown. It is content-free: a number only.
+    """
+
+    def __init__(self, handler: logging.Handler, window: float = EXTERNAL_FLUSH_SECONDS) -> None:
+        super().__init__()
+        self._handler = handler
+        self._window = window
+        self._count = 0
+        self._since = time.monotonic()
+        self._lock = threading.Lock()
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if (
+            record.name in _EVENTS
+            or record.name == "uvicorn.error"
+            or record.levelno >= logging.WARNING
+        ):
+            return True  # warnings and errors keep their content-free `external` line
+        with self._lock:
+            self._count += 1
+            due = time.monotonic() - self._since >= self._window
+            count = self._detach() if due else 0
+        self._emit(count)
+        return False
+
+    def _detach(self) -> int:
+        count, self._count = self._count, 0
+        self._since = time.monotonic()
+        return count
+
+    def flush(self) -> None:
+        with self._lock:
+            count = self._detach()
+        self._emit(count)
+
+    def _emit(self, count: int) -> None:
+        if count:
+            line = json.dumps({"operation": "external_events", "count": count})
+            self._handler.handle(
+                logging.LogRecord("app.bootstrap.logging", logging.INFO, "", 0, line, None, None)
+            )
+
+
+def use_stderr() -> None:
+    """CLIs and evaluations print machine output on stdout: logs must never share it.
+
+    Process-wide on purpose: an app lifespan started later by the same CLI keeps stderr.
+    """
+    global _use_stderr
+    _use_stderr = True
+
+
+def flush_external_events() -> None:
+    if _external is not None:
+        _external.flush()
+
+
+atexit.register(flush_external_events)  # short CLI jobs still report their counted records
+
+
+def configure_logging(level: str = "INFO", stream: str = "stdout") -> None:
+    global _external
+    flush_external_events()  # a reconfiguration never drops counts of the previous handler
+    target = sys.stderr if _use_stderr or stream == "stderr" else sys.stdout
+    handler = logging.StreamHandler(target)
     handler.setFormatter(SafeJsonFormatter())
+    _external = ExternalEventCounter(handler)
+    handler.addFilter(_external)
     root = logging.getLogger()
     root.handlers[:] = [handler]
     root.setLevel(level)
@@ -227,5 +316,5 @@ def configure_logging(level: str = "INFO") -> None:
         server_logger = logging.getLogger(name)
         server_logger.handlers.clear()
         server_logger.propagate = True
-    for noisy in ("uvicorn.access", "httpx", "openai"):
+    for noisy in ("uvicorn.access", "httpx", "httpcore", "openai"):
         logging.getLogger(noisy).setLevel(logging.WARNING)

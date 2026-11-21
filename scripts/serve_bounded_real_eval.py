@@ -23,10 +23,12 @@ from pydantic import SecretStr
 
 from app.bootstrap.config import Settings
 from app.bootstrap.container import create_app
+from app.bootstrap.logging import use_stderr
 from scripts.real_eval_budget import BoundedProvider, Envelope
 
 
 def main() -> None:
+    use_stderr()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--state-dir", type=Path, required=True)
