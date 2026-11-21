@@ -1,0 +1,47 @@
+name: compat
+
+# Forward-compatibility lanes (PVA-M4.8, OD-77 and DR-10): the next runtime runs the same checks as
+# the pinned one, but never blocks a merge. These jobs are not part of `ci-gate` and every job is
+# `continue-on-error`, so a lagging dependency shows up in the job log without failing the run
+# (OD-75: failed-workflow e-mails only). The flip to a new pin needs two weeks of green runs here.
+# No secrets, no network beyond tool installation, never a paid model call.
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - ".github/workflows/compat.yml"
+      - ".nvmrc"
+      - "tests/js/**"
+      - "tests/fixtures/product-analytics.html"
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: compat-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  node-next:
+    name: Node 26 lane (non-blocking)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node 26 (next Active LTS; the blocking pin stays in .nvmrc)
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          package-manager-cache: false
+      - name: Local analytics pointer fixture regression (no browser or network)
+        run: |
+          node --version
+          timeout 10s node --test tests/js/product-analytics-pointer.test.mts
