@@ -557,7 +557,6 @@ With product analytics enabled, `200 OK` returns a report. This example uses
 The JSON response body is the example file's `report` object. A missing or invalid token
 returns `401 Unauthorized` with an empty body.
 
-
 ## Compatibility rules
 
 Within v1, fields may be added and new optional notices or error codes may appear; clients must
