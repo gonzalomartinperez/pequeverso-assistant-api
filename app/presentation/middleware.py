@@ -132,7 +132,7 @@ class RequestContextMiddleware:
                 "duration_ms": round((time.monotonic() - started) * 1000),
             }
             # Only a server-generated id is logged: a client-supplied one is echoed but could
-            # carry a session id or key, so it never reaches the logs (docs/security.md).
+            # carry a session id or key, so it never reaches the logs (docs/explanation/security.md).
             if generated:
                 entry["request_id"] = request_id
             log.info(json.dumps(entry))

@@ -1,7 +1,7 @@
 {
   "skill": "api-verify-release",
   "status": "stub",
-  "protocol": "docs/agent-skills.md#activation-evals",
+  "protocol": "docs/reference/agent-skills.md#activation-evals",
   "queries": [
     {
       "query": "verify the release candidate end to end",

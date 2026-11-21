@@ -1,5 +1,5 @@
 """In-process registry of active runs, so a visitor can cancel their own run. The service runs as a
-single process (docs/architecture.md); the persisted run state is the cross-restart record.
+single process (docs/explanation/architecture.md); the persisted run state is the cross-restart record.
 """
 
 from __future__ import annotations

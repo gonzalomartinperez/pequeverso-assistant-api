@@ -18,7 +18,7 @@ def triggers(name: str, **changes: object) -> str:
     data: dict[str, object] = {
         "skill": name,
         "status": "stub",
-        "protocol": "docs/agent-skills.md#activation-evals",
+        "protocol": "docs/reference/agent-skills.md#activation-evals",
         "queries": [
             {"query": "do the thing", "should_trigger": True, "split": "train"},
             {"query": "do something else", "should_trigger": False, "split": "validation"},

@@ -14,10 +14,10 @@ metadata:
    `/api/v2`.
 2. `uv run python -m contracts.export` and review the diff of `contracts/`: OpenAPI, SSE schema,
    examples, manifest.
-3. Update `docs/api-contract.md` (sessions, events, errors, freshness, actions) and add tests in
+3. Update `docs/reference/api-contract.md` (sessions, events, errors, freshness, actions) and add tests in
    `tests/test_api.py` or `tests/test_streaming.py`.
 4. Bump `CONTRACT_REVISION` in `schemas.py` for any additive change and say what changed in
-   `docs/api-contract.md`. The private ops contract (`contracts/ops.schema.json`, served by
+   `docs/reference/api-contract.md`. The private ops contract (`contracts/ops.schema.json`, served by
    `app/presentation/operations.py`) follows the same rules: additive only, nulls for unknown
    values, never conversation content.
 5. The PR body lists the new manifest hash and what each consumer must do: the storefront

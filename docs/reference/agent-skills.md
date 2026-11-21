@@ -59,7 +59,7 @@ and approval boundaries remain its own.
 Each canonical skill ships `evals/triggers.json`, currently a stub:
 
 ```json
-{"skill": "<name>", "status": "stub", "protocol": "docs/agent-skills.md#activation-evals",
+{"skill": "<name>", "status": "stub", "protocol": "docs/reference/agent-skills.md#activation-evals",
  "queries": [{"query": "<text>", "should_trigger": true, "split": "train"}]}
 ```
 

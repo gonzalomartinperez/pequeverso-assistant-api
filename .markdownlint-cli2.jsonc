@@ -16,6 +16,6 @@
     "CODE_OF_CONDUCT.md",
     "docs/master-plan/**",
     "docs/verification/**",
-    "docs/handoffs/**"
+    "docs/reference/handoffs/**"
   ]
 }

@@ -124,7 +124,7 @@ def baseline(cases: list[dict[str, Any]]) -> dict[str, Any]:
         "catalog_sha256": corpus.catalog_sha256(),
         "catalog_revision": conv.CATALOG.source_revision,
         "mode": "fixture",
-        "metrics_engine": "stdlib (scripts/evaluate_corpus.py); ranx spike not adopted, see docs/evaluation.md",
+        "metrics_engine": "stdlib (scripts/evaluate_corpus.py); ranx spike not adopted, see docs/reference/evaluation.md",
         "retriever": "lexical (app/ai/evidence.py) with Spanish folding and the query lexicon (PVA-M2.6 part B)",
         "cases": counts(cases),
         "retrieval": {k: report[k] for k in ("overall", "by_split", "by_family", "by_language")},

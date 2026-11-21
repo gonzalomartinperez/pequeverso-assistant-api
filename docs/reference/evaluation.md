@@ -3,21 +3,50 @@
 Deterministic fixture suites run in CI. The owner-authorized real-model socket evaluation
 completed on 2026-10-12: 236 initial queries,53 post-adjustment queries and14 final targeted
 queries. See
-[the dated evidence and limits](verification/real-model-2026-10-12.md); automated completion
+[the dated evidence and limits](../verification/real-model-2026-10-12.md); automated completion
 is distinct from semantic correctness, and agent review is not human review.
 
-| Suite | Command | What it proves | Latest result (fixture) |
-|---|---|---|---|
-| Retrieval | `uv run python scripts/evaluate_retrieval.py` | Lexical ranking finds the right passage (20 cases, `evals/retrieval.json`) | recall@3 = 0.95, MRR = 0.908 (miss: "correo postal" vs "producto físico") |
-| Conversations: safety | `uv run python scripts/evaluate_conversations.py` | 19 scenarios through the full HTTP/SSE path. Per turn: stream grammar, catalog-valid refs, https allowlisted URLs, no price when unverified, final text passes every answer rule, no markup | 19/19 safe |
-| Guards | same command (`evals/guards.json`) | 14 scripted *misbehaving* model outputs (invented product/resource/link/source, discount code, wrong price, unlisted URL, offer leak, card request, fake scarcity, unsafe follow-up, markup, unsupported merchant guarantee/page count/mandatory processing delay) are dropped or replaced server-side | 14/14 |
-| Full set | `uv run python scripts/evaluate_corpus.py` | 318 hand-written cases in 18 intent families (`evals/full/*.jsonl`, schema v2: 288 cleaned corpus v1 cases and 30 added in v2), retrieval per family/split/language, and every case through the full HTTP/SSE path | Gates: 0/318 pipeline failures; reply language 0 mismatches (`lang-016` fixed with Portuguese markers). Retrieval (241 scored cases, 77 with an explicit empty list): recall@3 = 0.656, recall@5 = 0.718, nDCG@5 = 0.545, MRR = 0.580; on the 190 cases labelled in v1 it is unchanged (0.689, 0.737, 0.603). Baseline: `evals/full/baseline/corpus-fixture.json`; ratchet: `ratchets/retrieval.json` |
-| Conversations: quality | same command with `--live` | Budget recommendation, low budget honesty, resource comparison, clarification, no-match (fluent reader, app), stale price, follow-up reference, invented discount, injection, unknown shipping and license policy, refused order action, payment data, offer probe, child-data minimization, English visitor | This specific conversations CLI has not been run live. The separate 303-turn socket evaluation is documented below; fixture scores do not measure model quality |
+## Current evaluation inventory
 
-`tests/test_evaluations.py` gates CI on retrieval ≥ 0.9 recall@3, zero safety failures, zero
-guard failures, zero full-set gate failures, zero reply-language misses and the corpus retrieval floors
-and the per-family and per-language retrieval ratchet (`ratchets/retrieval.json`,
-`scripts/retrieval_ratchet.py`; baseline report in `evals/full/baseline/`). `docs/verification/fixture-eval.json` holds the latest full fixture report.
+<!-- generated:eval-numbers:start -->
+
+| Suite | Cases and metrics |
+| --- | --- |
+| Full set | 318 active items across 18 intent families |
+| Full-set retrieval | 241 scored cases, 77 explicitly empty gold lists. recall@3 = 0.834, recall@5 = 0.880, nDCG@5 = 0.691, MRR = 0.734 |
+| Golden set | 60 active items |
+| Red-team pack | 45 active attacks |
+| Guards | 22 scripted cases |
+| Conversations | 24 scenarios |
+| Legacy retrieval | 23 cases |
+
+<!-- generated:eval-numbers:end -->
+
+Run `uv run python -m scripts.docs_numbers` to refresh the table after changing the inputs
+or retrieval code. The generator reads the active items in `evals/full/*.jsonl`,
+`evals/golden/golden.jsonl` and `evals/red-team/attacks.jsonl`, and counts the cases or scenarios
+in `evals/guards.json`, `evals/conversations.json` and `evals/retrieval.json`. Full-set retrieval
+runs the lexical evaluator from `scripts/evaluate_corpus.py` against the checked-in catalog,
+using the same measurement as [the retrieval ratchet](../../ratchets/retrieval.json). Cases with
+an explicit empty gold list are excluded from the metrics. Both generation and
+`uv run python -m scripts.docs_numbers --check` run offline without a model.
+
+## Fixture suites
+
+| Suite | Command | What it checks |
+| --- | --- | --- |
+| Retrieval | `uv run python scripts/evaluate_retrieval.py` | Lexical ranking over the committed catalog for the legacy cases and the full set. |
+| Conversations | `uv run python scripts/evaluate_conversations.py` | HTTP/SSE stream grammar, valid references, HTTPS URL allowlist, price verification, answer rules and plain text. Fixture runs report quality observations separately from safety assertions. |
+| Guards | Same command as Conversations | Server-side rejection or replacement of scripted model misbehavior, including invented prices and references, offer leaks, payment-data requests and unsupported claims. |
+| Full set | `uv run python scripts/evaluate_corpus.py` | Retrieval by family, split and language, plus the fixture HTTP/SSE path for each case. |
+| Golden set | `uv run python -m evals.runner golden --replay` | Replay recorded provider-port responses and grade each active case. |
+| Red-team pack | `uv run python -m evals.runner red-team --replay` | Replay scripted adversarial outputs and check that the server handles each active attack. |
+
+`tests/test_evaluations.py` gates CI on legacy retrieval ≥ 0.9 recall@3, zero safety failures, zero
+guard failures, zero full-set gate failures, zero reply-language misses and the corpus retrieval floors.
+`tests/test_retrieval_ratchet.py` checks overall, per-family and per-language retrieval against
+the committed ratchet. See the [full-set baseline report](../../evals/full/baseline/corpus-fixture.json)
+for the recorded fixture baseline. The separate real-model socket evaluation is documented below.
 
 ## Post-change evaluation scope
 
@@ -91,7 +120,7 @@ uv run python scripts/run_bounded_real_eval.py --live --phase holdout \
   contracts, deployment settings or storefront activation.
 - Review each scenario's `quality` list and the answers by hand. Adjust `app/ai/prompt.py` (bump
   `PROMPT_VERSION`, run `uv run python -m scripts.prompt_lock --append` and add a row to
-  [`reference/prompt-changelog.md`](reference/prompt-changelog.md); ADR-0017), then rerun. Commit the
+  [`prompt-changelog.md`](prompt-changelog.md); ADR-0017), then rerun. Commit the
   report with the model name and date.
 - Before launch, also run 3–5 manual chats through the native storefront assistant against an isolated staging deployment.
 
@@ -194,11 +223,11 @@ report (`evals/full/baseline/corpus-fixture.json`: counts per family, split, loc
 recall@3, recall@5, nDCG@5 and MRR overall, per split, per family and per input language, catalog
 pin, no transcripts) and keeps `ratchets/retrieval.json`; `tests/test_retrieval_ratchet.py` fails
 when any value drops below it, so values only rise (`--update` raises, never lowers). Metrics are
-stdlib (`scripts/evaluate_corpus.py`). Spike on `ranx` 0.3.21 (MIT), CPython 3.14.8: it installs
-(numba 0.68.1 and llvmlite 0.50.0 have 3.14 wheels) and reproduces nDCG@5 (0.545) and MRR (0.579) on
-the full set (its recall@k is the share of gold ids found, not the hit rate used here), but
-it pulls about 35 packages (numba, scipy, pandas, seaborn, matplotlib, pillow, ir_datasets), imports
-in about 50 s and compiles about 90 s on first use on a loaded host, and `pillow` (MIT-CMU) and
+stdlib (`scripts/evaluate_corpus.py`). The spike with `ranx` 0.3.21 (MIT) on CPython 3.14.8
+reproduced the baseline full-set nDCG@5 and MRR. Its recall@k measures the share of gold IDs
+found, while this evaluator measures the share of queries with a hit. The spike pulled about
+35 packages (numba, scipy, pandas, seaborn, matplotlib, pillow, ir_datasets), imported
+in about 50 s and compiled for about 90 s on first use on a loaded host, and `pillow` (MIT-CMU) and
 `llvmlite` (Apache-2.0 WITH LLVM-exception) are outside the `allow-licenses` list of the dependency
 review, so it is not adopted; the paired significance test of the plan waits for a measured need.
 The part B retrieval repair (`app/ai/evidence.py`, recall@5 >= 0.85) is a separate change.
@@ -217,7 +246,7 @@ corpus CLI phases below have not been executed with the real model.
 | Gates | Stream grammar, catalog-valid references, https allowlisted URLs, answer rules, no price when stale, `payment_data_refused`, `contact_data_redacted` | Code-enforced; must pass in every mode (CI) |
 | Language | `MessageOut.language` equals the expected `es`/`en`, or the `language_unsupported` notice for other languages (mixed-language and payment-refusal cases excluded) | Code-enforced (`app/domain/language.py` decides the reply language), so deterministic. CI asserts there are no accepted misses |
 | Retrieval | Lexical rank of the evaluated turn | Decides whether ranking needs work (ADR-0002) |
-| Behavior | Outcome (clarifying question, support route), grounding (expected passage referenced), forbidden behaviors by string heuristics | **None.** The fixture answers by lexical match; its 111 flags are expected. Meaningful only in a live run, then reviewed by hand. The former manual `invented_policy` tag is now the `claims.policy` assertion (9 cases) |
+| Behavior | Outcome (clarifying question, support route), grounding (expected passage referenced), forbidden behaviors by string heuristics | **None.** The fixture answers by lexical match, so its behavior flags are for inspection. Review live behavior flags by hand. The former manual `invented_policy` tag is now the `claims.policy` assertion |
 
 **Historical findings (fixture, catalog `ae6d237`, API develop `07405d2`; superseded language issue explicitly retained).**
 
@@ -401,7 +430,7 @@ The optional official-source increment has deterministic mocked-source tests and
 frozen real-model development matrix. The earlier 303-query evidence predates it. Its initial
 203-request phase halted safely on a follow-up context gate; original results remain unchanged.
 The subsequent 74-request phase and final seven targeted regressions are documented in the
-[post-tool report](verification/post-tools-2026-10-13.md), including semantic findings and the
+[post-tool report](../verification/post-tools-2026-10-13.md), including semantic findings and the
 limited introductory external excerpts actually sent. These phases are not independent holdouts.
 The initial 400-attempt/USD 1 envelope retained 282 prior attempts; the owner explicitly authorized
 650 accumulated attempts on 2026-10-13 without changing the USD 1 cap. No count reset or bypass
@@ -439,7 +468,7 @@ A resource-window interruption is not a provider failure or permission to retry.
 the original run and independently reviewing its accounting, the operator may explicitly call
 `Envelope.acknowledge_known_interruption` on the same private ledger. It accepts only one active
 `interrupted` stop, exact attempt/spend counts, zero pending usage, remaining budget and exact
-code/verification/new-phase-manifest hashes. It takes the stable ownership lock and an immediate
+code/../verification/new-phase-manifest hashes. It takes the stable ownership lock and an immediate
 transaction, verifies the effective allowance and its historical audit prefix, and appends one
 `gate_resolutions` record. Every original stop, attempt, settlement and allowance row remains.
 

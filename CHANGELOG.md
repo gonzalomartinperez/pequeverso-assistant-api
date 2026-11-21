@@ -86,9 +86,9 @@ A source release does not establish real-model answer correctness, sales convers
 more than 200 new live GraphRAG queries, VPS capacity, effective production restore or security
 acceptance. Preserve the original and post-correction evaluation receipts; fixture scores
 are not real-model quality evidence. Open deployment gates and operator steps remain in
-[the deployment contract](docs/deployment-contract.md),
-[knowledge operations](docs/knowledge-operations.md) and
-[the vps-ops handoff](docs/handoffs/vps-ops.md).
+[the deployment contract](docs/reference/deployment-contract.md),
+[knowledge operations](docs/how-to/knowledge-operations.md) and
+[the vps-ops handoff](docs/reference/handoffs/vps-ops.md).
 
 The version-number update itself changes no application behavior, catalog facts, dependency
 versions, wire contracts, image recipes or activation settings. The separately reviewed

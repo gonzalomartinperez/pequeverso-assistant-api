@@ -6,9 +6,9 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 default:
     @just --list
 
-# The single local check: lint, format, types, tests, contract drift.
+# The single local check: lint, format, types, tests, contract and evaluation docs drift.
 check:
-    uv run ruff check . && uv run ruff format --check . && uv run python -m scripts.ruff_ratchet && uv run lint-imports && uv run python -m scripts.complexity_ratchet && uv run vulture && uv run mypy && uv run pytest -n auto && uv run python -m contracts.export --check
+    uv run ruff check . && uv run ruff format --check . && uv run python -m scripts.ruff_ratchet && uv run lint-imports && uv run python -m scripts.complexity_ratchet && uv run vulture && uv run mypy && uv run pytest -n auto && uv run python -m contracts.export --check && uv run python -m scripts.docs_numbers --check
 
 # Apply formatting and safe lint fixes.
 fmt:

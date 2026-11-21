@@ -79,7 +79,7 @@ restores matched full row hashes, and only the two application databases remaine
 The full database/browser suites used fixture administrative connections; the separate role
 probes establish the reported capability checks. This does not establish a full browser run
 under production runtime credentials, deployment capacity, production HBA rules or VPS restore.
-See [dated evidence](verification/graphrag-2026-10-17.md) and the backoffice deployment contract.
+See [dated evidence](../verification/graphrag-2026-10-17.md) and the backoffice deployment contract.
 
 ## Commands from a clean checkout
 

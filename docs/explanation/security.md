@@ -27,7 +27,7 @@ boundary resolves structured product/source ids and enforces specific URL, curre
 amount and forbidden-phrase rules. It does not establish semantic entailment: an existing
 source may be unrelated to a claim, an invented product may appear in plain prose, and
 unsupported educational benefits or claimed commerce outcomes can evade lexical rules.
-Before activation, review the [dated real-model evidence and remaining limits](verification/real-model-2026-10-12.md)
+Before activation, review the [dated real-model evidence and remaining limits](../verification/real-model-2026-10-12.md)
 and obtain owner acceptance of commercial quality. A finite agent-reviewed development set,
 a valid source URL or a completed stream does not certify every future answer.
 

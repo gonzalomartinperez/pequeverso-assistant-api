@@ -43,7 +43,7 @@ Option 2.
 - Good: probes follow the ecosystem contract without breaking existing ones; a new setting cannot
   ship without appearing in the published schema.
 - Bad: two path families to keep in step (they share one implementation).
-- `vps-ops` reads the new paths and the env schema (handoff `docs/handoffs/vps-ops.md`).
+- `vps-ops` reads the new paths and the env schema (handoff `docs/reference/handoffs/vps-ops.md`).
 
 ## Confirmation
 

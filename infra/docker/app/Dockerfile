@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1@sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e
 # Pequeverso assistant API. One process, one uvicorn worker (in-process run registry and a single
-# private-runtime ownership lease; see docs/deployment-contract.md). PostgreSQL holds production
+# private-runtime ownership lease; see docs/reference/deployment-contract.md). PostgreSQL holds production
 # state; /data is only the explicitly mounted SQLite fixture/import path.
 FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 AS uv
 
