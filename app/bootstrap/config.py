@@ -9,11 +9,14 @@ import os
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CATALOG = ROOT / "catalog" / "catalog.v1.json"
@@ -160,128 +163,249 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def fail_closed(self) -> Settings:
-        if (
-            self.official_help_enabled
-            and self.ai_provider == "openai"
-            and (self.openai_model != "gpt-6-luna" or self.openai_reasoning_effort != "medium")
-        ):
-            raise ValueError("official help requires gpt-6-luna with medium reasoning")
-        if self.telemetry_otlp_endpoint:
-            if any(name.startswith("OTEL_") and value for name, value in os.environ.items()):
-                raise ValueError(
-                    "ambient OTEL configuration is unsupported; use explicit application telemetry settings"
-                )
-            parts = urlsplit(self.telemetry_otlp_endpoint)
-            if (
-                not self.observability_enabled
-                or parts.scheme not in ("http", "https")
-                or not parts.hostname
-                or parts.username
-                or parts.password
-                or parts.query
-                or parts.fragment
-                or parts.path != "/v1/traces"
-            ):
-                raise ValueError(
-                    "OTLP requires enabled observability and an explicit safe /v1/traces endpoint"
-                )
-            if parts.scheme == "http" and not (
-                "." not in parts.hostname or parts.hostname in ("localhost", "127.0.0.1", "::1")
-            ):
-                raise ValueError(
-                    "plain HTTP OTLP is restricted to a private single-label service or loopback"
-                )
-
-        if self.ai_provider == "openai" and not (self.allow_paid_ai and self.openai_api_key):
-            raise ValueError("AI_PROVIDER=openai requires ALLOW_PAID_AI=true and OPENAI_API_KEY")
-        if self.ai_provider == "openai" and (
-            self.openai_model != "gpt-6-luna" or self.openai_reasoning_effort != "medium"
-        ):
-            raise ValueError("OpenAI answers require gpt-6-luna with medium reasoning; no fallback")
-        if (
-            self.ai_provider == "fixture"
-            and self.environment == "production"
-            and self.assistant_enabled
-        ):
-            raise ValueError(
-                "production cannot serve fixture answers; set AI_PROVIDER=openai or disable the assistant"
-            )
-        if self.daily_budget_usd > self.monthly_budget_usd:
-            raise ValueError("DAILY_BUDGET_USD cannot exceed MONTHLY_BUDGET_USD")
-        for origin in self.allowed_origins:
-            parts = urlsplit(origin)
-            if (
-                parts.scheme not in ("http", "https")
-                or not parts.hostname
-                or parts.path
-                or parts.query
-            ):
-                raise ValueError("ALLOWED_ORIGINS entries must be bare origins like https://host")
-        for cidr in self.trusted_proxy_cidrs:
-            ipaddress.ip_network(cidr)
-        if self.environment == "production":
-            if not self.session_cookie_secure:
-                raise ValueError("production requires SESSION_COOKIE_SECURE=true")
-            if any(
-                urlsplit(o).scheme != "https" or urlsplit(o).hostname in ("localhost", "127.0.0.1")
-                for o in self.allowed_origins
-            ):
-                raise ValueError("production ALLOWED_ORIGINS must be https and not localhost")
-            if self.ops_read_token is not None and len(self.ops_read_token.get_secret_value()) < 32:
-                raise ValueError("OPS_READ_TOKEN must be at least 32 characters")
-            key = self.client_hash_key.get_secret_value()
-            if key == DEV_CLIENT_HASH_KEY or len(key) < 32:
-                raise ValueError("production requires a CLIENT_HASH_KEY of at least 32 characters")
-            if (
-                self.assistant_enabled
-                and self.ai_provider == "openai"
-                and (self.application_storage != "postgres" or self.knowledge_backend != "graphrag")
-            ):
-                raise ValueError(
-                    "production answers require PostgreSQL application storage and GraphRAG"
-                )
-        if self.product_analytics_country_enabled and not self.product_analytics_country_proxy_ips:
-            raise ValueError("country attribution requires exact trusted proxy IP addresses")
-        if self.product_analytics_enabled and self.application_storage != "postgres":
-            raise ValueError("product analytics requires PostgreSQL application storage")
-        if self.application_storage == "postgres" and self.postgres_private_dsn is None:
-            raise ValueError("PostgreSQL application storage requires POSTGRES_PRIVATE_DSN")
-        if self.knowledge_backend == "graphrag" and not (
-            self.postgres_knowledge_dsn and self.neo4j_uri and self.neo4j_password
-        ):
-            raise ValueError(
-                "GraphRAG requires explicit PostgreSQL and authenticated Neo4j configuration"
-            )
-        if (self.application_storage == "postgres") != (self.knowledge_backend == "graphrag"):
-            raise ValueError(
-                "PostgreSQL application storage and GraphRAG must be selected together"
-            )
-        for dsn in (self.postgres_private_dsn, self.postgres_knowledge_dsn):
-            if dsn is not None:
-                parts = urlsplit(dsn.get_secret_value())
-                if (
-                    parts.scheme not in ("postgres", "postgresql")
-                    or not parts.hostname
-                    or not parts.path
-                ):
-                    raise ValueError("PostgreSQL DSNs must be explicit database URIs")
-        if self.neo4j_uri:
-            parts = urlsplit(self.neo4j_uri)
-            if (
-                parts.scheme not in ("bolt", "bolt+s", "neo4j", "neo4j+s")
-                or not parts.hostname
-                or parts.username is not None
-                or parts.password is not None
-                or parts.path not in ("", "/")
-                or parts.query
-                or parts.fragment
-            ):
-                raise ValueError("Neo4j requires a bare Bolt URI; credentials use private fields")
+        for rule in _FAIL_CLOSED_RULES:
+            message = rule(self)
+            if message is not None:
+                raise ValueError(message)
         return self
 
     @property
     def cookie_name(self) -> str:
         return "__Host-pv_assistant" if self.session_cookie_secure else "pv_assistant_dev"
+
+
+def _check_official_help_model(settings: Settings) -> str | None:
+    if (
+        settings.official_help_enabled
+        and settings.ai_provider == "openai"
+        and (settings.openai_model != "gpt-6-luna" or settings.openai_reasoning_effort != "medium")
+    ):
+        return "official help requires gpt-6-luna with medium reasoning"
+    return None
+
+
+def _check_ambient_otel(settings: Settings) -> str | None:
+    if settings.telemetry_otlp_endpoint and any(
+        name.startswith("OTEL_") and value for name, value in os.environ.items()
+    ):
+        return (
+            "ambient OTEL configuration is unsupported; use explicit application telemetry settings"
+        )
+    return None
+
+
+def _check_otlp_endpoint(settings: Settings) -> str | None:
+    if not settings.telemetry_otlp_endpoint:
+        return None
+    parts = urlsplit(settings.telemetry_otlp_endpoint)
+    if (
+        not settings.observability_enabled
+        or parts.scheme not in ("http", "https")
+        or not parts.hostname
+        or parts.username
+        or parts.password
+        or parts.query
+        or parts.fragment
+        or parts.path != "/v1/traces"
+    ):
+        return "OTLP requires enabled observability and an explicit safe /v1/traces endpoint"
+    return None
+
+
+def _check_plain_http_otlp(settings: Settings) -> str | None:
+    if not settings.telemetry_otlp_endpoint:
+        return None
+    parts = urlsplit(settings.telemetry_otlp_endpoint)
+    hostname = parts.hostname
+    if (
+        parts.scheme == "http"
+        and hostname
+        and "." in hostname
+        and hostname not in ("localhost", "127.0.0.1", "::1")
+    ):
+        return "plain HTTP OTLP is restricted to a private single-label service or loopback"
+    return None
+
+
+def _check_paid_ai_opt_in(settings: Settings) -> str | None:
+    if settings.ai_provider == "openai" and not (
+        settings.allow_paid_ai and settings.openai_api_key
+    ):
+        return "AI_PROVIDER=openai requires ALLOW_PAID_AI=true and OPENAI_API_KEY"
+    return None
+
+
+def _check_openai_model(settings: Settings) -> str | None:
+    if settings.ai_provider == "openai" and (
+        settings.openai_model != "gpt-6-luna" or settings.openai_reasoning_effort != "medium"
+    ):
+        return "OpenAI answers require gpt-6-luna with medium reasoning; no fallback"
+    return None
+
+
+def _check_production_fixture(settings: Settings) -> str | None:
+    if (
+        settings.ai_provider == "fixture"
+        and settings.environment == "production"
+        and settings.assistant_enabled
+    ):
+        return "production cannot serve fixture answers; set AI_PROVIDER=openai or disable the assistant"
+    return None
+
+
+def _check_daily_budget(settings: Settings) -> str | None:
+    if settings.daily_budget_usd > settings.monthly_budget_usd:
+        return "DAILY_BUDGET_USD cannot exceed MONTHLY_BUDGET_USD"
+    return None
+
+
+def _check_bare_origins(settings: Settings) -> str | None:
+    for origin in settings.allowed_origins:
+        parts = urlsplit(origin)
+        if parts.scheme not in ("http", "https") or not parts.hostname or parts.path or parts.query:
+            return "ALLOWED_ORIGINS entries must be bare origins like https://host"
+    return None
+
+
+def _check_trusted_proxy_cidrs(settings: Settings) -> str | None:
+    for cidr in settings.trusted_proxy_cidrs:
+        ipaddress.ip_network(cidr)
+    return None
+
+
+def _check_production_cookie(settings: Settings) -> str | None:
+    if settings.environment == "production" and not settings.session_cookie_secure:
+        return "production requires SESSION_COOKIE_SECURE=true"
+    return None
+
+
+def _check_production_origins(settings: Settings) -> str | None:
+    if settings.environment == "production" and any(
+        urlsplit(origin).scheme != "https"
+        or urlsplit(origin).hostname in ("localhost", "127.0.0.1")
+        for origin in settings.allowed_origins
+    ):
+        return "production ALLOWED_ORIGINS must be https and not localhost"
+    return None
+
+
+def _check_production_ops_token(settings: Settings) -> str | None:
+    if (
+        settings.environment == "production"
+        and settings.ops_read_token is not None
+        and len(settings.ops_read_token.get_secret_value()) < 32
+    ):
+        return "OPS_READ_TOKEN must be at least 32 characters"
+    return None
+
+
+def _check_production_hash_key(settings: Settings) -> str | None:
+    if settings.environment == "production":
+        key = settings.client_hash_key.get_secret_value()
+        if key == DEV_CLIENT_HASH_KEY or len(key) < 32:
+            return "production requires a CLIENT_HASH_KEY of at least 32 characters"
+    return None
+
+
+def _check_production_answer_storage(settings: Settings) -> str | None:
+    if (
+        settings.environment == "production"
+        and settings.assistant_enabled
+        and settings.ai_provider == "openai"
+        and (settings.application_storage != "postgres" or settings.knowledge_backend != "graphrag")
+    ):
+        return "production answers require PostgreSQL application storage and GraphRAG"
+    return None
+
+
+def _check_country_attribution(settings: Settings) -> str | None:
+    if (
+        settings.product_analytics_country_enabled
+        and not settings.product_analytics_country_proxy_ips
+    ):
+        return "country attribution requires exact trusted proxy IP addresses"
+    return None
+
+
+def _check_analytics_storage(settings: Settings) -> str | None:
+    if settings.product_analytics_enabled and settings.application_storage != "postgres":
+        return "product analytics requires PostgreSQL application storage"
+    return None
+
+
+def _check_private_postgres_dsn(settings: Settings) -> str | None:
+    if settings.application_storage == "postgres" and settings.postgres_private_dsn is None:
+        return "PostgreSQL application storage requires POSTGRES_PRIVATE_DSN"
+    return None
+
+
+def _check_graphrag_credentials(settings: Settings) -> str | None:
+    if settings.knowledge_backend == "graphrag" and not (
+        settings.postgres_knowledge_dsn and settings.neo4j_uri and settings.neo4j_password
+    ):
+        return "GraphRAG requires explicit PostgreSQL and authenticated Neo4j configuration"
+    return None
+
+
+def _check_storage_pair(settings: Settings) -> str | None:
+    if (settings.application_storage == "postgres") != (settings.knowledge_backend == "graphrag"):
+        return "PostgreSQL application storage and GraphRAG must be selected together"
+    return None
+
+
+def _check_postgres_dsn_uris(settings: Settings) -> str | None:
+    for dsn in (settings.postgres_private_dsn, settings.postgres_knowledge_dsn):
+        if dsn is not None:
+            parts = urlsplit(dsn.get_secret_value())
+            if (
+                parts.scheme not in ("postgres", "postgresql")
+                or not parts.hostname
+                or not parts.path
+            ):
+                return "PostgreSQL DSNs must be explicit database URIs"
+    return None
+
+
+def _check_neo4j_uri(settings: Settings) -> str | None:
+    if settings.neo4j_uri:
+        parts = urlsplit(settings.neo4j_uri)
+        if (
+            parts.scheme not in ("bolt", "bolt+s", "neo4j", "neo4j+s")
+            or not parts.hostname
+            or parts.username is not None
+            or parts.password is not None
+            or parts.path not in ("", "/")
+            or parts.query
+            or parts.fragment
+        ):
+            return "Neo4j requires a bare Bolt URI; credentials use private fields"
+    return None
+
+
+_FAIL_CLOSED_RULES: tuple[Callable[[Settings], str | None], ...] = (
+    _check_official_help_model,
+    _check_ambient_otel,
+    _check_otlp_endpoint,
+    _check_plain_http_otlp,
+    _check_paid_ai_opt_in,
+    _check_openai_model,
+    _check_production_fixture,
+    _check_daily_budget,
+    _check_bare_origins,
+    _check_trusted_proxy_cidrs,
+    _check_production_cookie,
+    _check_production_origins,
+    _check_production_ops_token,
+    _check_production_hash_key,
+    _check_production_answer_storage,
+    _check_country_attribution,
+    _check_analytics_storage,
+    _check_private_postgres_dsn,
+    _check_graphrag_credentials,
+    _check_storage_pair,
+    _check_postgres_dsn_uris,
+    _check_neo4j_uri,
+)
 
 
 @lru_cache
