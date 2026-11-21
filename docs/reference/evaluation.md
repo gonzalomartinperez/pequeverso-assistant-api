@@ -13,7 +13,7 @@ is distinct from semantic correctness, and agent review is not human review.
 | Suite | Cases and metrics |
 | --- | --- |
 | Full set | 318 active items across 18 intent families |
-| Full-set retrieval | 241 scored cases, 77 explicitly empty gold lists. recall@3 = 0.656, recall@5 = 0.718, nDCG@5 = 0.545, MRR = 0.580 |
+| Full-set retrieval | 241 scored cases, 77 explicitly empty gold lists. recall@3 = 0.834, recall@5 = 0.880, nDCG@5 = 0.691, MRR = 0.734 |
 | Golden set | 60 active items |
 | Red-team pack | 45 active attacks |
 | Guards | 22 scripted cases |
