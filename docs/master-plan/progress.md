@@ -100,15 +100,86 @@ Parked: PVA-M1.1 (E2 sandbox observation Monday 2026-11-16), PVA-M1.10 (release-
 
 PVA-M1.1 after the Monday observation (update ADR-0016), then M2 starting with PVA-M2.1 (ruff migration) once `checkpoint/M1` is tagged.
 
+## M2 — Quality net (agent work merged)
+
+| Field | Value |
+|---|---|
+| Milestone | M2 Quality net: every task merged |
+| Date | 2026-11-15 (last M2 merge #144); M2.6 part B merged 2026-11-21 (#151) |
+| Checkpoint tag | `checkpoint/M2` by the orchestrator |
+
+| Task | PR | Result |
+|---|---|---|
+| PVA-M2.1 | #129, #130 | ruff format at 100 columns; ecosystem families with a legacy ratchet (`ratchets/ruff.json`) |
+| PVA-M2.2 | #132 | import-linter contracts, complexity ratchet (19 functions), vulture |
+| PVA-M2.3 | #136 | branch coverage floors, diff-coverage gate |
+| PVA-M2.4 | #133, #134 | golden set v1 (60 items), schema v2 loader, grader registry |
+| PVA-M2.5 | #138 | cassette replay at the provider port, golden gate in CI |
+| PVA-M2.6 | #146, #151 | full set v2 (318 items), audited qrels, baseline, retrieval ratchet; repair steps 1 and 2 (Spanish folding, curated query lexicon): recall@5 0.730 to 0.880, holdout 0.757 to 0.843 |
+| PVA-M2.7 | #142 | red-team pack mapped to OWASP LLM |
+| PVA-M2.8 | #135 | ten Hypothesis properties, `ci` and `nightly` profiles |
+| PVA-M2.9 | #140 | mutmut lane with a module ratchet (PR floor 60%) |
+| PVA-M2.10 | #139, #144 | security matrix, fault injection, SSE conformance; oasdiff gate, Schemathesis, stateful links |
+| PVA-M2.11 | #137 | Locust SSE load harness, nightly |
+| PVA-M2.12 | #141 | `scripts/scorecard.py` and the nightly quality workflow |
+| PVA-M2.13 | #131 | prompt lock per `PROMPT_VERSION` |
+| PVA-M2-X | #145 | assistant v2 scaffolding with red memory tests |
+
+## M3 — Phase A polish (agent work merged; checkpoint pending)
+
+| Field | Value |
+|---|---|
+| Milestone | M3 Phase A polish: every task merged or parked; `checkpoint/M3` is tagged by the orchestrator after verification |
+| Date | 2026-11-21 |
+| develop SHA | `2675e7d` (merge of #151) plus the docs PRs #156 and #159 before this PR |
+
+| Task | PR | Result |
+|---|---|---|
+| PVA-M1.1 (carried) | #152 | ADR-0016 records the observed weekly Dependabot run: one `weekly-all` PR at 09:24 ART on Monday, superseded by Dependabot itself, never two open; default branch is now `develop` |
+| PVA-M3.1 | #154 | contract revision 1.6: analytics ingest in `openapi.json`, new `openapi.internal.json` (health, ops), oasdiff gate over both specs; ingest example kept apart from the pinned analytics source set |
+| PVA-M3.2 | #149 | `LOG_STREAM`; CLIs log to stderr; third-party records below WARNING counted; `prompt_version` on terminal runs; only server-generated request ids logged; `Clock` injected; AST test for wall-clock calls |
+| PVA-M3.3 | #148 | `/healthz` and `/readyz` with `version` and `schema_version`; generated `contracts/env.schema.json`; HEALTHCHECK on `/healthz`; ADR-0019 |
+| PVA-M3.4 | #153, #155, #156, #158 | ADR Confirmation sections, ADR-0013 (RFC 9457 mapping, table tested) and ADR-0014; Diátaxis layout with a link guard; README on the template with the README check on; generated evaluation numbers with a `--check`; rewritten `ci.md` and `dependency-updates.md` |
+| PVA-M3.5 | #151, #157 | per-family recall@5 at or above the M2 baseline; eight catalog content gaps as owner questions in `docs/explanation/business-questions.md` |
+| PVA-M3.6 | this PR | first independent re-score, `scorecard.md` section "M3 independent re-score (2026-11-21)" |
+| PVA-M3.8 | #159 | every operation of revision 1.6 documented with examples validated against the specs |
+
+Parked: PVA-M3.7 (real golden cassettes and a live pass^3 need the owner's authorization and spend).
+
+### Exit criteria evidence
+
+- **P0 and P1:** P0-1 closed. P1-2 and P1-6 closed. P1-1 is partly closed: the golden gate runs in CI, but language and purchase-process recall stay below 0.70 and there is no live gate. P1-5 is mostly closed; image provenance and publication are scheduled for M7. P1-3 (complexity) is deferred to M4 by the plan. P1-4 (85% coverage floor) is deferred to PVA-M4.12, at the M4 exit. Source: the independent re-score.
+- **First re-score recorded:** Lens 1 mean 80.8, Lens 2 mean 86.3, Lens 3 84 (`scorecard.md`).
+- **No regression against the M2 ratchets:** retrieval raised; ruff, complexity, coverage and golden ratchets hold; the mutation PR floor passed on the changed `evidence.py`; `contracts.export --check` and `docs_numbers --check` green.
+
+### Known issues
+
+- `ratchets/mutation.json` has no recorded per-module scores (`modules: {}`). The PR floor applies, but the M2.9 baseline record is missing. To fix early in M4: record it from the weekly full-scope run.
+- ADR numbering shifted. ADR-0018 is release tagging (M1.10) and ADR-0019 is the health aliases, so the plan's M4 ADR for the SQLite fixture profile (PVA-D12) takes the next free number.
+- Recommendation for PVA-M4-X: in fixture mode, decline and no-information answers often lack the support link (`docs/explanation/business-questions.md`). A `validate_final` rule could attach it in code; confirm on the live lane.
+- The ingest spec does not document the `Origin` header or the route/section pairing, and Schemathesis reaches only the disabled-channel 404 for ingest (#154 follow-ups).
+- The local commit guard reads gitleaks' default rules, not `.github/gitleaks.toml`, so merge commits that touch manifest digest lines trip it. Prefer a rebase on unpushed task branches.
+
+### Owner inputs needed
+
+1. Authorize and fund PVA-M3.7: record real golden cassettes and run the first live pass^3.
+2. Answer the catalog content questions 8 to 15 in `docs/explanation/business-questions.md`.
+3. Still open from M1: private vulnerability reporting; merging the weekly Dependabot PR (#150). The `develop` ruleset already requires `ci-gate` (read 2026-11-21), so the `checks` alias job can be retired in M4.
+
+### Next item
+
+M4, starting with PVA-M4.1 (split `create_app`) once `checkpoint/M3` is tagged. Record the mutation baseline first.
+
 ## In-flight tasks
 
 Updated on each task merge (one row per task from `roadmap.md` that is `in-progress` or finished since the last milestone; the roadmap Status column is authoritative). Find the true next task with the RESUME command in `roadmap.md` (last section).
 
 | Task ID | Branch / PR | Status | Last update |
 |---|---|---|---|
-| PVA-M1.1 | - | parked (Monday 2026-11-16 observation) | 2026-11-14 |
-| PVA-M1.10 | - | parked (owner GitHub App) | 2026-11-14 |
-| PVA-M1.2 to M1.9, M1.11 | PRs #116, #118 to #127 | done | 2026-11-14 |
+| PVA-M1.1 to M1.11 | #116, #118 to #127, #143, #152 | done | 2026-11-21 |
+| PVA-M2.1 to M2.13, M2-X | see the M2 section | done | 2026-11-21 |
+| PVA-M3.1 to M3.6, M3.8 | see the M3 section | done | 2026-11-21 |
+| PVA-M3.7 | - | parked (owner authorization and spend) | 2026-11-21 |
 
 ## Ecosystem status (nine repositories; identical table in every repo)
 
