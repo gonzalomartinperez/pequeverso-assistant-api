@@ -68,12 +68,12 @@ def client(
     return TestClient(app)
 
 
-def test_disabled_channel_does_no_read_write_and_does_not_extend_chat_openapi() -> None:
+def test_disabled_channel_does_no_read_write_and_documents_ingest() -> None:
     store = Store()
     with client(store, enabled=False) as http:
         assert http.post(PATH, json=event(), headers=HEADERS).status_code == 404
         assert http.get(PRIVATE, headers=AUTH).status_code == 404
-        assert http.get("/openapi.json").json()["paths"] == {}
+        assert set(http.get("/openapi.json").json()["paths"]) == {PATH}
     assert store.calls == 0 and store.checks == 0
 
 
@@ -224,7 +224,7 @@ def test_default_real_composition_hides_channel_without_extra_schema_or_io() -> 
     http = TestClient(app)
     assert http.post(PATH, headers=HEADERS, json=event()).status_code == 404
     assert http.get(PRIVATE, headers=AUTH).status_code == 404
-    assert PATH not in app.openapi()["paths"] and PRIVATE not in app.openapi()["paths"]
+    assert PATH in app.openapi()["paths"] and PRIVATE not in app.openapi()["paths"]
 
 
 def test_request_deadline_covers_repository_wait_without_automatic_retry(

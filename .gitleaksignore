@@ -1,0 +1,3 @@
+# Verified false positives: sha256 digests of generated contract artifacts (see .github/gitleaks.toml).
+contracts/manifest.json:generic-api-key:24
+contracts/manifest.json:generic-api-key:25

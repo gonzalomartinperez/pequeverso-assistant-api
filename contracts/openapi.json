@@ -534,6 +534,260 @@
           }
         }
       }
+    },
+    "/api/v1/analytics/events": {
+      "post": {
+        "summary": "Ingest a product analytics event",
+        "description": "Accepts one UTF-8 JSON event up to 1024 bytes from an allowed origin.",
+        "operationId": "ingest_api_v1_analytics_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "route": {
+                          "const": "/"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "section_id": {
+                          "enum": [
+                            "hero",
+                            "leer",
+                            "bebe",
+                            "preguntas"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "route": {
+                          "const": "/grafismo-fonetico/"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "section_id": {
+                          "enum": [
+                            "hero",
+                            "incluye",
+                            "metodo",
+                            "preguntas"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "if": {
+                      "properties": {
+                        "event_name": {
+                          "const": "public_click"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "cell_x": {
+                          "type": "integer"
+                        },
+                        "cell_y": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "cell_x",
+                        "cell_y"
+                      ]
+                    },
+                    "else": {
+                      "not": {
+                        "anyOf": [
+                          {
+                            "required": [
+                              "cell_x"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "cell_y"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "properties": {
+                  "schema_version": {
+                    "type": "integer",
+                    "const": 1,
+                    "title": "Schema Version"
+                  },
+                  "project": {
+                    "type": "string",
+                    "const": "pequeverso",
+                    "title": "Project"
+                  },
+                  "source": {
+                    "type": "string",
+                    "const": "site",
+                    "title": "Source"
+                  },
+                  "event_id": {
+                    "type": "string",
+                    "format": "uuid4",
+                    "title": "Event Id"
+                  },
+                  "event_name": {
+                    "type": "string",
+                    "enum": [
+                      "page_view",
+                      "section_view",
+                      "public_click"
+                    ],
+                    "title": "Event Name"
+                  },
+                  "route": {
+                    "type": "string",
+                    "enum": [
+                      "/",
+                      "/grafismo-fonetico/"
+                    ],
+                    "title": "Route"
+                  },
+                  "layout_revision": {
+                    "type": "string",
+                    "const": "pequeverso-v1",
+                    "title": "Layout Revision"
+                  },
+                  "section_id": {
+                    "type": "string",
+                    "enum": [
+                      "hero",
+                      "leer",
+                      "bebe",
+                      "preguntas",
+                      "incluye",
+                      "metodo"
+                    ],
+                    "title": "Section Id"
+                  },
+                  "viewport_bucket": {
+                    "type": "string",
+                    "enum": [
+                      "mobile",
+                      "tablet",
+                      "desktop"
+                    ],
+                    "title": "Viewport Bucket"
+                  },
+                  "locale": {
+                    "type": "string",
+                    "const": "es",
+                    "title": "Locale"
+                  },
+                  "cell_x": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 7.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Cell X"
+                  },
+                  "cell_y": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "maximum": 7.0,
+                        "minimum": 0.0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Cell Y"
+                  }
+                },
+                "additionalProperties": false,
+                "type": "object",
+                "required": [
+                  "schema_version",
+                  "project",
+                  "source",
+                  "event_id",
+                  "event_name",
+                  "route",
+                  "layout_revision",
+                  "section_id",
+                  "viewport_bucket",
+                  "locale"
+                ],
+                "title": "EventIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Event accepted"
+          },
+          "403": {
+            "description": "Origin denied or credentials supplied. Only middleware origin rejections carry a JSON error body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product analytics disabled or unavailable in this configuration"
+          },
+          "408": {
+            "description": "Request timed out"
+          },
+          "413": {
+            "description": "Body exceeds 1024 bytes"
+          },
+          "415": {
+            "description": "Expected application/json with optional UTF-8 charset"
+          },
+          "422": {
+            "description": "Invalid event or malformed JSON"
+          },
+          "429": {
+            "description": "Ingest quota exceeded",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 60
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Analytics storage unavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1128,7 +1382,7 @@
             "type": "string",
             "title": "Contract Revision",
             "description": "Additive revision within v1.",
-            "default": "1.5"
+            "default": "1.6"
           }
         },
         "additionalProperties": false,

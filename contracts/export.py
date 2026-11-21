@@ -16,9 +16,12 @@ import json
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+from uuid import UUID
 
-from pydantic import TypeAdapter
+from fastapi.openapi.utils import get_openapi
+from fastapi.routing import APIRoute, iter_route_contexts
+from pydantic import SecretStr, TypeAdapter
 
 from app.adapters.catalog_schema import CatalogParser
 from app.application.answers import (
@@ -49,6 +52,7 @@ from app.presentation.events import (
 )
 from app.presentation.middleware import error_payload
 from app.presentation.operations import OpsSummaryOut
+from app.presentation.product_analytics import EventIn
 from app.presentation.schemas import (
     CONTRACT_REVISION,
     AvailabilityOut,
@@ -59,10 +63,14 @@ from app.presentation.schemas import (
 from app.presentation.telemetry import OpsTelemetryOut
 from contracts.product_analytics import artifacts as product_analytics_artifacts
 
+if TYPE_CHECKING:
+    from fastapi import FastAPI
+
 ROOT = Path(__file__).resolve().parent
 CONTRACT_VERSION = "1"
 NOW = datetime(2026, 9, 28, 15, 0, tzinfo=UTC)
 RUN = "run_EXAMPLE0000001"
+OPS_EXPORT_PLACEHOLDER = "FAKE-OPERATIONS-TOKEN-FOR-OPENAPI-EXPORT-ONLY"
 
 
 def _dump(data: Any) -> bytes:
@@ -135,6 +143,43 @@ def _with_links(spec: dict[str, Any]) -> dict[str, Any]:
             }
             for name, operation in _SESSION_LINKS.items()
         }
+    return spec
+
+
+def _internal_openapi(app: FastAPI) -> dict[str, Any]:
+    routes: list[APIRoute] = []
+    for context in iter_route_contexts(app.routes):
+        path = context.path_format or ""
+        if not isinstance(context.original_route, APIRoute) or not (
+            path.startswith(("/health/", "/internal/v1/ops/")) or path in {"/healthz", "/readyz"}
+        ):
+            continue
+        route = copy.copy(context.original_route)
+        route.path_format = path
+        route.include_in_schema = True
+        routes.append(route)
+
+    spec = get_openapi(
+        title=f"{app.title} (internal)",
+        version=app.version,
+        openapi_version=app.openapi_version,
+        routes=routes,
+    )
+    spec.setdefault("components", {})["securitySchemes"] = {
+        "OpsBearer": {"type": "http", "scheme": "bearer"}
+    }
+    for path, methods in spec["paths"].items():
+        if not path.startswith("/internal/v1/ops/"):
+            continue
+        for operation in methods.values():
+            operation["security"] = [{"OpsBearer": []}]
+            # The manually parsed Authorization header is represented by the security scheme.
+            if operation.get("parameters", [{}])[0].get("name") == "authorization":
+                del operation["parameters"]
+                del operation["responses"]["422"]
+    # FastAPI emitted these solely for the Authorization header.
+    for name in ("HTTPValidationError", "ValidationError"):
+        spec["components"]["schemas"].pop(name, None)
     return spec
 
 
@@ -222,9 +267,17 @@ def build() -> dict[str, bytes]:
         starters=list(starters(active.catalog, Language.ES)),
     )
 
-    app = create_app(Settings(_env_file=None, database_path=":memory:"))
+    app = create_app(
+        Settings(
+            _env_file=None,
+            database_path=":memory:",
+            ops_read_token=SecretStr(OPS_EXPORT_PLACEHOLDER),
+            observability_enabled=True,
+        )
+    )
     artifacts: dict[str, bytes] = {
         "openapi.json": _dump(_with_links(copy.deepcopy(app.openapi()))),
+        "openapi.internal.json": _dump(_internal_openapi(app)),
         "sse.schema.json": _dump(TypeAdapter(StreamEvent).json_schema()),
         "examples/session.created.json": _dump(session.model_dump(mode="json")),
         "examples/stream.recommendation.sse": _sse(
@@ -292,6 +345,23 @@ def build() -> dict[str, bytes]:
         ),
     }
     artifacts.update(product_analytics_artifacts())
+    # Ingest request example (PVA-M3.1). Kept apart from the pinned product-analytics source set.
+    artifacts["examples/product-analytics.event.json"] = _dump(
+        EventIn(
+            schema_version=1,
+            project="pequeverso",
+            source="site",
+            event_id=UUID("00000000-0000-4000-8000-000000000001"),
+            event_name="public_click",
+            route="/",
+            layout_revision="pequeverso-v1",
+            section_id="hero",
+            viewport_bucket="desktop",
+            locale="es",
+            cell_x=2,
+            cell_y=4,
+        ).model_dump(mode="json", exclude_unset=True)
+    )
     manifest = {
         "contract_version": CONTRACT_VERSION,
         "contract_revision": CONTRACT_REVISION,

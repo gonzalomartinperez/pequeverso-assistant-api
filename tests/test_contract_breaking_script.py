@@ -12,6 +12,8 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "scripts" / "contract_breaking.sh"
 LABEL = '["contract-major"]'
+PUBLIC = "contracts/openapi.json"
+INTERNAL = "contracts/openapi.internal.json"
 
 
 def _git(repo: Path, *args: str) -> None:
@@ -22,7 +24,8 @@ def _git(repo: Path, *args: str) -> None:
 @pytest.fixture
 def repo(tmp_path: Path) -> Path:
     (tmp_path / "contracts").mkdir()
-    (tmp_path / "contracts" / "openapi.json").write_text("{}")
+    (tmp_path / PUBLIC).write_text('{"public":true}')
+    (tmp_path / INTERNAL).write_text('{"internal":true}')
     _git(tmp_path, "init", "-q")
     _git(tmp_path, "add", "-A")
     _git(
@@ -33,7 +36,14 @@ def repo(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def _run(repo: Path, tmp_path: Path, base: str, oasdiff_status: int | None, labels: str):
+def _run(
+    repo: Path,
+    tmp_path: Path,
+    base: str,
+    oasdiff_status: int | None,
+    labels: str,
+    failing_spec: str = PUBLIC,
+):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(exist_ok=True)
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")} | {"PR_LABELS": labels}
@@ -42,7 +52,11 @@ def _run(repo: Path, tmp_path: Path, base: str, oasdiff_status: int | None, labe
         fake = bin_dir / "oasdiff"
         log = tmp_path / "oasdiff.log"
         fake.write_text(
-            f'#!/usr/bin/env bash\necho "$1 $2 $3" > "{log}"\ncat "$4" >> "{log}"\nexit {oasdiff_status}\n'
+            "#!/usr/bin/env bash\n"
+            f'echo "$1 $2 $3 $5" >> "{log}"\n'
+            f'cat "$4" >> "{log}"\n'
+            f'echo >> "{log}"\n'
+            f'if [ "$5" = "{failing_spec}" ]; then exit {oasdiff_status}; fi\n'
         )
         fake.chmod(0o755)
         args.append(str(fake))
@@ -66,8 +80,9 @@ def _run(repo: Path, tmp_path: Path, base: str, oasdiff_status: int | None, labe
         (2, LABEL, 2),
     ],
 )
-def test_label_overrides_only_breaking_changes(repo, tmp_path, status, labels, expected):
-    assert _run(repo, tmp_path, "HEAD", status, labels).returncode == expected
+@pytest.mark.parametrize("spec", [PUBLIC, INTERNAL])
+def test_label_overrides_only_breaking_changes(repo, tmp_path, status, labels, expected, spec):
+    assert _run(repo, tmp_path, "HEAD", status, labels, spec).returncode == expected
 
 
 def test_missing_binary_is_a_hard_failure_even_with_the_label(repo, tmp_path):
@@ -81,17 +96,26 @@ def test_base_ref_that_is_not_a_commit_fails(repo, tmp_path):
 
 def test_oasdiff_compares_the_base_spec_and_fails_on_errors(repo, tmp_path):
     assert _run(repo, tmp_path, "HEAD", 0, "[]").returncode == 0
-    assert (tmp_path / "oasdiff.log").read_text() == "breaking --fail-on ERR\n{}"
+    assert (tmp_path / "oasdiff.log").read_text().splitlines() == [
+        f"breaking --fail-on ERR {PUBLIC}",
+        '{"public":true}',
+        f"breaking --fail-on ERR {INTERNAL}",
+        '{"internal":true}',
+    ]
 
 
-def test_path_absent_at_the_base_passes_with_a_notice(repo, tmp_path):
-    _git(repo, "rm", "-q", "-r", "contracts")
+@pytest.mark.parametrize("missing", [PUBLIC, INTERNAL])
+def test_path_absent_at_the_base_passes_with_a_notice(repo, tmp_path, missing):
+    _git(repo, "rm", "-q", missing)
     _git(
         repo,
         "-c", "user.name=t", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false",
         "commit", "-q", "-m", "drop",
     )  # fmt: skip
-    (repo / "contracts").mkdir()
-    (repo / "contracts" / "openapi.json").write_text("{}")
-    result = _run(repo, tmp_path, "HEAD", 1, "[]")
-    assert result.returncode == 0 and "nothing to compare" in result.stdout
+    (repo / missing).write_text("{}")
+    result = _run(repo, tmp_path, "HEAD", 1, "[]", missing)
+    assert result.returncode == 0 and f"no {missing} at the base revision" in result.stdout
+    present = INTERNAL if missing == PUBLIC else PUBLIC
+    assert (tmp_path / "oasdiff.log").read_text().splitlines()[0] == (
+        f"breaking --fail-on ERR {present}"
+    )

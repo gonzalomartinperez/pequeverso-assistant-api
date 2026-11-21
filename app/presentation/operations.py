@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.application.operations import OperationsService, Summary
 from app.application.telemetry import TelemetryPort
 from app.presentation.middleware import request_id_of
+from app.presentation.schemas import ErrorOut
 from app.presentation.telemetry import OpsTelemetryOut
 
 
@@ -238,6 +239,11 @@ def build_router(
     telemetry: TelemetryPort | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/internal/v1/ops", include_in_schema=False)
+    unauthorized_response = {
+        "model": ErrorOut,
+        "description": "Missing or invalid operations token",
+        "headers": {"WWW-Authenticate": {"schema": {"type": "string", "const": "Bearer"}}},
+    }
 
     def authorized(authorization: Annotated[str | None, Header()] = None) -> bool:
         scheme, _, value = (authorization or "").partition(" ")
@@ -245,7 +251,7 @@ def build_router(
             return False
         return hmac.compare_digest(hashlib.sha256(value.encode()).digest(), token_digest)
 
-    @router.get("/summary", response_model=OpsSummaryOut)
+    @router.get("/summary", response_model=OpsSummaryOut, responses={401: unauthorized_response})
     async def summary(
         request: Request, ok: Annotated[bool, Depends(authorized)]
     ) -> OpsSummaryOut | JSONResponse:
@@ -255,7 +261,9 @@ def build_router(
 
     if telemetry is not None:
 
-        @router.get("/telemetry", response_model=OpsTelemetryOut)
+        @router.get(
+            "/telemetry", response_model=OpsTelemetryOut, responses={401: unauthorized_response}
+        )
         async def runtime_telemetry(
             request: Request,
             ok: Annotated[bool, Depends(authorized)],
@@ -264,7 +272,17 @@ def build_router(
                 return _unauthorized(request)
             return OpsTelemetryOut.of(await telemetry.snapshot())
 
-        @router.get("/metrics")
+        @router.get(
+            "/metrics",
+            response_class=Response,
+            responses={
+                200: {
+                    "description": "Prometheus exposition format",
+                    "content": {"text/plain": {"schema": {"type": "string"}}},
+                },
+                401: unauthorized_response,
+            },
+        )
         async def metrics(request: Request, ok: Annotated[bool, Depends(authorized)]) -> Response:
             if not ok:
                 return _unauthorized(request)
