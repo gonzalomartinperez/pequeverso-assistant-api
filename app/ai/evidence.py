@@ -12,12 +12,13 @@ from __future__ import annotations
 import json
 import math
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
 
+from app.ai.lexicon import QUERY_ALIASES
 from app.domain.answer_policy import fold
 from app.domain.catalog import (
     Catalog,
@@ -45,6 +46,7 @@ _STOPWORDS = frozenset(
     """.split()  # noqa: SIM905 - one readable word block
 )
 _STEM_ES_AFTER = frozenset("rlndzj")
+_ALIAS_WEIGHT = 0.75
 
 
 def tokens(text: str) -> list[str]:
@@ -72,6 +74,37 @@ def _stem(word: str) -> str:
     if word.endswith("es") and word[-3] in _STEM_ES_AFTER:
         return word[:-2]
     return word if word.endswith(("is", "us", "ss")) else word[:-1]
+
+
+@lru_cache(maxsize=1)
+def _alias_index() -> dict[tuple[str, ...], set[str]]:
+    aliases: dict[tuple[str, ...], set[str]] = defaultdict(set)
+    for canonical, variants in QUERY_ALIASES:
+        terms = _tokens(canonical)
+        for variant in variants.split("|"):
+            aliases[_alias_tokens(variant)].update(terms)
+    return aliases
+
+
+def _alias_tokens(text: str) -> tuple[str, ...]:
+    # Function words carry meaning in phrases such as "no me llegó el correo".
+    return tuple(_stem(word) for word in _WORD.findall(fold(text)))
+
+
+def _query_weights(query: str) -> dict[str, float]:
+    words = _alias_tokens(query)
+    aliases = _alias_index()
+    longest = max(map(len, aliases))
+    expanded = {
+        term
+        for start in range(len(words))
+        for end in range(start + 1, min(len(words), start + longest) + 1)
+        for term in aliases.get(words[start:end], ())
+    }
+    exact = _tokens(query)
+    weights = dict.fromkeys(sorted(expanded), _ALIAS_WEIGHT)
+    weights.update(dict.fromkeys(sorted(set(exact)), 1.0))
+    return weights
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,7 +143,7 @@ def passages(catalog: Catalog) -> list[Passage]:
 
 def rank(query: str, items: Sequence[Passage]) -> list[tuple[Passage, float]]:
     """BM25-style lexical scores, highest first; ties keep catalog order."""
-    query_terms = tokens(query)
+    query_terms = _query_weights(query)
     docs = [list(_tokens(item.text)) for item in items]
     if not query_terms or not items:
         return [(item, 0.0) for item in items]
@@ -120,12 +153,12 @@ def rank(query: str, items: Sequence[Passage]) -> list[tuple[Passage, float]]:
     for item, doc in zip(items, docs, strict=True):
         counts = Counter(doc)
         score = 0.0
-        for term in set(query_terms):
+        for term, weight in query_terms.items():
             tf = counts.get(term, 0)
             if not tf:
                 continue
             idf = math.log(1 + (len(docs) - frequency[term] + 0.5) / (frequency[term] + 0.5))
-            score += idf * tf * 2.2 / (tf + 1.2 * (0.25 + 0.75 * len(doc) / avg_len))
+            score += weight * idf * tf * 2.2 / (tf + 1.2 * (0.25 + 0.75 * len(doc) / avg_len))
         scored.append((item, score))
     return sorted(scored, key=lambda pair: -pair[1])
 

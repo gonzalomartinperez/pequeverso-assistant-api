@@ -18,7 +18,10 @@ import random
 import sys
 from pathlib import Path
 from statistics import fmean
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -53,12 +56,13 @@ def compare(
     new = {r["id"]: r for r in after if split in (None, r["split"])}
     ids = sorted(old.keys() & new.keys())
     out: dict[str, Any] = {"cases": len(ids), "split": split or "all"}
-    for name, value in (
+    metrics: tuple[tuple[str, Callable[[dict[str, Any]], float]], ...] = (
         ("recall_at_5", lambda r: _hit(r, 5)),
         ("recall_at_3", lambda r: _hit(r, 3)),
         ("ndcg_at_5", lambda r: r["ndcg_at_5"]),
         ("mrr", lambda r: 1 / r["best_rank"] if r["best_rank"] else 0.0),
-    ):
+    )
+    for name, value in metrics:
         diffs = [value(new[i]) - value(old[i]) for i in ids]
         out[name] = {
             "before": round(fmean(value(old[i]) for i in ids), 3) if ids else None,
