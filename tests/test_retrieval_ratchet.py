@@ -20,7 +20,7 @@ def test_a_drop_in_any_group_fails_the_ratchet() -> None:
     measured = measure(CASES)
     family = next(iter(measured["by_family"]))
     worse = json.loads(json.dumps(measured))
-    worse["by_family"][family]["recall_at_5"] -= 0.05
+    worse["by_family"][family]["recall_at_5"] = RATCHETS["by_family"][family]["recall_at_5"] - 0.05
     worse["by_language"].popitem()
     problems = check(worse, RATCHETS)
     assert any(p.startswith(f"by_family.{family}.recall_at_5") for p in problems)

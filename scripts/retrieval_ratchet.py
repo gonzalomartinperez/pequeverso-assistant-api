@@ -125,7 +125,7 @@ def baseline(cases: list[dict[str, Any]]) -> dict[str, Any]:
         "catalog_revision": conv.CATALOG.source_revision,
         "mode": "fixture",
         "metrics_engine": "stdlib (scripts/evaluate_corpus.py); ranx spike not adopted, see docs/reference/evaluation.md",
-        "retriever": "lexical (app/ai/evidence.py), before the part B retrieval repair",
+        "retriever": "lexical (app/ai/evidence.py) with Spanish folding and the query lexicon (PVA-M2.6 part B)",
         "cases": counts(cases),
         "retrieval": {k: report[k] for k in ("overall", "by_split", "by_family", "by_language")},
         "misses_at_3": [{k: m[k] for k in ("id", "family", "best_rank")} for m in report["misses"]],

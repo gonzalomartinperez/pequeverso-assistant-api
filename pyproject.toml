@@ -142,7 +142,7 @@ source_paths = [
     "app/application/embedding_budget.py",
 ]
 # Copy package siblings and fixture assets so imports resolve inside mutants/.
-also_copy = ["app", "catalog", "migrations", "contracts", "evals", "scripts", "docs/reference"]
+also_copy = ["app", "catalog", "migrations", "contracts", "evals", "scripts", "docs/reference", "ratchets"]
 process_isolation = "fork"
 pytest_add_cli_args = ["-p", "no:randomly", "-x", "-q"]
 pytest_add_cli_args_test_selection = [
@@ -155,6 +155,9 @@ pytest_add_cli_args_test_selection = [
     "tests/test_api.py",
     "tests/test_output_parser.py",
     "tests/test_evidence_encoding.py",
+    "tests/test_evidence_lexicon.py",
+    "tests/test_evidence_characterization.py",
+    "tests/test_retrieval_ratchet.py",
     "tests/test_prompt_contract.py",
     "tests/test_properties_budget.py",
     "tests/test_properties_sessions.py",
