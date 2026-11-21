@@ -39,6 +39,7 @@ from app.application.knowledge_ports import EmbeddingAccounting
 from app.application.ports import Clock
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import ProviderResource, create_app
+from app.bootstrap.logging import use_stderr
 from app.domain.catalog import PriceStatus
 from app.domain.web_evidence import SOURCES
 from app.presentation.http import Services
@@ -856,6 +857,7 @@ def evaluate(
 
 
 def main() -> None:
+    use_stderr()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--key-file", type=Path)

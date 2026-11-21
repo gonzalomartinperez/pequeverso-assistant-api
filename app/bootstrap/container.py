@@ -33,6 +33,7 @@ from app.adapters.providers.fixture_provider import FixtureProvider
 from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
 from app.adapters.providers.openai_provider import OpenAIResponsesProvider
 from app.ai.composer import ComposerSettings, GroundedComposer
+from app.ai.prompt import PROMPT_VERSION
 from app.ai.provider import ModelProvider
 from app.application.catalog import CatalogService
 from app.application.chat import ChatLimits, ChatService
@@ -45,7 +46,7 @@ from app.application.product_analytics import AnalyticsService
 from app.application.runs import RunRegistry
 from app.application.sessions import SessionLimits, SessionService
 from app.bootstrap.config import Settings, get_settings
-from app.bootstrap.logging import configure_logging
+from app.bootstrap.logging import configure_logging, flush_external_events
 from app.bootstrap.persistence import build_persistence
 from app.bootstrap.provider_transport import close_owned_provider, provider_http_client
 from app.domain.budget import BudgetPolicy, Pricing, to_micro
@@ -218,8 +219,9 @@ def create_app(
     if owned_provider.wrap_composer is not None:
         composer = owned_provider.wrap_composer(composer)
     chat = ChatService(
+        prompt_version=PROMPT_VERSION,
         official_help=(
-            OfficialHelpReader()
+            OfficialHelpReader(clock=clock)
             if settings.official_help_enabled
             and settings.ai_provider == "openai"
             and settings.assistant_enabled
@@ -305,6 +307,7 @@ def create_app(
         from app.adapters.observability.telemetry import RuntimeTelemetry
 
         telemetry = RuntimeTelemetry(
+            clock=clock,
             started_at=clock.now(),
             synthetic=settings.ai_provider == "fixture",
             revision=settings.service_revision,
@@ -339,10 +342,11 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        configure_logging()
+        configure_logging(stream=settings.log_stream)
         # Register owned cleanup before acquisition: a migration can fail after opening SQLite.
         # ExitStack closes every resource even if another close raises, in reverse order.
         async with contextlib.AsyncExitStack() as resources:
+            resources.callback(flush_external_events)
             if telemetry is not None:
                 resources.push_async_callback(asyncio.to_thread, telemetry.shutdown)
             for database in persistence.resources:

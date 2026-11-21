@@ -14,9 +14,14 @@ entry below predates this format and is kept as written.
 - Quality net (master plan M2): coverage and diff-coverage gates, golden set v1 with cassette
   replay, red-team pack, Hypothesis properties, mutation lane, SSE load harness, security matrix
   and fault-injection tests, scorecard and nightly workflow.
+- `LOG_STREAM` setting; evaluation and operator CLIs log to stderr so their stdout stays machine
+  output. The `run` event carries `prompt_version`.
 
 ### Changed
 
+- `httpx`, `httpcore` and `openai` loggers run at WARNING, and repeated third-party records are
+  counted into one content-free `external_events` line instead of being printed. The official help
+  reader and the span exporter take the injected `Clock` (no `datetime.now` outside bootstrap).
 - One `ci.yml` with change classification and the `ci-gate` aggregate; weekly grouped dependency
   updates (master plan M1).
 

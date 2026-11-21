@@ -27,6 +27,8 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "test", "production"] = "development"
     assistant_enabled: bool = True
+    # Service logs go to stdout; CLIs and evaluations force stderr (`use_stderr`).
+    log_stream: Literal["stdout", "stderr"] = "stdout"
 
     # Model provider. Fixture mode is the default and never calls a paid API.
     ai_provider: Literal["fixture", "openai"] = "fixture"

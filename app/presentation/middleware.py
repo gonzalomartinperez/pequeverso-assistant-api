@@ -99,7 +99,8 @@ class RequestContextMiddleware:
             await self.app(scope, receive, send)
             return
         incoming = dict(scope["headers"]).get(b"x-request-id", b"").decode("latin-1")
-        request_id = incoming if _REQUEST_ID.match(incoming) else secrets.token_hex(8)
+        generated = not _REQUEST_ID.match(incoming)
+        request_id = secrets.token_hex(8) if generated else incoming
         scope.setdefault("state", {})["request_id"] = request_id
         started = time.monotonic()
         status = 500
@@ -123,18 +124,18 @@ class RequestContextMiddleware:
             await self.app(scope, receive, send_with_headers)
         finally:
             route = scope.get("route")
-            log.info(
-                json.dumps(
-                    {
-                        "operation": "request",
-                        "method": scope["method"],
-                        "route": getattr(route, "path", "unmatched"),
-                        "status": status,
-                        "duration_ms": round((time.monotonic() - started) * 1000),
-                        "request_id": request_id,
-                    }
-                )
-            )
+            entry: dict[str, object] = {
+                "operation": "request",
+                "method": scope["method"],
+                "route": getattr(route, "path", "unmatched"),
+                "status": status,
+                "duration_ms": round((time.monotonic() - started) * 1000),
+            }
+            # Only a server-generated id is logged: a client-supplied one is echoed but could
+            # carry a session id or key, so it never reaches the logs (docs/security.md).
+            if generated:
+                entry["request_id"] = request_id
+            log.info(json.dumps(entry))
 
 
 class BodyLimitMiddleware:
