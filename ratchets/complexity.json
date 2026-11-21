@@ -10,7 +10,6 @@
     "app/application/answers.py::finalize": 21,
     "app/application/catalog_scope.py::catalog_scope_reply": 12,
     "app/application/chat.py::ChatService.start": 29,
-    "app/application/chat.py::_ModelRun.events": 17,
     "app/application/indexing.py::KnowledgeIndexer.index": 11,
     "app/application/knowledge.py::HybridKnowledgeRetrieval.retrieve": 15,
     "app/domain/answer_policy.py::check_answer": 14,

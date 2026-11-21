@@ -187,11 +187,10 @@ class _ModelRun(Run):
 
     async def events(self) -> AsyncIterator[RunEvent]:
         yield RunStarted(self.id, self._user_message)
-        service = self._service
         # An explicit deadline, checked at every step: each step may resume in a different task,
         # so a task-bound asyncio.timeout() held across yields would never fire.
-        deadline = self._started + service.limits.run_timeout.total_seconds()
-        stream = service.composer.compose(self._prepared)
+        deadline = self._started + self._service.limits.run_timeout.total_seconds()
+        stream = self._service.composer.compose(self._prepared)
         try:
             while True:
                 event = await self._next_or_cancel(stream, deadline)
@@ -200,64 +199,76 @@ class _ModelRun(Run):
                 # Async retrieval can repack the final evidence before the first model delta.
                 self._web_evidence = self._prepared.web_evidence
                 if isinstance(event, DeltaEvent):
-                    rules = answer_rules(
-                        self._active.catalog,
-                        self._active.price_status(service.clock.now()),
-                        service.limits.extra_forbidden_terms,
-                    )
-                    delta = self._prefix.feed(
-                        event.text, self._active.catalog, rules, self._web_evidence
-                    )
-                    if delta:
-                        if self._first_delta_ms is None:
-                            self._first_delta_ms = self._elapsed_ms()
+                    if delta := self._validated_delta(event):
                         yield AnswerDelta(delta)
                     continue
                 # Usage is already known: a disconnect at the validated tail must not lose it.
                 await self._settle(event.usage)
-                if self._cancel.is_set():
-                    await self._finish(RunState.CANCELLED)
+                if await self._cancelled_or_late(deadline):
                     yield RunCancelled()
                     return
-                if time.monotonic() >= deadline:
-                    raise TimeoutError
                 final = self._finalize(event)
-                delta = self._prefix.finish(final)
-                if delta:
-                    if self._first_delta_ms is None:
-                        self._first_delta_ms = self._elapsed_ms()
+                if delta := self._tracked(self._prefix.finish(final)):
                     yield AnswerDelta(delta)
-                if self._cancel.is_set():
-                    await self._finish(RunState.CANCELLED)
+                if await self._cancelled_or_late(deadline):
                     yield RunCancelled()
                     return
-                if time.monotonic() >= deadline:
-                    raise TimeoutError
-                message = await self._complete(event, final)
-                yield AnswerCompleted(message)
+                yield AnswerCompleted(await self._complete(event, final))
                 return
-            if self._cancel.is_set():
-                await self._finish(RunState.CANCELLED)
-                yield RunCancelled()
-                return
-            await self._finish(RunState.FAILED, FailureCode.GENERATION_FAILED)
-            yield RunFailed(FailureCode.GENERATION_FAILED)
-        except GenerationError as error:
-            await self._settle(error.usage)
-            await self._finish(RunState.FAILED, error.code)
-            yield RunFailed(error.code)
-        except RejectedError as error:
-            await self._finish(RunState.FAILED, error.code)
-            yield RunFailed(error.code)
-        except TimeoutError:
-            await self._finish(RunState.FAILED, FailureCode.TIMEOUT)
-            yield RunFailed(FailureCode.TIMEOUT)
-        except Exception:
-            log.exception('{"operation":"run","outcome":"unexpected_error"}')
-            await self._finish(RunState.FAILED, FailureCode.GENERATION_FAILED)
-            yield RunFailed(FailureCode.GENERATION_FAILED)
+            yield await self._ended_without_draft()
+        except Exception as error:
+            yield RunFailed(await self._failed(error))
         finally:
             await stream.aclose()
+
+    def _validated_delta(self, event: DeltaEvent) -> str:
+        """Feed a model delta through the validated prefix; return what may be shown now."""
+        service = self._service
+        rules = answer_rules(
+            self._active.catalog,
+            self._active.price_status(service.clock.now()),
+            service.limits.extra_forbidden_terms,
+        )
+        return self._tracked(
+            self._prefix.feed(event.text, self._active.catalog, rules, self._web_evidence)
+        )
+
+    def _tracked(self, delta: str) -> str:
+        if delta and self._first_delta_ms is None:
+            self._first_delta_ms = self._elapsed_ms()
+        return delta
+
+    async def _cancelled_or_late(self, deadline: float) -> bool:
+        """Finish as cancelled and return True on cancel; raise TimeoutError past the deadline."""
+        if self._cancel.is_set():
+            await self._finish(RunState.CANCELLED)
+            return True
+        if time.monotonic() >= deadline:
+            raise TimeoutError
+        return False
+
+    async def _ended_without_draft(self) -> RunEvent:
+        if self._cancel.is_set():
+            await self._finish(RunState.CANCELLED)
+            return RunCancelled()
+        await self._finish(RunState.FAILED, FailureCode.GENERATION_FAILED)
+        return RunFailed(FailureCode.GENERATION_FAILED)
+
+    async def _failed(self, error: Exception) -> FailureCode:
+        """Finish a failed run and return its public code; called inside the `except` block."""
+        if isinstance(error, GenerationError):
+            await self._settle(error.usage)
+            code = error.code
+        elif isinstance(error, RejectedError):
+            code = error.code
+        elif isinstance(error, TimeoutError):
+            code = FailureCode.TIMEOUT
+        else:
+            # Called only from the `except` block in `events`, so the exception is active.
+            log.exception('{"operation":"run","outcome":"unexpected_error"}')  # noqa: LOG004
+            code = FailureCode.GENERATION_FAILED
+        await self._finish(RunState.FAILED, code)
+        return code
 
     async def _next_or_cancel(
         self, stream: AsyncGenerator[DeltaEvent | DraftEvent], deadline: float
