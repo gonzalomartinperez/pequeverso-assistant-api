@@ -174,9 +174,17 @@ def _internal_openapi(app: FastAPI) -> dict[str, Any]:
         for operation in methods.values():
             operation["security"] = [{"OpsBearer": []}]
             # The manually parsed Authorization header is represented by the security scheme.
-            if operation.get("parameters", [{}])[0].get("name") == "authorization":
-                del operation["parameters"]
-                del operation["responses"]["422"]
+            declared = operation.get("parameters", [])
+            kept = [p for p in declared if p.get("name") != "authorization"]
+            if len(kept) == len(declared):
+                continue
+            if kept:
+                operation["parameters"] = kept
+            else:
+                operation.pop("parameters", None)
+                # FastAPI's validation 422 existed only for that header.
+                if "HTTPValidationError" in json.dumps(operation["responses"].get("422", {})):
+                    operation["responses"].pop("422")
     # FastAPI emitted these solely for the Authorization header.
     for name in ("HTTPValidationError", "ValidationError"):
         spec["components"]["schemas"].pop(name, None)

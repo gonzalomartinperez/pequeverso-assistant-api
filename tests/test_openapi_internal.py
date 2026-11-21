@@ -7,6 +7,7 @@ import json
 import re
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import httpx
 import pytest
@@ -88,6 +89,8 @@ def test_analytics_event_example_validates_against_the_public_request_schema() -
     validator = Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
     event = _read("examples/product-analytics.event.json")
     validator.validate(event)
+    assert "$defs" not in schema and "$ref" not in json.dumps(schema)  # inline, self-contained
+    assert UUID(event["event_id"]).version == 4
     assert not validator.is_valid({**event, "section_id": "incluye"})
     assert not validator.is_valid({**event, "cell_x": None})
 
