@@ -17,6 +17,8 @@ from typing import TypeVar
 T = TypeVar("T")
 
 MIGRATIONS = Path(__file__).resolve().parents[3] / "migrations"
+# Highest migration this build ships (reported by /readyz as the expected schema level).
+SCHEMA_LEVEL = max(p.name[:3] for p in MIGRATIONS.glob("[0-9][0-9][0-9]_*.sql"))
 
 
 class Database:

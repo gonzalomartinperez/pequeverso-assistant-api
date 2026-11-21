@@ -76,10 +76,15 @@ silent takeover. A shared database alone does not make this runtime HA or multi-
 
 | Endpoint | Meaning | Use |
 |---|---|---|
-| `GET /health/live` | Process is up | Liveness |
-| `GET /health/ready` | Private database reachable, runtime ownership alive and matching synchronized public knowledge/graph ready (SQLite fixture: valid active catalog). Body adds `catalog.revision` and `catalog.price_status` | Readiness, Docker `HEALTHCHECK` (built in), Coolify health check |
+| `GET /healthz` | Process is up; no dependency checked. Body `{status, version}` (`version` is `SERVICE_REVISION` or `unknown`) | Liveness, Docker `HEALTHCHECK` (built in) |
+| `GET /readyz` | Same checks and body as `/health/ready`, plus `version` and `schema_version` (highest migration this configuration expects, `postgres-NNN` or `sqlite-NNN`; core PostgreSQL migrations are not re-checked at runtime, ADR-0019); 200 or 503 | Readiness, deploy verification |
+| `GET /health/live` | Process is up | Liveness (kept, ADR-0019) |
+| `GET /health/ready` | Private database reachable, runtime ownership alive and matching synchronized public knowledge/graph ready (SQLite fixture: valid active catalog). Body adds `catalog.revision` and `catalog.price_status` | Readiness (kept, ADR-0019) |
 
-Health paths are internal; the public proxy routes only `/api/*`.
+Health paths are internal; the public proxy routes only `/api/*`. No health body carries secrets,
+session ids or visitor content. The environment variables, their secret flag and what production
+requires are published in [`contracts/env.schema.json`](../contracts/env.schema.json), generated
+from `Settings` by `uv run python -m contracts.export`.
 
 The PostgreSQL image probes TCP at `127.0.0.1`, not its Unix socket. The official entrypoint
 starts a socket-only temporary server during initialization; that server must not satisfy
