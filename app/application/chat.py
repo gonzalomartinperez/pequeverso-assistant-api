@@ -61,7 +61,7 @@ from app.domain.catalog import ActiveCatalog
 from app.domain.conversation import AnswerDetails, Message, Notice, Role, Session
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.language import Language, reply_language, spanish_native_language
-from app.domain.redaction import contains_card_number, redact_contact_data
+from app.domain.redaction import Redacted, contains_card_number, redact_contact_data
 from app.domain.visitor_context import VisitorContext
 from app.domain.web_evidence import (
     MAX_WEB_EVIDENCE_CHARS,
@@ -475,6 +475,30 @@ def _request_hash(
     return hashlib.sha256(json.dumps(payload).encode()).hexdigest()
 
 
+@dataclass(slots=True)
+class _Admission:
+    """Per-start state the failure handlers need; `language` is known only part way through."""
+
+    run_id: str
+    now: datetime
+    language: Language | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class _ReadyTurn:
+    """A prepared model turn holding a concurrency slot, not yet reserved against the budget."""
+
+    prepared: PreparedTurn
+    redacted: Redacted
+    web_evidence: tuple[WebEvidence, ...]
+    language: Language
+
+
+def _user_message(redacted: Redacted, now: datetime) -> Message:
+    notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
+    return Message(_message_id(), Role.USER, redacted.text, now, AnswerDetails(notices=notices))
+
+
 class ChatService:
     def __init__(
         self,
@@ -597,23 +621,8 @@ class ChatService:
         response_language: str | None = None,
     ) -> Run:
         accepted_monotonic = time.monotonic()
-        if self.registry.closing:
-            raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
-        if not self.limits.enabled:
-            raise RejectedError(FailureCode.ASSISTANT_DISABLED)
-        active = self.catalog.active
-        if active is None:
-            raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
-        question = content.strip()
-        if not question or len(question) > self.limits.max_message_chars:
-            raise RejectedError(FailureCode.INVALID_REQUEST)
-        if page is not None and page not in PAGES:
-            raise RejectedError(FailureCode.INVALID_REQUEST)
-        if locale is not None and locale not in LOCALES:
-            raise RejectedError(FailureCode.INVALID_REQUEST)
-        if response_language is not None and response_language != Language.ES.value:
-            raise RejectedError(FailureCode.INVALID_REQUEST)
-
+        active = self._admit()
+        question = self._valid_question(content, page, locale, response_language)
         if not await self._owns_runtime():
             raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
         now = self.clock.now()
@@ -627,126 +636,204 @@ class ChatService:
         )
         if record.id != run_id:
             return await self._existing(record, session, question, page, context, response_language)
-
-        language: Language | None = None
+        state = _Admission(run_id, now)
         try:
-            dependency_failure = await self._dependency_failure(active)
-            if dependency_failure is not None:
-                raise RejectedError(dependency_failure)
-            await self._rate_limit(session, client_key, now)
-            history = await self.messages.history(session.id, self.limits.history_messages)
-            previous = [
-                Language(m.details.language)
-                for m in history
-                if m.role is Role.ASSISTANT
-                and m.details.language in LOCALES
-                and Notice.LANGUAGE_UNSUPPORTED not in m.details.notices
-            ]
-            names = [p.name for p in active.catalog.products]
-            language = (
-                spanish_native_language(question)
-                if response_language == Language.ES.value
-                else reply_language(question, previous, Language(locale) if locale else None, names)
+            turn = await self._turn(
+                state,
+                session,
+                active,
+                question,
+                page,
+                (client_key, locale, context, response_language),
+                accepted_monotonic,
             )
-            if contains_card_number(question):
-                return await self._refuse_payment_data(
-                    run_id, session, now, active, language or Language.ES
-                )
-            if language is None:
-                return await self._unsupported_language(
-                    run_id,
-                    session,
-                    now,
-                    active,
-                    question,
-                    spanish_native=response_language == Language.ES.value,
-                )
-            redacted = redact_contact_data(question)
-            local_answer = catalog_scope_reply(redacted.text, active.catalog, history, language)
-            if local_answer is None:
-                local_answer = provenance_reply(redacted.text, active.catalog, history, language)
-            local_details = AnswerDetails(language=language.value)
-            if local_answer is None:
-                reference_answer = reference_clarification_reply(
-                    redacted.text, active, history, language, active.price_status(now)
-                )
-                if reference_answer is not None:
-                    local_answer = reference_answer.content
-                    local_details = reference_answer.details
-            if local_answer is None:
-                comparison = price_comparison_reply(
-                    redacted.text, active, history, language, active.price_status(now)
-                )
-                if comparison is not None:
-                    local_answer = comparison.content
-                    local_details = comparison.details
-            if local_answer is not None:
-                notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
-                user_message = Message(
-                    _message_id(), Role.USER, redacted.text, now, AnswerDetails(notices=notices)
-                )
-                await self.messages.append(session.id, user_message)
-                answer = Message(
-                    _message_id(),
-                    Role.ASSISTANT,
-                    local_answer,
-                    now,
-                    local_details,
-                )
-                await self.messages.append(session.id, answer)
-                await self.runs.finish(run_id, RunState.COMPLETED, answer.id)
-                await self._record_static(run_id, now, RunOutcome.COMPLETED, None, language)
-                return _StaticRun(run_id, user_message, answer)
-            web_evidence: tuple[WebEvidence, ...] = ()
-            if self.official_help:
-                previous_question = next(
-                    (m.content for m in reversed(history) if m.role is Role.USER), ""
-                )
-                web_evidence = await self.official_help.read(
-                    topics_for(redacted.text, previous_question)
-                )
-                while len(evidence_payload(web_evidence)) > MAX_WEB_EVIDENCE_CHARS:
-                    web_evidence = web_evidence[:-1]
-            turn = Turn(
-                active=active,
-                price_status=active.price_status(now),
-                history=history,
-                question=redacted.text,
-                page=page,
-                safety_identifier=hashlib.sha256(session.id.encode()).hexdigest()[:32],
-                language=language,
-                context=context,
-                web_evidence=web_evidence,
-                input_size_limit=self.limits.max_input_tokens,
-            )
-            prepared = self.composer.prepare(turn)
-            web_evidence = prepared.web_evidence
-            if prepared.input_size_bytes > self.limits.max_input_tokens:
-                raise RejectedError(FailureCode.INVALID_REQUEST)
-            if time.monotonic() - accepted_monotonic >= self.limits.run_timeout.total_seconds():
-                raise RejectedError(FailureCode.TIMEOUT)
-            if self._slot.locked():
-                raise RejectedError(FailureCode.BUSY)
-            await self._slot.acquire()
         except RejectedError as error:
             await self.runs.finish(run_id, RunState.FAILED, None)
-            await self._record_static(run_id, now, RunOutcome.REFUSED, error.code, language)
+            await self._record_static(run_id, now, RunOutcome.REFUSED, error.code, state.language)
             raise
         except BaseException:
             await self.runs.finish(run_id, RunState.FAILED, None)
             raise
+        if isinstance(turn, Run):
+            return turn
+        return await self._dispatch(state, session, active, turn, accepted_monotonic)
 
+    def _admit(self) -> ActiveCatalog:
+        if self.registry.closing:
+            raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE)
+        if not self.limits.enabled:
+            raise RejectedError(FailureCode.ASSISTANT_DISABLED)
+        active = self.catalog.active
+        if active is None:
+            raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
+        return active
+
+    def _valid_question(
+        self, content: str, page: str | None, locale: str | None, response_language: str | None
+    ) -> str:
+        question = content.strip()
+        if not question or len(question) > self.limits.max_message_chars:
+            raise RejectedError(FailureCode.INVALID_REQUEST)
+        if page is not None and page not in PAGES:
+            raise RejectedError(FailureCode.INVALID_REQUEST)
+        if locale is not None and locale not in LOCALES:
+            raise RejectedError(FailureCode.INVALID_REQUEST)
+        if response_language is not None and response_language != Language.ES.value:
+            raise RejectedError(FailureCode.INVALID_REQUEST)
+        return question
+
+    async def _turn(
+        self,
+        state: _Admission,
+        session: Session,
+        active: ActiveCatalog,
+        question: str,
+        page: str | None,
+        request: tuple[str, str | None, VisitorContext | None, str | None],
+        accepted_monotonic: float,
+    ) -> Run | _ReadyTurn:
+        """Answer locally when policy allows; otherwise prepare the model turn and take a slot."""
+        client_key, locale, context, response_language = request
+        run_id, now = state.run_id, state.now
+        dependency_failure = await self._dependency_failure(active)
+        if dependency_failure is not None:
+            raise RejectedError(dependency_failure)
+        await self._rate_limit(session, client_key, now)
+        history = await self.messages.history(session.id, self.limits.history_messages)
+        language = self._language(question, history, active, locale, response_language)
+        state.language = language
+        if contains_card_number(question):
+            return await self._refuse_payment_data(
+                run_id, session, now, active, language or Language.ES
+            )
+        if language is None:
+            return await self._unsupported_language(
+                run_id,
+                session,
+                now,
+                active,
+                question,
+                spanish_native=response_language == Language.ES.value,
+            )
+        redacted = redact_contact_data(question)
+        local = self._local_answer(redacted.text, active, history, language, now)
+        if local is not None:
+            return await self._static_answer(state, session, redacted, local, language)
+        turn = Turn(
+            active=active,
+            price_status=active.price_status(now),
+            history=history,
+            question=redacted.text,
+            page=page,
+            safety_identifier=hashlib.sha256(session.id.encode()).hexdigest()[:32],
+            language=language,
+            context=context,
+            web_evidence=await self._official_evidence(redacted.text, history),
+            input_size_limit=self.limits.max_input_tokens,
+        )
+        prepared = self.composer.prepare(turn)
+        ready = _ReadyTurn(prepared, redacted, prepared.web_evidence, language)
+        if prepared.input_size_bytes > self.limits.max_input_tokens:
+            raise RejectedError(FailureCode.INVALID_REQUEST)
+        if time.monotonic() - accepted_monotonic >= self.limits.run_timeout.total_seconds():
+            raise RejectedError(FailureCode.TIMEOUT)
+        if self._slot.locked():
+            raise RejectedError(FailureCode.BUSY)
+        await self._slot.acquire()
+        return ready
+
+    @staticmethod
+    def _language(
+        question: str,
+        history: list[Message],
+        active: ActiveCatalog,
+        locale: str | None,
+        response_language: str | None,
+    ) -> Language | None:
+        previous = [
+            Language(m.details.language)
+            for m in history
+            if m.role is Role.ASSISTANT
+            and m.details.language in LOCALES
+            and Notice.LANGUAGE_UNSUPPORTED not in m.details.notices
+        ]
+        names = [p.name for p in active.catalog.products]
+        if response_language == Language.ES.value:
+            return spanish_native_language(question)
+        return reply_language(question, previous, Language(locale) if locale else None, names)
+
+    @staticmethod
+    def _local_answer(
+        text: str,
+        active: ActiveCatalog,
+        history: list[Message],
+        language: Language,
+        now: datetime,
+    ) -> tuple[str, AnswerDetails] | None:
+        """Return a deterministic catalog answer that needs no model call, if one applies."""
+        local_answer = catalog_scope_reply(text, active.catalog, history, language)
+        if local_answer is None:
+            local_answer = provenance_reply(text, active.catalog, history, language)
+        if local_answer is not None:
+            return local_answer, AnswerDetails(language=language.value)
+        reference_answer = reference_clarification_reply(
+            text, active, history, language, active.price_status(now)
+        )
+        if reference_answer is not None:
+            return reference_answer.content, reference_answer.details
+        comparison = price_comparison_reply(
+            text, active, history, language, active.price_status(now)
+        )
+        if comparison is not None:
+            return comparison.content, comparison.details
+        return None
+
+    async def _static_answer(
+        self,
+        state: _Admission,
+        session: Session,
+        redacted: Redacted,
+        local: tuple[str, AnswerDetails],
+        language: Language,
+    ) -> Run:
+        content, details = local
+        user_message = _user_message(redacted, state.now)
+        await self.messages.append(session.id, user_message)
+        answer = Message(_message_id(), Role.ASSISTANT, content, state.now, details)
+        await self.messages.append(session.id, answer)
+        await self.runs.finish(state.run_id, RunState.COMPLETED, answer.id)
+        await self._record_static(state.run_id, state.now, RunOutcome.COMPLETED, None, language)
+        return _StaticRun(state.run_id, user_message, answer)
+
+    async def _official_evidence(
+        self, text: str, history: list[Message]
+    ) -> tuple[WebEvidence, ...]:
+        if not self.official_help:
+            return ()
+        previous_question = next((m.content for m in reversed(history) if m.role is Role.USER), "")
+        web_evidence = await self.official_help.read(topics_for(text, previous_question))
+        while len(evidence_payload(web_evidence)) > MAX_WEB_EVIDENCE_CHARS:
+            web_evidence = web_evidence[:-1]
+        return web_evidence
+
+    async def _dispatch(
+        self,
+        state: _Admission,
+        session: Session,
+        active: ActiveCatalog,
+        turn: _ReadyTurn,
+        accepted_monotonic: float,
+    ) -> Run:
+        """Reserve the worst-case spend, record the visitor message and register the run."""
+        run_id, now, language = state.run_id, state.now, turn.language
         try:
             reservation = worst_case_micro(
-                prepared.input_size_bytes, self.limits.max_output_tokens, self.pricing
+                turn.prepared.input_size_bytes, self.limits.max_output_tokens, self.pricing
             )
             month, day = _periods(self.clock.now())
             if not await self.ledger.reserve(run_id, reservation, month, day, self.budget.allows):
                 raise RejectedError(FailureCode.BUDGET_EXHAUSTED)
-            notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
-            user_message = Message(
-                _message_id(), Role.USER, redacted.text, now, AnswerDetails(notices=notices)
-            )
+            user_message = _user_message(turn.redacted, now)
             await self.messages.append(session.id, user_message)
             cancel = self.registry.add(run_id, session.id)
         except RejectedError as error:
@@ -764,12 +851,12 @@ class ChatService:
             run_id,
             session,
             active,
-            prepared,
+            turn.prepared,
             user_message,
             self._slot,
             cancel,
             language,
-            web_evidence,
+            turn.web_evidence,
             accepted_monotonic,
             now,
         )
