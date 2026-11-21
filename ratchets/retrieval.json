@@ -5,153 +5,153 @@
   "corpus_version": "2.0.0",
   "overall": {
     "cases": 241,
-    "recall_at_3": 0.656,
-    "recall_at_5": 0.718,
-    "ndcg_at_5": 0.545,
-    "mrr": 0.58
+    "recall_at_3": 0.834,
+    "recall_at_5": 0.88,
+    "ndcg_at_5": 0.691,
+    "mrr": 0.734
   },
   "by_family": {
     "age-fit": {
       "cases": 16,
-      "recall_at_3": 0.875,
-      "recall_at_5": 0.875,
-      "ndcg_at_5": 0.687,
+      "recall_at_3": 0.938,
+      "recall_at_5": 0.938,
+      "ndcg_at_5": 0.721,
       "mrr": 0.844
     },
     "commercial-rules": {
       "cases": 6,
-      "recall_at_3": 0.5,
-      "recall_at_5": 0.667,
-      "ndcg_at_5": 0.5,
-      "mrr": 0.533
+      "recall_at_3": 0.833,
+      "recall_at_5": 0.833,
+      "ndcg_at_5": 0.605,
+      "mrr": 0.667
     },
     "comparison-resources": {
       "cases": 16,
       "recall_at_3": 0.75,
       "recall_at_5": 0.75,
       "ndcg_at_5": 0.653,
-      "mrr": 0.705
+      "mrr": 0.707
     },
     "delivery-and-access": {
       "cases": 15,
       "recall_at_3": 0.8,
-      "recall_at_5": 0.8,
-      "ndcg_at_5": 0.544,
-      "mrr": 0.633
+      "recall_at_5": 0.867,
+      "ndcg_at_5": 0.7,
+      "mrr": 0.728
     },
     "follow-ups": {
       "cases": 14,
-      "recall_at_3": 0.929,
-      "recall_at_5": 0.929,
-      "ndcg_at_5": 0.769,
-      "mrr": 0.857
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "ndcg_at_5": 0.838,
+      "mrr": 0.929
     },
     "injection": {
       "cases": 3,
-      "recall_at_3": 0.667,
+      "recall_at_3": 1.0,
       "recall_at_5": 1.0,
-      "ndcg_at_5": 0.45,
-      "mrr": 0.528
+      "ndcg_at_5": 0.619,
+      "mrr": 0.833
     },
     "language": {
       "cases": 27,
-      "recall_at_3": 0.296,
-      "recall_at_5": 0.444,
-      "ndcg_at_5": 0.27,
-      "mrr": 0.293
+      "recall_at_3": 0.63,
+      "recall_at_5": 0.704,
+      "ndcg_at_5": 0.435,
+      "mrr": 0.453
     },
     "price-and-currency": {
       "cases": 15,
-      "recall_at_3": 0.8,
-      "recall_at_5": 0.8,
-      "ndcg_at_5": 0.703,
-      "mrr": 0.7
+      "recall_at_3": 0.933,
+      "recall_at_5": 0.933,
+      "ndcg_at_5": 0.845,
+      "mrr": 0.856
     },
     "printing-and-format": {
       "cases": 13,
       "recall_at_3": 0.769,
       "recall_at_5": 1.0,
-      "ndcg_at_5": 0.719,
-      "mrr": 0.717
+      "ndcg_at_5": 0.791,
+      "mrr": 0.819
     },
     "product-contents": {
       "cases": 21,
-      "recall_at_3": 0.81,
-      "recall_at_5": 0.857,
-      "ndcg_at_5": 0.731,
-      "mrr": 0.731
+      "recall_at_3": 0.952,
+      "recall_at_5": 0.952,
+      "ndcg_at_5": 0.819,
+      "mrr": 0.841
     },
     "purchase-process": {
       "cases": 12,
-      "recall_at_3": 0.5,
-      "recall_at_5": 0.5,
-      "ndcg_at_5": 0.279,
-      "mrr": 0.317
+      "recall_at_3": 0.667,
+      "recall_at_5": 0.833,
+      "ndcg_at_5": 0.49,
+      "mrr": 0.495
     },
     "refunds-guarantee-withdrawal": {
       "cases": 15,
-      "recall_at_3": 0.8,
-      "recall_at_5": 0.8,
-      "ndcg_at_5": 0.706,
-      "mrr": 0.667
+      "recall_at_3": 1.0,
+      "recall_at_5": 1.0,
+      "ndcg_at_5": 0.906,
+      "mrr": 0.867
     },
     "stale-data": {
       "cases": 13,
-      "recall_at_3": 0.462,
-      "recall_at_5": 0.615,
-      "ndcg_at_5": 0.495,
-      "mrr": 0.474
+      "recall_at_3": 0.846,
+      "recall_at_5": 0.846,
+      "ndcg_at_5": 0.717,
+      "mrr": 0.679
     },
     "support": {
       "cases": 15,
-      "recall_at_3": 0.467,
-      "recall_at_5": 0.467,
-      "ndcg_at_5": 0.352,
-      "mrr": 0.389
+      "recall_at_3": 0.867,
+      "recall_at_5": 0.867,
+      "ndcg_at_5": 0.708,
+      "mrr": 0.833
     },
     "typos-and-slang": {
       "cases": 24,
-      "recall_at_3": 0.625,
-      "recall_at_5": 0.667,
-      "ndcg_at_5": 0.491,
-      "mrr": 0.538
+      "recall_at_3": 0.833,
+      "recall_at_5": 0.875,
+      "ndcg_at_5": 0.672,
+      "mrr": 0.724
     },
     "usage-and-start": {
       "cases": 16,
-      "recall_at_3": 0.562,
-      "recall_at_5": 0.688,
-      "ndcg_at_5": 0.424,
-      "mrr": 0.424
+      "recall_at_3": 0.75,
+      "recall_at_5": 0.875,
+      "ndcg_at_5": 0.59,
+      "mrr": 0.669
     }
   },
   "by_language": {
     "en": {
       "cases": 9,
-      "recall_at_3": 0.111,
-      "recall_at_5": 0.111,
-      "ndcg_at_5": 0.111,
-      "mrr": 0.111
+      "recall_at_3": 0.667,
+      "recall_at_5": 0.667,
+      "ndcg_at_5": 0.385,
+      "mrr": 0.352
     },
     "es": {
       "cases": 225,
-      "recall_at_3": 0.689,
-      "recall_at_5": 0.751,
-      "ndcg_at_5": 0.572,
-      "mrr": 0.609
+      "recall_at_3": 0.858,
+      "recall_at_5": 0.902,
+      "ndcg_at_5": 0.717,
+      "mrr": 0.763
     },
     "mixed": {
       "cases": 3,
       "recall_at_3": 0.333,
       "recall_at_5": 0.667,
-      "ndcg_at_5": 0.246,
-      "mrr": 0.194
+      "ndcg_at_5": 0.298,
+      "mrr": 0.25
     },
     "other": {
       "cases": 4,
       "recall_at_3": 0.25,
       "recall_at_5": 0.25,
       "ndcg_at_5": 0.25,
-      "mrr": 0.281
+      "mrr": 0.323
     }
   }
 }
