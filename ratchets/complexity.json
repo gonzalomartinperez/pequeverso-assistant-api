@@ -13,8 +13,6 @@
     "app/application/chat.py::_ModelRun.events": 17,
     "app/application/indexing.py::KnowledgeIndexer.index": 11,
     "app/application/knowledge.py::HybridKnowledgeRetrieval.retrieve": 15,
-    "app/bootstrap/container.py::create_app": 36,
-    "app/bootstrap/container.py::create_app.lifespan": 12,
     "app/domain/answer_policy.py::check_answer": 14,
     "app/domain/page_claims.py::unsupported_page_claim": 16
   }
