@@ -17,9 +17,6 @@
     "app/bootstrap/container.py::create_app": 36,
     "app/bootstrap/container.py::create_app.lifespan": 12,
     "app/domain/answer_policy.py::check_answer": 14,
-    "app/domain/page_claims.py::unsupported_page_claim": 16,
-    "app/presentation/product_analytics.py::ReportOut.consistent": 17,
-    "app/presentation/product_analytics.py::build_router": 20,
-    "app/presentation/product_analytics.py::build_router.ingest": 11
+    "app/domain/page_claims.py::unsupported_page_claim": 16
   }
 }
