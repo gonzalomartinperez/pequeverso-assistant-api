@@ -13,6 +13,23 @@ from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
 Row = dict[str, Any]
+CORE_MIGRATIONS = (
+    "001_knowledge.sql",
+    "002_roles.sql",
+    "003_private.sql",
+    "004_accounting_policy.sql",
+)
+# Applied only for product analytics; readiness verifies their markers when analytics is on.
+ANALYTICS_MIGRATIONS = (
+    ("005_product_analytics.sql", "analytics_schema", 1),
+    ("006_analytics_classification_country.sql", "analytics_schema_v2", 2),
+)
+
+
+def schema_level(*, analytics: bool) -> str:
+    """Highest migration this build needs for the configuration (reported by /readyz)."""
+    names = CORE_MIGRATIONS + (tuple(m[0] for m in ANALYTICS_MIGRATIONS) if analytics else ())
+    return max(name[:3] for name in names)
 
 
 class PostgresDatabase:
@@ -91,17 +108,9 @@ class PostgresDatabase:
         """Only the explicit migration identity calls this; normal runtime never executes DDL."""
         async with self.pool.connection() as connection:
             await connection.execute("SELECT pg_advisory_xact_lock(684721023)")
-            for name in (
-                "001_knowledge.sql",
-                "002_roles.sql",
-                "003_private.sql",
-                "004_accounting_policy.sql",
-            ):
+            for name in CORE_MIGRATIONS:
                 await connection.execute(Path(__file__).with_name(name).read_text())
-            for name, marker, version in (
-                ("005_product_analytics.sql", "analytics_schema", 1),
-                ("006_analytics_classification_country.sql", "analytics_schema_v2", 2),
-            ):
+            for name, marker, version in ANALYTICS_MIGRATIONS:
                 analytics = Path(__file__).with_name(name).read_bytes()
                 checksum = hashlib.sha256(analytics).hexdigest()
                 # Marker identifiers are owned constants, never request/config input.

@@ -147,9 +147,10 @@ def test_app_dockerfile_keeps_canonical_reproducible_shape() -> None:
         'org.opencontainers.image.licenses="MIT"',
         'org.opencontainers.image.revision="${SERVICE_REVISION}"',
         "USER 65532:65532",
-        "/health/ready",
+        "127.0.0.1:8000/healthz'",
     ):
         assert expected in text
+    assert "/health/ready" not in text  # liveness probe: no dependency check (ADR-0019)
     assert "vps-ops" not in text
     assert text.index("ARG SERVICE_REVISION") > text.index("COPY LICENSE NOTICE.md")
     for config in (".hadolint.yaml", ".grype.yaml", "infra/docker/app/structure-test.yaml"):

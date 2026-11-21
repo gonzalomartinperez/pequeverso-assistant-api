@@ -16,12 +16,16 @@ entry below predates this format and is kept as written.
   and fault-injection tests, scorecard and nightly workflow.
 - `LOG_STREAM` setting; evaluation and operator CLIs (including the import and knowledge jobs)
   now log to stderr so their stdout stays machine output. The `run` event carries `prompt_version`.
+- Internal health aliases `/healthz` and `/readyz` with `version` and `schema_version`, and the
+  generated environment schema `contracts/env.schema.json` (ADR-0019). The image `HEALTHCHECK` now
+  calls `/healthz`; `/health/live` and `/health/ready` are unchanged.
 
 ### Changed
 
 - `httpx`, `httpcore` and `openai` loggers run at WARNING, and third-party records below WARNING
-  are counted into one content-free `external_events` line instead of being printed. The official help
-  reader and the span exporter take the injected `Clock` (no `datetime.now` outside bootstrap).
+  are counted into one content-free `external_events` line instead of being printed. The
+  official help reader and the span exporter take the injected `Clock` (no `datetime.now`
+  outside bootstrap).
 - One `ci.yml` with change classification and the `ci-gate` aggregate; weekly grouped dependency
   updates (master plan M1).
 

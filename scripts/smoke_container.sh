@@ -47,6 +47,8 @@ test "$(docker exec "$NAME" id -u)" = 65532
 test "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' "$NAME")" = true
 curl --connect-timeout 5 --max-time 70 -fsS "http://127.0.0.1:$PORT/health/live" | grep -q '"status":"ok"'
 curl --connect-timeout 5 --max-time 70 -fsS "http://127.0.0.1:$PORT/health/ready" | grep -q '"status":"ready"'
+curl --connect-timeout 5 --max-time 70 -fsS "http://127.0.0.1:$PORT/healthz" | grep -q '"status":"ok"'
+curl --connect-timeout 5 --max-time 70 -fsS "http://127.0.0.1:$PORT/readyz" | grep -q '"schema_version":"sqlite-'
 
 session="$(curl --connect-timeout 5 --max-time 70 -fsS -c "$JAR" -b "$JAR" -H "Origin: $ORIGIN" -H 'Content-Type: application/json' \
   -X POST "http://127.0.0.1:$PORT/api/v1/session" -d '{}')"
