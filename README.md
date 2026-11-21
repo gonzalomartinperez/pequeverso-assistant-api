@@ -1,258 +1,142 @@
-# Pequeverso · Assistant API
+<div align="center">
+  <h1>Pequeverso Assistant API</h1>
+  <p>Advisory, read-only shopping assistant backend for the Pequeverso storefront, grounded in code.</p>
+  <a href="https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/workflows/ci.yml/badge.svg?branch=develop"></a>
+  <a href="https://github.com/gonzalomartinperez/pequeverso-assistant-api/releases"><img alt="Release" src="https://img.shields.io/github/v/release/gonzalomartinperez/pequeverso-assistant-api?include_prereleases&style=flat-square"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue?style=flat-square"></a>
+</div>
 
-![Python](https://img.shields.io/badge/Python-3.14.10-3776AB?style=flat-square&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-typed_HTTP-009688?style=flat-square&logo=fastapi&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.6_%2B_pgvector-336791?style=flat-square&logo=postgresql&logoColor=white)
-![Neo4j](https://img.shields.io/badge/Neo4j-5.26_LTS-007E80?style=flat-square&logo=neo4j&logoColor=white)
-![LangGraph](https://img.shields.io/badge/LangGraph-bounded_graph-06305B?style=flat-square)
-![SQLite](https://img.shields.io/badge/SQLite-fixtures_%26_import-003B57?style=flat-square&logo=sqlite&logoColor=white)
-![OpenAI](https://img.shields.io/badge/OpenAI-GPT--6_Luna-06305B?style=flat-square&logo=openai&logoColor=white)
-![Effort](https://img.shields.io/badge/reasoning-medium-007E80?style=flat-square)
-![Contract](https://img.shields.io/badge/contract-v1_%C2%B7_1.5-06305B?style=flat-square)
-![Language](https://img.shields.io/badge/native_assistant-Espa%C3%B1ol-007E80?style=flat-square)
-![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-opt--in-06305B?style=flat-square&logo=opentelemetry&logoColor=white)
-![Prometheus](https://img.shields.io/badge/Prometheus-private_metrics-E6522C?style=flat-square&logo=prometheus&logoColor=white)
-![CI](https://github.com/gonzalomartinperez/pequeverso-assistant-api/actions/workflows/ci.yml/badge.svg?branch=develop)
+## Why
 
-Backend of the Pequeverso shopping assistant: an **advisory, read-only** AI assistant that helps
-adult buyers understand the Grafismo Fonético kit and the separately recommended affiliate
-course, compare their published scope and reach the appropriate storefront flow. Public
-repository; its owner-authored software is MIT-licensed ([license](LICENSE),
-[scope and reserved material](NOTICE.md)). `main` is the default and release branch;
-development happens on `develop`.
+Adult buyers ask what the Pequeverso kits include, which one fits their child and how the
+published scope compares. This API answers those questions for the storefront's native
+assistant and then points to the storefront and Hotmart for checkout. It is advisory and
+read-only: it has no cart, order, payment, refund or account tools.
 
-- Python 3.14.10, FastAPI and uv; PostgreSQL/pgvector with a public Neo4j projection in the
-  production profile; OpenAI Responses (`gpt-6-luna`) behind a provider port. The default
-  credential-free local profile remains deterministic fixtures with SQLite.
-- Versioned commercial GraphRAG combines lexical, vector and bounded graph retrieval.
-  LangGraph orchestrates a finite retrieve → answer flow; LangChain Documents carry verified
-  public passages. LangSmith runtime tracing stays off; offline synthetic evaluation is separate.
-- Versioned HTTP/SSE contract (v1, revision 1.5) for the storefront's native assistant, which
-  calls the API cross-origin; private, token-protected operations summary for the backoffice
-  (`pequeverso-backoffice`, renamed from `pequeverso-assistant-backoffice`; the original
-  chat repository was `pequeverso-assistant-web`).
-- The native assistant presents only neutral Latin American Spanish ("tú"), without a language
-  selector. Every new native turn sends `response_language: "es"` and requires API revision1.4
-  or later. Earlier API clients remain compatible when this field is absent, including their
-  legacy ES/EN behavior and stored history; the existing wire enum is preserved.
-- `gpt-6-luna` at **medium** reasoning effort when paid use is authorized; budget USD 10/month
-  (configurable) with atomic reservations and confirmed / estimated / pending spend.
-- Optional [official Hotmart procedure evidence](docs/explanation/official-web-evidence.md) is server-owned,
-  bounded to three public articles and disabled by default; no autonomous searches or buyer-account tools.
-- Grounded in a catalog exported from the storefront at a pinned commit; every product,
-  link and price shown is server-validated.
-- [Architecture and resource ownership](docs/explanation/architecture.md) keep SDK/HTTP/storage details outside
-  the use cases. [Contributing](CONTRIBUTING.md) defines the check command, branch flow, review
-  evidence, reproducible locks/digests and supported-version policies.
+Grounding is enforced in code. The model names catalog ids; the server resolves them against
+the catalog exported from the storefront and applies the answer rules, so every product, link
+and price shown is server-validated. The native assistant answers in neutral Latin American
+Spanish ([ADR-0006](docs/decisions/ADR-0006-native-spanish-compatible-policy.md)).
 
-The commercial goal is an informed purchase: answer the adult's question, explain the fit and
-offer the authorized next step when relevant. Evidence and budget constraints remain binding;
-a completed response or a valid citation does not establish semantic correctness. The storefront
-assistant stays **disabled in publishable builds** until the VPS and activation gates are verified.
+## Highlights
 
-## The native assistant in use
+- Versioned HTTP and SSE contract for the storefront, with exported artifacts in
+  [`contracts/`](contracts/manifest.json) and a drift check in CI.
+- Grounded answers: ids resolved against the catalog, prices withheld when unverified, one
+  accountable generation per turn and no automatic model retries.
+- Public GraphRAG: lexical, vector and bounded graph retrieval behind a finite LangGraph flow
+  ([graph retrieval](docs/explanation/graph-retrieval.md)).
+- Fixture mode by default: the full pipeline runs deterministically with no credentials.
+- Private, content-free operations summary for the backoffice; tracing and analytics are opt-in.
+- Layer rules, ratchets and a scorecard keep quality measurable ([Quality](#quality)).
 
-These actual local captures use Store `755d541` and API `2f22f24` with an isolated
-**fixture provider**. They show the Spanish interface, not real-model output or a deployed VPS.
-The production assistant remains **OFF**; the enabled fixture export must never be published.
+## Architecture
 
-| Desktop welcome · native panel | Desktop answer and sources · native panel |
-| :---: | :---: |
-| [<img src="docs/verification/assistant/2026-10-18/01-Desktop-Panel-Bienvenida.png" width="408" height="560" alt="Native desktop fixture panel with welcome, suggested questions and composer.">](docs/verification/assistant/2026-10-18/01-Desktop-Panel-Bienvenida.png) | [<img src="docs/verification/assistant/2026-10-18/02-Desktop-Panel-Conversacion.png" width="408" height="560" alt="Native desktop fixture guarantee answer with two expanded sources.">](docs/verification/assistant/2026-10-18/02-Desktop-Panel-Conversacion.png) |
-
-<p align="center"><a href="docs/verification/assistant/2026-10-18/03-Mobile-Panel-Conversacion.png"><img src="docs/verification/assistant/2026-10-18/03-Mobile-Panel-Conversacion.png" width="360" alt="Native mobile fixture answer, sources, scrollable product card and fixed composer."></a></p>
-
-[Panel closeups and exact provenance](docs/verification/assistant/2026-10-18/README.md)
-show the original 408 × 560 desktop panels and mobile capture at a readable display width.
-
-[All seven original captures and provenance](docs/verification/native-assistant-2026-10-18/README.md)
-cover launcher, welcome, conversation, waiting, mobile and expanded states.
-The [dated API evidence report](docs/verification/api-evidence-2026-10-18.md) separates these UI
-fixtures from actual PostgreSQL restore/CI evidence and remaining deployment/model gates.
-The [October17 fixture gallery](docs/verification/native-assistant-2026-10-17/README.md) and
-[October12 real-model gallery](docs/verification/native-assistant-2026-10-12/README.md) retain their
-original sources; none is relabeled as a later run or production acceptance.
-
-## System at a glance
-
-<p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/explanation/architecture/system-dark.svg">
-  <img src="docs/explanation/architecture/system-light.svg" alt="Assistant API boundaries: public session and CSRF, validated evidence, separate public/private PostgreSQL, public Neo4j projection, bounded OpenAI generation, separate backoffice PostgreSQL identity and future private vps-ops observability.">
-</picture>
-</p>
-
-[Open full-size diagram](docs/explanation/architecture/system-light.svg) ·
-[Dark version](docs/explanation/architecture/system-dark.svg) ·
-[Editable relationships and SVG provenance](docs/explanation/architecture/README.md).
-
-The production API owns separate PostgreSQL public-catalog and private-application schemas;
-Neo4j is a rebuildable public projection. The backoffice owns a separate PostgreSQL identity
-database. The credential-free default is SQLite/fixture. Authorized semantic retrieval uses
-OpenAI embeddings with separate accounting; each answered turn has at most one generation; optional Hotmart retrieval reads only three fixed official articles and
-is disabled by default. OTLP, private metrics and Grafana are integration responsibilities for
-vps-ops, not evidence of deployment, VPS capacity or production readiness.
-
-| Boundary | Responsibility |
-| --- | --- |
-| Storefront | Conversation UI, safe rendering and continuity; Hotmart checkout and existing consent remain unchanged |
-| API | Sessions, language selection, grounding, streaming, cancellation, validation and budget reservations |
-| PostgreSQL | Separate public knowledge and private conversations/accounting schemas and capability roles |
-| Neo4j | Public-only, versioned projection with canonical PostgreSQL provenance checks |
-| SQLite | Isolated fixture profile and explicit non-destructive historical import |
-| Backoffice | OAuth and roles on PostgreSQL; reads private, content-free operations data server-side |
-| vps-ops | Publishes and deploys selected images; owns reverse proxy, Coolify, shared monitoring and backups |
-
-There are no payment/order tools, routing LLM, generated SQL/Cypher, Redis or automatic model
-retries. Structured catalog facts remain mandatory. Verified passages and old model-context
-text fit the unchanged 24KB bound. Component retrieval, semantic quality, HTTP correctness and
-conversion are different measurements. See [GraphRAG evidence](docs/explanation/graph-retrieval.md) and
-[operator jobs, roles and remaining deployment gates](docs/how-to/knowledge-operations.md).
-
-## One question, one accountable generation
-
-The [editable request sequence](docs/explanation/architecture/request-flow.mmd) details session/CSRF,
-one accountable generation, retrieval, canonical validation and terminal persistence. The
-centered system diagram above shows the same application and data boundaries.
-
-Provider credentials exist only in the backend. Fixture is the default; real evaluations require
-current owner authorization, private configuration and one shared conservative budget. Model
-errors do not trigger a substitute model or an automatic generation retry.
-
-Only complete sentence/paragraph prefixes passing the same bounded commercial checks as the
-final answer can stream. A later invalid claim can still replace an earlier checked prefix;
-the client must render the authoritative `message.completed`. Catalog guarantee checks apply
-even when optional Hotmart retrieval is disabled or unavailable. These deterministic checks
-do not establish complete semantic correctness or citation entailment.
-
-Explicit resource page counts are checked against structured catalog metadata. Request packing
-preserves products/resources and merchant policies, trims only model-context history and optional
-documents when needed, and leaves saved conversations unchanged. Citations resolve only to
-evidence actually sent in that generation. The [post-tool report](docs/verification/post-tools-2026-10-13.md)
-preserves the original halted run separately from subsequent fixes and revalidation; completion
-and agent review are distinct from semantic correctness and human acceptance.
-
-[Final native image handoff · October19](docs/verification/final-native-images-2026-10-19.md)
-records exact local API/backoffice images, smoke scopes, SBOMs, complete findings and pending gates.
-
-## Container recipes
-
-Recipes live under `infra/docker/`; build each with the repository root as context:
-
-```bash
-docker build -f infra/docker/app/Dockerfile --build-arg SERVICE_REVISION="$(git rev-parse HEAD)" .
-docker build -f infra/docker/postgres/Dockerfile --build-arg SERVICE_REVISION="$(git rev-parse HEAD)" .
-docker build -f infra/docker/neo4j/Dockerfile .
+```mermaid
+flowchart LR
+  V[Visitor] --> S[Storefront native assistant]
+  S -->|HTTP and SSE v1| A[Assistant API]
+  B[Backoffice] -->|private ops token| A
+  A --> P[(PostgreSQL public and private schemas)]
+  A --> N[(Neo4j public projection)]
+  A --> O[Model provider]
+  A -.->|optional, off by default| H[Three public Hotmart articles]
+  X[vps-ops] -.->|builds, deploys, observes| A
 ```
 
-The app uses root `.dockerignore`. PostgreSQL's adjacent deny-by-default filter admits only
-software notices; Neo4j's filter also admits its colocated public configuration. No application,
-local evidence or secret files enter either database context. No local Compose is implemented;
-production composition and publication remain vps-ops responsibilities. These are build commands,
-not authorization to deploy, publish images or activate the storefront assistant.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/explanation/architecture/system-dark.svg">
+  <img src="docs/explanation/architecture/system-light.svg" alt="Assistant API boundaries: session and CSRF, validated evidence, public and private PostgreSQL, Neo4j projection, bounded model generation, backoffice and vps-ops.">
+</picture>
 
-## Quick start (clean checkout, no credentials)
+Domain and application code use the standard library only; adapters hold SQL, Cypher, the
+LangGraph stack and provider SDKs, and only `bootstrap` wires concrete classes. Details:
+[architecture](docs/explanation/architecture.md), [diagram sources](docs/explanation/architecture/README.md).
 
-```sh
-uv sync --frozen
-uv run uvicorn app.main:app --reload --port 8000      # fixture mode, bundled catalog, ./data/
+## Quickstart
+
+Credential-free fixture profile (versions come from [`pyproject.toml`](pyproject.toml) and
+[`.python-version`](.python-version)):
+
+```bash
+uv sync --locked
+uv run uvicorn app.main:app --reload --port 8000   # fixture provider, bundled catalog, ./data/
+```
+
+The full local check mirrors CI:
+
+```bash
+just check
+```
+
+## Usage
+
+Open a session; the response carries `csrf_token` and sets the session cookie. Every mutation
+needs an allowlisted `Origin` header ([API contract](docs/reference/api-contract.md)):
+
+```bash
 curl -s -c /tmp/j -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' \
   -X POST localhost:8000/api/v1/session -d '{}'
 ```
 
-Ask a question (replace `<csrf>` with `csrf_token` from the response):
+Ask a question with that token and a unique idempotency key; the answer streams as SSE
+(`run.started`, `message.delta`, then the authoritative `message.completed`):
 
-```sh
+```bash
 curl -N -b /tmp/j -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' \
-  -H 'X-CSRF-Token: <csrf>' -H 'Idempotency-Key: local-0001' \
+  -H 'X-CSRF-Token: <csrf_token>' -H 'Idempotency-Key: local-0001' \
   -X POST localhost:8000/api/v1/messages -d '{"content":"¿Qué incluye el kit?"}'
 ```
 
-## Verify
+Example payloads live in [`contracts/examples/`](contracts/examples/session.created.json) (for
+instance [`stream.recommendation.sse`](contracts/examples/stream.recommendation.sse)). Captures
+of the native assistant are in [`docs/verification/assistant/`](docs/verification/assistant/2026-10-18/README.md).
 
-```sh
-uv run ruff check . && uv run ruff format --check . && uv run mypy
-uv run pytest                                   # unit, HTTP/SSE contract, real-socket streaming, SQLite, budget races, evals
-uv run python -m contracts.export --check       # pinned contract artifacts are current
-uv run python scripts/evaluate_retrieval.py
-uv run python scripts/evaluate_conversations.py # fixture safety + guards (no paid calls)
-scripts/smoke_container.sh                      # image: non-root, read-only, SSE, restart persistence
-```
+## Quality
+
+- [Scorecard](docs/master-plan/scorecard.md): axes and thresholds tracked per repository.
+- [`ratchets/`](ratchets/): committed baselines for lint, complexity, coverage, mutation,
+  retrieval, golden set and performance; they can only improve.
+- [Evaluation](docs/reference/evaluation.md): fixture suites check the pipeline and guards;
+  real-model reports are separate and need owner authorization.
+- [CI profile](docs/reference/ci.md): static analysis, import-layer contracts, type checks,
+  tests, contract drift, container smoke, secret and vulnerability scans.
 
 ## Documentation
 
-| Topic | Doc |
-|---|---|
-| Documentation | Index: [Diátaxis guide](docs/README.md); [how-to](docs/how-to/), [reference](docs/reference/), [explanation](docs/explanation/), [decisions](docs/decisions/), [evidence](docs/verification/) |
+The index is [`docs/README.md`](docs/README.md), organized with Diátaxis:
 
-## Verification and operational limits
+- Tutorials: none yet; the index tracks them.
+- How-to: [`docs/how-to/`](docs/how-to/) for operations and dependency updates.
+- Reference: [`docs/reference/`](docs/reference/) for the API contract, catalog, deployment and CI.
+- Explanation: [`docs/explanation/`](docs/explanation/) and [decisions](docs/decisions/).
+- Evidence and plan: [`docs/verification/`](docs/verification/) and [`docs/master-plan/`](docs/master-plan/README.md).
 
-- Fixture suites verify the pipeline, guards and persistence; they do not measure model quality.
-  Real model reports must distinguish usage-derived cost estimates from invoices and retain
-  interrupted requests. See [evaluation](docs/reference/evaluation.md).
-- A catalog's Git revision proves provenance, not deployment or the final merchant checkout
-  total. Expired prices are withheld. See [catalog freshness](docs/reference/catalog.md).
-- Logical deletion does not guarantee erasure from database pages, WAL or backups. Retention,
-  encrypted off-server backup and an operational restore drill remain activation gates.
-- Containers are non-root, read-only and resource-limited. Smoke the exact selected image,
-  including active-stream shutdown; preserve the grace specified in the deployment contract.
-- Prefer LTS branches where offered and supported stable releases elsewhere. Most libraries
-  do not publish an LTS guarantee; pins, security review and reproducibility remain necessary.
-- Python 3.14.8 is selected because the frozen GraphRAG dependencies lack a complete Python
-  3.15 wheel set; no ad hoc source builds are required. Python does not use an official LTS label.
-  LangGraph and LangChain 1.x do publish a release/support policy; do not group them with
-  dependencies that make no LTS commitment. The selected Python
-  OpenTelemetry SDK/exporter is 1.45.1; its locked tree includes three 0.66b1 beta packages.
-  Prometheus 3.13 is the monitoring LTS target; Grafana and the collector have their own support
-  and component-stability policies. vps-ops selects and deploys their final images.
-  See the official [Python lifecycle](https://devguide.python.org/versions/),
-  [Prometheus LTS schedule](https://prometheus.io/docs/introduction/release-cycle/),
-  [Grafana policy](https://grafana.com/docs/grafana/latest/upgrade-guide/when-to-upgrade/) and
-  [collector stability table](https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/component-stability.md).
-- No build, screenshot or local test authorizes a deployment or production activation.
+## Ecosystem
 
-Task branches target `develop` through protected PRs merged as merge commits (never squash). A release into `main` requires
-separate owner authorization and a protected merge commit. The software license does not
-authorize deployment or access to private data. Never commit secrets, private evaluations
-or customer conversations.
+| Repository | Role |
+| --- | --- |
+| `pequeverso` | Storefront; consumes the public v1 contract through its native assistant |
+| `pequeverso-assistant-api` | This repository: the assistant backend |
+| `pequeverso-backoffice` | Private operations consumer of the ops summary |
+| `vps-ops` | Private; builds, deploys and observes the services |
+| `engineering-standards` | Shared CI workflows, templates and standards |
 
-Shared runtime/version acceptance: [runtime baseline](docs/reference/runtime-baseline.md).
+## Contributing and security
 
-### Affiliate product coverage (2026-10-18)
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for the check command and branch flow. Report
+vulnerabilities as described in [SECURITY.md](SECURITY.md). Questions go through
+[SUPPORT.md](SUPPORT.md); participation follows the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-The catalog now includes Grafismo Fonético and the separate third-party **Guía de Alimentación
-para Bebés**, exported from published storefront main
-`7dde2968783c809205bd6ba16ec4a4661b936ca0` at `2026-10-18T23:13:02+00:00`
-(catalog SHA256 `54a91da21c2ee941b604e0bdbc643cc1f799e613ee6423d335463d4f2af56b2b`).
-The course overview attributes six modules and four bonuses to its producer description.
-The course has no authorized published price, PDFs or page counts: those remain null. Its published
-seven-day guarantee and affiliate disclosure stay product-scoped; the kit policy cannot transfer
-to the course. Revision1.5 adds optional card kind/format/disclosure fields, with core defaults
-for historical messages. See [catalog](docs/reference/catalog.md) and [contract](docs/reference/api-contract.md).
-Fixture tests prove transport, grounded metadata, history and replay; they do not establish
-real-model quality, a functioning affiliate redirect or readiness of an undeployed VPS.
+## Scope and limits
 
-The [dated real-model evaluation](docs/verification/real-evaluation-2026-10-18.md) records the
-complete229-turn application run, agent semantic review, preserved defects and usage estimates.
-That historical run used its recorded earlier catalog and prompt. The subsequent
-[245-turn real application evaluation and20-turn targeted revalidation](docs/verification/real-evaluation-2026-10-19.md)
-record the current prompt cohort, four corrected commercial/reference defects, retained
-original findings, real transport/history checks and conservative accounting. Review was by
-agents, not humans or a blind holdout. The current internal document table retains
-every ID, kind, full title, complete text and product scope while saving repeated field names;
-the 24KB input limit and public wire contracts remain unchanged. Any further paid evaluation
-needs explicit authorization within the remaining original audited budget.
-The [exact-image PostgreSQL report](docs/verification/postgres-alpine-2026-10-18.md) distinguishes
-the patched local engine from historical images and retains the complete API/Neo4j findings.
-The [current security handoff](docs/explanation/security.md#dependency-and-image-findings-in-the-deployment-handoff)
-treats dependency/image CVEs as advisory and nonblocking for future deployment. Historical scan
-results remain unchanged; health, secrets, data and identity checks still apply. The VPS has not
-yet been purchased, and deployment or assistant activation still requires explicit owner direction.
-Neither report authorizes production activation.
+- Not deployed: the storefront widget stays disabled by flag until the deployment gates in
+  [deployment contract](docs/reference/deployment-contract.md) are verified.
+- Fixture mode is the default; paid model calls and live evaluations need the owner's
+  explicit authorization.
+- Verification evidence in `docs/verification/` is dated and does not authorize activation.
 
-## Software license
+## License
 
-Owner-authored software and technical documentation use the [MIT License](LICENSE).
-Brand, commercial/product content, catalog datasets, media, private data and third-party
-material are excluded; see [NOTICE.md](NOTICE.md). Existing third-party licenses and
-attributions remain applicable. The runtime image carries both notices under `/app/`.
+Software is MIT-licensed ([LICENSE](LICENSE)); brand, content, media and data are reserved,
+see [NOTICE.md](NOTICE.md).
