@@ -1,6 +1,6 @@
 {
   "contract_version": "1",
-  "contract_revision": "1.5",
+  "contract_revision": "1.6",
   "schema_version": "1",
   "artifacts": {
     "analytics-semantics.examples.json": "34052250e924003f7b4f060f271d2fbcaa5be847a8de78060cf9925f5b845b92",
@@ -8,8 +8,9 @@
     "examples/errors.json": "f463f1cbc0922069ec84e91b634bb977d6501ce60b288fc5e34618462b7a4545",
     "examples/ops.summary.json": "1f7ee66bf61575c38614e356af805ffed0eb3d76d16975dcddca62f0cf4cced9",
     "examples/ops.telemetry.json": "55bbfbbf0efc9ad76100f8cf5501e393df541b69cfe904265b9f0cbf2e388720",
+    "examples/product-analytics.event.json": "ff47690610a5a39b0fd78a856ef00c1ab8044a351a6d097b5afbf454f3d8e83a",
     "examples/product-analytics.json": "3662d1a6ae8e5b34903baa6c57a0d0bec8a350f088eaefc607aeab2fec2e0292",
-    "examples/session.created.json": "73539ed46e059653ff60e1fa4950cd104e1fcda47e878e6c4daf3ea674a09c93",
+    "examples/session.created.json": "62704947f4f3f679af33138b71110fc7a767eef1152ca675c3d8877e552b89e8",
     "examples/stream.affiliate.sse": "8896c3aed323c25442166d7d8d243d337a255fd76250dce24f85a0c5873932c1",
     "examples/stream.answer-replaced.sse": "e1147bbd3f4844a0c492f42566b1d168f253c2694660c8eb79d436b9f07b76f7",
     "examples/stream.cancelled.sse": "77ed8fa97a713177c18390679f04785d25858acd2c7b56905c817ea275f25f9c",
@@ -20,7 +21,8 @@
     "examples/stream.price-unverified.sse": "73cf52e6182cb888245b6d3f5bb7c195e09cf5a0a34ef6fe4a2a21da6c71cd71",
     "examples/stream.recommendation.sse": "1f6ffa97945f29cbe21c09f883c9ada50fa0e72907cc1f801f96f2c1bf09cbc8",
     "examples/stream.unknown-policy.sse": "48714ab31eb92951c05b365ca6e518279c5624aeb53507cea178ac6b9763a1c5",
-    "openapi.json": "b9f77217e9e207fd03d27b206d7c224e36f2db70907ada52f612f72a1ffca191",
+    "openapi.internal.json": "8aafb366546f022abf3cfaf1eb1a22d4c2bd1ab5b2744e62b49eedfee3219e13",
+    "openapi.json": "e60a185a7ac2226c85720d47fdd789bb49232b5ccb3ed07ab80a935ca0cc121d",
     "ops.schema.json": "42894f370c4f513b10dd6f5f9c3e45f3978ee8cc8b17ad30f6ac32cfe5f20d0f",
     "ops.telemetry.schema.json": "2548dc91362332d84a7b9c8595b319f116db8d94af5a41dc95a7df267840fdee",
     "product-analytics.schema.json": "c0de21b74a1c2c7bcc3015874dc702375f0b9fcca9f66d0007e7ff0912da2713",

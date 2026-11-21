@@ -33,6 +33,7 @@ from hypothesis.stateful import run_state_machine_as_test
 from schemathesis.python import asgi
 
 from app.bootstrap.container import create_app
+from app.presentation.product_analytics import PUBLIC_PATH as ANALYTICS_PATH
 from tests.support import FixedClock
 from tests.support import settings as app_settings
 
@@ -135,7 +136,10 @@ def _record(case: schemathesis.Case, response: schemathesis.Response) -> None:
 
 def _check(case: schemathesis.Case, response: schemathesis.Response) -> None:
     _record(case, response)
-    if response.status_code in UNDOCUMENTED_ENVELOPES:
+    # Analytics is disabled in the fixture app and returns a documented, empty 404.
+    if case.operation.path == ANALYTICS_PATH:
+        assert response.status_code == 404 and response.content == b""
+    elif response.status_code in UNDOCUMENTED_ENVELOPES:
         # Spec gap (audit P2-1, completed in M3): the transport-level rejections are served but not
         # declared. Still require the documented error envelope and no 5xx, instead of skipping.
         body = response.json()
@@ -227,6 +231,7 @@ def every_operation_and_link_was_exercised() -> Any:
         assert any(200 <= code < 300 for code in codes), f"{operation} never 2xx: {dict(codes)}"
     cancel = _STATUS["POST /api/v1/runs/{run_id}/cancel"]
     assert cancel and set(cancel) <= {401, 403, 404, 409, 422, 429}, dict(cancel)
+    assert set(_STATUS[f"POST {ANALYTICS_PATH}"]) == {404}
     declared = set(_SPEC["paths"]["/api/v1/session"]["post"]["responses"]["200"]["links"])
     assert declared <= set(_LINKS), f"links never traversed: {declared - set(_LINKS)}"
     # Generated message bodies rarely pass the content rules (documented 422); the 2xx path of

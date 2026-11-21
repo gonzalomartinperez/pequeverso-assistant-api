@@ -71,6 +71,7 @@ def test_examples_never_carry_unsafe_payloads() -> None:
 def test_openapi_routes_keep_the_public_prefix() -> None:
     paths = set(json.loads((ROOT / "openapi.json").read_text())["paths"])
     assert paths == {
+        "/api/v1/analytics/events",
         "/api/v1/availability",
         "/api/v1/session",
         "/api/v1/messages",

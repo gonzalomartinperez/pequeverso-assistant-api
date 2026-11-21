@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "project": "pequeverso",
+  "source": "site",
+  "event_id": "00000000-0000-4000-8000-000000000001",
+  "event_name": "public_click",
+  "route": "/",
+  "layout_revision": "pequeverso-v1",
+  "section_id": "hero",
+  "viewport_bucket": "desktop",
+  "locale": "es",
+  "cell_x": 2,
+  "cell_y": 4
+}

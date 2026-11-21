@@ -6,6 +6,12 @@ name was `pequeverso-assistant-web`. Historical evidence keeps the name used at 
 The public conversation moved into the storefront (native, no iframe). This repository's web
 app becomes the private operations backoffice. It consumes **only** the private ops API.
 
+## Contract 1.6
+
+The generated `contracts/openapi.internal.json` documents the health probes and private
+operations, including the bearer scheme. The backoffice may compile against this artifact
+from the exact merged API commit. Existing private requests and responses stay compatible.
+
 | Item | Value |
 |---|---|
 | Contract | `GET /internal/v1/ops/summary`, schema `contracts/ops.schema.json`, example `contracts/examples/ops.summary.json` (contract revision 1.2; pin from the merged commit of this repository, never a working tree) |
