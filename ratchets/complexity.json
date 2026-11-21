@@ -6,8 +6,6 @@
     "app/adapters/neo4j/public_graph.py::Neo4jPublicGraph.candidates": 11,
     "app/adapters/providers/openai_provider.py::OpenAIResponsesProvider.stream": 11,
     "app/ai/composer.py::GroundedComposer.prepare": 17,
-    "app/application/answers.py::check_content": 13,
-    "app/application/answers.py::finalize": 21,
     "app/application/catalog_scope.py::catalog_scope_reply": 12,
     "app/application/chat.py::ChatService.start": 29,
     "app/application/indexing.py::KnowledgeIndexer.index": 11,

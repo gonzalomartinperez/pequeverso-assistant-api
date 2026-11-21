@@ -351,13 +351,22 @@ def check_content(
     web_evidence: tuple[WebEvidence, ...] = (),
 ) -> CheckedContent:
     """The same normalization and business boundary for cumulative prefixes and final answers."""
-    content = plain_text(text)
-    raw_content = content
-    violations = check_answer(content, rules) if content else []
-    content = _readable_text(content)
+    raw_content = plain_text(text)
+    violations = check_answer(raw_content, rules) if raw_content else []
+    content = _readable_text(raw_content)
     violations = list(dict.fromkeys([*violations, *check_answer(content, rules)]))
     # Product scopes are checked before AND after readable cleanup, including raw citation text.
-    for candidate in (raw_content, content):
+    candidates = (raw_content, content)
+    _check_product_scopes(candidates, catalog, rules, violations)
+    # Merchant policy authority never depends on optional external evidence availability.
+    _check_catalog_claims(candidates, catalog, violations)
+    return CheckedContent(content, tuple(dict.fromkeys(violations)))
+
+
+def _check_product_scopes(
+    candidates: tuple[str, str], catalog: Catalog, rules: AnswerRules, violations: list[Violation]
+) -> None:
+    for candidate in candidates:
         for sentence in re.split(r"[!?;\n]+|[.](?!\d)|,(?!\d)", candidate):
             selected = mentioned_products(sentence, catalog)
             owners = tuple(p for p in catalog.products if p.id in selected)
@@ -381,15 +390,18 @@ def check_content(
             )
             if unsupported_platform_policy(sentence, policies):
                 violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
-    # Merchant policy authority never depends on optional external evidence availability.
-    for candidate in (raw_content, content):
+
+
+def _check_catalog_claims(
+    candidates: tuple[str, str], catalog: Catalog, violations: list[Violation]
+) -> None:
+    for candidate in candidates:
         if unsupported_checkout_policy(candidate, tuple(d.text for d in catalog.documents)):
             violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
         if unsupported_platform_policy(candidate, tuple(d.text for d in catalog.documents)):
             violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
         if unsupported_page_claim(candidate, catalog):
             violations.append(Violation.UNSUPPORTED_PAGE_CLAIM)
-    return CheckedContent(content, tuple(dict.fromkeys(violations)))
 
 
 _COMPLETE_PREFIX = re.compile(r"[.!?](?=\s)|\n[ \t]*\n")
@@ -465,6 +477,46 @@ def finalize(
         for ref in draft.references
         if ref.kind == ReferenceKind.PRODUCT and catalog.product(ref.id)
     )
+    scoped, rules = _scope_answer_rules(catalog, selected, rules)
+    checked = check_content(draft.answer, scoped, rules, web_evidence)
+    content = checked.content
+    if not checked.accepted:
+        return FinalizedAnswer(
+            replacement_text(language),
+            replacement(catalog, Notice.ANSWER_REPLACED, language, selected),
+            checked.violations,
+            len(draft.references),
+        )
+
+    products, resources, links, dropped = _resolve_references(
+        draft.references, active, price_status, selected
+    )
+    sources, dropped = _resolve_sources(
+        draft.sources, catalog, selected, web_evidence, catalog_source_ids, dropped
+    )
+    follow_ups = _filter_follow_ups(draft.follow_ups, rules)
+    disclosed = _apply_disclosures(content, catalog, products, scoped, rules, web_evidence)
+    if not isinstance(disclosed, str):
+        return FinalizedAnswer(
+            replacement_text(language),
+            replacement(catalog, Notice.ANSWER_REPLACED, language, selected),
+            disclosed,
+            dropped,
+        )
+    details = AnswerDetails(
+        products=tuple(products.values()),
+        resources=tuple(resources.values()),
+        links=tuple(links.values()),
+        sources=tuple(sources.values()),
+        follow_ups=tuple(follow_ups),
+        language=language.value,
+    )
+    return FinalizedAnswer(disclosed, details, (), dropped)
+
+
+def _scope_answer_rules(
+    catalog: Catalog, selected: frozenset[str], rules: AnswerRules
+) -> tuple[Catalog, AnswerRules]:
     scoped = (
         replace(
             catalog,
@@ -479,21 +531,21 @@ def finalize(
         (p := catalog.product(pid)) is not None and p.price is None for pid in selected
     ):
         rules = replace(rules, known_prices=frozenset(), known_price_pairs=frozenset())
-    checked = check_content(draft.answer, scoped, rules, web_evidence)
-    content = checked.content
-    if not checked.accepted:
-        return FinalizedAnswer(
-            replacement_text(language),
-            replacement(catalog, Notice.ANSWER_REPLACED, language, selected),
-            checked.violations,
-            len(draft.references),
-        )
+    return scoped, rules
 
+
+def _resolve_references(
+    references: tuple[DraftReference, ...],
+    active: ActiveCatalog,
+    price_status: PriceStatus,
+    selected: frozenset[str],
+) -> tuple[dict[str, ProductRef], dict[str, ResourceRef], dict[str, LinkRef], int]:
+    catalog = active.catalog
     products: dict[str, ProductRef] = {}
     resources: dict[str, ResourceRef] = {}
     links: dict[str, LinkRef] = {}
     dropped = 0
-    for reference in draft.references:
+    for reference in references:
         if reference.kind == ReferenceKind.PRODUCT and (product := catalog.product(reference.id)):
             products.setdefault(product.id, product_ref(active, product, price_status))
         elif (
@@ -513,10 +565,20 @@ def finalize(
                 links.setdefault(link.id, LinkRef(link.id, link.label, link.url))
         else:
             dropped += 1
+    return products, resources, links, dropped
 
+
+def _resolve_sources(
+    source_ids: tuple[str, ...],
+    catalog: Catalog,
+    selected: frozenset[str],
+    web_evidence: tuple[WebEvidence, ...],
+    catalog_source_ids: frozenset[str] | None,
+    dropped: int,
+) -> tuple[dict[str, SourceRef], int]:
     sources: dict[str, SourceRef] = {}
     external_sources = {item.id: item for item in web_evidence}
-    for source_id in draft.sources:
+    for source_id in source_ids:
         document = catalog.document(source_id)
         if document is None and (external := external_sources.get(source_id)):
             if len(sources) < MAX_SOURCES:
@@ -531,9 +593,12 @@ def finalize(
             dropped += 1
         elif len(sources) < MAX_SOURCES:
             sources.setdefault(document.id, SourceRef(document.id, document.title, document.url))
+    return sources, dropped
 
+
+def _filter_follow_ups(suggestions: tuple[str, ...], rules: AnswerRules) -> list[str]:
     follow_ups: list[str] = []
-    for suggestion in draft.follow_ups:
+    for suggestion in suggestions:
         raw_text = " ".join(plain_text(suggestion).split())
         if check_answer(raw_text, rules):
             continue
@@ -545,7 +610,18 @@ def finalize(
             and len(follow_ups) < MAX_FOLLOW_UPS
         ):
             follow_ups.append(text)
+    return follow_ups
 
+
+def _apply_disclosures(
+    content: str,
+    catalog: Catalog,
+    products: dict[str, ProductRef],
+    scoped: Catalog,
+    rules: AnswerRules,
+    web_evidence: tuple[WebEvidence, ...],
+) -> str | tuple[Violation, ...]:
+    """Append validated disclosures or return violations for a replacement, empty on overflow."""
     disclosures = tuple(
         p.disclosure
         for p in catalog.products
@@ -557,27 +633,9 @@ def finalize(
         if disclosure not in content:
             enriched = f"{content}\n\n{disclosure}"
             if len(enriched) > MAX_ANSWER_CHARS:
-                return FinalizedAnswer(
-                    replacement_text(language),
-                    replacement(catalog, Notice.ANSWER_REPLACED, language, selected),
-                    (),
-                    dropped,
-                )
+                return ()
             checked_enriched = check_content(enriched, scoped, rules, web_evidence)
             if not checked_enriched.accepted:
-                return FinalizedAnswer(
-                    replacement_text(language),
-                    replacement(catalog, Notice.ANSWER_REPLACED, language, selected),
-                    checked_enriched.violations,
-                    dropped,
-                )
+                return checked_enriched.violations
             content = checked_enriched.content
-    details = AnswerDetails(
-        products=tuple(products.values()),
-        resources=tuple(resources.values()),
-        links=tuple(links.values()),
-        sources=tuple(sources.values()),
-        follow_ups=tuple(follow_ups),
-        language=language.value,
-    )
-    return FinalizedAnswer(content, details, (), dropped)
+    return content
