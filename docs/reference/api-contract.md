@@ -39,8 +39,169 @@ cookies and CSRF.
 
 - The API's routes **include** the `/api` prefix (`/api/v1/...`) and FastAPI's `root_path` is empty.
   The proxy forwards `/api/*` **unchanged**: no prefix stripping, no rewriting, no `/api/api`.
-- `/health/*` and `/internal/*` are internal (container, proxy and backoffice) and must not be
-  routed publicly.
+- `/health/*`, `/healthz`, `/readyz` and `/internal/*` are internal (container, proxy and
+  backoffice) and must not be routed publicly.
+
+## Operations
+
+The [public OpenAPI document](../../contracts/openapi.json) defines these operations. Send
+`https://pequeverso.com` as the `Origin` for storefront mutations where it is allowlisted.
+
+### `GET /api/v1/availability`
+
+This check requires no headers. An unavailable assistant normally still returns `200 OK`
+with `status: "unavailable"`.
+
+<!-- example: GET /api/v1/availability response 200 -->
+```json
+{
+  "status": "available",
+  "reason": null
+}
+```
+
+An unexpected dependency failure can return `503 Service Unavailable`.
+
+<!-- example: GET /api/v1/availability response 503 -->
+```json
+{
+  "error": {
+    "code": "dependency_unavailable",
+    "message": "A dependency is unavailable.",
+    "retryable": true,
+    "request_id": "req_EXAMPLE"
+  }
+}
+```
+
+### `POST /api/v1/session`
+
+Send an allowlisted `Origin` and `Content-Type: application/json`. Include the session cookie
+to restore a conversation. The response is `201 Created` for a new session or `200 OK` for a
+restored session. The response can carry `Set-Cookie`.
+
+<!-- example: POST /api/v1/session request -->
+```json
+{
+  "locale": "es"
+}
+```
+
+The `201 Created` response has this body.
+
+<!-- example: POST /api/v1/session response 201 -->
+[New session response](../../contracts/examples/session.created.json)
+
+An invalid request body returns `422 Unprocessable Content`.
+
+<!-- example: POST /api/v1/session response 422 -->
+```json
+{
+  "error": {
+    "code": "invalid_request",
+    "message": "The request is invalid.",
+    "retryable": false,
+    "request_id": "req_EXAMPLE"
+  }
+}
+```
+
+### `DELETE /api/v1/session`
+
+Send an allowlisted `Origin`, the session cookie and its `X-CSRF-Token`. The response
+is `204 No Content` with an empty body and a `Set-Cookie` header that clears the cookie.
+A missing or invalid session returns `401 Unauthorized`.
+
+<!-- example: DELETE /api/v1/session response 401 -->
+```json
+{
+  "error": {
+    "code": "session_expired",
+    "message": "No active session; open a new one.",
+    "retryable": false,
+    "request_id": "req_EXAMPLE"
+  }
+}
+```
+
+### `POST /api/v1/messages`
+
+Send an allowlisted `Origin`, `Content-Type: application/json`, the session cookie,
+`X-CSRF-Token` and `Idempotency-Key`.
+
+<!-- example: POST /api/v1/messages request -->
+```json
+{
+  "content": "Mi hija tiene 4 años y recién empieza con las letras, ¿qué me recomiendas?",
+  "response_language": "es"
+}
+```
+
+`200 OK` returns `text/event-stream` and an `X-Run-ID` header. The opening event below is
+from the [complete recommendation stream](../../contracts/examples/stream.recommendation.sse).
+
+<!-- example: POST /api/v1/messages response 200 -->
+```sse
+id: 0
+event: run.started
+data: {"schema_version":"1","run_id":"run_EXAMPLE0000001","sequence":0,"timestamp":"2026-09-28T15:00:00Z","type":"run.started","user_message":{"id":"msg_EXAMPLEuser00001","role":"user","content":"Mi hija tiene 4 años y recién empieza con las letras, ¿qué me recomiendas?","created_at":"2026-09-28T15:00:00Z","products":[],"resources":[],"links":[],"sources":[],"follow_ups":[],"notices":[],"language":"es"}}
+```
+
+Before streaming starts, reusing a key with a different body returns `409 Conflict`.
+
+<!-- example: POST /api/v1/messages response 409 -->
+```json
+{
+  "error": {
+    "code": "idempotency_conflict",
+    "message": "This Idempotency-Key was already used for a different or failed request.",
+    "retryable": false,
+    "request_id": "req_EXAMPLE"
+  }
+}
+```
+
+### `POST /api/v1/runs/{run_id}/cancel`
+
+Send an allowlisted `Origin`, the session cookie and its `X-CSRF-Token`. Use the
+`X-Run-ID` from the message response as `run_id`. The route returns `202 Accepted` with
+an empty body. A missing or invalid CSRF token on a valid session returns `403 Forbidden`.
+
+<!-- example: POST /api/v1/runs/{run_id}/cancel response 403 -->
+```json
+{
+  "error": {
+    "code": "csrf_failed",
+    "message": "Missing or invalid CSRF token.",
+    "retryable": false,
+    "request_id": "req_EXAMPLE"
+  }
+}
+```
+
+### `POST /api/v1/analytics/events`
+
+Send exactly one allowlisted `Origin` and `Content-Type: application/json` (optional
+`charset=utf-8`). Omit `Cookie` and `Authorization`. The ingest accepts one UTF-8 event
+up to 1024 bytes and returns `204 No Content` with an empty body.
+
+<!-- example: POST /api/v1/analytics/events request -->
+[Public click event request](../../contracts/examples/product-analytics.event.json)
+
+An origin rejected by the shared middleware returns this `403 Forbidden` body.
+When the ingest handler rejects supplied credentials, its `403` body is empty.
+
+<!-- example: POST /api/v1/analytics/events response 403 -->
+```json
+{
+  "error": {
+    "code": "origin_denied",
+    "message": "Origin not allowed.",
+    "retryable": false,
+    "request_id": "req_EXAMPLE"
+  }
+}
+```
 
 ## Sessions and ownership
 
@@ -56,11 +217,12 @@ cookies and CSRF.
   cookie (`__Host-pv_assistant`, `Secure`, `Path=/` in production; `pv_assistant_dev` locally).
   It is stored server-side only as a SHA-256 digest. It never appears in a URL, a response
   body or a log.
-- The CSRF token comes in the `POST /session` body. Keep it **in memory only**. On a reload, call
-  `POST /session` again: the same session is restored with its token and history.
-- Every mutation requires an allowlisted `Origin` (`ALLOWED_ORIGINS`, normally just
-  `https://assistant.pequeverso.com`), `Content-Type: application/json` where there is a body,
-  and the CSRF token. Same-origin deployment does not remove these checks.
+- The CSRF token comes in the `POST /session` response body. Keep it **in memory only**. On a
+  reload, call `POST /session` again: the same session is restored with its token and history.
+- Session mutations require an allowlisted `Origin` (`ALLOWED_ORIGINS`, normally
+  `https://pequeverso.com`) and `Content-Type: application/json` where there is a body.
+  Asking, canceling a run and deleting a session also require the session cookie and CSRF token.
+  These checks also apply in a same-origin deployment.
 - Retention is 24 h sliding (each open and each question extends it). Expired sessions are purged
   every 10 minutes; a request with an expired cookie gets `401 session_expired`, and the client
   should open a new session.
@@ -207,21 +369,16 @@ buy section (`/grafismo-fonetico/#comprar`); checkout stays in the store's Hotma
 | Promotions / discounts | None in the catalog | Never offered; discount or coupon claims cause replacement |
 | Currency | Reference USD; Hotmart converts and shows the final total | Show `price.note` next to any price |
 
-## Errors
+## Errors and RFC 9457
 
-Non-stream errors are JSON `{"error": {code, message, retryable, request_id}}`. `message` is
-English, for developers; localize from `code`. Every code is listed in
-`contracts/examples/errors.json`.
+The v1 JSON error envelope stays `{"error": {code, message, retryable, request_id}}` with
+`Content-Type: application/json`. `message` is English for developers. Localize from `code`
+and reopen the session on `session_expired`. The RFC 9457 member mapping and HTTP status
+table are in [ADR-0013](../decisions/ADR-0013-v1-error-envelope-and-rfc-9457-mapping.md).
+See the [public error envelope examples](../../contracts/examples/errors.json).
 
-| Status | Codes |
-|---|---|
-| 401 | `session_expired` → reopen the session |
-| 403 | `origin_denied`, `csrf_failed` |
-| 404 | `run_not_found`, `not_found` |
-| 409 | `run_in_progress`, `idempotency_conflict` |
-| 422 | `invalid_request` (validation, content type, body > 16 KiB) |
-| 429 | `rate_limited` (+ `Retry-After`) |
-| 502/503/504 | `generation_failed`, `budget_exhausted` (+ `Retry-After`), `assistant_disabled`, `catalog_unavailable`, `provider_unavailable`, `busy` (+ `Retry-After: 5`), `dependency_unavailable`, `timeout` |
+Session API validation, content-type checks and bodies exceeding the configured limit
+(16 KiB by default) can produce `422 invalid_request`.
 
 In-stream `run.failed.code` ∈ `budget_exhausted | provider_unavailable | generation_failed |
 timeout | catalog_unavailable | busy`.
@@ -231,13 +388,110 @@ timeout | catalog_unavailable | busy`.
 with the store's own support route (`https://pequeverso.com/soporte/`). The storefront works
 without the assistant; nothing in the purchase flow depends on it.
 
-## Private operations API (backoffice only)
+## Private operations
 
-`GET /internal/v1/ops/summary` with `Authorization: Bearer <OPS_READ_TOKEN>`; schema
-`contracts/ops.schema.json`, example `contracts/examples/ops.summary.json`. Not part of the
-browser contract and never routed publicly. Money is decimal strings in USD. Spend is split
-into **confirmed** (settled to provider-reported usage), **estimated** (the run ended without a
-usage report, so its worst-case reservation stays counted) and **pending** (runs in progress).
+The [private OpenAPI document](../../contracts/openapi.internal.json) covers container probes
+and the backoffice operations API. Keep these routes off the public proxy. Health probes
+require no headers. The operations routes require `Authorization: Bearer <OPS_READ_TOKEN>`.
+
+### `GET /health/live`
+
+`200 OK` reports process liveness. The probe defines only a success response.
+
+<!-- example: GET /health/live response 200 -->
+```json
+{
+  "status": "ok"
+}
+```
+
+### `GET /health/ready`
+
+`200 OK` reports readiness. `503 Service Unavailable` reports an unready service.
+The catalog field appears when a catalog is active.
+
+<!-- example: GET /health/ready response 200 -->
+```json
+{
+  "status": "ready",
+  "catalog": {
+    "revision": "7dde2968783c",
+    "price_status": "verified"
+  }
+}
+```
+
+<!-- example: GET /health/ready response 503 -->
+```json
+{
+  "status": "not_ready"
+}
+```
+
+### `GET /healthz`
+
+`200 OK` reports process liveness and the build version. The probe defines only a success
+response.
+
+<!-- example: GET /healthz response 200 -->
+```json
+{
+  "status": "ok",
+  "version": "abc1234"
+}
+```
+
+### `GET /readyz`
+
+`200 OK` and `503 Service Unavailable` report the same readiness checks as `/health/ready`
+and include the build version and storage schema level.
+
+<!-- example: GET /readyz response 200 -->
+```json
+{
+  "status": "ready",
+  "catalog": {
+    "revision": "7dde2968783c",
+    "price_status": "verified"
+  },
+  "version": "abc1234",
+  "schema_version": "sqlite-002"
+}
+```
+
+<!-- example: GET /readyz response 503 -->
+```json
+{
+  "status": "not_ready",
+  "version": "abc1234",
+  "schema_version": "sqlite-002"
+}
+```
+
+### `GET /internal/v1/ops/summary`
+
+`200 OK` returns a summary using the [standalone ops schema](../../contracts/ops.schema.json).
+
+<!-- example: GET /internal/v1/ops/summary response 200 -->
+[Operations summary response](../../contracts/examples/ops.summary.json)
+
+A missing or invalid token returns `401 Unauthorized` with `WWW-Authenticate: Bearer`.
+
+<!-- example: GET /internal/v1/ops/summary response 401 -->
+```json
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "Missing or invalid operations token.",
+    "retryable": false,
+    "request_id": "req_EXAMPLE"
+  }
+}
+```
+
+Money is decimal strings in USD. Spend is split into **confirmed** (settled to provider-reported
+usage), **estimated** (the run ended without a usage report, so its worst-case reservation stays
+counted) and **pending** (runs in progress).
 Latency: `first_delta` = request accepted → first answer text; `total` = request accepted →
 authoritative answer, both for runs that called the model. `daily` lists only days with records
 and `metrics_since` says when recording began: earlier periods are unknown, not zero.
@@ -245,6 +499,64 @@ and `metrics_since` says when recording began: earlier periods are unknown, not 
 `pricing.revision` names the price list the estimates use (they are not the provider invoice;
 reconcile with the OpenAI project's usage page). `recent[].id` is a digest of the run id and
 cannot be used against the public API.
+
+### `GET /internal/v1/ops/telemetry`
+
+With observability enabled, `200 OK` returns a runtime telemetry snapshot.
+
+<!-- example: GET /internal/v1/ops/telemetry response 200 -->
+[Runtime telemetry response](../../contracts/examples/ops.telemetry.json)
+
+A missing or invalid token returns `401 Unauthorized` with `WWW-Authenticate: Bearer`.
+
+<!-- example: GET /internal/v1/ops/telemetry response 401 -->
+```json
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "Missing or invalid operations token.",
+    "retryable": false,
+    "request_id": "req_EXAMPLE"
+  }
+}
+```
+
+### `GET /internal/v1/ops/metrics`
+
+With observability enabled, `200 OK` returns Prometheus exposition text. A sample follows.
+
+<!-- example: GET /internal/v1/ops/metrics response 200 -->
+```text
+# HELP pequeverso_process_uptime_seconds Current process uptime, not historical availability.
+# TYPE pequeverso_process_uptime_seconds gauge
+pequeverso_process_uptime_seconds 12.5
+```
+
+A missing or invalid token returns `401 Unauthorized` with `WWW-Authenticate: Bearer`.
+
+<!-- example: GET /internal/v1/ops/metrics response 401 -->
+```json
+{
+  "error": {
+    "code": "unauthorized",
+    "message": "Missing or invalid operations token.",
+    "retryable": false,
+    "request_id": "req_EXAMPLE"
+  }
+}
+```
+
+### `GET /internal/v1/ops/product-analytics`
+
+With product analytics enabled, `200 OK` returns a report. This example uses
+`?period=day&route=/&section_id=hero`.
+
+<!-- example: GET /internal/v1/ops/product-analytics response 200 -->
+[Product analytics report fixture](../../contracts/examples/product-analytics.json#/report)
+
+The JSON response body is the example file's `report` object. A missing or invalid token
+returns `401 Unauthorized` with an empty body.
+
 
 ## Compatibility rules
 
