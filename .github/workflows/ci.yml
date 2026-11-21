@@ -39,7 +39,7 @@ jobs:
     permissions:
       contents: read
     with:
-      readme-check: false # true once README.md follows the ecosystem template
+      readme-check: true
       # Dated evidence records under docs/verification are preserved as written.
       lychee-args: "--offline --no-progress --include-fragments --exclude-path docs/verification './**/*.md'"
 
