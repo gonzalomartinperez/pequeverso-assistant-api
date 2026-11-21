@@ -253,6 +253,28 @@ def check_answer(text: str, rules: AnswerRules) -> list[Violation]:
     emails = {match.group().lower() for match in _EMAIL.finditer(text)}
     if emails - {email.lower() for email in rules.allowed_emails}:
         violations.append(Violation.UNLISTED_EMAIL)
+    if _has_unlisted_url(text, rules):
+        violations.append(Violation.UNLISTED_URL)
+    if (price_violation := _price_violation(text, rules)) is not None:
+        violations.append(price_violation)
+    if _DISCOUNT.search(text):
+        violations.append(Violation.DISCOUNT_CLAIM)
+    folded = fold(text)
+    claims = (
+        (Violation.FORBIDDEN_TERM, any(fold(term) in folded for term in rules.forbidden_terms)),
+        (Violation.PRESSURE_CLAIM, any(phrase in folded for phrase in _PRESSURE)),
+        (
+            Violation.PAYMENT_DATA_REQUEST,
+            _PAYMENT_REQUEST.search(text) or _PAYMENT_REQUEST_EN.search(text),
+        ),
+        (Violation.UNAUTHORIZED_ACTION_CLAIM, _positive_claim(_ACTION_CLAIM, text)),
+        (Violation.UNSUPPORTED_OUTCOME_CLAIM, _positive_claim(_OUTCOME_CLAIM, folded)),
+    )
+    violations.extend(violation for violation, detected in claims if detected)
+    return violations
+
+
+def _has_unlisted_url(text: str, rules: AnswerRules) -> bool:
     without_emails = _EMAIL.sub(" ", text)
     urls = {_url_key(match.group()) for match in _URL.finditer(without_emails)}
     # Plain-text rendering cannot turn model-authored links into authorized navigation.
@@ -261,8 +283,10 @@ def check_answer(text: str, rules: AnswerRules) -> list[Violation]:
         _url_key(match.group(1).strip()) for match in _MARKDOWN_LINK.finditer(without_emails)
     )
     allowed_urls = {_url_key(url) for url in rules.allowed_urls}
-    if None in urls or any(url not in allowed_urls for url in urls):
-        violations.append(Violation.UNLISTED_URL)
+    return None in urls or any(url not in allowed_urls for url in urls)
+
+
+def _price_violation(text: str, rules: AnswerRules) -> Violation | None:
     prices: list[tuple[Decimal | None, str]] = []
     for match in _MONEY.finditer(text):
         amount = _amount(match.group("a") or match.group("b"))
@@ -270,28 +294,16 @@ def check_answer(text: str, rules: AnswerRules) -> list[Violation]:
         if match.group("trailing") and _currency(match.group("trailing")) != currency:
             amount = None
         prices.append((amount, currency))
-    if prices:
-        if not rules.prices_verified:
-            violations.append(Violation.UNVERIFIED_PRICE)
-        elif any(
-            amount is None or (amount, currency) not in rules.known_price_pairs
-            for amount, currency in prices
-        ):
-            violations.append(Violation.UNKNOWN_PRICE)
-    if _DISCOUNT.search(text):
-        violations.append(Violation.DISCOUNT_CLAIM)
-    folded = fold(text)
-    if any(fold(term) in folded for term in rules.forbidden_terms):
-        violations.append(Violation.FORBIDDEN_TERM)
-    if any(phrase in folded for phrase in _PRESSURE):
-        violations.append(Violation.PRESSURE_CLAIM)
-    if _PAYMENT_REQUEST.search(text) or _PAYMENT_REQUEST_EN.search(text):
-        violations.append(Violation.PAYMENT_DATA_REQUEST)
-    if _positive_claim(_ACTION_CLAIM, text):
-        violations.append(Violation.UNAUTHORIZED_ACTION_CLAIM)
-    if _positive_claim(_OUTCOME_CLAIM, folded):
-        violations.append(Violation.UNSUPPORTED_OUTCOME_CLAIM)
-    return violations
+    if not prices:
+        return None
+    if not rules.prices_verified:
+        return Violation.UNVERIFIED_PRICE
+    if any(
+        amount is None or (amount, currency) not in rules.known_price_pairs
+        for amount, currency in prices
+    ):
+        return Violation.UNKNOWN_PRICE
+    return None
 
 
 def _currency(raw: str) -> str:

@@ -116,9 +116,28 @@ class HybridKnowledgeRetrieval:
         initial = await self.verify_hits(revision, lexical + semantic, allowed)
         ranked_seeds, _ = self._ranked_hits(initial, lexical, semantic)
         seeds = tuple(ranked_seeds[:_CANDIDATES])
+        graph_hits, graph_current = await self._graph_candidates(revision, seeds, bool(initial))
+        verified = await self.verify_hits(
+            revision, lexical + semantic + graph_hits, allowed, frozenset(seeds)
+        )
+        ordered, strategies = self._ranked_hits(verified, lexical, semantic, graph_hits)
+        anchors = await self._read_anchors(revision, product_ids, allowed)
+        verified.update((anchor.id, anchor) for anchor in anchors)
+        selected = tuple(dict.fromkeys([c.id for c in anchors] + ordered))[:_RESULTS]
+        if await self._store.active_revision() != revision:
+            # No mixed-version answer across an activation race. The visitor may retry;
+            # this invocation never retries retrieval or generation automatically.
+            raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
+        return RetrievedKnowledge(
+            revision, tuple(verified[cid] for cid in selected), tuple(strategies), not graph_current
+        )
+
+    async def _graph_candidates(
+        self, revision: KnowledgeRevision, seeds: tuple[str, ...], has_initial_hits: bool
+    ) -> tuple[tuple[KnowledgeHit, ...], bool]:
         graph_current = await self._graph_current(revision)
         graph_hits: tuple[KnowledgeHit, ...] = ()
-        if graph_current and initial:
+        if graph_current and has_initial_hits:
             try:
                 graph_hits = await self._graph.candidates(
                     revision.version,
@@ -131,10 +150,11 @@ class HybridKnowledgeRetrieval:
                 graph_current = False
         if any(hit.strategy is not RetrievalStrategy.GRAPH for hit in graph_hits):
             raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
-        verified = await self.verify_hits(
-            revision, lexical + semantic + graph_hits, allowed, frozenset(seeds)
-        )
-        ordered, strategies = self._ranked_hits(verified, lexical, semantic, graph_hits)
+        return graph_hits, graph_current
+
+    async def _read_anchors(
+        self, revision: KnowledgeRevision, product_ids: tuple[str, ...], allowed: frozenset[str]
+    ) -> tuple[KnowledgeChunk, ...]:
         # Comparison anchors must include each named product even when one search ranks
         # below the other. These are still exact PG chunks, never invented index content.
         anchors = await self._store.read_chunks(
@@ -152,15 +172,7 @@ class HybridKnowledgeRetrieval:
                 or anchor.product_ids != (anchor.source_id,)
             ):
                 raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
-            verified[anchor.id] = anchor
-        selected = tuple(dict.fromkeys([c.id for c in anchors] + ordered))[:_RESULTS]
-        if await self._store.active_revision() != revision:
-            # No mixed-version answer across an activation race. The visitor may retry;
-            # this invocation never retries retrieval or generation automatically.
-            raise RejectedError(FailureCode.CATALOG_UNAVAILABLE)
-        return RetrievedKnowledge(
-            revision, tuple(verified[cid] for cid in selected), tuple(strategies), not graph_current
-        )
+        return anchors
 
     @staticmethod
     def _ranked_hits(

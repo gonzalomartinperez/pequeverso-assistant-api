@@ -48,6 +48,19 @@ _VOCABULARY_TEXT = (
 _VOCABULARY = frozenset(_VOCABULARY_TEXT.split())
 
 
+def _latest_sources_are_public(catalog: Catalog, history: Sequence[Message]) -> bool:
+    if not history or history[-1].role is not Role.ASSISTANT:
+        return True
+    answer = history[-1]
+    if Notice.ANSWER_REPLACED in answer.details.notices:
+        return False
+    for source in answer.details.sources:
+        document = catalog.document(source.id)
+        if document is None or document.url != source.url:
+            return False  # Do not reinterpret an external/historical source's data policy.
+    return True
+
+
 def catalog_scope_reply(
     question: str, catalog: Catalog, history: Sequence[Message], language: Language
 ) -> str | None:
@@ -66,14 +79,8 @@ def catalog_scope_reply(
         return None
     if not (_CONVERSATIONS.search(text) or (_CONTENT.search(text) and _PRIVATE.search(text))):
         return None
-    if not explicit_catalog and history and history[-1].role is Role.ASSISTANT:
-        answer = history[-1]
-        if Notice.ANSWER_REPLACED in answer.details.notices:
-            return None
-        for source in answer.details.sources:
-            document = catalog.document(source.id)
-            if document is None or document.url != source.url:
-                return None  # Do not reinterpret an external/historical source's data policy.
+    if not explicit_catalog and not _latest_sources_are_public(catalog, history):
+        return None
     if language is Language.EN:
         return (
             "The catalog contains public product information; it does not include other "

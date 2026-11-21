@@ -62,76 +62,91 @@ _SUBSET = re.compile(
 )
 
 
+_Mention = tuple[int, int, _Entity]
+
+
+def _mentions(sentence: str, entities: tuple[_Entity, ...]) -> list[_Mention]:
+    mentions: list[_Mention] = []
+    for entity in entities:
+        aliases = "|".join(re.escape(a) for a in sorted(set(entity.aliases), key=len, reverse=True))
+        mentions.extend(
+            (m.start(), m.end(), entity)
+            for m in re.finditer(rf"(?<!\w)(?:{aliases})(?!\w)", sentence)
+        )
+    # A product title embedded in a resource title is not a second subject.
+    mentions = [
+        m
+        for m in mentions
+        if not (
+            m[2].product
+            and any(not r[2].product and r[0] <= m[0] and r[1] >= m[1] for r in mentions)
+        )
+    ]
+    mentions.sort(key=lambda m: (m[0], m[1]))
+    return mentions
+
+
+def _unsupported_count(
+    sentence: str,
+    claim: re.Match[str],
+    clause_start: int,
+    mentions: list[_Mention],
+    previous: list[_Entity],
+) -> bool:
+    before = [m for m in mentions if m[0] < claim.start()]
+    resources = [m[2] for m in before if not m[2].product]
+    local_resources = list(dict.fromkeys(resources))
+    after = [m for m in mentions if m[0] >= claim.end()]
+    scope_start = before[-1][1] if before else clause_start
+    scope_end = after[0][0] if after else len(sentence)
+    scope = sentence[scope_start:scope_end]
+    shared = _SHARED.search(scope) is not None
+    total = _TOTAL.search(scope) is not None
+    value = int(claim.group(1))
+
+    if shared:
+        subjects = local_resources or previous[-2:]
+        return bool(subjects) and any(subject.pages != value for subject in subjects)
+    if total and local_resources and not any(m[2].product for m in before):
+        return sum(resource.pages or 0 for resource in local_resources) != value
+    if before:
+        subject = before[-1][2]
+        if total:
+            subject = next((m[2] for m in reversed(before) if m[2].product), subject)
+        return subject.pages != value
+
+    # "40 pages in Safari" is an explicit local resource attribution.
+    return bool(
+        after
+        and re.fullmatch(r"\s*(?:de|del|en|in|of|for|from)\s+", sentence[claim.end() : after[0][0]])
+        and after[0][2].pages != value
+    )
+
+
+def _unsupported_sentence(sentence: str, mentions: list[_Mention], previous: list[_Entity]) -> bool:
+    for claim in _PAGES.finditer(sentence):
+        if negated_at(sentence, claim.start()):
+            continue
+        # Explicit print/selection quantities are subsets, not the PDF's size.
+        clause_start = (
+            max(sentence.rfind(",", 0, claim.start()), sentence.rfind(":", 0, claim.start())) + 1
+        )
+        if _SUBSET.search(sentence[clause_start : claim.start()]):
+            continue
+        if _unsupported_count(sentence, claim, clause_start, mentions, previous):
+            return True
+    return False
+
+
 def unsupported_page_claim(text: str, catalog: Catalog) -> bool:
     """Reject a recognized assertion inconsistent with active structured page metadata."""
     normalized = _normalize(text)
     entities = _entities(catalog)
     previous: list[_Entity] = []
     for sentence in re.split(r"[.!?;\n]", normalized):
-        mentions: list[tuple[int, int, _Entity]] = []
-        for entity in entities:
-            aliases = "|".join(
-                re.escape(a) for a in sorted(set(entity.aliases), key=len, reverse=True)
-            )
-            mentions.extend(
-                (m.start(), m.end(), entity)
-                for m in re.finditer(rf"(?<!\w)(?:{aliases})(?!\w)", sentence)
-            )
-        # A product title embedded in a resource title is not a second subject.
-        mentions = [
-            m
-            for m in mentions
-            if not (
-                m[2].product
-                and any(not r[2].product and r[0] <= m[0] and r[1] >= m[1] for r in mentions)
-            )
-        ]
-        mentions.sort(key=lambda m: (m[0], m[1]))
-        for claim in _PAGES.finditer(sentence):
-            if negated_at(sentence, claim.start()):
-                continue
-            # Explicit print/selection quantities are subsets, not the PDF's size.
-            clause_start = (
-                max(sentence.rfind(",", 0, claim.start()), sentence.rfind(":", 0, claim.start()))
-                + 1
-            )
-            clause = sentence[clause_start : claim.start()]
-            if _SUBSET.search(clause):
-                continue
-            before = [m for m in mentions if m[0] < claim.start()]
-            resources = [m[2] for m in before if not m[2].product]
-            local_resources = list(dict.fromkeys(resources))
-            after = [m for m in mentions if m[0] >= claim.end()]
-            scope_start = before[-1][1] if before else clause_start
-            scope_end = after[0][0] if after else len(sentence)
-            scope = sentence[scope_start:scope_end]
-            shared = _SHARED.search(scope) is not None
-            total = _TOTAL.search(scope) is not None
-            value = int(claim.group(1))
-            if shared:
-                subjects = local_resources or previous[-2:]
-                if subjects and any(subject.pages != value for subject in subjects):
-                    return True
-            elif total and local_resources and not any(m[2].product for m in before):
-                if sum(resource.pages or 0 for resource in local_resources) != value:
-                    return True
-            elif before:
-                subject = before[-1][2]
-                if total:
-                    subject = next((m[2] for m in reversed(before) if m[2].product), subject)
-                if subject.pages != value:
-                    return True
-            else:
-                # "40 pages in Safari" is an explicit local resource attribution.
-                after = [m for m in mentions if m[0] >= claim.end()]
-                if (
-                    after
-                    and re.fullmatch(
-                        r"\s*(?:de|del|en|in|of|for|from)\s+", sentence[claim.end() : after[0][0]]
-                    )
-                    and after[0][2].pages != value
-                ):
-                    return True
+        mentions = _mentions(sentence, entities)
+        if _unsupported_sentence(sentence, mentions, previous):
+            return True
         for _, _, entity in mentions:
             if not entity.product:
                 previous = [old for old in previous if old.key != entity.key]
