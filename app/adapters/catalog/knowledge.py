@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from app.application.ports import CatalogParser
 from app.domain.catalog import resource_key
@@ -20,6 +21,11 @@ from app.domain.knowledge import (
     KnowledgeRevision,
     RelationKind,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from app.domain.catalog import Catalog
 
 PARSER_VERSION = "commercial-corpus-v1"
 
@@ -164,6 +170,22 @@ def build_public_corpus(
                 )
             )
 
+    _project_documents_and_links(catalog, chunk, entities, relations)
+    for topic_id, (label, support) in topics.items():
+        entities.append(
+            KnowledgeEntity(topic_id, EntityKind.TOPIC, label, tuple(dict.fromkeys(support)))
+        )
+    return KnowledgeCorpus(
+        revision, body, verified_at, tuple(chunks), tuple(entities), tuple(relations)
+    )
+
+
+def _project_documents_and_links(
+    catalog: Catalog,
+    chunk: Callable[[ChunkKind, str, str, str, str, tuple[str, ...], str], str],
+    entities: list[KnowledgeEntity],
+    relations: list[KnowledgeRelation],
+) -> None:
     legacy_owners = tuple(p.id for p in catalog.products if p.kind == "core")
     for index, document in enumerate(catalog.documents):
         owners = document.product_ids or legacy_owners
@@ -193,10 +215,3 @@ def build_public_corpus(
             relations.append(
                 KnowledgeRelation(f"product:{owner}", RelationKind.HAS_LINK, eid, cid, pointer)
             )
-    for topic_id, (label, support) in topics.items():
-        entities.append(
-            KnowledgeEntity(topic_id, EntityKind.TOPIC, label, tuple(dict.fromkeys(support)))
-        )
-    return KnowledgeCorpus(
-        revision, body, verified_at, tuple(chunks), tuple(entities), tuple(relations)
-    )

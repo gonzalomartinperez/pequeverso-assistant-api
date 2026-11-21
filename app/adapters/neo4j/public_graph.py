@@ -195,25 +195,7 @@ class Neo4jPublicGraph:
                 if chunk_id in seen:
                     raise ValueError("graph returned duplicate chunk candidates")
                 seen.add(chunk_id)
-                depth = row.get("depth")
-                relations = row.get("relations")
-                if type(depth) is not int or not 1 <= depth <= 2 or not isinstance(relations, list):
-                    raise ValueError("graph path must have one or two supported edges")
-                if len(relations) != depth:
-                    raise ValueError("graph path provenance is incomplete")
-                path: list[KnowledgeRelation] = []
-                for relation in relations:
-                    if not isinstance(relation, dict):
-                        raise TypeError("graph path provenance is malformed")
-                    path.append(
-                        KnowledgeRelation(
-                            self._text(relation, "subject"),
-                            RelationKind(self._text(relation, "predicate")),
-                            self._text(relation, "object"),
-                            self._text(relation, "support"),
-                            self._text(relation, "pointer"),
-                        )
-                    )
+                depth, path = self._candidate_path(row)
                 hits.append(
                     KnowledgeHit(
                         version,
@@ -227,6 +209,28 @@ class Neo4jPublicGraph:
             return tuple(hits)
         except DriverError, Neo4jError, OSError, TimeoutError:
             raise RejectedError(FailureCode.DEPENDENCY_UNAVAILABLE) from None
+
+    def _candidate_path(self, row: Mapping[str, object]) -> tuple[int, list[KnowledgeRelation]]:
+        depth = row.get("depth")
+        relations = row.get("relations")
+        if type(depth) is not int or not 1 <= depth <= 2 or not isinstance(relations, list):
+            raise ValueError("graph path must have one or two supported edges")
+        if len(relations) != depth:
+            raise ValueError("graph path provenance is incomplete")
+        path: list[KnowledgeRelation] = []
+        for relation in relations:
+            if not isinstance(relation, dict):
+                raise TypeError("graph path provenance is malformed")
+            path.append(
+                KnowledgeRelation(
+                    self._text(relation, "subject"),
+                    RelationKind(self._text(relation, "predicate")),
+                    self._text(relation, "object"),
+                    self._text(relation, "support"),
+                    self._text(relation, "pointer"),
+                )
+            )
+        return depth, path
 
     @staticmethod
     def _text(row: Mapping[str, object], key: str) -> str:

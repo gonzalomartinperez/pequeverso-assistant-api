@@ -75,6 +75,11 @@ def usage_of(response: Any) -> Usage | None:
         return None
 
 
+def _reject_refusal(kind: str) -> None:
+    if kind in ("response.refusal.delta", "response.refusal.done"):
+        raise RejectedError(FailureCode.GENERATION_FAILED)
+
+
 class OpenAIResponsesProvider:
     def __init__(
         self,
@@ -140,23 +145,25 @@ class OpenAIResponsesProvider:
                     usage = usage_of(event.response)
                     if usage is not None:
                         yield UsageChunk(usage)
-                elif kind in ("response.refusal.delta", "response.refusal.done"):
-                    raise RejectedError(FailureCode.GENERATION_FAILED)
-                elif kind in ("response.failed", "response.incomplete"):
-                    response = getattr(event, "response", None)
-                    reason = getattr(getattr(response, "incomplete_details", None), "reason", None)
-                    log.warning(
-                        '{"operation":"provider_stream","outcome":"%s","reason":"%s"}',
-                        kind,
-                        reason or "none",
-                    )
-                    usage = usage_of(response)
-                    if usage is not None:
-                        yield UsageChunk(usage)
-                    raise RejectedError(FailureCode.GENERATION_FAILED)
-                elif kind == "error":
-                    log.warning('{"operation":"provider_stream","outcome":"error"}')
-                    raise RejectedError(FailureCode.GENERATION_FAILED)
+                else:
+                    _reject_refusal(kind)
+                    if kind in ("response.failed", "response.incomplete"):
+                        response = getattr(event, "response", None)
+                        reason = getattr(
+                            getattr(response, "incomplete_details", None), "reason", None
+                        )
+                        log.warning(
+                            '{"operation":"provider_stream","outcome":"%s","reason":"%s"}',
+                            kind,
+                            reason or "none",
+                        )
+                        usage = usage_of(response)
+                        if usage is not None:
+                            yield UsageChunk(usage)
+                        raise RejectedError(FailureCode.GENERATION_FAILED)
+                    elif kind == "error":
+                        log.warning('{"operation":"provider_stream","outcome":"error"}')
+                        raise RejectedError(FailureCode.GENERATION_FAILED)
         except openai.OpenAIError as error:
             raise RejectedError(FailureCode.PROVIDER_UNAVAILABLE) from error
         finally:
