@@ -42,7 +42,7 @@ from app.bootstrap.evaluation_index import (
     index_evaluation_snapshot,
 )
 from app.bootstrap.knowledge_evaluation import safe_exception_hook
-from app.bootstrap.logging import configure_logging
+from app.bootstrap.logging import configure_logging, use_stderr
 from app.bootstrap.provider_transport import close_owned_provider, provider_http_client
 from scripts.evaluate_end_to_end import (
     ORIGIN,
@@ -206,6 +206,7 @@ def main() -> int:
     parser.add_argument("--authorized-envelope-sha256")
     args = parser.parse_args()
     os.umask(0o077)
+    use_stderr()  # the app lifespan started by evaluate() reconfigures logging later
     configure_logging()
     values = graph_configuration(args.services_config)
     body = args.manifest.read_bytes()

@@ -15,7 +15,7 @@ from app.bootstrap.logging import configure_logging
 
 
 async def main() -> int:
-    configure_logging()
+    configure_logging(stream="stderr")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--snapshot", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, required=True)

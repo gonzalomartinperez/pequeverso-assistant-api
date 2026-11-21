@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.bootstrap.config import DEFAULT_CATALOG
+from app.bootstrap.logging import use_stderr
 from scripts.evaluate_end_to_end import digest, evaluate, load_live_provider, write_private
 from scripts.real_eval_budget import CAP_MICRO, evaluation_run_ownership
 
@@ -119,6 +120,7 @@ def remaining_cases(
 
 
 def main() -> None:
+    use_stderr()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--previous-run", type=Path, required=True)

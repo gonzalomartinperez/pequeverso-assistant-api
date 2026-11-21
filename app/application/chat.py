@@ -327,6 +327,7 @@ class _ModelRun(Run):
                     "output_tokens": event.usage.output_tokens if event.usage else None,
                     "reasoning_tokens": event.usage.reasoning_tokens if event.usage else None,
                     "language": self._prepared_language.value,
+                    "prompt_version": service.prompt_version,
                     "first_delta_ms": self._first_delta_ms,
                     "latency_ms": self._elapsed_ms(),
                 }
@@ -387,7 +388,16 @@ class _ModelRun(Run):
         if not self._settled:
             await service.ledger.mark_unreported(self.id)
         if code is not None:
-            log.info(json.dumps({"operation": "run", "outcome": state.value, "code": code.value}))
+            log.info(
+                json.dumps(
+                    {
+                        "operation": "run",
+                        "outcome": state.value,
+                        "code": code.value,
+                        "prompt_version": service.prompt_version,
+                    }
+                )
+            )
         await service.record_metric(
             RunMetric(
                 run_id=self.id,
@@ -473,7 +483,9 @@ class ChatService:
         official_help: OfficialHelp | None = None,
         knowledge: KnowledgeRetrieval | None = None,
         runtime_ownership: Callable[[], Awaitable[bool]] | None = None,
+        prompt_version: str | None = None,
     ) -> None:
+        self.prompt_version = prompt_version
         self.metrics = metrics
         self.official_help = official_help
         self.knowledge = knowledge

@@ -10,12 +10,17 @@ import logging
 import socket
 import time
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime
 from html.parser import HTMLParser
+from typing import TYPE_CHECKING
 
 import httpx
 
 from app.domain.web_evidence import SOURCES, HelpSource, HelpTopic, WebEvidence
+
+if TYPE_CHECKING:
+    from datetime import datetime
+
+    from app.application.ports import Clock
 
 log = logging.getLogger(__name__)
 FETCH_ORIGIN = "https://api-help-center.bkf.hotmart.com"
@@ -122,12 +127,12 @@ class OfficialHelpReader:
         transport: httpx.AsyncBaseTransport | None = None,
         dns_resolver: Callable[[], Awaitable[tuple[str, ...]]] = resolve_fixed_host,
         monotonic: Callable[[], float] = time.monotonic,
-        now: Callable[[], datetime] = lambda: datetime.now(UTC),
+        clock: Clock,
     ) -> None:
         self._transport = transport
         self._dns_resolver = dns_resolver
         self._monotonic = monotonic
-        self._now = now
+        self._clock = clock
         self._cache: dict[HelpTopic, tuple[float, WebEvidence | None]] = {}
         self._locks = {source.topic: asyncio.Lock() for source in SOURCES}
 
@@ -188,7 +193,7 @@ class OfficialHelpReader:
                         body.extend(chunk)
                         if len(body) > MAX_BODY_BYTES:
                             raise ValueError("help body too large")
-                    evidence = parse_article(bytes(body), source, self._now())
+                    evidence = parse_article(bytes(body), source, self._clock.now())
             except httpx.HTTPError, ValueError, UnicodeError, OSError:
                 self._cache[source.topic] = (now + FAILURE_COOLDOWN_SECONDS, None)
                 log.info(
