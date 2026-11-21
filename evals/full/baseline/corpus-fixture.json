@@ -68,10 +68,10 @@
   "retrieval": {
     "overall": {
       "cases": 241,
-      "recall_at_3": 0.838,
-      "recall_at_5": 0.888,
-      "ndcg_at_5": 0.697,
-      "mrr": 0.739
+      "recall_at_3": 0.834,
+      "recall_at_5": 0.88,
+      "ndcg_at_5": 0.691,
+      "mrr": 0.734
     },
     "by_split": {
       "dev": {
@@ -83,10 +83,10 @@
       },
       "holdout": {
         "cases": 70,
-        "recall_at_3": 0.829,
-        "recall_at_5": 0.871,
-        "ndcg_at_5": 0.671,
-        "mrr": 0.703
+        "recall_at_3": 0.814,
+        "recall_at_5": 0.843,
+        "ndcg_at_5": 0.652,
+        "mrr": 0.686
       }
     },
     "by_family": {
@@ -94,7 +94,7 @@
         "cases": 16,
         "recall_at_3": 0.938,
         "recall_at_5": 0.938,
-        "ndcg_at_5": 0.736,
+        "ndcg_at_5": 0.721,
         "mrr": 0.844
       },
       "commercial-rules": {
@@ -122,7 +122,7 @@
         "cases": 14,
         "recall_at_3": 1.0,
         "recall_at_5": 1.0,
-        "ndcg_at_5": 0.834,
+        "ndcg_at_5": 0.838,
         "mrr": 0.929
       },
       "injection": {
@@ -157,7 +157,7 @@
         "cases": 21,
         "recall_at_3": 0.952,
         "recall_at_5": 0.952,
-        "ndcg_at_5": 0.813,
+        "ndcg_at_5": 0.819,
         "mrr": 0.841
       },
       "purchase-process": {
@@ -190,10 +190,10 @@
       },
       "typos-and-slang": {
         "cases": 24,
-        "recall_at_3": 0.875,
-        "recall_at_5": 0.958,
-        "ndcg_at_5": 0.73,
-        "mrr": 0.774
+        "recall_at_3": 0.833,
+        "recall_at_5": 0.875,
+        "ndcg_at_5": 0.672,
+        "mrr": 0.724
       },
       "usage-and-start": {
         "cases": 16,
@@ -213,10 +213,10 @@
       },
       "es": {
         "cases": 225,
-        "recall_at_3": 0.862,
-        "recall_at_5": 0.911,
-        "ndcg_at_5": 0.723,
-        "mrr": 0.769
+        "recall_at_3": 0.858,
+        "recall_at_5": 0.902,
+        "ndcg_at_5": 0.717,
+        "mrr": 0.763
       },
       "mixed": {
         "cases": 3,
@@ -403,7 +403,12 @@
     {
       "id": "typ-013",
       "family": "typos-and-slang",
-      "best_rank": 5
+      "best_rank": null
+    },
+    {
+      "id": "typ-015",
+      "family": "typos-and-slang",
+      "best_rank": null
     },
     {
       "id": "typ-020",

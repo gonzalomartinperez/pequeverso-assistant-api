@@ -81,7 +81,9 @@ def _stem(word: str) -> str:
         return word
     if word.endswith("ces"):
         return word[:-3] + "z"
-    if word.endswith("es") and word[-3] in _STEM_ES_AFTER:
+    # 'lugares' -> 'lugar', 'actividades' -> 'actividad'; but 'nombres' -> 'nombre', 'grandes' ->
+    # 'grande': the -es is a plural ending only after a vowel plus one of these consonants.
+    if word.endswith("es") and word[-3] in _STEM_ES_AFTER and word[-4] in "aeiou":
         return word[:-2]
     return word if word.endswith(("is", "us", "ss")) else word[:-1]
 

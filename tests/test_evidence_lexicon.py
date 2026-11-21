@@ -90,5 +90,45 @@ def test_irregular_plurals_fold_to_the_singular() -> None:
 def test_query_text_is_never_memoized() -> None:
     from app.ai import evidence
 
-    assert not hasattr(evidence._tokens, "cache_info")
-    assert hasattr(evidence._passage_tokens, "cache_info")
+    sentinel = "consulta centinela irrepetible 7f3a9c"
+    items = [_passage("faq", "Puedes imprimir las fichas en casa.")]
+    evidence.rank(sentinel, items)
+    for name in dir(evidence):
+        cache = getattr(getattr(evidence, name), "cache_parameters", None)
+        if cache is None:
+            continue
+        assert name in {"_passage_tokens", "_alias_index"}, f"{name} caches query-side input"
+    assert evidence._passage_tokens("consulta centinela irrepetible 7f3a9c") is not None
+    evidence._passage_tokens.cache_clear()
+
+
+@pytest.mark.parametrize(
+    ("plural", "singular"),
+    [
+        ("nombres", "nombre"),
+        ("posibles", "posible"),
+        ("grandes", "grande"),
+        ("lugares", "lugar"),
+        ("actividades", "actividad"),
+        ("veces", "vez"),
+        ("tres", "tres"),
+    ],
+)
+def test_spanish_plural_folding(plural: str, singular: str) -> None:
+    from app.ai.evidence import tokens
+
+    assert tokens(plural) == tokens(singular)
+
+
+def test_stopwords_are_dropped() -> None:
+    from app.ai.evidence import tokens
+
+    assert tokens("el kit de las fichas") == tokens("kit fichas")
+
+
+def test_values_question_does_not_pull_payment_policy() -> None:
+    items = [
+        _passage("policy", "Precio y pago en página segura."),
+        _passage("faq", "El kit enseña valores como la paciencia y el respeto."),
+    ]
+    assert rank("¿Qué valores enseña?", items)[0][0].id == "faq"

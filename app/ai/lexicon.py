@@ -1,4 +1,9 @@
-"""Query aliases for vocabulary used in the catalog's rankable passages."""
+"""Query aliases for vocabulary used in the catalog's rankable passages.
+
+Tuned on the `dev` split of the full evaluation set only: an alias that exists just because a
+`holdout` query contains it is not allowed, so the holdout numbers stay an independent estimate.
+Negation is not modelled (`no` is a stopword); only a few "no me llegó ..." phrases are aliased.
+"""
 
 # Each row lists canonical catalog terms, followed by their query-side aliases.
 # For intent phrases, keep the context that distinguishes senses such as a purchase
@@ -38,7 +43,7 @@ QUERY_ALIASES = (
     ("medios de pago", "forma de pago|método de pago|opciones de pago|cómo se paga"),
     ("tarjeta", "tarjeta de débito|tarjeta bancaria|datos bancarios"),
     ("transferencia bancaria", "depósito bancario"),
-    ("precio", "cuesta|costar|costará|costo|valor"),
+    ("precio", "cuesta|costar|costará|costo|cuál es el valor|qué valor tiene|valor del kit"),
     ("moneda", "divisa|pesos|euros|moneda nacional"),
     ("dólares usd", "dólar estadounidense|dólar americano"),
     ("convierte conversión", "convertir|conversiones|tipo de cambio|tasa de cambio"),
@@ -82,20 +87,20 @@ QUERY_ALIASES = (
     # Materials, age and practice
     (
         "incluye recibes",
-        "incluye|incluido|incluyen|incluido en la compra|contenido del kit|qué trae|qué viene",
+        "incluye|incluido|incluyen|incluido en la compra|contenido del kit|qué viene",
     ),
-    ("bonos", "bono adicional|extras|material adicional"),
+    ("bonos", "bono adicional|material adicional"),
     ("hoja página", "ficha imprimible|fichas de trabajo"),
     ("kit", "paquete de materiales|conjunto de materiales"),
     ("imprimir impresión", "imprimo|impreso|impresa|imprimible|impresora|fotocopiar"),
     ("papelería centro de impresión", "copistería|fotocopiadora"),
     ("pdf digital", "formato electrónico|archivo pdf"),
-    ("tarjetas recortables", "tarjetitas|recortar|tarjetas para recortar"),
+    ("tarjetas recortables", "recortar|tarjetas para recortar"),
     ("plastificar", "laminar|enmicado"),
     ("pósteres", "afiche|cartel|lámina"),
     ("practicar práctica", "practico|ejercitar|ejercicios|practiquen"),
     ("comenzar", "inicio|iniciar|empezar|empiezo|arrancar"),
-    ("minutos", "min|minuto"),
+    ("minutos", "minuto"),
     ("guía", "instrucciones de uso|guía de inicio|orientaciones"),
     ("rutina calendario", "cronograma|plan diario"),
     (
@@ -104,7 +109,7 @@ QUERY_ALIASES = (
     ),
     ("edad", "rango etario|años de edad|franja de edad"),
     ("hijo", "hija"),
-    ("niño", "nene|nena|peque|chiquito|chiquita"),
+    ("niño", "nena|peque|chiquito|chiquita"),
     ("reconocer letras", "identificar letras|reconocimiento de letras"),
     ("sonidos", "pronunciación|pronunciar|fonético|fonética"),
     ("trazos trazar", "repasar con lápiz|delinear|calcar"),
