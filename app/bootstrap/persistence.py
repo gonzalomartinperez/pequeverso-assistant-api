@@ -62,14 +62,10 @@ def build_persistence(settings: Settings, parser: CatalogParser) -> Persistence:
             operations=SqliteOperationsQueries(database),
             catalog=SqliteCatalogRepository(database),
         )
-    if settings.postgres_private_dsn is None:
-        raise AssertionError
-    if settings.postgres_knowledge_dsn is None:
-        raise AssertionError
-    if settings.neo4j_uri is None:
-        raise AssertionError
-    if settings.neo4j_password is None:
-        raise AssertionError
+    assert settings.postgres_private_dsn is not None
+    assert settings.postgres_knowledge_dsn is not None
+    assert settings.neo4j_uri is not None
+    assert settings.neo4j_password is not None
     private = PostgresDatabase(
         settings.postgres_private_dsn.get_secret_value(),
         pool_size=settings.postgres_private_pool_size,

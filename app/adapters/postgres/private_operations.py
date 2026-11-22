@@ -82,8 +82,7 @@ class PostgresOperationsQueries:
                     (column, value, column, value),
                 )
             ).fetchone()
-        if row is None:
-            raise AssertionError
+        assert row is not None
         return _spend(row)
 
     async def tokens(self, since: datetime) -> Tokens:
@@ -98,8 +97,7 @@ class PostgresOperationsQueries:
                     (since,),
                 )
             ).fetchone()
-        if row is None:
-            raise AssertionError
+        assert row is not None
         return _tokens(row)
 
     async def run_window(self, since: datetime) -> RunWindow:
@@ -133,8 +131,7 @@ class PostgresOperationsQueries:
                     (since,),
                 )
             ).fetchall()
-        if replaced is None:
-            raise AssertionError
+        assert replaced is not None
         return RunWindow(
             counts,
             {r["code"]: int(r["n"]) for r in failure_rows},
@@ -222,8 +219,7 @@ class PostgresOperationsQueries:
                     "SELECT activated_at,last_attempt_at,last_failure,last_failure_at FROM knowledge.state WHERE id=1",
                 )
             ).fetchone()
-        if row is None:
-            raise AssertionError
+        assert row is not None
         return CatalogState(
             row["activated_at"], row["last_attempt_at"], row["last_failure"], row["last_failure_at"]
         )

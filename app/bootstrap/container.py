@@ -86,8 +86,7 @@ def build_provider(
     settings: Settings, embedding_accounting: EmbeddingAccounting | None = None
 ) -> _ProviderResource:
     if settings.ai_provider == "openai":
-        if settings.openai_api_key is None:
-            raise AssertionError
+        assert settings.openai_api_key is not None
         http = provider_http_client()
         client = AsyncOpenAI(
             http_client=http,
@@ -98,8 +97,7 @@ def build_provider(
         )
         embeddings: Embeddings | None = None
         if settings.knowledge_backend == "graphrag":
-            if embedding_accounting is None:
-                raise AssertionError
+            assert embedding_accounting is not None
             embeddings = OpenAIEmbeddings(client, embedding_accounting)
         return _ProviderResource(
             OpenAIResponsesProvider(
@@ -141,16 +139,15 @@ def _analytics_service(settings: Settings, persistence: Persistence) -> Analytic
     if not settings.product_analytics_enabled:
         return None
     db = persistence.database
-    if isinstance(db, PostgresDatabase):
-        synthetic = settings.environment != "production"
-        return AnalyticsService(
-            PostgresProductAnalytics(db, synthetic=synthetic),
-            synthetic=synthetic,
-            country_collection="trusted_proxy_header"
-            if settings.product_analytics_country_enabled
-            else "disabled",
-        )
-    raise AssertionError
+    assert isinstance(db, PostgresDatabase)
+    synthetic = settings.environment != "production"
+    return AnalyticsService(
+        PostgresProductAnalytics(db, synthetic=synthetic),
+        synthetic=synthetic,
+        country_collection="trusted_proxy_header"
+        if settings.product_analytics_country_enabled
+        else "disabled",
+    )
 
 
 def _session_service(settings: Settings, persistence: Persistence, clock: Clock) -> SessionService:
@@ -200,15 +197,12 @@ def _composer_and_knowledge(
     composer: AnswerComposer = grounded
     knowledge: HybridKnowledgeRetrieval | None = None
     if settings.knowledge_backend == "graphrag":
-        if persistence.graph is None:
-            raise AssertionError
-        if not isinstance(persistence.catalog, PostgresKnowledgeStore):
-            raise AssertionError
+        assert persistence.graph is not None
+        assert isinstance(persistence.catalog, PostgresKnowledgeStore)
         embeddings = owned.embeddings
         if embeddings is None and settings.ai_provider == "fixture":
             embeddings = FixtureHashEmbeddings()
-        if embeddings is None:
-            raise AssertionError
+        assert embeddings is not None
         knowledge = HybridKnowledgeRetrieval(
             persistence.catalog, persistence.graph, embeddings, PARSER_VERSION, clock
         )
