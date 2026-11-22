@@ -18,7 +18,9 @@ from app.domain.answer_policy import (
     Violation,
     check_answer,
     fold,
+    published_refund_days,
     unsupported_checkout_policy,
+    unsupported_guarantee_claim,
 )
 from app.domain.catalog import (
     ActiveCatalog,
@@ -395,13 +397,20 @@ def _check_product_scopes(
 def _check_catalog_claims(
     candidates: tuple[str, str], catalog: Catalog, violations: list[Violation]
 ) -> None:
+    policies = tuple(d.text for d in catalog.documents)
+    guarantee_days = frozenset(p.guarantee_days for p in catalog.products if p.guarantee_days)
+    refund_days = published_refund_days(
+        tuple(d.text for d in catalog.documents if d.id == "policy.guarantee")
+    )
     for candidate in candidates:
-        if unsupported_checkout_policy(candidate, tuple(d.text for d in catalog.documents)):
+        if unsupported_checkout_policy(candidate, policies):
             violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
-        if unsupported_platform_policy(candidate, tuple(d.text for d in catalog.documents)):
+        if unsupported_platform_policy(candidate, policies):
             violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
         if unsupported_page_claim(candidate, catalog):
             violations.append(Violation.UNSUPPORTED_PAGE_CLAIM)
+        if unsupported_guarantee_claim(candidate, guarantee_days, refund_days):
+            violations.append(Violation.UNSUPPORTED_GUARANTEE_CLAIM)
 
 
 _COMPLETE_PREFIX = re.compile(r"[.!?](?=\s)|\n[ \t]*\n")

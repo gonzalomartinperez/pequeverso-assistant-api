@@ -25,6 +25,7 @@ class Violation(StrEnum):
     UNSUPPORTED_OUTCOME_CLAIM = "unsupported_outcome_claim"
     UNSUPPORTED_POLICY_CLAIM = "unsupported_policy_claim"
     UNSUPPORTED_PAGE_CLAIM = "unsupported_page_claim"
+    UNSUPPORTED_GUARANTEE_CLAIM = "unsupported_guarantee_claim"
 
 
 _URL = re.compile(
@@ -131,6 +132,56 @@ def fold(text: str) -> str:
     """Lowercase, accent-free form used for term matching."""
     decomposed = unicodedata.normalize("NFKD", text.lower())
     return "".join(char for char in decomposed if not unicodedata.combining(char))
+
+
+_NUMBER_WORDS = {
+    "uno": 1, "una": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7,
+    "ocho": 8, "nueve": 9, "diez": 10, "quince": 15, "veinte": 20, "treinta": 30,
+    "sesenta": 60, "noventa": 90, "one": 1, "two": 2, "three": 3, "five": 5, "seven": 7,
+    "ten": 10, "fifteen": 15, "thirty": 30, "sixty": 60, "ninety": 90,
+}  # fmt: skip
+_COUNT = r"(\d{1,3}|" + "|".join(sorted(_NUMBER_WORDS, key=len, reverse=True)) + r")"
+_DAY_UNIT = r"\s*-?\s*(?:dias?|days?)\b"
+# Keep the bounded matching used by guarantee.days, including adjacent sentences.
+_WINDOW = re.compile(
+    r"\b(?:garant\w*|reembols\w*|devoluc\w*|refund\w*|guarantee\w*)\b[^\d]{0,60}?\b"
+    + _COUNT
+    + _DAY_UNIT
+    + r"|\b"
+    + _COUNT
+    + _DAY_UNIT
+    + r"\s+(?:de\s+|of\s+)?(?:garant\w*|reembols\w*|devoluc\w*|refund|guarantee)"
+)
+_PROCESSING = re.compile(
+    r"responder|aprobac|aprob|transferencia|tarjeta|tardar|demora|vuelve|acredit|resumen"
+)
+_WITHDRAWAL = re.compile(r"arrepent|revoca")
+_PUBLISHED_DAYS = re.compile(r"\b(\d{1,3})\s*dias\b")
+
+
+def published_refund_days(policy_texts: tuple[str, ...]) -> frozenset[int]:
+    return frozenset(
+        int(days) for text in policy_texts for days in _PUBLISHED_DAYS.findall(fold(text))
+    )
+
+
+def unsupported_guarantee_claim(
+    answer: str, guarantee_days: frozenset[int], refund_days: frozenset[int]
+) -> bool:
+    """Check stated guarantee windows against catalog and context-specific allowances."""
+    text = fold(answer)
+    for match in _WINDOW.finditer(text):
+        raw = match.group(1) or match.group(2)
+        count = int(raw) if raw.isdigit() else _NUMBER_WORDS[raw]
+        allowed = guarantee_days
+        # OD-50: the Argentine legal withdrawal window is 10 days.
+        if _WITHDRAWAL.search(text[max(0, match.start() - 80) : match.end() + 80]):
+            allowed |= {10}
+        if _PROCESSING.search(text[max(0, match.start() - 40) : match.end() + 40]):
+            allowed |= refund_days
+        if count not in allowed:
+            return True
+    return False
 
 
 # Bounded checkout-grouping claims, not general entailment. Product destinations do not

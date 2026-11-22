@@ -44,6 +44,8 @@ def test_content_preserves_first_violation_order_across_raw_and_readable_checks(
             Violation.UNKNOWN_PRICE,
             Violation.UNSUPPORTED_PAGE_CLAIM,
             Violation.UNSUPPORTED_POLICY_CLAIM,
+            # PVA-M4-X: an unpublished guarantee window is refused in code too.
+            Violation.UNSUPPORTED_GUARANTEE_CLAIM,
         ),
     )
     assert not checked.accepted
@@ -87,10 +89,14 @@ def test_product_scope_cannot_borrow_a_published_policy_from_another_product() -
     )
     text = "La Guía de Alimentación para Bebés tiene 30 días de garantía."
     assert check_content(text, catalog, RULES) == CheckedContent(
-        text, (Violation.UNSUPPORTED_POLICY_CLAIM,)
+        text, (Violation.UNSUPPORTED_POLICY_CLAIM, Violation.UNSUPPORTED_GUARANTEE_CLAIM)
     )
     unscoped_text = "Tienes 30 días de garantía."
-    assert check_content(unscoped_text, catalog, RULES) == CheckedContent(unscoped_text, ())
+    # PVA-M4-X: guarantee windows come from the structured product `guarantee_days` (7, OD-50), not
+    # from policy prose, so a prose-only 30-day window is refused even when no product is named.
+    assert check_content(unscoped_text, catalog, RULES) == CheckedContent(
+        unscoped_text, (Violation.UNSUPPORTED_GUARANTEE_CLAIM,)
+    )
 
 
 def test_caps_preserve_first_seen_references_and_only_invalid_ids_count_as_dropped() -> None:
