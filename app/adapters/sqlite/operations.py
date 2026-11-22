@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import hashlib
-import sqlite3
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
-from app.adapters.sqlite.database import Database
 from app.adapters.sqlite.stores import parse_ts, ts
 from app.application.operations import CatalogState, DailyRow, RecentRun, RunWindow, Spend, Tokens
 from app.application.ports import RunMetric, RunOutcome
+
+if TYPE_CHECKING:
+    import sqlite3
+
+    from app.adapters.sqlite.database import Database
 
 OUTCOMES = tuple(o.value for o in RunOutcome)
 METRICS_RETENTION = timedelta(days=90)

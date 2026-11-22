@@ -5,11 +5,10 @@ from __future__ import annotations
 import json
 from dataclasses import asdict
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from psycopg.errors import UniqueViolation
 
-from app.adapters.postgres.database import PostgresDatabase, Row
 from app.application.ports import RunRecord, RunState
 from app.domain.conversation import (
     AnswerDetails,
@@ -25,6 +24,9 @@ from app.domain.conversation import (
     SourceRef,
 )
 from app.domain.errors import FailureCode, RejectedError
+
+if TYPE_CHECKING:
+    from app.adapters.postgres.database import PostgresDatabase, Row
 
 
 def _encode(value: object) -> str:

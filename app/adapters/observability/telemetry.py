@@ -11,7 +11,6 @@ import re
 import resource
 import threading
 import time
-from collections.abc import Awaitable, Callable, Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -26,14 +25,16 @@ from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
 from opentelemetry.trace import Span, SpanKind, StatusCode
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 from prometheus_client import CollectorRegistry, Counter, Gauge, Histogram, generate_latest
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.application.operations import RunWindow
 from app.application.telemetry import RuntimeResources, TelemetrySnapshot
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable, Sequence
     from datetime import datetime
 
+    from starlette.types import ASGIApp, Message, Receive, Scope, Send
+
+    from app.application.operations import RunWindow
     from app.application.ports import Clock
 
 log = logging.getLogger(__name__)

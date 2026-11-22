@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
-from app.adapters.postgres.database import PostgresDatabase, Row
 from app.application.operations import CatalogState, DailyRow, RecentRun, RunWindow, Spend, Tokens
 from app.application.ports import RunMetric, RunOutcome
+
+if TYPE_CHECKING:
+    from app.adapters.postgres.database import PostgresDatabase, Row
 
 OUTCOMES = tuple(outcome.value for outcome in RunOutcome)
 

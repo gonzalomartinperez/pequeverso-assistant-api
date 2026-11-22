@@ -13,10 +13,9 @@ import json
 import math
 import re
 from collections import Counter, defaultdict
-from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from app.ai.lexicon import QUERY_ALIASES
 from app.domain.answer_policy import fold
@@ -28,6 +27,9 @@ from app.domain.catalog import (
     mentioned_products,
     resource_key,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
 
 _WORD = re.compile(r"[a-z0-9]+")
 # Generic Spanish function words (articles, prepositions, pronouns, auxiliaries, interrogatives and

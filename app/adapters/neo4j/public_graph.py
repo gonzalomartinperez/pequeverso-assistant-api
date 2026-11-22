@@ -6,7 +6,7 @@ operators must isolate this instance/credentials/network from private data and o
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
 from neo4j import AsyncDriver, Query
 from neo4j.exceptions import DriverError, Neo4jError
@@ -20,6 +20,9 @@ from app.domain.knowledge import (
     RelationKind,
     RetrievalStrategy,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 _CONSTRAINTS = (
     "CREATE CONSTRAINT pv_chunk_version_id IF NOT EXISTS FOR (n:PVChunk) REQUIRE (n.version,n.id) IS UNIQUE",

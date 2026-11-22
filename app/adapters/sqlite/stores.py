@@ -6,9 +6,8 @@ import json
 import sqlite3
 from dataclasses import asdict
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from app.adapters.sqlite.database import Database
 from app.application.ports import RunRecord, RunState
 from app.domain.conversation import (
     AnswerDetails,
@@ -24,6 +23,9 @@ from app.domain.conversation import (
     SourceRef,
 )
 from app.domain.errors import FailureCode, RejectedError
+
+if TYPE_CHECKING:
+    from app.adapters.sqlite.database import Database
 
 
 def ts(value: datetime) -> str:

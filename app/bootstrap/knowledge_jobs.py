@@ -12,6 +12,7 @@ import sys
 from dataclasses import asdict
 from decimal import Decimal
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from openai import AsyncOpenAI
 from pydantic import Field, SecretStr
@@ -27,12 +28,14 @@ from app.adapters.postgres.private_ledger import PostgresLedger
 from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
 from app.application.embedding_budget import SharedEmbeddingAccounting
 from app.application.indexing import KnowledgeIndexer
-from app.application.knowledge_ports import Embeddings
 from app.bootstrap.container import SystemClock
 from app.bootstrap.logging import configure_logging
 from app.bootstrap.provider_transport import close_provider_transport, provider_http_client
 from app.domain.budget import BudgetPolicy, to_micro
 from app.domain.knowledge import MAX_PUBLIC_BODY_BYTES
+
+if TYPE_CHECKING:
+    from app.application.knowledge_ports import Embeddings
 
 
 class IndexSettings(BaseSettings):

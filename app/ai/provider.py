@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
-from app.domain.budget import Usage
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from app.domain.budget import Usage
 
 
 @dataclass(frozen=True, slots=True)

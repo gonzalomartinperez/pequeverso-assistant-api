@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from psycopg import AsyncConnection, sql
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 
 Row = dict[str, Any]
 CORE_MIGRATIONS = (

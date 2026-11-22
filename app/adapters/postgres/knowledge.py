@@ -11,18 +11,14 @@ import json
 import math
 import re
 import struct
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from psycopg.types.json import Jsonb
 
-from app.adapters.postgres.database import PostgresDatabase, Row
 from app.application.ports import CatalogParser, StoredSnapshot
 from app.domain.answer_policy import fold
-from app.domain.catalog import Catalog
 from app.domain.knowledge import (
     ChunkKind,
     EmbeddingSpec,
@@ -35,6 +31,13 @@ from app.domain.knowledge import (
     RetrievalStrategy,
     validate_vector,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+    from datetime import datetime
+
+    from app.adapters.postgres.database import PostgresDatabase, Row
+    from app.domain.catalog import Catalog
 
 MAX_RETRIEVAL_LIMIT = 64
 

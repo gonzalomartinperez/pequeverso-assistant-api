@@ -7,10 +7,9 @@ produces domain objects. Text stays data: nothing here interprets it.
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 from urllib.parse import urlsplit
 
 from pydantic import (
@@ -23,6 +22,9 @@ from pydantic import (
 )
 
 from app.domain import catalog as domain
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 MAX_CATALOG_BYTES = 256 * 1024
 
