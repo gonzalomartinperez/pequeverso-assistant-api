@@ -13,12 +13,16 @@ def postgres_fixture_identity(value: object) -> str:
     return value
 
 
+def _read_identity() -> str:
+    serialized = sys.stdin.read(257)
+    if len(serialized) > 256:
+        raise ValueError("image identity metadata exceeds its bound")
+    return postgres_fixture_identity(json.loads(serialized))
+
+
 def main() -> int:
     try:
-        serialized = sys.stdin.read(257)
-        if len(serialized) > 256:
-            raise ValueError("image identity metadata exceeds its bound")
-        identity = postgres_fixture_identity(json.loads(serialized))
+        identity = _read_identity()
     except (ValueError, TypeError):
         print("PostgreSQL fixture image identity was refused", file=sys.stderr)
         return 2

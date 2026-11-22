@@ -331,6 +331,14 @@ def checkpoint(path: Path, value: object) -> None:
     temporary.replace(path)
 
 
+def _wait_for_server(server: uvicorn.Server, thread: threading.Thread) -> None:
+    deadline = time.monotonic() + 10
+    while not server.started:
+        if not thread.is_alive() or time.monotonic() > deadline:
+            raise RuntimeError("evaluation server did not start")
+        time.sleep(0.01)
+
+
 def evaluate(
     manifest: dict[str, Any],
     destination: Path,
@@ -430,11 +438,7 @@ def evaluate(
         try:
             thread.start()
             thread_started = True
-            deadline = time.monotonic() + 10
-            while not server.started:
-                if not thread.is_alive() or time.monotonic() > deadline:
-                    raise RuntimeError("evaluation server did not start")
-                time.sleep(0.01)
+            _wait_for_server(server, thread)
             startup_complete = True
             logging.getLogger().setLevel(logging.WARNING)
             for case in manifest["cases"]:
@@ -796,7 +800,8 @@ def evaluate(
                 )
             ]
     else:
-        assert graph_spend is not None
+        if graph_spend is None:
+            raise AssertionError
         ledger = asyncio.run(graph_spend())
     for suffix in ("", "-wal", "-shm"):
         state_file = destination / f"evaluation.sqlite3{suffix}"

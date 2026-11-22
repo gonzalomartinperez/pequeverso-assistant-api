@@ -66,8 +66,8 @@ def frontmatter(text: str) -> tuple[dict[str, str], str]:
             index += 1
             continue
         match = re.fullmatch(r"([a-z][a-z0-9_-]*):\s*(.*)", line)
-        require(match is not None, "Malformed frontmatter field")
-        assert match is not None
+        if match is None:
+            raise SkillValidationError("Malformed frontmatter field")
         key, value = match.groups()
         require(key not in values, "Duplicate frontmatter field")
         following: list[str] = []
@@ -103,8 +103,8 @@ def metadata_block(raw: str) -> dict[str, str]:
     entries: dict[str, str] = {}
     for line in raw.splitlines():
         match = re.fullmatch(r"([a-z][a-z0-9_-]*):\s*(\S.*)", line)
-        require(match is not None, "Malformed metadata entry")
-        assert match is not None
+        if match is None:
+            raise SkillValidationError("Malformed metadata entry")
         require(match.group(1) not in entries, "Duplicate metadata entry")
         # Values are quoted in SKILL.md so YAML clients read strings, not dates or floats.
         entries[match.group(1)] = scalar(match.group(2))
@@ -112,8 +112,8 @@ def metadata_block(raw: str) -> dict[str, str]:
 
 
 def validate_metadata(name: str, raw: str | None) -> None:
-    require(raw, name + ": metadata block missing")
-    assert raw is not None
+    if not raw:
+        raise SkillValidationError(name + ": metadata block missing")
     entries = metadata_block(raw)
     require(
         {"owner", "last-reviewed", "version"} <= entries.keys(),
@@ -143,10 +143,8 @@ def validate_triggers(name: str, folder: Path) -> None:
     require(isinstance(data, dict), name + ": triggers.json must be an object")
     require(data.get("skill") == name, name + ": triggers.json skill does not match directory")
     queries = data.get("queries")
-    require(
-        isinstance(queries, list) and queries, name + ": triggers.json queries must be non-empty"
-    )
-    assert isinstance(queries, list)
+    if not isinstance(queries, list) or not queries:
+        raise SkillValidationError(name + ": triggers.json queries must be non-empty")
     flags: set[bool] = set()
     for entry in queries:
         require(

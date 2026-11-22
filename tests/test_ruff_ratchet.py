@@ -85,7 +85,6 @@ def test_committed_ratchet_is_consistent() -> None:
 def test_real_findings_match_the_committed_ratchet() -> None:
     """Runs ruff for real: the override drops only the legacy base, not the S2-S4 ignores."""
     current = ruff_ratchet.findings()
-    assert current, "the legacy base should still hide findings until PVA-M4.11"
     assert all(not path.startswith(("/", "..")) for path, _ in current)
     assert not any(path.startswith("tests/") and code == "S101" for path, code in current)
     assert ruff_ratchet.check(current) == []

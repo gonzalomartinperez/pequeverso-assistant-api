@@ -15,7 +15,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -32,8 +32,11 @@ from scripts import evaluate_conversations as conv
 from scripts import evaluate_corpus as corpus
 from scripts.real_eval_budget import BoundedProvider, Envelope
 
+if TYPE_CHECKING:
+    from app.ai.provider import ModelProvider
 
-def run_case(case: dict[str, Any], provider: Any) -> dict[str, Any]:
+
+def run_case(case: dict[str, Any], provider: ModelProvider) -> dict[str, Any]:
     offset = int(case.get("clock_offset_days", 0))
     price_status = PriceStatus.UNVERIFIED if offset > 7 else PriceStatus.VERIFIED
     settings = corpus.settings_for_eval(

@@ -1,11 +1,11 @@
-"""Conversational and guard evaluations through the full HTTP/SSE path.
+r"""Conversational and guard evaluations through the full HTTP/SSE path.
 
 Fixture mode (default, free, deterministic):
     uv run python scripts/evaluate_conversations.py
 
 Live mode (paid; run only with explicit authorization). The spend cap is enforced by the
 service's own budget ledger, which is set to --max-usd for the evaluation database:
-    ALLOW_PAID_AI=true OPENAI_API_KEY=... \\
+    ALLOW_PAID_AI=true OPENAI_API_KEY=... \
     uv run python scripts/evaluate_conversations.py --live --max-usd 0.25 --output docs/verification/live-eval.json
 
 `safety` results are code-enforced guarantees and must pass in every mode. `quality` results
@@ -44,6 +44,8 @@ from scripts.real_eval_budget import BoundedProvider, Envelope
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
+
+    from app.ai.provider import ModelProvider
 
 ORIGIN = "http://localhost:3000"
 HEADERS = {"Origin": ORIGIN, "Content-Type": "application/json"}
@@ -171,7 +173,9 @@ def _quality(message: dict[str, Any] | None, rules: dict[str, Any]) -> list[str]
     return problems
 
 
-def run_conversations(settings: Settings, provider: Any = None) -> list[dict[str, Any]]:
+def run_conversations(
+    settings: Settings, provider: ModelProvider | None = None
+) -> list[dict[str, Any]]:
     scenarios = json.loads((ROOT / "evals" / "conversations.json").read_text())["scenarios"]
     results = []
     counter = 0

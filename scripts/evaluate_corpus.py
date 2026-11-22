@@ -63,6 +63,8 @@ from scripts.real_eval_budget import BoundedProvider, Envelope
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from app.ai.provider import ModelProvider
+
 CORPUS = ROOT / "evals" / "full"
 CORPUS_VERSION = "2.0.0"
 SCHEMA_VERSION = 2
@@ -523,7 +525,7 @@ def _ask(
 
 
 def run_pipeline(
-    settings: Settings, cases: list[dict[str, Any]], provider: Any = None
+    settings: Settings, cases: list[dict[str, Any]], provider: ModelProvider | None = None
 ) -> list[dict[str, Any]]:
     by_clock: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for case in cases:
@@ -615,7 +617,7 @@ def summarize(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def settings_for_eval(**overrides: Any) -> Settings:
+def settings_for_eval(**overrides: object) -> Settings:
     base: dict[str, Any] = {
         "environment": "test",
         "ai_provider": "fixture",

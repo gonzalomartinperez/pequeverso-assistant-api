@@ -26,9 +26,10 @@ def test_envelope_is_atomic_persistent_and_never_refunds(tmp_path: Path) -> None
     def attempt(_: int) -> bool:
         try:
             envelope.reserve()
-            return True
         except RejectedError:
             return False
+        else:
+            return True
 
     with ThreadPoolExecutor(max_workers=16) as pool:
         accepted = list(pool.map(attempt, range(500)))
@@ -396,9 +397,10 @@ def test_two_instances_share_the_persisted_attempt_ceiling_atomically(tmp_path: 
     def attempt(index: int) -> bool:
         try:
             (first if index % 2 else second).reserve()
-            return True
         except RejectedError:
             return False
+        else:
+            return True
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         accepted = list(pool.map(attempt, range(30)))
