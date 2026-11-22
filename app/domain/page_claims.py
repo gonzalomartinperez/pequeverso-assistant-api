@@ -9,12 +9,9 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
+from app.domain.catalog import Catalog
 from app.domain.web_evidence import negated_at
-
-if TYPE_CHECKING:
-    from app.domain.catalog import Catalog
 
 
 @dataclass(frozen=True)
@@ -34,20 +31,20 @@ def _normalize(text: str) -> str:
 def _entities(catalog: Catalog) -> tuple[_Entity, ...]:
     items: list[_Entity] = []
     for product in catalog.products:
-        items.extend(
-            _Entity(
-                f"{product.id}/{resource.id}",
-                resource.pages,
-                False,
-                (
-                    _normalize(resource.title),
-                    _normalize(f"{product.id}/{resource.id}"),
-                    *((_normalize(resource.id),) if resource.id.isalpha() else ()),
-                ),
-            )
-            for resource in product.resources
-            if resource.pages is not None
-        )
+        for resource in product.resources:
+            if resource.pages is not None:
+                items.append(
+                    _Entity(
+                        f"{product.id}/{resource.id}",
+                        resource.pages,
+                        False,
+                        (
+                            _normalize(resource.title),
+                            _normalize(f"{product.id}/{resource.id}"),
+                            *((_normalize(resource.id),) if resource.id.isalpha() else ()),
+                        ),
+                    )
+                )
         aliases: tuple[str, ...] = (_normalize(product.name), _normalize(product.id))
         if product.kind == "core" and len([p for p in catalog.products if p.kind == "core"]) == 1:
             aliases += ("kit",)

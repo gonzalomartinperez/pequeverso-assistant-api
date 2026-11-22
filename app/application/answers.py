@@ -5,8 +5,8 @@ unknown ids are dropped, and an answer that breaks an answer rule is replaced as
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from app.application.ports import Draft, DraftReference
@@ -44,9 +44,6 @@ from app.domain.conversation import (
 from app.domain.language import Language
 from app.domain.page_claims import unsupported_page_claim
 from app.domain.web_evidence import WebEvidence, negated_at, unsupported_platform_policy
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 _MARKUP = re.compile(r"</?[A-Za-z][^<>]{0,300}>")
 _MARKDOWN_LINK = re.compile(r"\[([^\]\n]{1,180})\]\(([^)\n]{0,512})\)")

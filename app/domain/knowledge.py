@@ -6,11 +6,8 @@ import hashlib
 import math
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 _SHA256 = re.compile(r"[a-f0-9]{64}\Z")
 _REVISION = re.compile(r"[a-f0-9]{40}\Z")

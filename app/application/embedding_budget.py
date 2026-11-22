@@ -5,14 +5,11 @@ from __future__ import annotations
 import re
 import secrets
 from decimal import Decimal
-from typing import TYPE_CHECKING
 
+from app.application.ports import Clock, Ledger
 from app.domain.budget import BudgetPolicy, Pricing, Usage, cost_micro, worst_case_micro
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.knowledge import EmbeddingPurpose
-
-if TYPE_CHECKING:
-    from app.application.ports import Clock, Ledger
 
 _OPERATION = re.compile(r"embedding:(?:index|query):[a-f0-9]{32}\Z")
 
