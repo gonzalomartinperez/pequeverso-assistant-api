@@ -2,7 +2,7 @@
   "schema_version": 1,
   "description": "Legacy ruff findings; every count only decreases (PVA-M2.1).",
   "target": "0 for every code by PVA-M4.11",
-  "total": 609,
+  "total": 605,
   "findings": {
     "ANN401": 17,
     "ARG001": 1,
@@ -26,7 +26,7 @@
     "TC002": 24,
     "TC003": 123,
     "TRY300": 6,
-    "TRY301": 29
+    "TRY301": 25
   },
   "by_file": {
     "app/adapters/catalog/knowledge.py": {
@@ -161,7 +161,7 @@
       "D401": 1,
       "TC001": 4,
       "TC003": 6,
-      "TRY301": 5
+      "TRY301": 1
     },
     "app/application/embedding_budget.py": {
       "TC001": 2

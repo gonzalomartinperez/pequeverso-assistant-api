@@ -1,7 +1,5 @@
 {
   "schema_version": 1,
   "max_complexity": 10,
-  "functions": {
-    "app/application/chat.py::ChatService.start": 29
-  }
+  "functions": {}
 }
