@@ -155,7 +155,7 @@ jobs:
             uv run python -m scripts.prompt_lock
             uv run python -m scripts.complexity_ratchet
           fi
-      - name: Import contracts (import-linter, warn mode until PVA-M4.7)
+      - name: Import contracts (import-linter, authoritative, PVA-M4.7)
         run: uv run lint-imports
       - name: Dead code (vulture)
         run: uv run vulture

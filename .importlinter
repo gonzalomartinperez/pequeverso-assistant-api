@@ -1,4 +1,5 @@
-# PVA-M2.2: parallel diagnostic guard; the AST architecture tests remain authoritative.
+# Authoritative layer and SDK-confinement guard (PVA-M4.7, ADR-0011).
+# The AST test keeps the stdlib allowlist, SQL/Cypher text location and module classification.
 [importlinter]
 root_package = app
 include_external_packages = True
@@ -96,10 +97,12 @@ allowed_importers =
 [importlinter:contract:sqlite]
 name = sqlite SDK confinement
 type = protected
+as_packages = False
 protected_modules =
     sqlite3
 allowed_importers =
     app.adapters.sqlite
+    app.adapters.sqlite.**
     app.adapters.postgres.import_sqlite
 
 [importlinter:contract:adapters]
@@ -113,3 +116,12 @@ modules =
     app.adapters.providers
     app.adapters.observability
     app.adapters.catalog
+
+[importlinter:contract:acyclic]
+name = Application modules form an acyclic graph
+type = acyclic_siblings
+# Check siblings under app.application and every other package, at any nesting depth.
+ancestors =
+    app
+    app.**
+depth = 0

@@ -1,4 +1,4 @@
-"""Dependency direction between layers (AST-based, no third-party tool)."""
+"""Architecture rules that the import contracts cannot express."""
 
 from __future__ import annotations
 
@@ -12,14 +12,6 @@ import pytest
 APP = Path(__file__).resolve().parents[1] / "app"
 STDLIB = sys.stdlib_module_names
 
-ALLOWED: dict[str, set[str]] = {
-    "domain": {"domain"},
-    "application": {"domain", "application"},
-    "ai": {"domain", "application", "ai"},
-    "adapters": {"domain", "application", "ai", "adapters"},
-    "presentation": {"domain", "application", "presentation"},
-    "bootstrap": {"domain", "application", "ai", "adapters", "presentation", "bootstrap"},
-}
 THIRD_PARTY: dict[str, set[str]] = {
     "domain": set(),
     "application": set(),
@@ -83,37 +75,69 @@ def _module_layer(path: Path) -> str | None:
             f"root entrypoint {relative} must only expose the bootstrap application"
         )
         return "bootstrap"
-    assert len(relative.parts) > 1 and relative.parts[0] in ALLOWED, (
+    assert len(relative.parts) > 1 and relative.parts[0] in THIRD_PARTY, (
         f"unclassified application module: {relative}"
     )
     return relative.parts[0]
 
 
 def test_layers_depend_inwards_only() -> None:
+    """Classify modules and check imports of root modules outside the layer contract."""
+    for path in APP.rglob("*.py"):
+        if _module_layer(path) is None:
+            continue
+        for name in _imports(path):
+            root, _, target = name.partition(".")
+            if root == "app":
+                assert target.split(".")[0] in THIRD_PARTY, (
+                    f"{path.relative_to(APP)} imports {name} outside the declared layers"
+                )
+
+
+def test_third_party_imports_stay_within_the_layer_allowlist() -> None:
     violations: list[str] = []
     for path in APP.rglob("*.py"):
         layer = _module_layer(path)
         if layer is None:
             continue
-        allowed = ALLOWED[layer]
         for name in _imports(path):
             root = name.split(".")[0]
-            if root == "__future__" or root in STDLIB:
-                continue
-            if root == "app":
-                target = name.split(".")[1] if "." in name else "__bare_app__"
-                if target not in allowed:
-                    violations.append(f"{path.relative_to(APP)} imports app.{target}")
-            elif root not in THIRD_PARTY[layer]:
+            if root not in {"app", "__future__"} and root not in STDLIB | THIRD_PARTY[layer]:
                 violations.append(f"{path.relative_to(APP)} imports {root}")
     assert violations == []
+
+
+def test_allowlist_distinguishes_relative_and_external_imports(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "app"
+    path = root / "application" / "example.py"
+    path.parent.mkdir(parents=True)
+    path.write_text("from ..domain.catalog import Product as Item\n")
+    monkeypatch.setitem(globals(), "APP", root)
+    test_third_party_imports_stay_within_the_layer_allowlist()
+    path.write_text("import unlisted_sdk as sdk\n")
+    with pytest.raises(AssertionError, match="imports unlisted_sdk"):
+        test_third_party_imports_stay_within_the_layer_allowlist()
+
+
+@pytest.mark.parametrize("statement", ["import app as root", "from .. import main"])
+def test_imports_outside_the_declared_layers_are_rejected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, statement: str
+) -> None:
+    root = tmp_path / "app"
+    path = root / "application" / "example.py"
+    path.parent.mkdir(parents=True)
+    path.write_text(statement + "\n")
+    monkeypatch.setitem(globals(), "APP", root)
+    with pytest.raises(AssertionError, match="outside the declared layers"):
+        test_layers_depend_inwards_only()
 
 
 def test_sql_stays_in_storage_adapters() -> None:
     for path in APP.rglob("*.py"):
         if any(path.is_relative_to(APP / "adapters" / name) for name in ("sqlite", "postgres")):
             continue
-        assert not any(name.split(".")[0] == "sqlite3" for name in _imports(path)), path
         statements = re.compile(
             r"^\s*(?:SELECT\s+|INSERT\s+INTO\b|UPDATE\s+\w+\s+SET\b|DELETE\s+FROM\b|"
             r"CREATE\s+(?:TABLE|INDEX)\b|ALTER\s+TABLE\b|DROP\s+TABLE\b|PRAGMA\s+\w+)",
@@ -124,63 +148,6 @@ def test_sql_stays_in_storage_adapters() -> None:
                 assert not statements.search(node.value), path
 
 
-def test_relative_imports_are_resolved_before_layer_checks(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    root = tmp_path / "app"
-    path = root / "application" / "example.py"
-    path.parent.mkdir(parents=True)
-    path.write_text("from ..adapters.sqlite import stores\n")
-    monkeypatch.setitem(globals(), "APP", root)
-    assert "app.adapters.sqlite.stores" in _imports(path)
-
-
-def test_from_package_alias_cannot_hide_an_outer_layer(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    root = tmp_path / "app"
-    path = root / "domain" / "example.py"
-    path.parent.mkdir(parents=True)
-    path.write_text("from app import adapters as infrastructure\n")
-    monkeypatch.setitem(globals(), "APP", root)
-    assert "app.adapters" in _imports(path)
-
-
-def test_inward_relative_import_remains_allowed(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    root = tmp_path / "app"
-    path = root / "application" / "example.py"
-    path.parent.mkdir(parents=True)
-    path.write_text("from ..domain.catalog import Product as Item\n")
-    monkeypatch.setitem(globals(), "APP", root)
-    test_layers_depend_inwards_only()
-
-
-def test_outer_relative_import_is_rejected_by_the_real_layer_gate(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    root = tmp_path / "app"
-    path = root / "application" / "example.py"
-    path.parent.mkdir(parents=True)
-    path.write_text("from .. import adapters as infrastructure\n")
-    monkeypatch.setitem(globals(), "APP", root)
-    with pytest.raises(AssertionError, match=r"imports app\.adapters"):
-        test_layers_depend_inwards_only()
-
-
-def test_absolute_package_alias_is_rejected_by_the_real_layer_gate(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    root = tmp_path / "app"
-    path = root / "domain" / "example.py"
-    path.parent.mkdir(parents=True)
-    path.write_text("from app import presentation as wire\n")
-    monkeypatch.setitem(globals(), "APP", root)
-    with pytest.raises(AssertionError, match=r"imports app\.presentation"):
-        test_layers_depend_inwards_only()
-
-
 @pytest.mark.parametrize(
     "statement",
     [
@@ -188,10 +155,9 @@ def test_absolute_package_alias_is_rejected_by_the_real_layer_gate(
         "cursor.execute('delete from records')",
         "cursor.execute('select 1')",
         "cursor.execute('PRAGMA journal_mode = WAL')",
-        "import sqlite3 as storage",
     ],
 )
-def test_sql_and_driver_cannot_bypass_the_adapter_gate(
+def test_sql_cannot_bypass_the_adapter_gate(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, statement: str
 ) -> None:
     root = tmp_path / "app"
@@ -220,36 +186,10 @@ def test_a_folder_named_sqlite_is_not_a_storage_boundary(
     root = tmp_path / "app"
     path = root / "application" / "sqlite" / "example.py"
     path.parent.mkdir(parents=True)
-    path.write_text("import sqlite3\n")
+    path.write_text('QUERY = "PRAGMA journal_mode = WAL"\n')
     monkeypatch.setitem(globals(), "APP", root)
     with pytest.raises(AssertionError):
         test_sql_stays_in_storage_adapters()
-
-
-def test_external_runtime_sdks_stay_in_exact_adapters() -> None:
-    boundaries = {
-        "sqlite3": "sqlite",
-        "psycopg": "postgres",
-        "psycopg_pool": "postgres",
-        "neo4j": "neo4j",
-        "langgraph": "graph",
-        "langchain_core": "graph",
-        "langsmith": "graph",
-        "openai": "providers",
-        "opentelemetry": "observability",
-        "prometheus_client": "observability",
-    }
-    for path in APP.rglob("*.py"):
-        for name in _imports(path):
-            root = name.split(".")[0]
-            if root in boundaries:
-                if root == "openai" and path.is_relative_to(APP / "bootstrap"):
-                    # Bootstrap owns construction and transport, providers own SDK adaptation.
-                    continue
-                if root == "sqlite3" and path == APP / "adapters" / "postgres" / "import_sqlite.py":
-                    # Explicit offline, read-only legacy import; not a runtime PG driver.
-                    continue
-                assert path.is_relative_to(APP / "adapters" / boundaries[root]), (path, root)
 
 
 def test_cypher_stays_in_neo4j_adapter() -> None:
@@ -264,30 +204,6 @@ def test_cypher_stays_in_neo4j_adapter() -> None:
         for node in ast.walk(ast.parse(path.read_text())):
             if isinstance(node, ast.Constant) and isinstance(node.value, str):
                 assert not statements.search(node.value), path
-
-
-@pytest.mark.parametrize(
-    ("module", "placement"),
-    [
-        ("psycopg", "adapters/neo4j"),
-        ("sqlite3", "adapters/postgres"),
-        ("psycopg_pool", "application"),
-        ("neo4j", "adapters/postgres"),
-        ("langgraph", "application"),
-        ("langchain_core", "ai"),
-        ("langsmith", "bootstrap"),
-    ],
-)
-def test_storage_and_graph_sdks_cannot_hide_in_other_outer_folders(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, module: str, placement: str
-) -> None:
-    root = tmp_path / "app"
-    path = root / placement / "example.py"
-    path.parent.mkdir(parents=True)
-    path.write_text(f"from {module} import client as sdk\n")
-    monkeypatch.setitem(globals(), "APP", root)
-    with pytest.raises(AssertionError):
-        test_external_runtime_sdks_stay_in_exact_adapters()
 
 
 @pytest.mark.parametrize("placement", ["application", "ai", "adapters/postgres", "bootstrap"])
@@ -316,105 +232,93 @@ def test_postgres_folder_name_cannot_bypass_sql_boundary(
         test_sql_stays_in_storage_adapters()
 
 
-def test_application_import_graph_is_acyclic() -> None:
+def _local_import_target(name: str, modules: dict[str, Path]) -> str:
+    while name and name not in modules:
+        name = name.rpartition(".")[0]
+    return name
+
+
+def _reaches(edges: dict[str, set[str]], source: str, target: str) -> bool:
+    pending = {source}
+    visited: set[str] = set()
+    while pending:
+        module = pending.pop()
+        if module == target:
+            return True
+        visited.add(module)
+        pending.update(edges[module] - visited)
+    return False
+
+
+def test_package_initializers_do_not_form_import_cycles() -> None:
+    """Acyclic sibling contracts omit edges between a package and its descendants."""
     modules = {
         ".".join(("app", *path.relative_to(APP).with_suffix("").parts)).removesuffix(
             ".__init__"
         ): path
         for path in APP.rglob("*.py")
     }
-    edges: dict[str, set[str]] = {}
-    for module, path in modules.items():
-        edges[module] = set()
-        for name in _imports(path):
-            target = name
-            while target and target not in modules:
-                target = target.rpartition(".")[0]
-            if target and target != module:
-                edges[module].add(target)
-    visited: set[str] = set()
-    active: list[str] = []
-
-    def visit(module: str) -> None:
-        assert module not in active, f"import cycle: {' -> '.join([*active, module])}"
-        if module in visited:
-            return
-        active.append(module)
-        for dependency in sorted(edges[module]):
-            visit(dependency)
-        active.pop()
-        visited.add(module)
-
-    for module in sorted(modules):
-        visit(module)
+    edges = {
+        module: {
+            target
+            for name in _imports(path)
+            if (target := _local_import_target(name, modules)) and target != module
+        }
+        for module, path in modules.items()
+    }
+    for module, targets in edges.items():
+        for target in targets:
+            if module.startswith(f"{target}."):
+                assert not _reaches(edges, target, module), (
+                    f"import cycle through package initializer: {module} -> {target}"
+                )
 
 
-def test_transitive_same_layer_cycles_are_rejected(
+def test_package_initializer_cycles_are_rejected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     root = tmp_path / "app"
     folder = root / "application"
     folder.mkdir(parents=True)
+    (folder / "__init__.py").write_text("from . import first\n")
     (folder / "first.py").write_text("from .second import run\n")
-    (folder / "second.py").write_text("from .third import run\n")
-    (folder / "third.py").write_text("from .first import run\n")
+    (folder / "second.py").write_text("from . import run\n")
     monkeypatch.setitem(globals(), "APP", root)
-    with pytest.raises(AssertionError, match="import cycle"):
-        test_application_import_graph_is_acyclic()
+    with pytest.raises(AssertionError, match="import cycle through package initializer"):
+        test_package_initializers_do_not_form_import_cycles()
 
 
-@pytest.mark.parametrize("placement", ["application", "adapters/graph", "adapters/postgres/nested"])
-def test_legacy_import_filename_cannot_open_other_sqlite_driver_boundaries(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, placement: str
-) -> None:
-    root = tmp_path / "app"
-    path = root / placement / "import_sqlite.py"
-    path.parent.mkdir(parents=True)
-    path.write_text("import sqlite3\n")
-    monkeypatch.setitem(globals(), "APP", root)
-    with pytest.raises(AssertionError):
-        test_external_runtime_sdks_stay_in_exact_adapters()
+def test_sdk_importer_file_paths_match_the_contracts() -> None:
+    # Import-linter sees the same import name for a module file and a package initializer.
+    wrong_paths = {
+        "sqlite.py": {"sqlite3"},
+        "postgres.py": {"psycopg", "psycopg_pool"},
+        "neo4j.py": {"neo4j"},
+        "graph.py": {"langgraph", "langchain_core", "langsmith"},
+        "providers.py": {"openai"},
+        "observability.py": {"opentelemetry", "prometheus_client"},
+        "postgres/import_sqlite/__init__.py": {"sqlite3"},
+    }
+    for relative, sdks in wrong_paths.items():
+        path = APP / "adapters" / relative
+        if path.is_file():
+            assert not sdks.intersection(name.split(".")[0] for name in _imports(path)), path
 
 
 @pytest.mark.parametrize(
-    ("statement", "placement"),
+    ("relative", "statement"),
     [
-        ("import openai as sdk", "adapters/graph"),
-        ("from openai.types import response as sdk", "adapters/postgres"),
-        ("from openai import AsyncOpenAI", "ai"),
-        ("from opentelemetry import trace as telemetry", "bootstrap"),
-        ("import opentelemetry.sdk.trace as telemetry", "adapters/providers"),
-        ("from prometheus_client import Counter", "adapters/graph"),
-        ("import prometheus_client as metrics", "application/observability"),
+        ("postgres/import_sqlite/__init__.py", "import sqlite3"),
+        ("postgres.py", "import psycopg"),
     ],
 )
-def test_provider_and_telemetry_sdks_cannot_hide_in_other_folders(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, statement: str, placement: str
+def test_sdk_importers_cannot_claim_a_boundary_with_the_wrong_file_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, relative: str, statement: str
 ) -> None:
     root = tmp_path / "app"
-    path = root / placement / "example.py"
+    path = root / "adapters" / relative
     path.parent.mkdir(parents=True)
     path.write_text(statement + "\n")
     monkeypatch.setitem(globals(), "APP", root)
     with pytest.raises(AssertionError):
-        test_external_runtime_sdks_stay_in_exact_adapters()
-
-
-@pytest.mark.parametrize(
-    ("statement", "placement"),
-    [
-        ("from openai import AsyncOpenAI", "bootstrap"),
-        ("import openai.types as sdk", "adapters/providers"),
-        ("from opentelemetry import trace", "adapters/observability"),
-        ("import prometheus_client", "adapters/observability"),
-    ],
-)
-def test_provider_and_telemetry_sdks_remain_allowed_in_their_capability(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, statement: str, placement: str
-) -> None:
-    root = tmp_path / "app"
-    path = root / placement / "example.py"
-    path.parent.mkdir(parents=True)
-    path.write_text(statement + "\n")
-    monkeypatch.setitem(globals(), "APP", root)
-    test_external_runtime_sdks_stay_in_exact_adapters()
+        test_sdk_importer_file_paths_match_the_contracts()
