@@ -3,5 +3,3 @@
 # Paths start with ../ because an extended config resolves patterns from its own directory.
 
 [lint.per-file-ignores]
-"../app/ai/output.py" = ["ANN401"]
-"../app/domain/answer_policy.py" = ["D205"]
