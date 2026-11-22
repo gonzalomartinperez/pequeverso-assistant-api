@@ -1,6 +1,5 @@
-"""Check a completed answer against deterministic rules.
-
-Replace an answer that breaks a rule before storing it or presenting it as final.
+"""Deterministic checks on a completed answer. The system prompt is guidance; these rules are the
+boundary: an answer that breaks one is replaced before it is stored or presented as final.
 """
 
 from __future__ import annotations

@@ -1,6 +1,5 @@
-"""Turn a model draft into a presentable answer.
-
-Resolve every id against the active catalog. Unknown ids are dropped, and an answer that breaks an answer rule is replaced as a whole.
+"""Turns a model draft into a presentable answer. Every id is resolved against the active catalog;
+unknown ids are dropped, and an answer that breaks an answer rule is replaced as a whole.
 """
 
 from __future__ import annotations
@@ -354,7 +353,7 @@ def check_content(
     rules: AnswerRules,
     web_evidence: tuple[WebEvidence, ...] = (),
 ) -> CheckedContent:
-    """Apply the same normalization and business rules to cumulative prefixes and final answers."""
+    """The same normalization and business boundary for cumulative prefixes and final answers."""
     raw_content = plain_text(text)
     violations = check_answer(raw_content, rules) if raw_content else []
     content = _readable_text(raw_content)
