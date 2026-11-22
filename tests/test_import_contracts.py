@@ -199,6 +199,7 @@ def write_fixture(root: Path, contents: dict[str, str]) -> Path:
             "providers",
             "observability",
             "catalog",
+            "memory",
         )
     ]
     packages.extend(str(Path(path).parent) for path in contents)
