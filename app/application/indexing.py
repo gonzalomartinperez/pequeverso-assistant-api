@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from app.application.knowledge_ports import Embeddings, PublicGraph, PublicKnowledgeStore
 from app.domain.knowledge import EmbeddingPurpose, KnowledgeCorpus, ProjectionStamp, validate_vector
+
+if TYPE_CHECKING:
+    from app.domain.knowledge import KnowledgeChunk
 
 
 @dataclass(frozen=True, slots=True)
@@ -52,22 +56,7 @@ class KnowledgeIndexer:
                     corpus.revision.version, tuple(chunk.id for chunk in corpus.chunks)
                 )
             else:
-                collected: list[tuple[float, ...]] = []
-                batches: list[list[str]] = [[]]
-                batch_bytes = 0
-                for chunk in corpus.chunks:
-                    size = len(chunk.text.encode("utf-8"))
-                    if batches[-1] and (len(batches[-1]) == 32 or batch_bytes + size > 240_000):
-                        batches.append([])
-                        batch_bytes = 0
-                    batches[-1].append(chunk.text)
-                    batch_bytes += size
-                for batch in batches:
-                    encoded = await self._embeddings.encode(tuple(batch), EmbeddingPurpose.INDEX)
-                    if len(encoded) != len(batch):
-                        raise ValueError("index embedding cardinality mismatch")
-                    collected.extend(encoded)
-                vectors = tuple(collected)
+                vectors = await self._encode_chunks(corpus.chunks)
             if len(vectors) != len(corpus.chunks):
                 raise ValueError("staged embedding cardinality mismatch")
             for vector in vectors:
@@ -85,3 +74,23 @@ class KnowledgeIndexer:
             await self._store.mark_prepared(corpus.revision.version, actual)
             await self._store.activate_prepared(corpus.revision.version)
             return IndexResult(corpus.revision.version, actual, existing is not None)
+
+    async def _encode_chunks(
+        self, chunks: tuple[KnowledgeChunk, ...]
+    ) -> tuple[tuple[float, ...], ...]:
+        collected: list[tuple[float, ...]] = []
+        batches: list[list[str]] = [[]]
+        batch_bytes = 0
+        for chunk in chunks:
+            size = len(chunk.text.encode("utf-8"))
+            if batches[-1] and (len(batches[-1]) == 32 or batch_bytes + size > 240_000):
+                batches.append([])
+                batch_bytes = 0
+            batches[-1].append(chunk.text)
+            batch_bytes += size
+        for batch in batches:
+            encoded = await self._embeddings.encode(tuple(batch), EmbeddingPurpose.INDEX)
+            if len(encoded) != len(batch):
+                raise ValueError("index embedding cardinality mismatch")
+            collected.extend(encoded)
+        return tuple(collected)
