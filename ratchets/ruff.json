@@ -2,7 +2,7 @@
   "schema_version": 1,
   "description": "Legacy ruff findings; every count only decreases (PVA-M2.1).",
   "target": "0 for every code by PVA-M4.11",
-  "total": 112,
+  "total": 107,
   "findings": {
     "ANN401": 17,
     "ARG002": 1,
@@ -13,7 +13,7 @@
     "S101": 24,
     "T201": 12,
     "TC001": 5,
-    "TC003": 14,
+    "TC003": 9,
     "TRY300": 6,
     "TRY301": 25
   },
@@ -84,15 +84,6 @@
     },
     "app/domain/answer_policy.py": {
       "D205": 1
-    },
-    "app/domain/catalog.py": {
-      "TC003": 3
-    },
-    "app/domain/conversation.py": {
-      "TC003": 1
-    },
-    "app/domain/knowledge.py": {
-      "TC003": 1
     },
     "app/domain/language.py": {
       "TC003": 2

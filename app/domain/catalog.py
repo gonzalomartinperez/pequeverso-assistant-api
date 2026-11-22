@@ -8,10 +8,12 @@ may be quoted.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from decimal import Decimal
 from enum import StrEnum
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from datetime import datetime, timedelta
+    from decimal import Decimal
 
 
 class PriceStatus(StrEnum):
