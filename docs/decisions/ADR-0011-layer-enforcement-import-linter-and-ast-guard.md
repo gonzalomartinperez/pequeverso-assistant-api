@@ -50,7 +50,10 @@ Cypher location"): the per-layer third-party allowlist also stays in the AST tes
 expresses denylists, so a domain module importing an unlisted package (for example `yaml`) passes every
 contract; removing the allowlist would loosen a guard (architecture review, 2026-11-22).
 
-- Import-linter is authoritative for layer direction and SDK confinement with an empty baseline. The
+- Import-linter is authoritative for layer direction and SDK confinement with an empty baseline.
+  The sqlite contract now treats its allowed importers as exact modules (`as_packages = False`):
+  `app.adapters.sqlite` and its descendants, plus the single module
+  `app.adapters.postgres.import_sqlite`; a descendant of `import_sqlite` is no longer allowed. The
   eleventh contract checks sibling cycles throughout `app`, including `app.application`.
 - The AST guard keeps the per-layer third-party allowlists, SQL and Cypher text placement, and
   module classification. Banned calls (the wall clock outside bootstrap) stay in

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -44,6 +46,10 @@ def assert_all_modules_are_in_import_graph(package: Path) -> None:
     ]
     assert len(modules) == len(set(modules)), "Application files must have distinct import names"
     graph = grimp.build_graph(package.name, cache_dir=None)
+    # The graph must describe this tree, not another `app` earlier on sys.path.
+    resolved = importlib.util.find_spec(package.name)
+    assert resolved is not None and resolved.origin is not None
+    assert Path(resolved.origin).resolve().parent == package.resolve()
     assert not (missing := set(modules) - graph.modules), f"Modules outside import graph: {missing}"
 
 
@@ -154,7 +160,9 @@ def test_violations_break_the_named_real_contract(tmp_path, placement, statement
     ],
     ids=["two-module-cycle", "transitive-three-module-cycle"],
 )
-@pytest.mark.parametrize("placement", ["application", "adapters/graph"])
+@pytest.mark.parametrize(
+    "placement", ["application", "adapters/graph", "adapters/postgres/nested", "domain"]
+)
 def test_cycles_break_the_acyclic_contract(tmp_path, placement, modules):
     contents = {
         f"{placement}/{source}.py": f"from .{target} import run\n"
@@ -219,8 +227,8 @@ def write_fixture(root: Path, contents: dict[str, str]) -> Path:
         (app / path).write_text(source)
     config = root / ".importlinter"
     config.write_text(
-        CONFIG.read_text()
-        .replace("app.", "fixture_app.")
+        re.sub(r"(?<![\w.])app\.", "fixture_app.", CONFIG.read_text())
+        # Module-boundary rewrite only: `webapp.` or prose containing "app." stays untouched.
         .replace("root_package = app", "root_package = fixture_app")
         .replace("    app\n", "    fixture_app\n")
     )
@@ -231,3 +239,14 @@ def assert_contract_broken(root: Path, config: Path, contract: str) -> None:
     result = lint(root, config)
     assert result.returncode == 1, result.stdout + result.stderr
     assert f"{contract} BROKEN" in result.stdout, result.stdout + result.stderr
+
+
+def test_cycle_between_sibling_packages_breaks_the_acyclic_contract(tmp_path):
+    contents = {
+        "application/left/__init__.py": "",
+        "application/left/a.py": "from ..right.b import run\n",
+        "application/right/__init__.py": "",
+        "application/right/b.py": "from ..left.a import run\n",
+    }
+    config = write_fixture(tmp_path, contents)
+    assert_contract_broken(tmp_path, config, "Application modules form an acyclic graph")
