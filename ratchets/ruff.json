@@ -2,15 +2,11 @@
   "schema_version": 1,
   "description": "Legacy ruff findings; every count only decreases (PVA-M2.1).",
   "target": "0 for every code by PVA-M4.11",
-  "total": 26,
+  "total": 5,
   "findings": {
-    "ANN401": 6,
+    "ANN401": 2,
     "D205": 2,
-    "D301": 1,
-    "D401": 1,
-    "S101": 5,
-    "TRY300": 2,
-    "TRY301": 9
+    "D401": 1
   },
   "by_file": {
     "app/ai/output.py": {
@@ -22,35 +18,6 @@
     },
     "app/domain/answer_policy.py": {
       "D205": 1
-    },
-    "scripts/evaluate_conversations.py": {
-      "ANN401": 1,
-      "D301": 1
-    },
-    "scripts/evaluate_corpus.py": {
-      "ANN401": 2
-    },
-    "scripts/evaluate_end_to_end.py": {
-      "S101": 1,
-      "TRY301": 1
-    },
-    "scripts/postgres_fixture_identity.py": {
-      "TRY301": 1
-    },
-    "scripts/run_bounded_real_eval.py": {
-      "ANN401": 1
-    },
-    "scripts/smoke_graph_runtime.py": {
-      "TRY301": 6
-    },
-    "scripts/validate_skills.py": {
-      "S101": 4
-    },
-    "tests/test_real_eval_budget.py": {
-      "TRY300": 2
-    },
-    "tests/test_runtime_shutdown.py": {
-      "TRY301": 1
     }
   }
 }

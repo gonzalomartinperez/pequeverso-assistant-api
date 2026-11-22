@@ -41,22 +41,27 @@ def _start(database: Path, port: int, delay: int, output: Path) -> subprocess.Po
             stderr=subprocess.STDOUT,
         )
     try:
-        deadline = time.monotonic() + 10
-        with httpx.Client(timeout=0.5, trust_env=False) as probe:
-            while time.monotonic() < deadline:
-                assert process.poll() is None
-                try:
-                    response = probe.get(f"http://127.0.0.1:{port}/health/ready")
-                    if response.status_code == 200:
-                        return process
-                except httpx.TransportError:
-                    pass
-                time.sleep(0.02)
-        raise AssertionError("isolated subprocess did not become ready")
+        _wait_until_ready(process, port)
     except BaseException:
         process.terminate()
         process.wait(5)
         raise
+    return process
+
+
+def _wait_until_ready(process: subprocess.Popen[bytes], port: int) -> None:
+    deadline = time.monotonic() + 10
+    with httpx.Client(timeout=0.5, trust_env=False) as probe:
+        while time.monotonic() < deadline:
+            assert process.poll() is None
+            try:
+                response = probe.get(f"http://127.0.0.1:{port}/health/ready")
+                if response.status_code == 200:
+                    return
+            except httpx.TransportError:
+                pass
+            time.sleep(0.02)
+    raise AssertionError("isolated subprocess did not become ready")
 
 
 def _stop(process: subprocess.Popen[bytes]) -> None:
