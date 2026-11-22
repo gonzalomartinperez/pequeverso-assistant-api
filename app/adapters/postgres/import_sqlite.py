@@ -132,7 +132,7 @@ def _source_hash(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _value(column: str, value: Any) -> Any:
+def _value(column: str, value: object) -> object:
     if value is None:
         return None
     if column in TIMESTAMPS:
@@ -147,7 +147,7 @@ def _value(column: str, value: Any) -> Any:
     return bytes(value) if isinstance(value, memoryview) else value
 
 
-def _json_value(value: Any) -> Any:
+def _json_value(value: object) -> object:
     if isinstance(value, datetime):
         return value.astimezone(UTC).isoformat(timespec="microseconds")
     if isinstance(value, bytes):

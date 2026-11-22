@@ -50,9 +50,10 @@ def _integer_file(path: str) -> int | None:
     try:
         value = Path(path).read_text().strip()
         number = int(value)
-        return number if number >= 0 else None
     except OSError, ValueError:
         return None
+    else:
+        return number if number >= 0 else None
 
 
 def resources() -> RuntimeResources:
@@ -94,7 +95,7 @@ class DeadlineSession(requests.Session):
         self._task: asyncio.Task[requests.Response] | None = None
 
     def request(
-        self, method: str | bytes, url: str | bytes, *args: Any, **kwargs: Any
+        self, method: str | bytes, url: str | bytes, *args: object, **kwargs: Any
     ) -> requests.Response:
         if args:
             raise requests.RequestException("positional collector options unsupported")

@@ -64,29 +64,41 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _read_index_input(args: argparse.Namespace, settings: IndexSettings) -> bytes:
+    if settings.ai_provider not in {"fixture", "openai"}:
+        raise ValueError("only explicit fixture or OpenAI embeddings are supported")
+    if settings.ai_provider == "openai" and not (
+        args.allow_paid_indexing and settings.allow_paid_ai and settings.openai_api_key
+    ):
+        raise ValueError(
+            "paid indexing requires explicit authorization, configuration and private key"
+        )
+    if settings.daily_budget_usd > settings.monthly_budget_usd:
+        raise ValueError("daily budget exceeds monthly budget")
+    catalog_path: Path = args.catalog
+    with catalog_path.open("rb") as source:
+        body = source.read(MAX_PUBLIC_BODY_BYTES + 1)
+    if (
+        len(body) > MAX_PUBLIC_BODY_BYTES
+        or hashlib.sha256(body).hexdigest() != args.expected_catalog_sha256
+    ):
+        raise ValueError("catalog size or pinned digest mismatch")
+    return body
+
+
+def _index_api_key(settings: IndexSettings) -> SecretStr:
+    if settings.openai_api_key is None:
+        raise AssertionError
+    return settings.openai_api_key
+
+
 async def index_main() -> int:
     configure_logging(stream="stderr")
     args = _parser().parse_args()
     descriptor: int | None = None
     try:
         settings = IndexSettings()
-        if settings.ai_provider not in {"fixture", "openai"}:
-            raise ValueError("only explicit fixture or OpenAI embeddings are supported")
-        if settings.ai_provider == "openai" and not (
-            args.allow_paid_indexing and settings.allow_paid_ai and settings.openai_api_key
-        ):
-            raise ValueError(
-                "paid indexing requires explicit authorization, configuration and private key"
-            )
-        if settings.daily_budget_usd > settings.monthly_budget_usd:
-            raise ValueError("daily budget exceeds monthly budget")
-        with args.catalog.open("rb") as source:
-            body = source.read(MAX_PUBLIC_BODY_BYTES + 1)
-        if (
-            len(body) > MAX_PUBLIC_BODY_BYTES
-            or hashlib.sha256(body).hexdigest() != args.expected_catalog_sha256
-        ):
-            raise ValueError("catalog size or pinned digest mismatch")
+        body = _read_index_input(args, settings)
         parser = CatalogParser(
             frozenset({"pequeverso.com", "consumer.hotmart.com", "refund.hotmart.com"})
         )
@@ -121,12 +133,12 @@ async def index_main() -> int:
                 )
                 embeddings: Embeddings = FixtureHashEmbeddings()
                 if settings.ai_provider == "openai":
-                    assert settings.openai_api_key is not None
+                    api_key = _index_api_key(settings)
                     http = provider_http_client()
                     resources.push_async_callback(close_provider_transport, http)
                     client = AsyncOpenAI(
                         http_client=http,
-                        api_key=settings.openai_api_key.get_secret_value(),
+                        api_key=api_key.get_secret_value(),
                         base_url="https://api.openai.com/v1",
                         max_retries=0,
                         timeout=10,
@@ -159,7 +171,6 @@ async def index_main() -> int:
                 receipt.write(json.dumps(output, indent=2) + "\n")
                 receipt.truncate()
         print("Public projections verified and activated; content-free private receipt written.")
-        return 0
     except (
         Exception
     ) as error:  # broad catch: never print private connection details or SDK responses
@@ -167,6 +178,8 @@ async def index_main() -> int:
             f"Indexing failed ({type(error).__name__}); inspect the private receipt and ledger before retrying."
         )
         return 1
+    else:
+        return 0
     finally:
         if descriptor is not None:
             os.close(descriptor)
@@ -186,10 +199,11 @@ async def migrate_main() -> int:
         print(
             "Project PostgreSQL migrations completed; LOGIN identities remain an operator responsibility."
         )
-        return 0
     except Exception as error:  # broad catch: SQL details can contain private data
         print(f"Migration failed ({type(error).__name__}); inspect private state before retrying.")
         return 1
+    else:
+        return 0
     finally:
         await db.close()
 

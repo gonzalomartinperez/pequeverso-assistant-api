@@ -144,6 +144,25 @@ class SelectionOut(_Closed):
         return self
 
 
+def _validate_selection(pairs: list[tuple[str, str]]) -> SelectionOut:
+    values = dict(pairs)
+    # No coercion of negative, fractional, whitespace or arbitrarily long integer input.
+    offset = values.pop("offset", "0")
+    if offset not in ("0", "1", "2"):
+        raise ValueError("invalid offset")
+    return SelectionOut.model_validate(
+        {
+            "period": "day",
+            "route": "all",
+            "section_id": "all",
+            "viewport_bucket": "all",
+            "locale": "es",
+            **values,
+            "offset": int(offset),
+        }
+    )
+
+
 class Counts(_Closed):
     """Count received page views, section views, and public clicks."""
 
@@ -491,22 +510,7 @@ def _register_report(
         ):
             return Response(status_code=422, headers=headers)
         try:
-            values = dict(pairs)
-            # No coercion of negative, fractional, whitespace or arbitrarily long integer input.
-            offset = values.pop("offset", "0")
-            if offset not in ("0", "1", "2"):
-                raise ValueError("invalid offset")
-            selection = SelectionOut.model_validate(
-                {
-                    "period": "day",
-                    "route": "all",
-                    "section_id": "all",
-                    "viewport_bucket": "all",
-                    "locale": "es",
-                    **values,
-                    "offset": int(offset),
-                }
-            )
+            selection = _validate_selection(pairs)
         except ValueError, ValidationError:
             return Response(status_code=422, headers=headers)
         try:

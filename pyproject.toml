@@ -91,6 +91,16 @@ ignore = ["E501", "TRY003", "D203", "D213"]
 # Preserve the urllib HTTPRedirectHandler override signature.
 "scripts/container_fixture_probe.py" = ["ARG002"]
 
+# These operator CLIs and the contract exporter use stdout for command output.
+"app/bootstrap/import_database.py" = ["T201"]
+"app/bootstrap/knowledge_evaluation.py" = ["T201"]
+"app/bootstrap/knowledge_jobs.py" = ["T201"]
+"contracts/export.py" = ["T201"]
+# Requests' Session hook receives dynamically typed options from the telemetry SDK.
+"app/adapters/observability/telemetry.py" = ["ANN401"]
+# Raise and catch the synthetic error locally to exercise the logger with an active exception.
+"tests/test_security.py" = ["TRY301"]
+
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Cookie"]
 

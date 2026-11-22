@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 import openai
 from openai import AsyncOpenAI
@@ -24,9 +24,11 @@ from app.domain.errors import FailureCode, RejectedError
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
 
+    from openai import AsyncStream
     from openai.types.responses import (
         EasyInputMessageParam,
         ResponseInputParam,
+        ResponseStreamEvent,
         ResponseTextConfigParam,
     )
     from openai.types.shared_params import Reasoning
@@ -58,8 +60,8 @@ def _reasoning(effort: str) -> Reasoning:
     return cast("Reasoning", {"effort": effort})
 
 
-def usage_of(response: Any) -> Usage | None:
-    """Provider usage as a domain value; None when absent or malformed (never guessed)."""
+def usage_of(response: object) -> Usage | None:
+    """Return reported provider usage, or None when it is absent or malformed."""
     usage = getattr(response, "usage", None)
     if usage is None:
         return None
@@ -102,7 +104,7 @@ class OpenAIResponsesProvider:
     def model(self) -> str:
         return self._model
 
-    async def _open(self, request: ModelRequest) -> Any:
+    async def _open(self, request: ModelRequest) -> AsyncStream[ResponseStreamEvent]:
         attempt = 0
         while True:
             try:
@@ -142,10 +144,14 @@ class OpenAIResponsesProvider:
             async for event in events:
                 kind = getattr(event, "type", "")
                 if kind == "response.output_text.delta":
-                    yield TextChunk(event.delta)
+                    yield TextChunk(
+                        cast("openai.types.responses.ResponseTextDeltaEvent", event).delta
+                    )
                 elif kind == "response.completed":
                     completed = True
-                    usage = usage_of(event.response)
+                    usage = usage_of(
+                        cast("openai.types.responses.ResponseCompletedEvent", event).response
+                    )
                     if usage is not None:
                         yield UsageChunk(usage)
                 else:

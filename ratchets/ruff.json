@@ -2,98 +2,15 @@
   "schema_version": 1,
   "description": "Legacy ruff findings; every count only decreases (PVA-M2.1).",
   "target": "0 for every code by PVA-M4.11",
-  "total": 102,
+  "total": 21,
   "findings": {
-    "ANN401": 17,
-    "ARG002": 1,
-    "D205": 2,
+    "ANN401": 4,
     "D301": 1,
-    "D401": 4,
-    "S101": 24,
-    "T201": 12,
-    "TC001": 4,
-    "TC003": 6,
-    "TRY300": 6,
-    "TRY301": 25
+    "S101": 5,
+    "TRY300": 2,
+    "TRY301": 9
   },
   "by_file": {
-    "app/adapters/graph/composer.py": {
-      "TRY301": 1
-    },
-    "app/adapters/observability/telemetry.py": {
-      "ANN401": 2,
-      "TRY300": 1
-    },
-    "app/adapters/official_help.py": {
-      "TRY301": 4
-    },
-    "app/adapters/postgres/import_sqlite.py": {
-      "ANN401": 4
-    },
-    "app/adapters/postgres/private_ledger.py": {
-      "S101": 1
-    },
-    "app/adapters/postgres/private_operations.py": {
-      "S101": 4
-    },
-    "app/adapters/providers/openai_embeddings.py": {
-      "TRY301": 3
-    },
-    "app/adapters/providers/openai_provider.py": {
-      "ANN401": 2,
-      "D401": 1
-    },
-    "app/ai/composer.py": {
-      "D401": 1,
-      "S101": 3
-    },
-    "app/ai/output.py": {
-      "ANN401": 2
-    },
-    "app/application/answers.py": {
-      "D205": 1,
-      "D401": 1
-    },
-    "app/application/chat.py": {
-      "ARG002": 1,
-      "D401": 1,
-      "TC001": 4,
-      "TC003": 6,
-      "TRY301": 1
-    },
-    "app/bootstrap/container.py": {
-      "S101": 6
-    },
-    "app/bootstrap/import_database.py": {
-      "T201": 3,
-      "TRY300": 1
-    },
-    "app/bootstrap/knowledge_evaluation.py": {
-      "T201": 1,
-      "TRY301": 1
-    },
-    "app/bootstrap/knowledge_jobs.py": {
-      "S101": 1,
-      "T201": 7,
-      "TRY300": 2,
-      "TRY301": 4
-    },
-    "app/bootstrap/persistence.py": {
-      "S101": 4
-    },
-    "app/domain/answer_policy.py": {
-      "D205": 1
-    },
-    "app/presentation/product_analytics.py": {
-      "TRY301": 1
-    },
-    "app/presentation/streaming.py": {
-      "ANN401": 2
-    },
-    "contracts/export.py": {
-      "ANN401": 1,
-      "T201": 1
-    },
     "scripts/evaluate_conversations.py": {
       "ANN401": 1,
       "D301": 1
@@ -121,9 +38,6 @@
       "TRY300": 2
     },
     "tests/test_runtime_shutdown.py": {
-      "TRY301": 1
-    },
-    "tests/test_security.py": {
       "TRY301": 1
     }
   }

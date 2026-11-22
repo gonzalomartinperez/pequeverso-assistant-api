@@ -33,6 +33,12 @@ if TYPE_CHECKING:
     from app.domain.web_evidence import WebEvidence
 
 
+def _composer_event(event: object) -> ComposerEvent:
+    if not isinstance(event, (DeltaEvent, DraftEvent)):
+        raise RejectedError(FailureCode.GENERATION_FAILED)
+    return event
+
+
 @dataclass(slots=True, repr=False)
 class GraphPrepared:
     turn: Turn
@@ -205,9 +211,7 @@ class GraphAnswerComposer:
                 raise TypeError("graph stream must support explicit cancellation")
             try:
                 async for event in stream:
-                    if not isinstance(event, (DeltaEvent, DraftEvent)):
-                        raise RejectedError(FailureCode.GENERATION_FAILED)
-                    yield event
+                    yield _composer_event(event)
             except GenerationError:
                 raise
             except RejectedError as error:

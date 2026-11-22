@@ -178,22 +178,8 @@ class OfficialHelpReader:
                         },
                     ) as response,
                 ):
-                    if response.status_code != 200:
-                        raise ValueError("help status unavailable")
-                    if (
-                        response.headers.get("content-type", "").split(";")[0].strip()
-                        != "application/json"
-                    ):
-                        raise ValueError("help response is not JSON")
-                    if response.headers.get("content-encoding", "identity").lower() != "identity":
-                        raise ValueError("compressed help responses are not accepted")
-                    body = bytearray()
-                    # Only identity encoding is accepted, so a decompression bomb is rejected before decoding.
-                    async for chunk in response.aiter_bytes():
-                        body.extend(chunk)
-                        if len(body) > MAX_BODY_BYTES:
-                            raise ValueError("help body too large")
-                    evidence = parse_article(bytes(body), source, self._clock.now())
+                    body = await _read_help_body(response)
+                    evidence = parse_article(body, source, self._clock.now())
             except httpx.HTTPError, ValueError, UnicodeError, OSError:
                 self._cache[source.topic] = (now + FAILURE_COOLDOWN_SECONDS, None)
                 log.info(
@@ -207,3 +193,19 @@ class OfficialHelpReader:
                 source.topic.value,
             )
             return evidence
+
+
+async def _read_help_body(response: httpx.Response) -> bytes:
+    if response.status_code != 200:
+        raise ValueError("help status unavailable")
+    if response.headers.get("content-type", "").split(";")[0].strip() != "application/json":
+        raise ValueError("help response is not JSON")
+    if response.headers.get("content-encoding", "identity").lower() != "identity":
+        raise ValueError("compressed help responses are not accepted")
+    body = bytearray()
+    # Only identity encoding is accepted, so a decompression bomb is rejected before decoding.
+    async for chunk in response.aiter_bytes():
+        body.extend(chunk)
+        if len(body) > MAX_BODY_BYTES:
+            raise ValueError("help body too large")
+    return bytes(body)

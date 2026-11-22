@@ -56,35 +56,7 @@ class OpenAIEmbeddings:
         bound = _input_bound(texts)
         operation = await self._accounting.reserve(bound, purpose)
         try:
-            response = await self._client.embeddings.create(
-                input=list(texts),
-                model=self.spec.model,
-                dimensions=self.spec.dimensions,
-                encoding_format="float",
-            )
-            usage = response.usage
-            if (
-                type(usage.prompt_tokens) is not int
-                or type(usage.total_tokens) is not int
-                or not 0 <= usage.prompt_tokens == usage.total_tokens <= bound
-            ):
-                raise ValueError("embedding usage is missing or outside the reserved bound")
-            # A malformed vector does not undo known billed usage.
-            await self._accounting.settle(operation, usage.prompt_tokens)
-            if response.model != self.spec.model or len(response.data) != len(texts):
-                raise ValueError("embedding response identity or cardinality mismatch")
-            by_index: dict[int, tuple[float, ...]] = {}
-            for item in response.data:
-                if (
-                    type(item.index) is not int
-                    or item.index in by_index
-                    or not 0 <= item.index < len(texts)
-                ):
-                    raise ValueError("embedding response indices must be unique and complete")
-                vector = tuple(item.embedding)
-                validate_vector(vector, self.spec)
-                by_index[item.index] = vector
-            return tuple(by_index[index] for index in range(len(texts)))
+            return await self._encode_reserved(texts, bound, operation)
         except asyncio.CancelledError:
             await asyncio.shield(self._accounting.mark_unreported(operation))
             raise
@@ -92,6 +64,39 @@ class OpenAIEmbeddings:
             await asyncio.shield(self._accounting.mark_unreported(operation))
             # Provider exception strings may contain request data. Only a safe public code escapes.
             raise RejectedError(FailureCode.PROVIDER_UNAVAILABLE) from error
+
+    async def _encode_reserved(
+        self, texts: tuple[str, ...], bound: int, operation: str
+    ) -> tuple[tuple[float, ...], ...]:
+        response = await self._client.embeddings.create(
+            input=list(texts),
+            model=self.spec.model,
+            dimensions=self.spec.dimensions,
+            encoding_format="float",
+        )
+        usage = response.usage
+        if (
+            type(usage.prompt_tokens) is not int
+            or type(usage.total_tokens) is not int
+            or not 0 <= usage.prompt_tokens == usage.total_tokens <= bound
+        ):
+            raise ValueError("embedding usage is missing or outside the reserved bound")
+        # A malformed vector does not undo known billed usage.
+        await self._accounting.settle(operation, usage.prompt_tokens)
+        if response.model != self.spec.model or len(response.data) != len(texts):
+            raise ValueError("embedding response identity or cardinality mismatch")
+        by_index: dict[int, tuple[float, ...]] = {}
+        for item in response.data:
+            if (
+                type(item.index) is not int
+                or item.index in by_index
+                or not 0 <= item.index < len(texts)
+            ):
+                raise ValueError("embedding response indices must be unique and complete")
+            vector = tuple(item.embedding)
+            validate_vector(vector, self.spec)
+            by_index[item.index] = vector
+        return tuple(by_index[index] for index in range(len(texts)))
 
 
 class FixtureHashEmbeddings:

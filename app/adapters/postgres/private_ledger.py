@@ -23,7 +23,8 @@ async def _spent(conn: AsyncConnection[Row], month: str, day: str) -> tuple[int,
             (month, day, month, day),
         )
     ).fetchone()
-    assert row is not None
+    if row is None:
+        raise AssertionError
     return int(row["month"]), int(row["day"])
 
 

@@ -141,6 +141,22 @@ def read_fixture_connections(path: Path) -> FixtureConnections:
     )
 
 
+async def _activate_fixture(
+    store: PostgresKnowledgeStore,
+    graph: Neo4jPublicGraph,
+    corpus: KnowledgeCorpus,
+    vectors: tuple[tuple[float, ...], ...],
+) -> None:
+    async with store.indexing_lock():
+        await store.stage(corpus, vectors)
+        await graph.stage(corpus)
+        stamp = await graph.projection_stamp(corpus.revision.version)
+        if stamp is None:
+            raise ValueError("complete graph proof is required before public activation")
+        await store.mark_prepared(corpus.revision.version, stamp)
+        await store.activate_prepared(corpus.revision.version)
+
+
 async def evaluate_manifest(
     connections: FixtureConnections,
     manifest: Path,
@@ -202,14 +218,7 @@ async def evaluate_manifest(
                         EmbeddingPurpose.INDEX,
                     )
                 )
-            async with store.indexing_lock():
-                await store.stage(corpus, tuple(vectors))
-                await graph.stage(corpus)
-                stamp = await graph.projection_stamp(corpus.revision.version)
-                if stamp is None:
-                    raise ValueError("complete graph proof is required before public activation")
-                await store.mark_prepared(corpus.revision.version, stamp)
-                await store.activate_prepared(corpus.revision.version)
+            await _activate_fixture(store, graph, corpus, tuple(vectors))
             active = ActiveCatalog(
                 CatalogParser(_HOSTS)(corpus.catalog_body),
                 corpus.revision.catalog_sha256,
