@@ -10,11 +10,14 @@ import logging
 import re
 import secrets
 import time
-from collections.abc import Iterable
-
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from typing import TYPE_CHECKING
 
 from app.domain.errors import RETRYABLE, FailureCode
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 log = logging.getLogger("app.request")
 

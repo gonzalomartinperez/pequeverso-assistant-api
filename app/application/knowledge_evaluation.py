@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from time import perf_counter
+from typing import TYPE_CHECKING
 
-from app.application.knowledge import HybridKnowledgeRetrieval
-from app.application.knowledge_ports import Embeddings, PublicGraph, PublicKnowledgeStore
 from app.domain.catalog import ActiveCatalog, mentioned_products
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.knowledge import (
@@ -18,6 +17,10 @@ from app.domain.knowledge import (
     validate_vector,
 )
 from app.domain.language import Language
+
+if TYPE_CHECKING:
+    from app.application.knowledge import HybridKnowledgeRetrieval
+    from app.application.knowledge_ports import Embeddings, PublicGraph, PublicKnowledgeStore
 
 
 @dataclass(frozen=True, slots=True)

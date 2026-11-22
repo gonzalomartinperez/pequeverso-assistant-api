@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from app.application.knowledge_ports import Embeddings, PublicGraph, PublicKnowledgeStore
-from app.application.ports import Clock
+from typing import TYPE_CHECKING
+
 from app.domain.catalog import ActiveCatalog, PriceStatus
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.knowledge import (
@@ -18,7 +18,11 @@ from app.domain.knowledge import (
     RetrievedKnowledge,
     validate_vector,
 )
-from app.domain.language import Language
+
+if TYPE_CHECKING:
+    from app.application.knowledge_ports import Embeddings, PublicGraph, PublicKnowledgeStore
+    from app.application.ports import Clock
+    from app.domain.language import Language
 
 _CANDIDATES = 12
 _RESULTS = 8

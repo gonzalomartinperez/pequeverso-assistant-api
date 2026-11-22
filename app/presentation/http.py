@@ -11,19 +11,14 @@ import hashlib
 import hmac
 import ipaddress
 import re
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Annotated, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Annotated, Literal, NotRequired, TypedDict
 
 from fastapi import APIRouter, Depends, FastAPI, Header, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from app.application.catalog import CatalogService
-from app.application.chat import ChatService
-from app.application.ports import Clock
-from app.application.sessions import SessionService
 from app.application.starters import starters
 from app.domain.conversation import Session
 from app.domain.errors import FailureCode, RejectedError
@@ -44,6 +39,14 @@ from app.presentation.streaming import (
     ResponseCleanups,
     sse_body,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from app.application.catalog import CatalogService
+    from app.application.chat import ChatService
+    from app.application.ports import Clock
+    from app.application.sessions import SessionService
 
 _IDEMPOTENCY_KEY = re.compile(r"^[A-Za-z0-9_-]{8,128}$")
 _UNAVAILABLE = {

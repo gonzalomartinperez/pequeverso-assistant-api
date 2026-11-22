@@ -2,23 +2,26 @@
 
 from __future__ import annotations
 
-from contextlib import AbstractAsyncContextManager
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from app.application.ports import CatalogRepository
-from app.domain.catalog import ActiveCatalog
-from app.domain.knowledge import (
-    EmbeddingPurpose,
-    EmbeddingSpec,
-    KnowledgeChunk,
-    KnowledgeCorpus,
-    KnowledgeHit,
-    KnowledgeRelation,
-    KnowledgeRevision,
-    ProjectionStamp,
-    RetrievedKnowledge,
-)
-from app.domain.language import Language
+
+if TYPE_CHECKING:
+    from contextlib import AbstractAsyncContextManager
+
+    from app.domain.catalog import ActiveCatalog
+    from app.domain.knowledge import (
+        EmbeddingPurpose,
+        EmbeddingSpec,
+        KnowledgeChunk,
+        KnowledgeCorpus,
+        KnowledgeHit,
+        KnowledgeRelation,
+        KnowledgeRevision,
+        ProjectionStamp,
+        RetrievedKnowledge,
+    )
+    from app.domain.language import Language
 
 
 class EmbeddingAccounting(Protocol):

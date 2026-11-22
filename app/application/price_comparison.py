@@ -7,12 +7,15 @@ clear comparisons with unresolved referents ask for clarification rather than gu
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from app.domain.answer_policy import fold
 from app.domain.catalog import Catalog, Product, mentioned_products
 from app.domain.conversation import Message, Notice, Role
 from app.domain.language import Language
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 _PRICE = re.compile(
     r"\b(?:precio|precios|cuesta|cuestan|coste|costo|costos|vale|valen|valor|price|prices|cost|costs|priced)\b"

@@ -7,17 +7,19 @@ token digests in constant time. Return 404 when operations authentication is unc
 import hashlib
 import hmac
 from datetime import datetime
-from typing import Annotated, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from fastapi import APIRouter, Depends, Header, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.application.operations import OperationsService, Summary
-from app.application.telemetry import TelemetryPort
 from app.presentation.middleware import request_id_of
 from app.presentation.schemas import ErrorOut
 from app.presentation.telemetry import OpsTelemetryOut
+
+if TYPE_CHECKING:
+    from app.application.operations import OperationsService, Summary
+    from app.application.telemetry import TelemetryPort
 
 
 class _Out(BaseModel):

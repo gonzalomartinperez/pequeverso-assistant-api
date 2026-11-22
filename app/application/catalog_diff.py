@@ -8,8 +8,10 @@ moment the new snapshot is active, because every reference is resolved against t
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from app.domain.catalog import Catalog, Price
+if TYPE_CHECKING:
+    from app.domain.catalog import Catalog, Price
 
 
 def _price(price: Price | None) -> str:
