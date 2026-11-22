@@ -1,6 +1,8 @@
-"""Full evaluation set by intent family (evals/full/*.jsonl, schema v2): validation, retrieval and the
-full HTTP/SSE pipeline. Deterministic in fixture mode; never calls a paid model unless --live is given
-with explicit authorization (same gate as evaluate_conversations.py).
+"""Validate and evaluate the full schema v2 corpus by intent family.
+
+Run retrieval and the HTTP/SSE pipeline against cases in evals/full/*.jsonl. Fixture mode
+is deterministic. Paid evaluation requires --live and explicit authorization
+through the same gate as evaluate_conversations.py.
 
     uv run python scripts/evaluate_corpus.py                 # validate + retrieval + fixture pipeline
     uv run python scripts/evaluate_corpus.py --retrieval     # validate + retrieval only
@@ -206,8 +208,10 @@ BEHAVIOR_TERMS: dict[str, tuple[str, ...]] = {
 
 
 def assign_splits(family: str, groups: Iterable[str]) -> dict[str, str]:
-    """Deterministic, group-preserving split: groups in sha256(family:group) order join dev when that
-    brings dev closer to 70 % of the family's cases; the others are holdout.
+    """Assign deterministic dev and holdout splits without dividing groups.
+
+    Consider groups in sha256(family:group) order. Add a group to dev when it brings dev
+    at least as close to 70% of the family's cases. Assign all other groups to holdout.
     """
     sizes: dict[str, int] = defaultdict(int)
     for group in groups:
@@ -306,8 +310,10 @@ def _case_problems(case: dict[str, Any], known: set[str], sha: str) -> list[str]
 
 
 def validate(cases: list[dict[str, Any]]) -> list[str]:
-    """Structural problems: unknown keys, invalid values, ids that are not in the catalog, splits that
-    do not match the algorithm, and paraphrase groups spanning families or splits.
+    """Report structural problems in the evaluation cases.
+
+    Check keys, values, catalog IDs, and split assignments, including paraphrase groups
+    that span families or splits.
     """
     from evals.graders import GRADERS  # lazy: evals.graders imports this module
 
@@ -470,8 +476,9 @@ def _behavior(
 
 
 def _language(case: dict[str, Any], message: dict[str, Any]) -> list[str]:
-    """The reply language is decided in code (app/domain/language.py), so this is deterministic in
-    every mode. Mixed-language messages have no single right answer and are not checked.
+    """Check the expected reply language using the same deterministic rules in every mode.
+
+    Skip mixed-language messages, which have no single expected reply language.
     """
     if "language" not in message or case["group"] == "lang-mixed":
         return []

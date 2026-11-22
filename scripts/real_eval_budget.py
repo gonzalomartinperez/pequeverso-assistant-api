@@ -676,7 +676,7 @@ def extend_evaluation_envelope(
     source_revision: str,
     manifest_sha256: str,
 ) -> str:
-    """The one explicit offline 650/$1→1100/$6 migration; all old tables remain intact."""
+    """Migrate the offline 650-case, USD 1 budget to 1100 cases and USD 6, preserving old tables."""
     _private_existing_ledger(path)
     for value, size in ((authorization_sha256, 64), (source_revision, 40), (manifest_sha256, 64)):
         _exact_hash(value, size)
@@ -912,7 +912,7 @@ def extend_evaluation_followup(
     source_revision: str,
     manifest_sha256: str,
 ) -> str:
-    """Fixed offline 1100→1600 event; USD6 and every earlier row stay unchanged."""
+    """Record the offline increase from 1100 to 1600 cases, preserving USD 6 and prior rows."""
     _private_existing_ledger(path)
     for value, size in (
         (previous_audit_sha256, 64),
@@ -1156,7 +1156,10 @@ def extend_evaluation_final_format(
     source_revision: str,
     manifest_sha256: str,
 ) -> str:
-    """Fixed offline 1600→2100 event, same USD6; never edit counters, stops or prior events."""
+    """Record the offline increase from 1600 to 2100 cases under the same USD 6 cap.
+
+    Preserve counters, stops, and prior events.
+    """
     _private_existing_ledger(path)
     for value, size in (
         (previous_audit_sha256, 64),

@@ -14,17 +14,23 @@ class _Out(BaseModel):
 
 
 class ReadinessOut(_Out):
+    """Report service readiness at the recorded check time."""
+
     status: Literal["ready", "not_ready"]
     checked_at: datetime
     measurement: Literal["point_in_time"] = "point_in_time"
 
 
 class ProviderObservationOut(_Out):
+    """Indicate that provider status is unknown because it was not probed."""
+
     status: Literal["unknown"] = "unknown"
     reason: Literal["not_probed"] = "not_probed"
 
 
 class ResourcesOut(_Out):
+    """Report process and cgroup resource measurements and limits when available."""
+
     process_rss_bytes: int | None = Field(ge=0)
     process_peak_rss_bytes: int | None = Field(ge=0)
     cgroup_memory_current_bytes: int | None = Field(ge=0)
@@ -36,6 +42,8 @@ class ResourcesOut(_Out):
 
 
 class HttpTelemetryOut(_Out):
+    """Report current in-flight HTTP requests and totals since process start."""
+
     requests: int = Field(ge=0)
     server_errors: int = Field(ge=0)
     inflight: int = Field(ge=0)
@@ -46,6 +54,8 @@ class HttpTelemetryOut(_Out):
 
 
 class TracesOut(_Out):
+    """Report trace sampling settings and export outcomes for the current process."""
+
     enabled: bool
     sampling_ratio: float = Field(ge=0, le=1)
     export_successes: int = Field(ge=0)
@@ -56,6 +66,8 @@ class TracesOut(_Out):
 
 
 class OpsTelemetryOut(_Out):
+    """Report a snapshot of runtime readiness, activity, resources, and telemetry."""
+
     schema_version: Literal["1"] = "1"
     generated_at: datetime
     process_started_at: datetime
@@ -75,6 +87,7 @@ class OpsTelemetryOut(_Out):
 
     @classmethod
     def of(cls, state: TelemetrySnapshot) -> Self:
+        """Convert a runtime snapshot to the telemetry wire format."""
         return cls.model_validate(
             {
                 "generated_at": state.generated_at,

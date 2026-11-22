@@ -1,6 +1,7 @@
-"""Private operations summary for the backoffice: health, catalog freshness, runs, latency,
-tokens and spend. Aggregates only: no session ids, messages, prompts, client keys or secrets.
-Unknown values stay None (rendered as "not available"), never a fabricated zero.
+"""Summarize assistant operations for the backoffice.
+
+Report health, catalog freshness, run outcomes, latency, tokens, and spend. Omit session
+identifiers, messages, prompts, client keys, and secrets. Represent unknown values as None.
 """
 
 from __future__ import annotations
@@ -22,8 +23,10 @@ RECENT_RUNS = 50
 
 @dataclass(frozen=True, slots=True)
 class Spend:
-    """Micro-dollars. confirmed: settled to provider usage; estimated: run ended without a usage
-    report, the reservation is kept; pending: reservation of a run still in progress.
+    """Track confirmed, estimated, and pending spend in micro-dollars.
+
+    Confirmed spend reflects reported usage. Estimated spend retains the reservation when a run
+    ends without a usage report. Pending spend covers runs that are still in progress.
     """
 
     confirmed: int = 0

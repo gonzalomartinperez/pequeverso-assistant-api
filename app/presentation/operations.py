@@ -1,7 +1,7 @@
-"""Private, server-to-server operations API for the backoffice. Not under the public `/api`
-prefix: the proxy must not route `/internal/*`, and every request needs the bearer token. The
-token is compared as a SHA-256 digest in constant time; without a configured token the routes
-answer 404 as if they did not exist.
+"""Serve the backoffice operations API on private routes.
+
+The proxy must keep /internal/* private. Require bearer authentication and compare
+token digests in constant time. Return 404 when operations authentication is unconfigured.
 """
 
 import hashlib
@@ -25,6 +25,8 @@ class _Out(BaseModel):
 
 
 class ServiceOut(_Out):
+    """Describe the running service, model configuration, and fixture status."""
+
     environment: str
     revision: str | None
     provider: Literal["fixture", "openai"]
@@ -38,11 +40,15 @@ class ServiceOut(_Out):
 
 
 class OpsAvailabilityOut(_Out):
+    """Report whether the assistant accepts questions and give the reason if unavailable."""
+
     status: Literal["available", "unavailable"]
     reason: str | None
 
 
 class CatalogOut(_Out):
+    """Report catalog provenance, freshness, and the latest synchronization status."""
+
     status: Literal["active", "missing"]
     source: Literal["bundled", "live"]
     revision: str | None
@@ -60,6 +66,8 @@ class CatalogOut(_Out):
 
 
 class SpendOut(_Out):
+    """Break down spend in USD into confirmed, estimated, and pending amounts."""
+
     confirmed: str = Field(description="USD settled to provider-reported usage.")
     estimated: str = Field(
         description="USD kept as worst-case estimate: the run ended without a usage report."
@@ -68,6 +76,8 @@ class SpendOut(_Out):
 
 
 class BudgetOut(_Out):
+    """Report daily and monthly limits, spend, and remaining monthly budget."""
+
     month: str
     day: str
     monthly_limit: str
@@ -79,6 +89,8 @@ class BudgetOut(_Out):
 
 
 class RunCountsOut(_Out):
+    """Count runs by their reported outcome."""
+
     completed: int
     failed: int
     cancelled: int
@@ -87,12 +99,16 @@ class RunCountsOut(_Out):
 
 
 class PercentilesOut(_Out):
+    """Report median and 95th-percentile latency with the sample count."""
+
     p50: int
     p95: int
     count: int
 
 
 class LatencyOut(_Out):
+    """Report time to first answer text and time to final answer in milliseconds."""
+
     first_delta: PercentilesOut | None = Field(
         description="Request accepted → first answer text (model runs)."
     )
@@ -102,6 +118,8 @@ class LatencyOut(_Out):
 
 
 class TokensOut(_Out):
+    """Summarize token usage and the number of runs with usage reports."""
+
     input: int
     cached_input: int
     output: int
@@ -110,6 +128,8 @@ class TokensOut(_Out):
 
 
 class WindowOut(_Out):
+    """Summarize run outcomes, failures, latency, and tokens over a time window."""
+
     hours: int
     runs: RunCountsOut
     replaced: int
@@ -119,6 +139,8 @@ class WindowOut(_Out):
 
 
 class DailyOut(_Out):
+    """Report outcomes, settled and estimated spend, and token totals for one day."""
+
     day: str
     completed: int
     failed: int
@@ -133,6 +155,8 @@ class DailyOut(_Out):
 
 
 class PricingOut(_Out):
+    """Describe the model rates and revision used for cost estimates."""
+
     revision: str = Field(
         description="Source of the rates used for estimates; not the provider invoice."
     )
@@ -144,6 +168,8 @@ class PricingOut(_Out):
 
 
 class RecentRunOut(_Out):
+    """Summarize a recent run's outcome, timing, and answer metadata."""
+
     id: str = Field(
         description="Opaque: a digest of the run id, not usable against the public API."
     )
@@ -158,6 +184,8 @@ class RecentRunOut(_Out):
 
 
 class OpsSummaryOut(_Out):
+    """Report service status, catalog freshness, and assistant usage and spend."""
+
     schema_version: Literal["1"] = "1"
     generated_at: datetime
     service: ServiceOut
@@ -176,6 +204,7 @@ class OpsSummaryOut(_Out):
 
     @classmethod
     def of(cls, summary: Summary) -> Self:
+        """Convert the application summary to its wire representation."""
         info = summary.service
         return cls.model_validate(
             {
@@ -238,6 +267,7 @@ def build_router(
     token_digest: bytes,
     telemetry: TelemetryPort | None = None,
 ) -> APIRouter:
+    """Build authenticated operations routes with optional runtime telemetry."""
     router = APIRouter(prefix="/internal/v1/ops", include_in_schema=False)
     unauthorized_response = {
         "model": ErrorOut,

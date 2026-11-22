@@ -28,7 +28,7 @@ from scripts.real_eval_budget import CAP_MICRO, evaluation_run_ownership
 
 
 def verify_existing_budget(previous: Path, state: Path, terminal_only: bool) -> None:
-    """A typo must never create a new paid allowance when continuing a previous run."""
+    """Require an existing allowance when resuming a paid run to guard against mistyped IDs."""
     if not state.is_file() or state.is_symlink():
         raise ValueError("continuation requires the existing shared budget file")
     old = json.loads((previous / "budget.json").read_text())

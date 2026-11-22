@@ -2,6 +2,7 @@
   "$defs": {
     "HttpTelemetryOut": {
       "additionalProperties": false,
+      "description": "Report current in-flight HTTP requests and totals since process start.",
       "properties": {
         "requests": {
           "minimum": 0,
@@ -41,6 +42,7 @@
     },
     "ProviderObservationOut": {
       "additionalProperties": false,
+      "description": "Indicate that provider status is unknown because it was not probed.",
       "properties": {
         "status": {
           "const": "unknown",
@@ -60,6 +62,7 @@
     },
     "ReadinessOut": {
       "additionalProperties": false,
+      "description": "Report service readiness at the recorded check time.",
       "properties": {
         "status": {
           "enum": [
@@ -90,6 +93,7 @@
     },
     "ResourcesOut": {
       "additionalProperties": false,
+      "description": "Report process and cgroup resource measurements and limits when available.",
       "properties": {
         "process_rss_bytes": {
           "anyOf": [
@@ -196,6 +200,7 @@
     },
     "TracesOut": {
       "additionalProperties": false,
+      "description": "Report trace sampling settings and export outcomes for the current process.",
       "properties": {
         "enabled": {
           "title": "Enabled",
@@ -260,6 +265,7 @@
     }
   },
   "additionalProperties": false,
+  "description": "Report a snapshot of runtime readiness, activity, resources, and telemetry.",
   "properties": {
     "schema_version": {
       "const": "1",

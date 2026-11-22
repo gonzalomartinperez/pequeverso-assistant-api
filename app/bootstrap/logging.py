@@ -1,6 +1,7 @@
-"""JSON logs with an allowlist: application log calls pass JSON strings built from safe fields;
-anything else (e.g. third-party messages or exception text) is reduced to its logger and level
-so conversation content, secrets and exception details never reach the log stream.
+"""Emit JSON logs using only allowlisted fields.
+
+Application log calls supply structured entries. Other messages are reduced to their
+logger and level, keeping conversation content, secrets, and exception details out of logs.
 """
 
 from __future__ import annotations

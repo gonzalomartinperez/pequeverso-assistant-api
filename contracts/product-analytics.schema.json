@@ -2,6 +2,7 @@
   "$defs": {
     "Cell": {
       "additionalProperties": false,
+      "description": "Report the click count for one visible grid cell.",
       "properties": {
         "x": {
           "maximum": 7,
@@ -32,6 +33,7 @@
     },
     "Country": {
       "additionalProperties": false,
+      "description": "Report the count for a country, unknown, or withheld bucket.",
       "properties": {
         "code": {
           "enum": [
@@ -306,6 +308,7 @@
     },
     "Counts": {
       "additionalProperties": false,
+      "description": "Count received page views, section views, and public clicks.",
       "properties": {
         "page_views": {
           "maximum": 310000,
@@ -336,6 +339,7 @@
     },
     "Daily": {
       "additionalProperties": false,
+      "description": "Report the event counts for a single UTC calendar day.",
       "properties": {
         "page_views": {
           "maximum": 310000,
@@ -372,6 +376,7 @@
     },
     "Grid": {
       "additionalProperties": false,
+      "description": "Report grid availability and the breakdown of visible, withheld, and unselected clicks.",
       "properties": {
         "available": {
           "title": "Available",
@@ -416,6 +421,7 @@
     },
     "SelectionOut": {
       "additionalProperties": false,
+      "description": "Describe the selected reporting period and storefront filters.",
       "properties": {
         "period": {
           "enum": [
@@ -483,6 +489,7 @@
     }
   },
   "additionalProperties": false,
+  "description": "Report received storefront events for a selected period and set of filters.",
   "properties": {
     "schema_version": {
       "const": 1,

@@ -1,5 +1,7 @@
-"""Public v1 wire models. These are the contract (contracts/*.json is generated from them); they
-never carry provider payloads, prompts, reasoning, HTML or executable UI.
+"""Define the public v1 wire models used to generate the contract artifacts.
+
+These models carry plain-text messages and structured API fields, excluding provider
+payloads, prompts, reasoning, HTML, and executable UI.
 """
 
 from __future__ import annotations
@@ -21,6 +23,8 @@ class _Out(BaseModel):
 
 
 class ImageOut(_Out):
+    """Describe a storefront image with its URL, dimensions, and alternative text."""
+
     url: str = Field(description="Absolute https URL on the storefront origin.")
     width: int
     height: int
@@ -28,6 +32,8 @@ class ImageOut(_Out):
 
 
 class PriceOut(_Out):
+    """Describe a verified storefront price in USD with display text and verification time."""
+
     amount: str = Field(description='Decimal string, e.g. "14.99".', examples=["14.99"])
     currency: Literal["USD"]
     display: str = Field(description='Customer-facing format, e.g. "US$14,99".')
@@ -37,6 +43,8 @@ class PriceOut(_Out):
 
 
 class ProductOut(_Out):
+    """Describe a storefront product and its optional image, price, and affiliate details."""
+
     id: str = Field(description="Authoritative storefront product id (slug).")
     name: str
     summary: str
@@ -59,6 +67,8 @@ class ProductOut(_Out):
 
 
 class ResourceOut(_Out):
+    """Describe a resource associated with a storefront product."""
+
     id: str = Field(description='"<product_id>/<resource_id>".')
     product_id: str
     title: str
@@ -68,12 +78,16 @@ class ResourceOut(_Out):
 
 
 class LinkOut(_Out):
+    """Provide a labeled link that can accompany an assistant message."""
+
     id: str
     label: str
     url: str
 
 
 class SourceOut(_Out):
+    """Identify a source cited by the assistant."""
+
     id: str
     title: str
     url: str
@@ -87,6 +101,8 @@ CONTRACT_REVISION = "1.6"
 
 
 class MessageOut(_Out):
+    """Represent a conversation message with plain text and optional answer details."""
+
     id: str
     role: Literal["user", "assistant"]
     content: str = Field(
@@ -108,6 +124,7 @@ class MessageOut(_Out):
 
     @classmethod
     def of(cls, message: Message) -> MessageOut:
+        """Convert a domain message and its answer details to the public wire format."""
         d: AnswerDetails = message.details
         return cls(
             id=message.id,
@@ -163,16 +180,22 @@ UnavailableReason = Literal["assistant_disabled", "catalog_unavailable", "budget
 
 
 class AvailabilityOut(_Out):
+    """Report whether the assistant accepts new questions and why it may be unavailable."""
+
     status: Availability
     reason: UnavailableReason | None = None
 
 
 class LimitsOut(_Out):
+    """Report the message length limit and daily message allowance."""
+
     max_message_chars: int
     messages_per_day: int
 
 
 class SessionOut(_Out):
+    """Return session state with conversation history, availability, limits, and starters."""
+
     schema_version: Literal["1"] = SCHEMA_VERSION
     csrf_token: str = Field(
         description="Send as X-CSRF-Token on every mutation. Keep in memory only."
@@ -194,6 +217,8 @@ class SessionOut(_Out):
 
 
 class SessionIn(BaseModel):
+    """Carry the optional interface locale for opening a session."""
+
     model_config = ConfigDict(extra="forbid")
     locale: Locale | None = Field(
         default=None, description="Interface language; a preference, not an order."
@@ -204,6 +229,8 @@ Page = Literal["home", "product", "support"]
 
 
 class VisitorContextIn(BaseModel):
+    """Carry optional public route and presentation hints from the storefront."""
+
     model_config = ConfigDict(extra="forbid")
     opened_path: PublicPath | None = Field(
         default=None,
@@ -217,11 +244,14 @@ class VisitorContextIn(BaseModel):
     )
 
     def to_domain(self) -> VisitorContext | None:
+        """Convert supplied hints to domain context or return None when all hints are absent."""
         context = VisitorContext(self.opened_path, self.current_path, self.presentation)
         return None if context.empty else context
 
 
 class MessageIn(BaseModel):
+    """Carry the visitor's question and optional storefront and language preferences."""
+
     model_config = ConfigDict(extra="forbid")
     content: Annotated[str, Field(min_length=1, max_length=2000)]
     page: Page | None = Field(
@@ -244,10 +274,13 @@ class MessageIn(BaseModel):
     )
 
     def visitor_context(self) -> VisitorContext | None:
+        """Return the supplied storefront context as a domain value when present."""
         return self.context.to_domain() if self.context else None
 
 
 class ErrorBody(_Out):
+    """Describe an API error with a code, retryability, and request ID."""
+
     code: str
     message: str = Field(description="English, for developers; localize from `code`.")
     retryable: bool
@@ -255,4 +288,6 @@ class ErrorBody(_Out):
 
 
 class ErrorOut(_Out):
+    """Wrap error details in the standard v1 response envelope."""
+
     error: ErrorBody

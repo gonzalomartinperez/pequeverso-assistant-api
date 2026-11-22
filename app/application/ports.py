@@ -1,6 +1,4 @@
-"""Ports the use cases depend on. Adapters implement them; nothing here knows FastAPI, SQLite or
-a model SDK.
-"""
+"""Define the adapter interfaces used by application services."""
 
 from __future__ import annotations
 
@@ -20,23 +18,52 @@ from app.domain.web_evidence import HelpTopic, WebEvidence
 
 
 class Clock(Protocol):
-    def now(self) -> datetime: ...
+    """Provide the current time to application services."""
+
+    def now(self) -> datetime:
+        """Return the current time."""
+        ...
 
 
 class SessionStore(Protocol):
-    async def create(self, session: Session, secret_digest: bytes) -> None: ...
-    async def find(self, secret_digest: bytes, now: datetime) -> Session | None: ...
-    async def touch(self, session_id: str, now: datetime, expires_at: datetime) -> None: ...
-    async def delete(self, session_id: str) -> None: ...
-    async def purge_expired(self, now: datetime) -> int: ...
+    """Persist and look up anonymous sessions."""
+
+    async def create(self, session: Session, secret_digest: bytes) -> None:
+        """Store a new session with its ownership digest."""
+        ...
+
+    async def find(self, secret_digest: bytes, now: datetime) -> Session | None:
+        """Return the unexpired session for the digest, if one exists."""
+        ...
+
+    async def touch(self, session_id: str, now: datetime, expires_at: datetime) -> None:
+        """Update the session's activity and expiry timestamps."""
+        ...
+
+    async def delete(self, session_id: str) -> None:
+        """Delete the session and its conversation."""
+        ...
+
+    async def purge_expired(self, now: datetime) -> int:
+        """Delete expired sessions and return the number removed."""
+        ...
 
 
 class MessageStore(Protocol):
-    async def append(self, session_id: str, message: Message) -> None: ...
-    async def history(self, session_id: str, limit: int) -> list[Message]: ...
+    """Store conversation messages by session."""
+
+    async def append(self, session_id: str, message: Message) -> None:
+        """Append a message to the session's conversation."""
+        ...
+
+    async def history(self, session_id: str, limit: int) -> list[Message]:
+        """Return up to the requested number of recent messages, oldest first."""
+        ...
 
 
 class RunState(StrEnum):
+    """Identify the persisted lifecycle state of a run."""
+
     ACTIVE = "active"
     COMPLETED = "completed"
     FAILED = "failed"
@@ -45,6 +72,8 @@ class RunState(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class RunRecord:
+    """Record a run's identity, request fingerprint, state, and optional answer ID."""
+
     id: str
     session_id: str
     request_hash: str
@@ -53,31 +82,44 @@ class RunRecord:
 
 
 class RunStore(Protocol):
+    """Persist run claims and results for idempotent requests."""
+
     async def claim(
         self, run_id: str, session_id: str, idempotency_key: str, request_hash: str, now: datetime
     ) -> RunRecord:
         """Insert a new active run, or return the run already recorded for this key."""
         ...
 
-    async def finish(
-        self, run_id: str, state: RunState, assistant_message_id: str | None
-    ) -> None: ...
-    async def message(self, session_id: str, message_id: str) -> Message | None: ...
+    async def finish(self, run_id: str, state: RunState, assistant_message_id: str | None) -> None:
+        """Record the run's final state and optional assistant message ID."""
+        ...
+
+    async def message(self, session_id: str, message_id: str) -> Message | None:
+        """Look up a message by ID within the given session."""
+        ...
+
     async def abandon_active(self) -> int:
         """Mark runs left active by a previous process as failed (startup recovery)."""
         ...
 
 
 class Ledger(Protocol):
-    """Spend in micro-dollars. A row is *pending* while its run is active, *settled* to the
-    provider-reported usage, or *unreported* when the run ended without a usage report (the
-    worst-case reservation then stays counted as an estimate; absence never implies a refund).
+    """Track run spend in micro-dollars.
+
+    A row is pending while the run is active and settled once the provider reports usage. If the
+    run ends without a usage report, mark it unreported and retain the worst-case estimate.
     """
 
     async def reserve(
         self, run_id: str, reservation_micro: int, month: str, day: str, allows: BudgetCheck
-    ) -> bool: ...
-    async def settle(self, run_id: str, actual_micro: int, usage: Usage, model: str) -> None: ...
+    ) -> bool:
+        """Reserve spend only if the budget check allows it."""
+        ...
+
+    async def settle(self, run_id: str, actual_micro: int, usage: Usage, model: str) -> None:
+        """Settle the reservation to the reported cost and record usage and model."""
+        ...
+
     async def mark_unreported(self, run_id: str) -> None:
         """Close a still-pending reservation without usage (no-op when already closed)."""
         ...
@@ -86,10 +128,14 @@ class Ledger(Protocol):
         """Startup recovery: pending rows of a previous process become unreported."""
         ...
 
-    async def spent(self, month: str, day: str) -> tuple[int, int]: ...
+    async def spent(self, month: str, day: str) -> tuple[int, int]:
+        """Return counted spend for the given month and day, in that order."""
+        ...
 
 
 class RunOutcome(StrEnum):
+    """Classify run outcomes for operations reporting."""
+
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
@@ -116,55 +162,92 @@ class RunMetric:
 
 
 class RunMetrics(Protocol):
-    async def record(self, metric: RunMetric) -> None: ...
+    """Persist content-free run metrics."""
+
+    async def record(self, metric: RunMetric) -> None:
+        """Record the metrics for a run."""
+        ...
 
 
 class BudgetCheck(Protocol):
-    def __call__(self, *, month_spent: int, day_spent: int, reservation: int) -> bool: ...
+    """Decide whether a reservation fits within the spend limits."""
+
+    def __call__(self, *, month_spent: int, day_spent: int, reservation: int) -> bool:
+        """Check the proposed reservation against the current monthly and daily spend."""
+        ...
 
 
 class RateLimiter(Protocol):
+    """Enforce event limits for keyed time windows."""
+
     async def hit(self, key: str, window_seconds: int, limit: int, now: datetime) -> bool:
         """Count one event; False when the window already holds `limit` events."""
         ...
 
 
 class CatalogView(Protocol):
-    @property
-    def active(self) -> ActiveCatalog | None: ...
+    """Expose the active catalog and its synchronization state."""
 
     @property
-    def synchronized(self) -> bool: ...
+    def active(self) -> ActiveCatalog | None:
+        """Return the active catalog, if one is available."""
+        ...
+
+    @property
+    def synchronized(self) -> bool:
+        """Report whether the latest fetch was validated and bound to an active snapshot."""
+        ...
 
 
 class OfficialHelp(Protocol):
-    async def read(self, topics: tuple[HelpTopic, ...]) -> tuple[WebEvidence, ...]: ...
+    """Supply approved help evidence for requested topics."""
+
+    async def read(self, topics: tuple[HelpTopic, ...]) -> tuple[WebEvidence, ...]:
+        """Read official help evidence for the requested topics."""
+        ...
 
 
 class CatalogSource(Protocol):
+    """Supply catalog documents and identify their freshness semantics."""
+
     @property
     def live(self) -> bool:
-        """True when a successful fetch confirms the facts are current right now (a published
-        storefront document); False for a bundled snapshot, whose facts date from its export.
+        """Indicate whether a successful fetch can confirm current facts.
+
+        A published storefront document confirms facts at fetch time. A bundled snapshot reflects
+        the facts at its export time.
         """
         ...
 
-    async def fetch(self) -> bytes: ...
+    async def fetch(self) -> bytes:
+        """Fetch the catalog document as bytes."""
+        ...
 
 
 class CatalogParser(Protocol):
-    def __call__(self, body: bytes) -> Catalog: ...
+    """Convert raw catalog documents into domain catalogs."""
+
+    def __call__(self, body: bytes) -> Catalog:
+        """Parse the document bytes into a catalog."""
+        ...
 
 
 @dataclass(frozen=True, slots=True)
 class StoredSnapshot:
+    """Hold the active snapshot's content, digest, and verification time."""
+
     sha256: str
     body: bytes
     verified_at: datetime
 
 
 class CatalogRepository(Protocol):
-    async def active(self) -> StoredSnapshot | None: ...
+    """Persist catalog snapshots and synchronization results."""
+
+    async def active(self) -> StoredSnapshot | None:
+        """Return the stored active snapshot, if one exists."""
+        ...
+
     async def activate(
         self,
         sha256: str,
@@ -172,11 +255,19 @@ class CatalogRepository(Protocol):
         catalog: Catalog,
         verified_at: datetime,
         attempted_at: datetime,
-    ) -> None: ...
+    ) -> None:
+        """Store and activate the supplied snapshot with its verification and attempt times."""
+        ...
+
     async def mark_verified(
         self, sha256: str, verified_at: datetime, attempted_at: datetime
-    ) -> None: ...
-    async def record_failure(self, reason: str, now: datetime) -> None: ...
+    ) -> None:
+        """Refresh verification and attempt times for the unchanged snapshot."""
+        ...
+
+    async def record_failure(self, reason: str, now: datetime) -> None:
+        """Record a failed synchronization attempt with its time and reason."""
+        ...
 
 
 # --- answer composition -------------------------------------------------------------------------
@@ -200,6 +291,8 @@ class Turn:
 
 @dataclass(frozen=True, slots=True)
 class DraftReference:
+    """Identify an unvalidated reference by kind and ID."""
+
     kind: str
     id: str
 
@@ -216,11 +309,15 @@ class Draft:
 
 @dataclass(frozen=True, slots=True)
 class DeltaEvent:
+    """Carry a provisional fragment of answer text."""
+
     text: str
 
 
 @dataclass(frozen=True, slots=True)
 class DraftEvent:
+    """Carry the completed draft and any reported usage."""
+
     draft: Draft
     usage: Usage | None
 
@@ -232,19 +329,28 @@ class GenerationError(RejectedError):
     """A provider failure after the call was made; carries the usage it reported, if any."""
 
     def __init__(self, code: FailureCode, usage: Usage | None) -> None:
+        """Initialize the rejection with its failure code and any reported usage."""
         super().__init__(code)
         self.usage = usage
 
 
 class PreparedTurn(Protocol):
-    @property
-    def web_evidence(self) -> tuple[WebEvidence, ...]: ...
+    """Expose the evidence and input size for a turn prepared for composition."""
 
     @property
-    def catalog_source_ids(self) -> frozenset[str]: ...
+    def web_evidence(self) -> tuple[WebEvidence, ...]:
+        """Return the official help evidence included in the prepared turn."""
+        ...
 
     @property
-    def input_size_bytes(self) -> int: ...
+    def catalog_source_ids(self) -> frozenset[str]:
+        """Return the IDs of catalog sources included in the prepared turn."""
+        ...
+
+    @property
+    def input_size_bytes(self) -> int:
+        """Return the generation input size in bytes used to size the reservation."""
+        ...
 
 
 @runtime_checkable
@@ -252,14 +358,22 @@ class DispatchAwarePreparedTurn(PreparedTurn, Protocol):
     """An explicit signal distinguishes retrieval work from a generation attempt."""
 
     @property
-    def generation_started(self) -> bool: ...
+    def generation_started(self) -> bool:
+        """Report whether the generation attempt has started."""
+        ...
 
 
 class AnswerComposer(Protocol):
-    @property
-    def model(self) -> str: ...
+    """Prepare inputs and stream the result of answer composition."""
 
-    def prepare(self, turn: Turn) -> PreparedTurn: ...
+    @property
+    def model(self) -> str:
+        """Return the model identifier used for answer composition."""
+        ...
+
+    def prepare(self, turn: Turn) -> PreparedTurn:
+        """Prepare the turn's inputs for generation."""
+        ...
 
     def compose(self, prepared: PreparedTurn) -> AsyncGenerator[ComposerEvent]:
         """Stream deltas, then exactly one DraftEvent. Closing the iterator cancels upstream work."""

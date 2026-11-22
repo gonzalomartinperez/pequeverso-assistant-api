@@ -76,7 +76,7 @@ class ProjectionReadiness:
 
 
 def fixture_corpus() -> KnowledgeCorpus:
-    """The snapshot export time remains explicit; it is not a new live freshness check."""
+    """Build the fixture corpus using the snapshot export time as its freshness reference."""
     body = (ROOT / "catalog/catalog.v1.json").read_bytes()
     parse = CatalogParser(_HOSTS)
     catalog = parse(body)

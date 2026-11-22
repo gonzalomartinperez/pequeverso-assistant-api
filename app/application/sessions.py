@@ -1,5 +1,7 @@
-"""Anonymous session ownership: an opaque random secret in an HttpOnly cookie, stored only as a
-digest, plus a CSRF token the page keeps in memory for mutations.
+"""Manage ownership of anonymous sessions.
+
+Keep an opaque random secret in an HttpOnly cookie and store only its digest. The page
+keeps a CSRF token in memory for mutations.
 """
 
 from __future__ import annotations

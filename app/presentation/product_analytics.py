@@ -38,6 +38,7 @@ class AnalyticsBodyLimitMiddleware(BodyLimitMiddleware):
     """One streaming-owned endpoint; every other unsafe request retains the global buffer."""
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Let analytics ingestion enforce its own size limit and buffer other mutations."""
         if scope["type"] == "http" and scope["method"] == "POST" and scope["path"] == PUBLIC_PATH:
             await self.app(scope, receive, send)
             return
@@ -73,6 +74,8 @@ class _Closed(BaseModel):
 
 
 class EventIn(_Closed):
+    """Describe a single storefront analytics event and its optional click coordinates."""
+
     model_config = ConfigDict(extra="forbid", frozen=True, json_schema_extra=_profile_schema)
     schema_version: Literal[1]
     project: Literal["pequeverso"]
@@ -90,12 +93,14 @@ class EventIn(_Closed):
     @field_validator("schema_version", mode="before")
     @classmethod
     def integer_version(cls, value: object) -> object:
+        """Require the schema version to be supplied as an integer."""
         if type(value) is not int:
             raise ValueError("integer schema version required")
         return value
 
     @model_validator(mode="after")
     def profile(self) -> Self:
+        """Validate the route and section pair and the coordinates for the event type."""
         if self.section_id not in PROFILE[self.route]:
             raise ValueError("unknown route/section pair")
         if self.event_name == "public_click":
@@ -106,6 +111,7 @@ class EventIn(_Closed):
         return self
 
     def event(self, *, country: str = "unknown") -> Event:
+        """Convert the payload to a domain event with a hashed ID and supplied country label."""
         return Event(
             hashlib.sha256(self.event_id.bytes).hexdigest(),
             self.event_name,
@@ -119,6 +125,8 @@ class EventIn(_Closed):
 
 
 class SelectionOut(_Closed):
+    """Describe the selected reporting period and storefront filters."""
+
     period: Literal["day", "week", "month"]
     offset: int = Field(strict=True, ge=0, le=2)
     route: Literal["all", "/", "/grafismo-fonetico/"]
@@ -128,27 +136,36 @@ class SelectionOut(_Closed):
 
     @model_validator(mode="after")
     def valid_selection(self) -> Self:
+        """Validate the report filters against the domain selection rules."""
         Selection(**self.model_dump())
         return self
 
 
 class Counts(_Closed):
+    """Count received page views, section views, and public clicks."""
+
     page_views: int = Field(strict=True, ge=0, le=310000)
     section_views: int = Field(strict=True, ge=0, le=310000)
     public_clicks: int = Field(strict=True, ge=0, le=310000)
 
 
 class Daily(Counts):
+    """Report the event counts for a single UTC calendar day."""
+
     day: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
 
 
 class Cell(_Closed):
+    """Report the click count for one visible grid cell."""
+
     x: int = Field(strict=True, ge=0, le=7)
     y: int = Field(strict=True, ge=0, le=7)
     count: int = Field(strict=True, ge=3, le=310000)
 
 
 class Grid(_Closed):
+    """Report grid availability and the breakdown of visible, withheld, and unselected clicks."""
+
     available: bool
     visible_clicks: int = Field(strict=True, ge=0, le=310000)
     withheld_clicks: int = Field(strict=True, ge=0, le=310000)
@@ -157,11 +174,14 @@ class Grid(_Closed):
 
 
 class Country(_Closed):
+    """Report the count for a country, unknown, or withheld bucket."""
+
     code: str = Field(json_schema_extra={"enum": [*sorted(COUNTRIES), "unknown", "withheld"]})
     count: int = Field(strict=True, ge=1, le=310000)
 
     @model_validator(mode="after")
     def valid_country(self) -> Self:
+        """Validate the country label and enforce the minimum for visible buckets."""
         if self.code not in COUNTRIES | {"unknown", "withheld"}:
             raise ValueError("unknown country label")
         if self.code != "withheld" and self.count < 3:
@@ -170,6 +190,8 @@ class Country(_Closed):
 
 
 class ReportOut(_Closed):
+    """Report received storefront events for a selected period and set of filters."""
+
     model_config = ConfigDict(
         extra="forbid", frozen=True, json_schema_serialization_defaults_required=True
     )
@@ -197,6 +219,7 @@ class ReportOut(_Closed):
 
     @model_validator(mode="after")
     def consistent(self) -> Self:
+        """Validate the report window and reconcile counts, observations, and grid data."""
         selection = self._check_window()
         self._check_daily()
         total = sum((self.totals.page_views, self.totals.section_views, self.totals.public_clicks))
@@ -326,6 +349,7 @@ def build_router(
     country_enabled: bool = False,
     country_proxy_ips: str = "",
 ) -> APIRouter:
+    """Build the storefront ingest and private analytics report routes."""
     router = APIRouter()
     headers = {"Cache-Control": "no-store"}
     _register_ingest(

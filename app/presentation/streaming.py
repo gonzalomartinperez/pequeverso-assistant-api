@@ -48,6 +48,7 @@ STREAM_FAILURES = frozenset(
 
 
 def encode(event: Any) -> bytes:
+    """Encode a wire event as an SSE frame with an ID, type, and JSON data."""
     return (
         f"id: {event.sequence}\nevent: {event.type}\ndata: {event.model_dump_json()}\n\n".encode()
     )
@@ -86,6 +87,7 @@ def _wire(event: RunEvent, run_id: str, sequence: int, clock: Clock) -> list[Any
 
 
 async def sse_body(run: Run, clock: Clock, heartbeat_seconds: float) -> AsyncGenerator[bytes]:
+    """Stream sequenced run events and emit keep-alive comments while waiting."""
     sequence = 0
     terminal = False
     events = run.events()
@@ -134,14 +136,17 @@ class ResponseCleanups:
     """Application-owned finalizers: no cross-app or cross-event-loop global state."""
 
     def __init__(self) -> None:
+        """Initialize the set of pending response cleanup tasks."""
         self._tasks: set[asyncio.Future[None]] = set()
 
     def track(self, task: asyncio.Future[None]) -> None:
+        """Retain a cleanup task until it finishes."""
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
 
     async def drain(self) -> None:
         # Give cancelled response tasks a turn to register their finally blocks.
+        """Wait for tracked response cleanup tasks to finish."""
         await asyncio.sleep(0)
         while self._tasks:
             pending = tuple(self._tasks)
@@ -154,8 +159,9 @@ class ResponseCleanups:
 
 
 class ClosingStreamingResponse(StreamingResponse):
-    """Runs `on_close` after the response ends for any reason, including a client disconnect
-    or a send error, shielded from cancellation and bounded in time.
+    """Run the stream's close callback even on disconnect or send failure.
+
+    Shield the cleanup task from cancellation and bound the response's wait for it.
     """
 
     def __init__(
@@ -165,12 +171,14 @@ class ClosingStreamingResponse(StreamingResponse):
         cleanups: ResponseCleanups,
         **kwargs: Any,
     ) -> None:
+        """Set up the stream, its close callback, and the application cleanup tracker."""
         super().__init__(content, **kwargs)
         self._generator = content
         self._on_close = on_close
         self._cleanups = cleanups
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Send the streaming response and schedule cleanup when it ends."""
         try:
             await super().__call__(scope, receive, send)
         finally:

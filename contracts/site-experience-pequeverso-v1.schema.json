@@ -83,6 +83,7 @@
       }
     }
   ],
+  "description": "Describe a single storefront analytics event and its optional click coordinates.",
   "properties": {
     "schema_version": {
       "const": 1,

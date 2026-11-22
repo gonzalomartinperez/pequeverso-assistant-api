@@ -8,6 +8,7 @@
     "/api/v1/availability": {
       "get": {
         "summary": "Whether new questions are accepted",
+        "description": "Report whether the assistant currently accepts new questions.",
         "operationId": "availability_api_v1_availability_get",
         "responses": {
           "200": {
@@ -86,6 +87,7 @@
     "/api/v1/session": {
       "post": {
         "summary": "Open (restore or create) the caller-owned session",
+        "description": "Restore or create the caller's session and return its conversation state.",
         "operationId": "open_session_api_v1_session_post",
         "requestBody": {
           "content": {
@@ -235,6 +237,7 @@
       },
       "delete": {
         "summary": "Delete the session and its whole conversation",
+        "description": "Cancel active session work and delete the conversation and session cookie.",
         "operationId": "delete_session_api_v1_session_delete",
         "parameters": [
           {
@@ -324,6 +327,7 @@
     "/api/v1/messages": {
       "post": {
         "summary": "Ask a question; the answer streams as Server-Sent Events",
+        "description": "Accept a question with an idempotency key and stream the answer as SSE.",
         "operationId": "post_message_api_v1_messages_post",
         "parameters": [
           {
@@ -435,6 +439,7 @@
     "/api/v1/runs/{run_id}/cancel": {
       "post": {
         "summary": "Cancel the caller's active run",
+        "description": "Request cancellation of an active run owned by the caller.",
         "operationId": "cancel_run_api_v1_runs__run_id__cancel_post",
         "parameters": [
           {
@@ -737,7 +742,8 @@
                   "viewport_bucket",
                   "locale"
                 ],
-                "title": "EventIn"
+                "title": "EventIn",
+                "description": "Describe a single storefront analytics event and its optional click coordinates."
               }
             }
           },
@@ -824,7 +830,8 @@
         "required": [
           "status"
         ],
-        "title": "AvailabilityOut"
+        "title": "AvailabilityOut",
+        "description": "Report whether the assistant accepts new questions and why it may be unavailable."
       },
       "ErrorBody": {
         "properties": {
@@ -854,7 +861,8 @@
           "retryable",
           "request_id"
         ],
-        "title": "ErrorBody"
+        "title": "ErrorBody",
+        "description": "Describe an API error with a code, retryability, and request ID."
       },
       "ErrorOut": {
         "properties": {
@@ -867,7 +875,8 @@
         "required": [
           "error"
         ],
-        "title": "ErrorOut"
+        "title": "ErrorOut",
+        "description": "Wrap error details in the standard v1 response envelope."
       },
       "ImageOut": {
         "properties": {
@@ -897,7 +906,8 @@
           "height",
           "alt"
         ],
-        "title": "ImageOut"
+        "title": "ImageOut",
+        "description": "Describe a storefront image with its URL, dimensions, and alternative text."
       },
       "LimitsOut": {
         "properties": {
@@ -916,7 +926,8 @@
           "max_message_chars",
           "messages_per_day"
         ],
-        "title": "LimitsOut"
+        "title": "LimitsOut",
+        "description": "Report the message length limit and daily message allowance."
       },
       "LinkOut": {
         "properties": {
@@ -940,7 +951,8 @@
           "label",
           "url"
         ],
-        "title": "LinkOut"
+        "title": "LinkOut",
+        "description": "Provide a labeled link that can accompany an assistant message."
       },
       "MessageIn": {
         "properties": {
@@ -1013,7 +1025,8 @@
         "required": [
           "content"
         ],
-        "title": "MessageIn"
+        "title": "MessageIn",
+        "description": "Carry the visitor's question and optional storefront and language preferences."
       },
       "MessageOut": {
         "properties": {
@@ -1107,7 +1120,8 @@
           "content",
           "created_at"
         ],
-        "title": "MessageOut"
+        "title": "MessageOut",
+        "description": "Represent a conversation message with plain text and optional answer details."
       },
       "PriceOut": {
         "properties": {
@@ -1155,7 +1169,8 @@
           "tax_note",
           "verified_at"
         ],
-        "title": "PriceOut"
+        "title": "PriceOut",
+        "description": "Describe a verified storefront price in USD with display text and verification time."
       },
       "ProductOut": {
         "properties": {
@@ -1254,7 +1269,8 @@
           "image",
           "price"
         ],
-        "title": "ProductOut"
+        "title": "ProductOut",
+        "description": "Describe a storefront product and its optional image, price, and affiliate details."
       },
       "ResourceOut": {
         "properties": {
@@ -1307,7 +1323,8 @@
           "description",
           "image"
         ],
-        "title": "ResourceOut"
+        "title": "ResourceOut",
+        "description": "Describe a resource associated with a storefront product."
       },
       "SessionIn": {
         "properties": {
@@ -1330,7 +1347,8 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "SessionIn"
+        "title": "SessionIn",
+        "description": "Carry the optional interface locale for opening a session."
       },
       "SessionOut": {
         "properties": {
@@ -1395,7 +1413,8 @@
           "availability",
           "limits"
         ],
-        "title": "SessionOut"
+        "title": "SessionOut",
+        "description": "Return session state with conversation history, availability, limits, and starters."
       },
       "SourceOut": {
         "properties": {
@@ -1419,7 +1438,8 @@
           "title",
           "url"
         ],
-        "title": "SourceOut"
+        "title": "SourceOut",
+        "description": "Identify a source cited by the assistant."
       },
       "VisitorContextIn": {
         "properties": {
@@ -1505,7 +1525,8 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "VisitorContextIn"
+        "title": "VisitorContextIn",
+        "description": "Carry optional public route and presentation hints from the storefront."
       }
     }
   }

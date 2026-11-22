@@ -1,5 +1,7 @@
-"""HTTP routes of the v1 API. Paths include the public `/api` prefix, so the proxy forwards
-`/api/*` unchanged (no prefix stripping). Health endpoints are unprefixed and internal.
+"""Serve the v1 assistant API and internal health probes.
+
+Public routes include the /api prefix so the proxy forwards them unchanged. Health probes
+are unprefixed and internal.
 """
 
 from __future__ import annotations
@@ -53,6 +55,8 @@ _UNAVAILABLE = {
 
 @dataclass(frozen=True, slots=True)
 class CookiePolicy:
+    """Configure the session cookie name, lifetime, and security attributes."""
+
     name: str
     secure: bool
     samesite: Literal["lax", "strict"]
@@ -61,6 +65,8 @@ class CookiePolicy:
 
 @dataclass(frozen=True, slots=True)
 class HttpSettings:
+    """Configure HTTP request handling, stream timing, limits, and probe metadata."""
+
     cookie: CookiePolicy
     trusted_proxies: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...]
     client_hash_key: bytes
@@ -74,6 +80,8 @@ class HttpSettings:
 
 @dataclass(frozen=True, slots=True)
 class Services:
+    """Provide application services and runtime dependencies to HTTP handlers."""
+
     sessions: SessionService
     chat: ChatService
     catalog: CatalogService
@@ -84,6 +92,7 @@ class Services:
 
 
 def services(request: Request) -> Services:
+    """Retrieve the service bundle from the application state."""
     value: Services = request.app.state.services
     return value
 
@@ -117,6 +126,7 @@ def client_ip(
 
 
 def client_key(request: Request, settings: HttpSettings) -> str:
+    """Derive the rate-limiting key from the resolved client address."""
     ip = client_ip(request, settings.trusted_proxies)
     return hmac.new(settings.client_hash_key, ip.encode(), hashlib.sha256).hexdigest()[:24]
 
@@ -156,6 +166,7 @@ router = APIRouter(prefix="/api/v1", responses=ERRORS)
     "/availability", response_model=AvailabilityOut, summary="Whether new questions are accepted"
 )
 async def availability(s: ServicesDep) -> AvailabilityOut:
+    """Report whether the assistant currently accepts new questions."""
     return await _availability(s.chat)
 
 
@@ -168,6 +179,7 @@ async def availability(s: ServicesDep) -> AvailabilityOut:
 async def open_session(
     request: Request, response: Response, s: ServicesDep, body: SessionIn | None = None
 ) -> SessionOut:
+    """Restore or create the caller's session and return its conversation state."""
     _require_json(request)
     locale = Language(body.locale) if body and body.locale else Language.ES
     active = s.catalog.active
@@ -198,6 +210,7 @@ async def mutation_session(
     s: ServicesDep,
     x_csrf_token: Annotated[str | None, Header()] = None,
 ) -> Session:
+    """Require an active session cookie and a valid CSRF token for a mutation."""
     return await s.sessions.require(request.cookies.get(s.settings.cookie.name), x_csrf_token)
 
 
@@ -206,6 +219,7 @@ SessionDep = Annotated[Session, Depends(mutation_session)]
 
 @router.delete("/session", status_code=204, summary="Delete the session and its whole conversation")
 async def delete_session(session: SessionDep, s: ServicesDep) -> Response:
+    """Cancel active session work and delete the conversation and session cookie."""
     async with s.chat.registry.session_mutation(session.id):
         try:
             async with asyncio.timeout(10):
@@ -240,6 +254,7 @@ async def post_message(
     s: ServicesDep,
     idempotency_key: Annotated[str, Header()],
 ) -> ClosingStreamingResponse:
+    """Accept a question with an idempotency key and stream the answer as SSE."""
     _require_json(request)
     if not _IDEMPOTENCY_KEY.match(idempotency_key):
         raise RejectedError(FailureCode.INVALID_REQUEST)
@@ -277,6 +292,7 @@ async def post_message(
 
 @router.post("/runs/{run_id}/cancel", status_code=202, summary="Cancel the caller's active run")
 async def cancel_run(run_id: str, session: SessionDep, s: ServicesDep) -> Response:
+    """Request cancellation of an active run owned by the caller."""
     s.chat.cancel(session, run_id)
     return Response(status_code=202)
 
@@ -306,6 +322,7 @@ class _VersionedLiveness(TypedDict):
 
 @health.get("/live")
 async def live() -> dict[str, str]:
+    """Confirm that the process can respond to a liveness probe."""
     return {"status": "ok"}
 
 
@@ -329,6 +346,7 @@ async def _readiness(s: Services) -> tuple[dict[str, object], int]:
     },
 )
 async def ready(s: ServicesDep) -> JSONResponse:
+    """Report dependency readiness and available catalog status."""
     body, status = await _readiness(s)
     return JSONResponse(body, status_code=status)
 
@@ -358,6 +376,8 @@ async def readyz(s: ServicesDep) -> JSONResponse:
 
 
 def install_error_handlers(app: FastAPI) -> None:
+    """Install handlers that translate application and HTTP exceptions into API errors."""
+
     def respond(request: Request, code: FailureCode) -> JSONResponse:
         headers = {"Retry-After": RETRY_AFTER[code]} if code in RETRY_AFTER else None
         return JSONResponse(
