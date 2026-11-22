@@ -108,7 +108,7 @@ The index is [`docs/README.md`](docs/README.md), organized with Diátaxis:
 
 - Tutorials: none yet; the index tracks them.
 - How-to: [`docs/how-to/`](docs/how-to/) for operations and dependency updates.
-- Reference: [`docs/reference/`](docs/reference/) for the API contract, catalog, deployment and CI.
+- Reference: [`docs/reference/`](docs/reference/) for the API contract, catalog, deployment, CI and the [glossary](docs/reference/glossary.md).
 - Explanation: [`docs/explanation/`](docs/explanation/) and [decisions](docs/decisions/).
 - Evidence and plan: [`docs/verification/`](docs/verification/) and [`docs/master-plan/`](docs/master-plan/README.md).
 

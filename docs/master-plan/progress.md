@@ -170,6 +170,61 @@ Parked: PVA-M3.7 (real golden cassettes and a live pass^3 need the owner's autho
 
 M4, starting with PVA-M4.1 (split `create_app`) once `checkpoint/M3` is tagged. Record the mutation baseline first.
 
+## M4 — Architecture and typing (agent work merged; checkpoint pending)
+
+| Field | Value |
+|---|---|
+| Milestone | M4 Architecture and typing: every task merged or parked; `checkpoint/M4` is tagged by the orchestrator after verification |
+| Date | 2026-11-22 |
+| develop SHA | `9236c9d` (merge of #188) before this docs PR |
+
+| Task | PR | Result |
+|---|---|---|
+| PVA-M4.1 | #162 | `create_app` (36) and `lifespan` (12) split into `wiring.py`, `lifespan.py`, `routes.py`; composition helpers stay in `container.py` because tests patch that namespace |
+| PVA-M4.2 | #163 | `fail_closed` (29) as an ordered table of 22 rules, one test per rule |
+| PVA-M4.3 | #165, #170 | `_ModelRun.events` (17) and `ChatService.start` (29) as named steps; `log.exception` kept for unexpected errors (Codex adversarial finding) |
+| PVA-M4.4 | #166 | `finalize` (21) and `check_content` (13) as stages |
+| PVA-M4.5 | #164 | analytics router and report validators below 10 |
+| PVA-M4.6 | #167, #168 | the remaining nine functions below 10; `ratchets/complexity.json` is empty |
+| PVA-M4.7 | #173 | import-linter authoritative: 11 contracts (new `acyclic_siblings`), empty baseline, a negative fixture per contract, grimp visibility check; the AST guard keeps the third-party allowlist (recorded deviation), SQL and Cypher placement and classification (ADR-0011) |
+| PVA-M4.8 | #161 | `.mts` analytics pointer test, Node pin in `.nvmrc`, non-blocking Node 26 lane (`compat.yml`) |
+| PVA-M4.9 | #169 | ADR-0020: the SQLite fixture profile stays; the ledger-extension script retires on owner confirmation |
+| PVA-M4.10 | #171 | non-blocking Python 3.15 lane; Pyrefly stays report only (82 findings against strict mypy 0) |
+| PVA-M4.11 | #172, #175 to #177, #182 to #188 | ruff legacy ratchet 0 (from 615), no legacy per-file ignores left; justified per-file ignores live in `pyproject.toml` |
+| PVA-M4.12 | #178 | 165 tests; combined branch coverage 89.32% (floor 85), static 85.39% (floor 82) |
+| PVA-M4-X | #174, #180, #181 | prompt prefix byte-stability; `MemoryStore` port, in-memory adapter, `Flags` port, all flags off (ADR-0021; the M2-X memory tests are green); block builder from the catalog (`blocks_v2` off). Guarantee-window validator parked (see below); graph-node restructure moved to PVA-M5-X |
+| Carried | #179 | mutation baseline per module recorded (`ratchets/mutation.json`) |
+
+Parked:
+
+- **PVA-M4-X guarantee-window validator** (branch `chore/pva-m4x-guarantee-validator`, not merged). Two Codex attempts and two independent reviews. The second review still found false positives (baby ages in months, "bebés desde los 6 meses", replaced whole answers) and a negation bypass ("Si quieres tienes 30 días de garantía" accepted). A regex gate over free Spanish text that replaces visible answers is too brittle for M4. Recommendation: in M5 or M6, drive it from the golden and full sets with the live lane (spend-gated) or from structured guarantee references; keep the eval grader `guarantee.days` as the check until then.
+- **PVA-M4-X graph nodes of section 7.1** (`guard_input`, `route`, parallel legs, `finalize_blocks`, `memory_propose`). They depend on the blocks wire contract and the memory consent record, so they land with PVA-M5-X; the one structured call, ADR-0003 and ADR-0008 are unchanged.
+- **Node 26 flip** (OD-77, E10): needs two weeks of green `compat` runs; eligible 2026-12-06.
+
+### Exit criteria evidence
+
+- **Guards enforce with an empty baseline:** `lint-imports` 11 kept, 0 broken, no `ignore_imports` (test-enforced); `ratchets/complexity.json` has no functions; `ratchets/ruff.json` total 0 and `ratchets/ruff-legacy.toml` empty; negative fixtures fail each contract.
+- **0 type errors:** `uv run mypy` (strict) reports no issues in 148 source files.
+- **Contract cross jobs:** `contracts.export --check` and the oasdiff gate green on every PR; descriptions-only contract regeneration in #172 (non-breaking). The consumer repositories have no workflow named for the assistant contract; they keep snapshots and refresh deliberately.
+- **CI:** every merged PR passed `ci-gate`; compat lanes (Node 26, Python 3.15) passed their test steps on develop (runs 44973943289, 44973663631).
+
+### Known issues
+
+- Locally (WSL, shared machine, load 25 to 55) `test_runtime_shutdown`, `test_cleanup_drain_cannot_spin_before_done_callbacks_run` and `test_real_composition_deadline_covers_initial_slow_receive` time out, on unmodified develop too; green in CI.
+- The local commit guard reads gitleaks default rules; `.gitleaksignore` (#172) lists the two manifest digest lines it misreads.
+- `.github/workflows/compat.yml` runs on pushes to develop; scheduled workflows still read `main` until M7.
+- Mutation floors below the weekly target 75: answers 63, language 66, knowledge 69, visitor_context 69, budget 72, page_claims 72, output 74 (PVA-M6.1).
+- A janitor process removed an idle task worktree during this run; commit early in task worktrees.
+
+### Owner inputs needed
+
+1. Confirm that the 2026-10 private evaluation ledgers are closed, so `scripts/extend_evaluation_envelope.py` can retire (ADR-0020).
+2. Still open: PVA-M3.7 (real golden cassettes and a live pass^3, spend), catalog questions 8 to 15 (`docs/explanation/business-questions.md`), private vulnerability reporting, the weekly Dependabot PR, DR-07 legal review before memory can be enabled.
+
+### Next item
+
+M5, starting with PVA-M5-X (contract revision 1.7: blocks, progress, capabilities; it absorbs the parked graph nodes) once `checkpoint/M4` is tagged.
+
 ## In-flight tasks
 
 Updated on each task merge (one row per task from `roadmap.md` that is `in-progress` or finished since the last milestone; the roadmap Status column is authoritative). Find the true next task with the RESUME command in `roadmap.md` (last section).
@@ -180,6 +235,8 @@ Updated on each task merge (one row per task from `roadmap.md` that is `in-progr
 | PVA-M2.1 to M2.13, M2-X | see the M2 section | done | 2026-11-21 |
 | PVA-M3.1 to M3.6, M3.8 | see the M3 section | done | 2026-11-21 |
 | PVA-M3.7 | - | parked (owner authorization and spend) | 2026-11-21 |
+| PVA-M4.1 to M4.12 | see the M4 section | done | 2026-11-22 |
+| PVA-M4-X | #174, #180, #181 | partly done; guarantee validator and graph nodes parked (M4 section) | 2026-11-22 |
 
 ## Ecosystem status (nine repositories; identical table in every repo)
 
