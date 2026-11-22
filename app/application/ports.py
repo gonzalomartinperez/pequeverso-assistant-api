@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Sequence
 from dataclasses import dataclass
-from datetime import datetime
 from enum import StrEnum
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from app.domain.budget import Usage
-from app.domain.catalog import ActiveCatalog, Catalog, PriceStatus
-from app.domain.conversation import Message, Session
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.language import Language
-from app.domain.visitor_context import VisitorContext
-from app.domain.web_evidence import HelpTopic, WebEvidence
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Sequence
+    from datetime import datetime
+
+    from app.domain.budget import Usage
+    from app.domain.catalog import ActiveCatalog, Catalog, PriceStatus
+    from app.domain.conversation import Message, Session
+    from app.domain.visitor_context import VisitorContext
+    from app.domain.web_evidence import HelpTopic, WebEvidence
 
 
 class Clock(Protocol):

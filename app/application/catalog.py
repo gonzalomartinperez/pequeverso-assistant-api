@@ -8,10 +8,14 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from datetime import timedelta
+from typing import TYPE_CHECKING
 
-from app.application.ports import CatalogParser, CatalogRepository, CatalogSource, Clock
 from app.domain.catalog import ActiveCatalog
+
+if TYPE_CHECKING:
+    from datetime import timedelta
+
+    from app.application.ports import CatalogParser, CatalogRepository, CatalogSource, Clock
 
 log = logging.getLogger(__name__)
 

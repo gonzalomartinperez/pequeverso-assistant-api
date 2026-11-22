@@ -2,11 +2,12 @@
 
 from dataclasses import asdict
 from datetime import datetime
-from typing import Literal, Self
+from typing import TYPE_CHECKING, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.application.telemetry import TelemetrySnapshot
+if TYPE_CHECKING:
+    from app.application.telemetry import TelemetrySnapshot
 
 
 class _Out(BaseModel):

@@ -8,12 +8,14 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.domain.conversation import AnswerDetails, Message
 from app.domain.visitor_context import Presentation, PublicPath, VisitorContext
+
+if TYPE_CHECKING:
+    from app.domain.conversation import AnswerDetails, Message
 
 SCHEMA_VERSION: Literal["1"] = "1"
 

@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from app.application.knowledge_ports import Embeddings, PublicGraph, PublicKnowledgeStore
 from app.domain.knowledge import EmbeddingPurpose, KnowledgeCorpus, ProjectionStamp, validate_vector
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    from app.application.knowledge_ports import Embeddings, PublicGraph, PublicKnowledgeStore
     from app.domain.knowledge import KnowledgeChunk
 
 

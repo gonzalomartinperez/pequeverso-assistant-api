@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from app.domain.answer_policy import fold
-from app.domain.catalog import Catalog
 from app.domain.conversation import Message, Notice, Role
 from app.domain.language import Language
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from app.domain.catalog import Catalog
 
 _PRINT = re.compile(r"\b(?:imprim\w*|print\w*|descarg\w*|download\w*)\b")
 _PRINTABLE_PROPERTY = re.compile(_PRINT.pattern + r"|\bpdfs?\b")

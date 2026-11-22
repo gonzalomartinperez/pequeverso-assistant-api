@@ -11,8 +11,11 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from collections.abc import Iterable, Sequence
 from enum import StrEnum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
 
 
 class Language(StrEnum):

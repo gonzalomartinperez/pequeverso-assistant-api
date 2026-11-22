@@ -8,7 +8,7 @@ import hmac
 import json
 from dataclasses import fields
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Self
+from typing import TYPE_CHECKING, Any, Final, Literal, Self
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
@@ -21,15 +21,18 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from starlette.types import Receive, Scope, Send
 
-from app.application.ports import Clock
 from app.application.product_analytics import AnalyticsService, QuotaExceededError
 from app.domain.analytics_country import COUNTRIES
 from app.domain.product_analytics import LAYOUT, PROFILE, PROFILE_SOURCE, Event, Selection, window
 from app.presentation.analytics_country import country_from_edge
 from app.presentation.middleware import BodyLimitMiddleware
 from app.presentation.schemas import ErrorOut
+
+if TYPE_CHECKING:
+    from starlette.types import Receive, Scope, Send
+
+    from app.application.ports import Clock
 
 PUBLIC_PATH: Final = "/api/v1/analytics/events"
 

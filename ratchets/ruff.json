@@ -2,7 +2,7 @@
   "schema_version": 1,
   "description": "Legacy ruff findings; every count only decreases (PVA-M2.1).",
   "target": "0 for every code by PVA-M4.11",
-  "total": 298,
+  "total": 191,
   "findings": {
     "ANN401": 17,
     "ARG002": 1,
@@ -11,13 +11,12 @@
     "D301": 1,
     "D401": 4,
     "DTZ011": 1,
-    "PERF401": 7,
+    "PERF401": 6,
     "PTH101": 5,
     "S101": 24,
     "T201": 12,
-    "TC001": 92,
-    "TC002": 12,
-    "TC003": 88,
+    "TC001": 29,
+    "TC003": 57,
     "TRY300": 6,
     "TRY301": 25
   },
@@ -57,19 +56,7 @@
     },
     "app/application/answers.py": {
       "D205": 1,
-      "D401": 1,
-      "TC003": 1
-    },
-    "app/application/catalog.py": {
-      "TC001": 4,
-      "TC003": 1
-    },
-    "app/application/catalog_diff.py": {
-      "TC001": 2
-    },
-    "app/application/catalog_scope.py": {
-      "TC001": 1,
-      "TC003": 1
+      "D401": 1
     },
     "app/application/chat.py": {
       "ARG002": 1,
@@ -77,52 +64,6 @@
       "TC001": 4,
       "TC003": 6,
       "TRY301": 1
-    },
-    "app/application/embedding_budget.py": {
-      "TC001": 2
-    },
-    "app/application/indexing.py": {
-      "TC001": 3,
-      "TC003": 2
-    },
-    "app/application/knowledge.py": {
-      "TC001": 5
-    },
-    "app/application/knowledge_evaluation.py": {
-      "TC001": 4
-    },
-    "app/application/knowledge_ports.py": {
-      "TC001": 11,
-      "TC003": 1
-    },
-    "app/application/operations.py": {
-      "TC001": 3,
-      "TC003": 1
-    },
-    "app/application/ports.py": {
-      "TC001": 9,
-      "TC003": 3
-    },
-    "app/application/price_comparison.py": {
-      "TC003": 1
-    },
-    "app/application/provenance.py": {
-      "TC001": 1,
-      "TC003": 1
-    },
-    "app/application/reference_clarification.py": {
-      "TC001": 1,
-      "TC003": 1
-    },
-    "app/application/runs.py": {
-      "TC003": 1
-    },
-    "app/application/sessions.py": {
-      "TC001": 4,
-      "TC003": 1
-    },
-    "app/application/telemetry.py": {
-      "TC003": 1
     },
     "app/bootstrap/container.py": {
       "S101": 6
@@ -147,55 +88,11 @@
     "app/domain/answer_policy.py": {
       "D205": 1
     },
-    "app/domain/catalog.py": {
-      "TC003": 3
-    },
-    "app/domain/conversation.py": {
-      "TC003": 1
-    },
-    "app/domain/knowledge.py": {
-      "TC003": 1
-    },
-    "app/domain/language.py": {
-      "TC003": 2
-    },
-    "app/domain/page_claims.py": {
-      "PERF401": 1,
-      "TC001": 1
-    },
-    "app/domain/web_evidence.py": {
-      "TC003": 1
-    },
-    "app/presentation/analytics_country.py": {
-      "TC002": 1
-    },
-    "app/presentation/http.py": {
-      "TC001": 4,
-      "TC003": 2
-    },
-    "app/presentation/middleware.py": {
-      "TC002": 5,
-      "TC003": 1
-    },
-    "app/presentation/operations.py": {
-      "TC001": 3
-    },
     "app/presentation/product_analytics.py": {
-      "TC001": 1,
-      "TC002": 3,
       "TRY301": 1
     },
-    "app/presentation/schemas.py": {
-      "TC001": 2
-    },
     "app/presentation/streaming.py": {
-      "ANN401": 2,
-      "TC001": 1,
-      "TC002": 3,
-      "TC003": 4
-    },
-    "app/presentation/telemetry.py": {
-      "TC001": 1
+      "ANN401": 2
     },
     "contracts/export.py": {
       "ANN401": 1,

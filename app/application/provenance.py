@@ -8,13 +8,17 @@ product default or a claim that the producer, an order or availability was authe
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from app.domain.answer_policy import fold
-from app.domain.catalog import Catalog
 from app.domain.conversation import Message, Notice, Role
 from app.domain.language import Language
 from app.domain.redaction import EMAIL_PLACEHOLDER, PHONE_PLACEHOLDER
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from app.domain.catalog import Catalog
 
 _MAX_CHARS = 240
 _WORD = re.compile(r"[a-z]+")

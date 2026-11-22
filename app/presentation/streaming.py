@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from starlette.responses import StreamingResponse
-from starlette.types import Receive, Scope, Send
 
 from app.application.chat import (
     AnswerCompleted,
@@ -18,7 +16,6 @@ from app.application.chat import (
     RunFailed,
     RunStarted,
 )
-from app.application.ports import Clock
 from app.domain.errors import RETRYABLE, FailureCode
 from app.presentation.events import (
     MessageCompletedEvent,
@@ -29,6 +26,13 @@ from app.presentation.events import (
     RunStartedEvent,
 )
 from app.presentation.schemas import MessageOut
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
+
+    from starlette.types import Receive, Scope, Send
+
+    from app.application.ports import Clock
 
 SSE_HEADERS = {
     "Cache-Control": "no-cache, no-store, no-transform",

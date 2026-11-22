@@ -5,10 +5,13 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from app.domain.answer_policy import fold
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class HelpTopic(StrEnum):

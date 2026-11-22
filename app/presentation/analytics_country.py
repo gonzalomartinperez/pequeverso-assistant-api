@@ -1,10 +1,12 @@
 """Optional socket-peer country boundary; configuration never proves upstream edge trust."""
 
 from ipaddress import IPv6Address, ip_address
-
-from fastapi import Request
+from typing import TYPE_CHECKING
 
 from app.domain.analytics_country import country_label
+
+if TYPE_CHECKING:
+    from fastapi import Request
 
 
 def country_from_edge(request: Request, *, enabled: bool, trusted_peers: str) -> str:

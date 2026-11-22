@@ -7,14 +7,17 @@ identifiers, messages, prompts, client keys, and secrets. Represent unknown valu
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
-from app.application.ports import CatalogView, Clock
 from app.domain.budget import BudgetPolicy, from_micro
-from app.domain.errors import FailureCode
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from app.application.ports import CatalogView, Clock
+    from app.domain.errors import FailureCode
 
 WINDOWS_HOURS = (24, 720)
 DAILY_DAYS = 30

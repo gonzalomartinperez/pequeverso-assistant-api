@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from app.domain.answer_policy import fold
-from app.domain.catalog import Catalog
 from app.domain.conversation import Message, Notice, Role
 from app.domain.language import Language
 from app.domain.redaction import EMAIL_PLACEHOLDER, PHONE_PLACEHOLDER
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from app.domain.catalog import Catalog
 
 _CATALOG = re.compile(r"\b(?:catalogo|catalog|catalogue)\b")
 _SOURCES = re.compile(r"\b(?:fuentes|sources)\b")
