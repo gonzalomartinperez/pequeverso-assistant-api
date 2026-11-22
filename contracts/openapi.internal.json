@@ -8,6 +8,7 @@
     "/health/live": {
       "get": {
         "summary": "Live",
+        "description": "Confirm that the process can respond to a liveness probe.",
         "operationId": "live_health_live_get",
         "responses": {
           "200": {
@@ -30,6 +31,7 @@
     "/health/ready": {
       "get": {
         "summary": "Ready",
+        "description": "Report dependency readiness and available catalog status.",
         "operationId": "ready_health_ready_get",
         "responses": {
           "200": {
@@ -392,7 +394,8 @@
           "day_spend",
           "remaining_month"
         ],
-        "title": "BudgetOut"
+        "title": "BudgetOut",
+        "description": "Report daily and monthly limits, spend, and remaining monthly budget."
       },
       "CatalogOut": {
         "properties": {
@@ -565,7 +568,8 @@
           "products",
           "documents"
         ],
-        "title": "CatalogOut"
+        "title": "CatalogOut",
+        "description": "Report catalog provenance, freshness, and the latest synchronization status."
       },
       "Cell": {
         "properties": {
@@ -595,7 +599,8 @@
           "y",
           "count"
         ],
-        "title": "Cell"
+        "title": "Cell",
+        "description": "Report the click count for one visible grid cell."
       },
       "Country": {
         "properties": {
@@ -869,7 +874,8 @@
           "code",
           "count"
         ],
-        "title": "Country"
+        "title": "Country",
+        "description": "Report the count for a country, unknown, or withheld bucket."
       },
       "Counts": {
         "properties": {
@@ -899,7 +905,8 @@
           "section_views",
           "public_clicks"
         ],
-        "title": "Counts"
+        "title": "Counts",
+        "description": "Count received page views, section views, and public clicks."
       },
       "Daily": {
         "properties": {
@@ -935,7 +942,8 @@
           "public_clicks",
           "day"
         ],
-        "title": "Daily"
+        "title": "Daily",
+        "description": "Report the event counts for a single UTC calendar day."
       },
       "DailyOut": {
         "properties": {
@@ -999,7 +1007,8 @@
           "output_tokens",
           "reasoning_tokens"
         ],
-        "title": "DailyOut"
+        "title": "DailyOut",
+        "description": "Report outcomes, settled and estimated spend, and token totals for one day."
       },
       "ErrorBody": {
         "properties": {
@@ -1029,7 +1038,8 @@
           "retryable",
           "request_id"
         ],
-        "title": "ErrorBody"
+        "title": "ErrorBody",
+        "description": "Describe an API error with a code, retryability, and request ID."
       },
       "ErrorOut": {
         "properties": {
@@ -1042,7 +1052,8 @@
         "required": [
           "error"
         ],
-        "title": "ErrorOut"
+        "title": "ErrorOut",
+        "description": "Wrap error details in the standard v1 response envelope."
       },
       "Grid": {
         "properties": {
@@ -1086,7 +1097,8 @@
           "unselected_clicks",
           "cells"
         ],
-        "title": "Grid"
+        "title": "Grid",
+        "description": "Report grid availability and the breakdown of visible, withheld, and unselected clicks."
       },
       "HttpTelemetryOut": {
         "properties": {
@@ -1125,7 +1137,8 @@
           "server_errors",
           "inflight"
         ],
-        "title": "HttpTelemetryOut"
+        "title": "HttpTelemetryOut",
+        "description": "Report current in-flight HTTP requests and totals since process start."
       },
       "LatencyOut": {
         "properties": {
@@ -1158,7 +1171,8 @@
           "first_delta",
           "total"
         ],
-        "title": "LatencyOut"
+        "title": "LatencyOut",
+        "description": "Report time to first answer text and time to final answer in milliseconds."
       },
       "OpsAvailabilityOut": {
         "properties": {
@@ -1188,7 +1202,8 @@
           "status",
           "reason"
         ],
-        "title": "OpsAvailabilityOut"
+        "title": "OpsAvailabilityOut",
+        "description": "Report whether the assistant accepts questions and give the reason if unavailable."
       },
       "OpsSummaryOut": {
         "properties": {
@@ -1269,7 +1284,8 @@
           "pricing",
           "recent"
         ],
-        "title": "OpsSummaryOut"
+        "title": "OpsSummaryOut",
+        "description": "Report service status, catalog freshness, and assistant usage and spend."
       },
       "OpsTelemetryOut": {
         "properties": {
@@ -1341,7 +1357,8 @@
           "http",
           "traces"
         ],
-        "title": "OpsTelemetryOut"
+        "title": "OpsTelemetryOut",
+        "description": "Report a snapshot of runtime readiness, activity, resources, and telemetry."
       },
       "PercentilesOut": {
         "properties": {
@@ -1365,7 +1382,8 @@
           "p95",
           "count"
         ],
-        "title": "PercentilesOut"
+        "title": "PercentilesOut",
+        "description": "Report median and 95th-percentile latency with the sample count."
       },
       "PricingOut": {
         "properties": {
@@ -1406,7 +1424,8 @@
           "cache_write_per_million",
           "output_per_million"
         ],
-        "title": "PricingOut"
+        "title": "PricingOut",
+        "description": "Describe the model rates and revision used for cost estimates."
       },
       "ProviderObservationOut": {
         "properties": {
@@ -1425,7 +1444,8 @@
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "ProviderObservationOut"
+        "title": "ProviderObservationOut",
+        "description": "Indicate that provider status is unknown because it was not probed."
       },
       "ReadinessOut": {
         "properties": {
@@ -1455,7 +1475,8 @@
           "status",
           "checked_at"
         ],
-        "title": "ReadinessOut"
+        "title": "ReadinessOut",
+        "description": "Report service readiness at the recorded check time."
       },
       "RecentRunOut": {
         "properties": {
@@ -1543,7 +1564,8 @@
           "first_delta_ms",
           "total_ms"
         ],
-        "title": "RecentRunOut"
+        "title": "RecentRunOut",
+        "description": "Summarize a recent run's outcome, timing, and answer metadata."
       },
       "ReportOut": {
         "properties": {
@@ -1702,7 +1724,8 @@
           "countries",
           "grid"
         ],
-        "title": "ReportOut"
+        "title": "ReportOut",
+        "description": "Report received storefront events for a selected period and set of filters."
       },
       "ResourcesOut": {
         "properties": {
@@ -1808,7 +1831,8 @@
           "cgroup_pids_current",
           "cgroup_pids_limit"
         ],
-        "title": "ResourcesOut"
+        "title": "ResourcesOut",
+        "description": "Report process and cgroup resource measurements and limits when available."
       },
       "RunCountsOut": {
         "properties": {
@@ -1842,7 +1866,8 @@
           "interrupted",
           "refused"
         ],
-        "title": "RunCountsOut"
+        "title": "RunCountsOut",
+        "description": "Count runs by their reported outcome."
       },
       "SelectionOut": {
         "properties": {
@@ -1909,7 +1934,8 @@
           "viewport_bucket",
           "locale"
         ],
-        "title": "SelectionOut"
+        "title": "SelectionOut",
+        "description": "Describe the selected reporting period and storefront filters."
       },
       "ServiceOut": {
         "properties": {
@@ -1971,7 +1997,8 @@
           "started_at",
           "synthetic"
         ],
-        "title": "ServiceOut"
+        "title": "ServiceOut",
+        "description": "Describe the running service, model configuration, and fixture status."
       },
       "SpendOut": {
         "properties": {
@@ -1998,7 +2025,8 @@
           "estimated",
           "pending"
         ],
-        "title": "SpendOut"
+        "title": "SpendOut",
+        "description": "Break down spend in USD into confirmed, estimated, and pending amounts."
       },
       "TokensOut": {
         "properties": {
@@ -2032,7 +2060,8 @@
           "reasoning",
           "runs_with_usage"
         ],
-        "title": "TokensOut"
+        "title": "TokensOut",
+        "description": "Summarize token usage and the number of runs with usage reports."
       },
       "TracesOut": {
         "properties": {
@@ -2096,7 +2125,8 @@
           "last_export_at",
           "last_export_success"
         ],
-        "title": "TracesOut"
+        "title": "TracesOut",
+        "description": "Report trace sampling settings and export outcomes for the current process."
       },
       "WindowOut": {
         "properties": {
@@ -2135,7 +2165,8 @@
           "latency_ms",
           "tokens"
         ],
-        "title": "WindowOut"
+        "title": "WindowOut",
+        "description": "Summarize run outcomes, failures, latency, and tokens over a time window."
       },
       "_ProbeCatalog": {
         "properties": {

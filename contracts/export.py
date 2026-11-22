@@ -192,6 +192,7 @@ def _internal_openapi(app: FastAPI) -> dict[str, Any]:
 
 
 def build() -> dict[str, bytes]:
+    """Build the generated API contracts, examples, and artifact manifest."""
     active = _catalog()
     recommendation = _answer(
         active,
@@ -383,7 +384,7 @@ def build() -> dict[str, bytes]:
 
 
 def _ops_example() -> OpsSummaryOut:
-    """A fixture-mode reading: `synthetic` is true, so every number is simulated."""
+    """Build a synthetic operations example with simulated figures."""
     spend = {"confirmed": "0.004200", "estimated": "0.005400", "pending": "0.000000"}
     window = {
         "runs": {"completed": 7, "failed": 1, "cancelled": 1, "interrupted": 0, "refused": 1},
@@ -491,6 +492,7 @@ def _ops_example() -> OpsSummaryOut:
 
 
 def main() -> int:
+    """Write the generated contract artifacts or check them for drift."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()

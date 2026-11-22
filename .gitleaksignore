@@ -1,0 +1,4 @@
+# Verified false positives for local gitleaks default rules. These lines in contracts/manifest.json
+# are sha256 digests of generated contract artifacts; .github/gitleaks.toml allowlists them in CI.
+contracts/manifest.json:generic-api-key:24
+contracts/manifest.json:generic-api-key:25

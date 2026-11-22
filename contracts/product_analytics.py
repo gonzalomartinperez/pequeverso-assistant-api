@@ -13,6 +13,7 @@ from contracts.analytics_semantics import SEMANTICS
 
 
 def artifacts() -> dict[str, bytes]:
+    """Build the analytics schemas, examples, source reference, and artifact hashes."""
     now = datetime(2026, 10, 18, 12, tzinfo=UTC)
     report = ReportOut(
         synthetic=True,

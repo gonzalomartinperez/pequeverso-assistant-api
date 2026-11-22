@@ -24,6 +24,8 @@ class _Event(BaseModel):
 
 
 class RunStartedEvent(_Event):
+    """Announce the start of a run and include the stored question when available."""
+
     type: Literal["run.started"] = "run.started"
     user_message: MessageOut | None = Field(
         description="The stored question (redacted if it contained contact data); null on an idempotent replay."
@@ -31,6 +33,8 @@ class RunStartedEvent(_Event):
 
 
 class MessageDeltaEvent(_Event):
+    """Deliver a provisional fragment of the streamed answer."""
+
     type: Literal["message.delta"] = "message.delta"
     text: str = Field(
         description="Append to the draft answer. Provisional until message.completed."
@@ -38,6 +42,8 @@ class MessageDeltaEvent(_Event):
 
 
 class MessageCompletedEvent(_Event):
+    """Deliver the final answer that replaces the streamed draft."""
+
     type: Literal["message.completed"] = "message.completed"
     message: MessageOut = Field(
         description="Authoritative final answer: replace the streamed draft with message.content."
@@ -45,6 +51,8 @@ class MessageCompletedEvent(_Event):
 
 
 class RunCompletedEvent(_Event):
+    """Mark the successful end of a run."""
+
     type: Literal["run.completed"] = "run.completed"
 
 
@@ -59,12 +67,16 @@ FailureCodeOut = Literal[
 
 
 class RunFailedEvent(_Event):
+    """End a run with a failure code and retry guidance."""
+
     type: Literal["run.failed"] = "run.failed"
     code: FailureCodeOut
     retryable: bool
 
 
 class RunCancelledEvent(_Event):
+    """Mark the end of a cancelled run."""
+
     type: Literal["run.cancelled"] = "run.cancelled"
 
 

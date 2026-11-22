@@ -37,6 +37,7 @@
         ".importlinter",
         ".env.example",
         ".gitignore",
+        ".gitleaksignore",
         ".dockerignore",
         "LICENSE",
         "NOTICE.md",

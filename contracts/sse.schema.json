@@ -2,6 +2,7 @@
   "$defs": {
     "ImageOut": {
       "additionalProperties": false,
+      "description": "Describe a storefront image with its URL, dimensions, and alternative text.",
       "properties": {
         "url": {
           "description": "Absolute https URL on the storefront origin.",
@@ -32,6 +33,7 @@
     },
     "LinkOut": {
       "additionalProperties": false,
+      "description": "Provide a labeled link that can accompany an assistant message.",
       "properties": {
         "id": {
           "title": "Id",
@@ -56,6 +58,7 @@
     },
     "MessageCompletedEvent": {
       "additionalProperties": false,
+      "description": "Deliver the final answer that replaces the streamed draft.",
       "properties": {
         "schema_version": {
           "const": "1",
@@ -100,6 +103,7 @@
     },
     "MessageDeltaEvent": {
       "additionalProperties": false,
+      "description": "Deliver a provisional fragment of the streamed answer.",
       "properties": {
         "schema_version": {
           "const": "1",
@@ -145,6 +149,7 @@
     },
     "MessageOut": {
       "additionalProperties": false,
+      "description": "Represent a conversation message with plain text and optional answer details.",
       "properties": {
         "id": {
           "title": "Id",
@@ -239,6 +244,7 @@
     },
     "PriceOut": {
       "additionalProperties": false,
+      "description": "Describe a verified storefront price in USD with display text and verification time.",
       "properties": {
         "amount": {
           "description": "Decimal string, e.g. \"14.99\".",
@@ -287,6 +293,7 @@
     },
     "ProductOut": {
       "additionalProperties": false,
+      "description": "Describe a storefront product and its optional image, price, and affiliate details.",
       "properties": {
         "id": {
           "description": "Authoritative storefront product id (slug).",
@@ -388,6 +395,7 @@
     },
     "ResourceOut": {
       "additionalProperties": false,
+      "description": "Describe a resource associated with a storefront product.",
       "properties": {
         "id": {
           "description": "\"<product_id>/<resource_id>\".",
@@ -441,6 +449,7 @@
     },
     "RunCancelledEvent": {
       "additionalProperties": false,
+      "description": "Mark the end of a cancelled run.",
       "properties": {
         "schema_version": {
           "const": "1",
@@ -480,6 +489,7 @@
     },
     "RunCompletedEvent": {
       "additionalProperties": false,
+      "description": "Mark the successful end of a run.",
       "properties": {
         "schema_version": {
           "const": "1",
@@ -519,6 +529,7 @@
     },
     "RunFailedEvent": {
       "additionalProperties": false,
+      "description": "End a run with a failure code and retry guidance.",
       "properties": {
         "schema_version": {
           "const": "1",
@@ -576,6 +587,7 @@
     },
     "RunStartedEvent": {
       "additionalProperties": false,
+      "description": "Announce the start of a run and include the stored question when available.",
       "properties": {
         "schema_version": {
           "const": "1",
@@ -627,6 +639,7 @@
     },
     "SourceOut": {
       "additionalProperties": false,
+      "description": "Identify a source cited by the assistant.",
       "properties": {
         "id": {
           "title": "Id",

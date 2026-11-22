@@ -1,5 +1,6 @@
-"""Pure ASGI middleware (streaming-safe): request context and safe logging, body limits and the
-origin policy for state-changing requests.
+"""Apply request context, body limits, and origin checks at the ASGI boundary.
+
+Use streaming-safe middleware for request logging and state-changing request checks.
 """
 
 from __future__ import annotations
@@ -63,6 +64,7 @@ RETRY_AFTER = {
 
 
 def error_payload(code: FailureCode, request_id: str) -> dict[str, object]:
+    """Build the public error envelope with the request ID and retryability."""
     return {
         "error": {
             "code": code.value,
@@ -74,10 +76,12 @@ def error_payload(code: FailureCode, request_id: str) -> dict[str, object]:
 
 
 def request_id_of(scope: Scope) -> str:
+    """Read the request ID from the ASGI state or return the fallback value."""
     return str(scope.get("state", {}).get("request_id", "unknown"))
 
 
 async def send_error(scope: Scope, send: Send, code: FailureCode) -> None:
+    """Send a JSON error with the mapped status and any retry delay."""
     body = json.dumps(error_payload(code, request_id_of(scope))).encode()
     headers = [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())]
     if code in RETRY_AFTER:
@@ -87,14 +91,18 @@ async def send_error(scope: Scope, send: Send, code: FailureCode) -> None:
 
 
 class RequestContextMiddleware:
-    """Request id, baseline security headers and one log line per request (route template,
-    status and duration only: no path parameters, query, body, cookies or client address).
+    """Attach a request ID and baseline security headers to each HTTP response.
+
+    Log request metadata, including the route template, status, and duration. Omit path
+    parameters, query strings, request bodies, cookies, and client addresses.
     """
 
     def __init__(self, app: ASGIApp) -> None:
+        """Wrap the application to add request context."""
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Assign a request ID, add response security headers, and log request metadata."""
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
@@ -142,10 +150,12 @@ class BodyLimitMiddleware:
     """Buffers request bodies up to `max_bytes`, whatever Content-Length claims."""
 
     def __init__(self, app: ASGIApp, max_bytes: int) -> None:
+        """Wrap the application with a byte limit for request bodies."""
         self.app = app
         self.max_bytes = max_bytes
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Bound and replay mutation request bodies before calling the application."""
         if scope["type"] != "http" or scope["method"] not in UNSAFE_METHODS:
             await self.app(scope, receive, send)
             return
@@ -177,16 +187,19 @@ class BodyLimitMiddleware:
 
 
 class OriginMiddleware:
-    """State-changing API requests must come from an allowlisted browser origin. This complements
-    (never replaces) the session CSRF token.
+    """Require an allowlisted browser origin for state-changing API requests.
+
+    Apply this check alongside the session CSRF token check.
     """
 
     def __init__(self, app: ASGIApp, allowed_origins: Iterable[str], prefix: str = "/api/") -> None:
+        """Wrap the application with an origin allowlist for the configured path prefix."""
         self.app = app
         self.allowed = frozenset(allowed_origins)
         self.prefix = prefix
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Reject mutation requests under the configured prefix from disallowed origins."""
         if (
             scope["type"] == "http"
             and scope["method"] in UNSAFE_METHODS

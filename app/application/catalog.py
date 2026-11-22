@@ -1,5 +1,7 @@
-"""Keeps one valid catalog snapshot active. A failed or invalid fetch is recorded and never
-replaces the snapshot in force; an unchanged document only refreshes its verification time.
+"""Keep one valid catalog snapshot active.
+
+Record failed or invalid fetches while retaining the active snapshot. A fetch of the same
+document only refreshes its verification time.
 """
 
 from __future__ import annotations

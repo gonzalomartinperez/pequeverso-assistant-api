@@ -2,6 +2,7 @@
   "$defs": {
     "BudgetOut": {
       "additionalProperties": false,
+      "description": "Report daily and monthly limits, spend, and remaining monthly budget.",
       "properties": {
         "month": {
           "title": "Month",
@@ -49,6 +50,7 @@
     },
     "CatalogOut": {
       "additionalProperties": false,
+      "description": "Report catalog provenance, freshness, and the latest synchronization status.",
       "properties": {
         "status": {
           "enum": [
@@ -222,6 +224,7 @@
     },
     "DailyOut": {
       "additionalProperties": false,
+      "description": "Report outcomes, settled and estimated spend, and token totals for one day.",
       "properties": {
         "day": {
           "title": "Day",
@@ -286,6 +289,7 @@
     },
     "LatencyOut": {
       "additionalProperties": false,
+      "description": "Report time to first answer text and time to final answer in milliseconds.",
       "properties": {
         "first_delta": {
           "anyOf": [
@@ -319,6 +323,7 @@
     },
     "OpsAvailabilityOut": {
       "additionalProperties": false,
+      "description": "Report whether the assistant accepts questions and give the reason if unavailable.",
       "properties": {
         "status": {
           "enum": [
@@ -349,6 +354,7 @@
     },
     "PercentilesOut": {
       "additionalProperties": false,
+      "description": "Report median and 95th-percentile latency with the sample count.",
       "properties": {
         "p50": {
           "title": "P50",
@@ -373,6 +379,7 @@
     },
     "PricingOut": {
       "additionalProperties": false,
+      "description": "Describe the model rates and revision used for cost estimates.",
       "properties": {
         "revision": {
           "description": "Source of the rates used for estimates; not the provider invoice.",
@@ -414,6 +421,7 @@
     },
     "RecentRunOut": {
       "additionalProperties": false,
+      "description": "Summarize a recent run's outcome, timing, and answer metadata.",
       "properties": {
         "id": {
           "description": "Opaque: a digest of the run id, not usable against the public API.",
@@ -502,6 +510,7 @@
     },
     "RunCountsOut": {
       "additionalProperties": false,
+      "description": "Count runs by their reported outcome.",
       "properties": {
         "completed": {
           "title": "Completed",
@@ -536,6 +545,7 @@
     },
     "ServiceOut": {
       "additionalProperties": false,
+      "description": "Describe the running service, model configuration, and fixture status.",
       "properties": {
         "environment": {
           "title": "Environment",
@@ -598,6 +608,7 @@
     },
     "SpendOut": {
       "additionalProperties": false,
+      "description": "Break down spend in USD into confirmed, estimated, and pending amounts.",
       "properties": {
         "confirmed": {
           "description": "USD settled to provider-reported usage.",
@@ -625,6 +636,7 @@
     },
     "TokensOut": {
       "additionalProperties": false,
+      "description": "Summarize token usage and the number of runs with usage reports.",
       "properties": {
         "input": {
           "title": "Input",
@@ -659,6 +671,7 @@
     },
     "WindowOut": {
       "additionalProperties": false,
+      "description": "Summarize run outcomes, failures, latency, and tokens over a time window.",
       "properties": {
         "hours": {
           "title": "Hours",
@@ -698,6 +711,7 @@
     }
   },
   "additionalProperties": false,
+  "description": "Report service status, catalog freshness, and assistant usage and spend.",
   "properties": {
     "schema_version": {
       "const": "1",

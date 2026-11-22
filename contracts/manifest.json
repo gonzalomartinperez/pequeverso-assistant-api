@@ -21,13 +21,13 @@
     "examples/stream.price-unverified.sse": "73cf52e6182cb888245b6d3f5bb7c195e09cf5a0a34ef6fe4a2a21da6c71cd71",
     "examples/stream.recommendation.sse": "1f6ffa97945f29cbe21c09f883c9ada50fa0e72907cc1f801f96f2c1bf09cbc8",
     "examples/stream.unknown-policy.sse": "48714ab31eb92951c05b365ca6e518279c5624aeb53507cea178ac6b9763a1c5",
-    "openapi.internal.json": "8aafb366546f022abf3cfaf1eb1a22d4c2bd1ab5b2744e62b49eedfee3219e13",
-    "openapi.json": "e60a185a7ac2226c85720d47fdd789bb49232b5ccb3ed07ab80a935ca0cc121d",
-    "ops.schema.json": "42894f370c4f513b10dd6f5f9c3e45f3978ee8cc8b17ad30f6ac32cfe5f20d0f",
-    "ops.telemetry.schema.json": "2548dc91362332d84a7b9c8595b319f116db8d94af5a41dc95a7df267840fdee",
-    "product-analytics.schema.json": "c0de21b74a1c2c7bcc3015874dc702375f0b9fcca9f66d0007e7ff0912da2713",
-    "product-analytics.source.json": "ae6df6e8b546984390547acbd561f1364f46524f407f15dcdab1638550048747",
-    "site-experience-pequeverso-v1.schema.json": "10264058e6c9b26fd308f51eaa2b9286b352b418e2c625511caf22d0e9c7dcf7",
-    "sse.schema.json": "621960b06d2e1faaa66ebab3101c8ea65c3fe6b1aac21523ef511642b1ed81a7"
+    "openapi.internal.json": "12300e5b67dca927d9a36ac81d3d6abc97f310f5952502d42ecd679b351e2839",
+    "openapi.json": "1e0a8858b817b2607c1cf1579f0ccd1623ffdc2454df8bfcbc829badadef3510",
+    "ops.schema.json": "ba87eb6af562e3f5eedf7d0fe9efaed1e5624651fc8df51c85ecc9b69420da35",
+    "ops.telemetry.schema.json": "689c7b3cc976b0979e5a8616a7399269014d2a2b466a41ca9796e127bbc7daec",
+    "product-analytics.schema.json": "cfa654b84562b48e18d1e8a4e10c3c24286762d48bdeb16ab4fd1cd7a5777561",
+    "product-analytics.source.json": "1fe60b9d9af399bb5ad343d1c4167cb3ce6e25e38a24a62d04cb69c586f32560",
+    "site-experience-pequeverso-v1.schema.json": "def87634702fec19fadb4a07c4bfad4bfea4176d25516982cca8f6b8b5e8aa1b",
+    "sse.schema.json": "4d9ab4ad254f5134ea2108d3bd74b501333655b7cfc17c4fe96efe8e59922ef6"
   }
 }

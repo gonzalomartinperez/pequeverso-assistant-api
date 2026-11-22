@@ -8,6 +8,7 @@ from app.domain.analytics_country import country_label
 
 
 def country_from_edge(request: Request, *, enabled: bool, trusted_peers: str) -> str:
+    """Return a normalized country label from a trusted edge peer or return unknown."""
     if not enabled or request.client is None:
         return "unknown"
     try:

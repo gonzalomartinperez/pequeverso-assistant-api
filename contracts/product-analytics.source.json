@@ -47,8 +47,8 @@
   "country_configuration_is_not_edge_verification": true,
   "artifacts_sha256": {
     "analytics-semantics.examples.json": "34052250e924003f7b4f060f271d2fbcaa5be847a8de78060cf9925f5b845b92",
-    "site-experience-pequeverso-v1.schema.json": "10264058e6c9b26fd308f51eaa2b9286b352b418e2c625511caf22d0e9c7dcf7",
-    "product-analytics.schema.json": "c0de21b74a1c2c7bcc3015874dc702375f0b9fcca9f66d0007e7ff0912da2713",
+    "site-experience-pequeverso-v1.schema.json": "def87634702fec19fadb4a07c4bfad4bfea4176d25516982cca8f6b8b5e8aa1b",
+    "product-analytics.schema.json": "cfa654b84562b48e18d1e8a4e10c3c24286762d48bdeb16ab4fd1cd7a5777561",
     "examples/product-analytics.json": "3662d1a6ae8e5b34903baa6c57a0d0bec8a350f088eaefc607aeab2fec2e0292"
   }
 }

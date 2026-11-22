@@ -2,20 +2,15 @@
   "schema_version": 1,
   "description": "Legacy ruff findings; every count only decreases (PVA-M2.1).",
   "target": "0 for every code by PVA-M4.11",
-  "total": 605,
+  "total": 404,
   "findings": {
     "ANN401": 17,
     "ARG001": 1,
     "ARG002": 8,
     "C416": 1,
-    "D101": 77,
-    "D102": 66,
-    "D103": 22,
-    "D104": 2,
-    "D107": 6,
-    "D205": 23,
+    "D205": 2,
     "D301": 1,
-    "D401": 11,
+    "D401": 4,
     "DTZ011": 1,
     "E402": 4,
     "PERF401": 9,
@@ -145,7 +140,6 @@
       "TC003": 1
     },
     "app/application/catalog.py": {
-      "D205": 1,
       "TC001": 4,
       "TC003": 1
     },
@@ -178,21 +172,14 @@
       "TC001": 4
     },
     "app/application/knowledge_ports.py": {
-      "D101": 4,
-      "D102": 18,
       "TC001": 11,
       "TC003": 1
     },
     "app/application/operations.py": {
-      "D205": 2,
       "TC001": 3,
       "TC003": 1
     },
     "app/application/ports.py": {
-      "D101": 21,
-      "D102": 30,
-      "D107": 1,
-      "D205": 3,
       "TC001": 9,
       "TC003": 3
     },
@@ -208,19 +195,14 @@
       "TC003": 1
     },
     "app/application/runs.py": {
-      "D205": 1,
       "TC003": 1
     },
     "app/application/sessions.py": {
-      "D205": 1,
       "TC001": 4,
       "TC003": 1
     },
     "app/application/telemetry.py": {
       "TC003": 1
-    },
-    "app/bootstrap/config.py": {
-      "D205": 1
     },
     "app/bootstrap/container.py": {
       "S101": 6
@@ -234,7 +216,6 @@
       "TRY300": 1
     },
     "app/bootstrap/knowledge_evaluation.py": {
-      "D401": 1,
       "T201": 1,
       "TC003": 1,
       "TRY301": 1
@@ -245,9 +226,6 @@
       "TC001": 1,
       "TRY300": 2,
       "TRY301": 4
-    },
-    "app/bootstrap/logging.py": {
-      "D205": 1
     },
     "app/bootstrap/persistence.py": {
       "S101": 4,
@@ -275,83 +253,47 @@
     "app/domain/web_evidence.py": {
       "TC003": 1
     },
-    "app/presentation/__init__.py": {
-      "D104": 1
-    },
     "app/presentation/analytics_country.py": {
-      "D103": 1,
       "TC002": 1
     },
     "app/presentation/events.py": {
-      "D101": 6,
       "TC001": 1,
       "TC003": 1
     },
     "app/presentation/http.py": {
-      "D101": 3,
-      "D103": 11,
-      "D205": 1,
       "TC001": 4,
       "TC003": 2
     },
     "app/presentation/middleware.py": {
-      "D102": 3,
-      "D103": 3,
-      "D107": 3,
-      "D205": 3,
       "TC002": 5,
       "TC003": 1
     },
     "app/presentation/operations.py": {
-      "D101": 14,
-      "D102": 1,
-      "D103": 1,
-      "D205": 1,
       "TC001": 3,
       "TC003": 1
     },
     "app/presentation/product_analytics.py": {
-      "D101": 8,
-      "D102": 7,
-      "D103": 1,
       "TC001": 1,
       "TC002": 3,
       "TRY301": 1
     },
     "app/presentation/schemas.py": {
-      "D101": 15,
-      "D102": 3,
-      "D205": 1,
       "TC001": 2,
       "TC003": 1
     },
     "app/presentation/streaming.py": {
       "ANN401": 2,
-      "D102": 3,
-      "D103": 2,
-      "D107": 2,
-      "D205": 1,
       "TC001": 1,
       "TC002": 3,
       "TC003": 4
     },
     "app/presentation/telemetry.py": {
-      "D101": 6,
-      "D102": 1,
       "TC001": 1,
       "TC003": 1
     },
-    "contracts/__init__.py": {
-      "D104": 1
-    },
     "contracts/export.py": {
       "ANN401": 1,
-      "D103": 2,
-      "D401": 1,
       "T201": 1
-    },
-    "contracts/product_analytics.py": {
-      "D103": 1
     },
     "scripts/compare_oci_images.py": {
       "PERF401": 1
@@ -367,8 +309,6 @@
     },
     "scripts/evaluate_corpus.py": {
       "ANN401": 2,
-      "D205": 4,
-      "D401": 1,
       "TC003": 1
     },
     "scripts/evaluate_end_to_end.py": {
@@ -386,12 +326,8 @@
       "TRY301": 1
     },
     "scripts/real_eval_budget.py": {
-      "D401": 3,
       "TC001": 1,
       "TC003": 2
-    },
-    "scripts/resume_end_to_end.py": {
-      "D401": 1
     },
     "scripts/run_bounded_real_eval.py": {
       "ANN401": 1

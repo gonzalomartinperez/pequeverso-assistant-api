@@ -1,5 +1,7 @@
-"""Runtime configuration (environment variables, optional `.env.local`). Fails closed: paid
-providers need explicit opt-in, production needs https origins, secure cookies and real secrets.
+"""Load and validate runtime configuration.
+
+Read environment variables and optional local configuration. Require explicit opt-in
+for paid providers, and HTTPS origins, secure cookies, and real secrets in production.
 """
 
 from __future__ import annotations
