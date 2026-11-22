@@ -11,6 +11,9 @@ entry below predates this format and is kept as written.
 
 ### Added
 
+- ADR-0020: the SQLite fixture profile stays the credential-free test and local default (never an
+  answering production store); `scripts/extend_evaluation_envelope.py` retires once the owner confirms
+  the 2026-10 private ledgers are closed. A guard test blocks a silent retirement.
 - ADR-0013 (v1 error envelope and RFC 9457 mapping) and ADR-0014 (allowlist JSON log formatter);
   Confirmation sections in ADR-0001 to ADR-0009.
 - Quality net (master plan M2): coverage and diff-coverage gates, golden set v1 with cassette

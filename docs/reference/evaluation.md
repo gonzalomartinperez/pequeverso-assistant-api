@@ -133,7 +133,8 @@ reasoning, zero SDK retries, or storefront activation. Existing 650/USD 1 ledger
 with their exact legacy arguments. Neither a constructor nor a CLI cap option can create a
 fresh 1100/USD 6 allowance.
 
-Only `scripts/extend_evaluation_envelope.py` performs the fixed 650/USD 1→1100/USD 6 transition.
+Only `scripts/extend_evaluation_envelope.py` performs the fixed 650/USD 1→1100/USD 6 transition. The script is historical and offline; it retires in one PR once the owner confirms the 2026-10
+private ledgers are closed (ADR-0020).
 It runs offline, with the existing stable ownership lock and a SQLite immediate transaction,
 against an existing external mode 600 ledger in an owned mode 700 directory. All original
 `attempts`, `status`, `gate_resolutions`, `limits` and `attempt_limits` rows remain intact;
