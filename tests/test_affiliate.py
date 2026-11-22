@@ -2,7 +2,7 @@
 
 import json
 from datetime import timedelta
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -14,6 +14,9 @@ from app.application.ports import Draft, DraftReference
 from app.domain.catalog import ActiveCatalog, PriceStatus
 from app.domain.conversation import Notice
 from tests.support import CATALOG_BYTES, JSON_HEADERS, ask, client, open_session
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 PARSE = CatalogParser(frozenset({"pequeverso.com", "consumer.hotmart.com", "refund.hotmart.com"}))
 CATALOG = PARSE(CATALOG_BYTES)

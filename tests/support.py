@@ -5,12 +5,10 @@ from __future__ import annotations
 import asyncio
 import json
 import secrets
-from collections.abc import AsyncGenerator, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from fastapi.testclient import TestClient
 
@@ -19,6 +17,10 @@ from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import create_app
 from app.domain.budget import Usage
 from app.domain.errors import FailureCode, RejectedError
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Iterator
+    from pathlib import Path
 
 ORIGIN = "http://localhost:3000"
 JSON_HEADERS = {"Origin": ORIGIN, "Content-Type": "application/json"}

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import AsyncGenerator
 from contextlib import closing
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -22,6 +21,10 @@ from tests.support import (
     client,
     open_session,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+    from pathlib import Path
 
 TOKEN = "ops-test-token-0123456789abcdef0123456789"
 AUTH = {"Authorization": f"Bearer {TOKEN}"}

@@ -16,11 +16,10 @@ import logging
 import os
 import stat
 import sys
-from collections.abc import Callable
 from contextlib import nullcontext
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,7 +29,6 @@ from openai import AsyncOpenAI
 from pydantic import SecretStr
 
 from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
-from app.application.knowledge_ports import EmbeddingAccounting
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import ProviderResource, SystemClock
 from app.bootstrap.evaluation_index import (
@@ -59,6 +57,11 @@ from scripts.real_eval_budget import (
     EvaluationEmbeddingAccounting,
     evaluation_run_ownership,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from app.application.knowledge_ports import EmbeddingAccounting
 
 PHASE = "proposed-bounded-graph-targeted-development-only"
 

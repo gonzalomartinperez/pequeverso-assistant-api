@@ -4,9 +4,12 @@ import hashlib
 import io
 import json
 import tarfile
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from scripts.compare_oci_images import compare
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def add(archive: tarfile.TarFile, name: str, data: bytes) -> None:

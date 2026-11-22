@@ -2,7 +2,7 @@
 
 import hashlib
 import json
-from datetime import datetime
+from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import FastAPI
@@ -12,6 +12,9 @@ from app.application.product_analytics import AnalyticsService, QuotaExceededErr
 from app.domain.product_analytics import Event, Selection
 from app.presentation.product_analytics import ReportOut, build_router
 from tests.test_product_analytics import NOW, Rows, event
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 TOKEN = "synthetic-local-analytics-token-not-a-secret"
 ORIGIN = "http://localhost:3107"

@@ -32,10 +32,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from typing import TYPE_CHECKING
+
 from app.adapters.catalog_schema import CatalogParser
 from app.application.catalog_diff import diff
 from app.bootstrap.config import Settings
-from app.domain.catalog import Catalog
+
+if TYPE_CHECKING:
+    from app.domain.catalog import Catalog
 
 EXPORTER = ROOT / "tools" / "catalog" / "export.ts"
 OUTPUT = ROOT / "catalog" / "catalog.v1.json"

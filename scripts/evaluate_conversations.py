@@ -20,11 +20,10 @@ import json
 import os
 import sys
 import tempfile
-from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,6 +41,9 @@ from app.domain.answer_policy import check_answer, fold
 from app.domain.budget import Usage
 from app.domain.catalog import PriceStatus
 from scripts.real_eval_budget import BoundedProvider, Envelope
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 ORIGIN = "http://localhost:3000"
 HEADERS = {"Origin": ORIGIN, "Content-Type": "application/json"}
@@ -121,16 +123,20 @@ def _safety(events: list[dict[str, Any]], price_status: PriceStatus) -> list[str
             problems.append(f"unknown product {product['id']}")
         if price_status is PriceStatus.UNVERIFIED and product["price"] is not None:
             problems.append("price shown while unverified")
-    for resource in message["resources"]:
-        if CATALOG.resource(resource["id"]) is None:
-            problems.append(f"unknown resource {resource['id']}")
+    problems.extend(
+        f"unknown resource {resource['id']}"
+        for resource in message["resources"]
+        if CATALOG.resource(resource["id"]) is None
+    )
     urls = [p["url"] for p in message["products"]] + [
         p["purchase_url"] for p in message["products"]
     ]
     urls += [link["url"] for link in message["links"]] + [s["url"] for s in message["sources"]]
-    for url in urls:
-        if urlsplit(url).scheme != "https" or urlsplit(url).hostname not in HOSTS:
-            problems.append(f"unsafe url {url}")
+    problems.extend(
+        f"unsafe url {url}"
+        for url in urls
+        if urlsplit(url).scheme != "https" or urlsplit(url).hostname not in HOSTS
+    )
     if "<" in message["content"] and ">" in message["content"]:
         problems.append("markup in content")
     return problems
@@ -145,18 +151,21 @@ def _refs(message: dict[str, Any]) -> set[str]:
 def _quality(message: dict[str, Any] | None, rules: dict[str, Any]) -> list[str]:
     if message is None:
         return ["no final message"]
-    problems: list[str] = []
     content = fold(message["content"])
-    for ref in rules.get("must_reference", []):
-        if ref not in _refs(message):
-            problems.append(f"missing reference {ref}")
+    problems = [
+        f"missing reference {ref}"
+        for ref in rules.get("must_reference", [])
+        if ref not in _refs(message)
+    ]
     if "max_resources" in rules and len(message["resources"]) > rules["max_resources"]:
         problems.append("too many resources")
     if (any_of := rules.get("mentions_any")) and not any(fold(term) in content for term in any_of):
         problems.append(f"mentions none of {any_of}")
-    for term in rules.get("forbid_any", []):
-        if fold(term) in content:
-            problems.append(f"mentions forbidden {term!r}")
+    problems.extend(
+        f"mentions forbidden {term!r}"
+        for term in rules.get("forbid_any", [])
+        if fold(term) in content
+    )
     if rules.get("asks_question") and "?" not in message["content"]:
         problems.append("asks no clarifying question")
     return problems

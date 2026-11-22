@@ -2,8 +2,7 @@
 
 import sqlite3
 from contextlib import closing
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from fastapi import FastAPI
@@ -17,6 +16,14 @@ from tests.support import (
     open_session,
     parse_sse,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from app.domain.catalog import ActiveCatalog
+    from app.domain.knowledge import RetrievedKnowledge
+    from app.domain.language import Language
+    from app.domain.web_evidence import HelpTopic, WebEvidence
 
 
 @pytest.mark.parametrize(
@@ -240,11 +247,6 @@ def test_payment_language_and_redaction_keep_their_precedence(tmp_path: Path) ->
 def test_static_origin_still_requires_csrf_rate_and_dependency_health_before_any_composer_or_web_read(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from app.domain.catalog import ActiveCatalog
-    from app.domain.knowledge import RetrievedKnowledge
-    from app.domain.language import Language
-    from app.domain.web_evidence import HelpTopic, WebEvidence
-
     class Knowledge:
         available = True
 

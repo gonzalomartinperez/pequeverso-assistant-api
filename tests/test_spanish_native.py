@@ -3,7 +3,7 @@
 import json
 import sqlite3
 from contextlib import closing
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
@@ -20,6 +20,9 @@ from tests.support import (
     open_session,
     parse_sse,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.parametrize(

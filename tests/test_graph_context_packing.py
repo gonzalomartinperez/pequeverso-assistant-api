@@ -7,6 +7,7 @@ import hashlib
 import json
 from dataclasses import replace
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -21,8 +22,10 @@ from app.domain.catalog import ActiveCatalog, DocumentKind, PriceStatus
 from app.domain.conversation import AnswerDetails, Message, ProductRef, Role
 from app.domain.errors import FailureCode
 from app.domain.knowledge import RetrievalStrategy, RetrievedKnowledge
-from app.domain.language import Language
 from tests.support import CATALOG_BYTES, ScriptedProvider
+
+if TYPE_CHECKING:
+    from app.domain.language import Language
 
 PARSER = CatalogParser(frozenset({"pequeverso.com", "consumer.hotmart.com", "refund.hotmart.com"}))
 CATALOG = PARSER(CATALOG_BYTES)

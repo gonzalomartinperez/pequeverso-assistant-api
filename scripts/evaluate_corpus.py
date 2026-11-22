@@ -41,10 +41,9 @@ import re
 import sys
 import tempfile
 from collections import defaultdict
-from collections.abc import Iterable
 from decimal import Decimal
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -60,6 +59,9 @@ from app.domain.answer_policy import fold
 from app.domain.catalog import PriceStatus
 from scripts import evaluate_conversations as conv
 from scripts.real_eval_budget import BoundedProvider, Envelope
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 CORPUS = ROOT / "evals" / "full"
 CORPUS_VERSION = "2.0.0"

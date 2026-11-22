@@ -1,10 +1,13 @@
 """Every application module must pass the real architecture gate, even without imports."""
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from tests import test_architecture as architecture
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def application_fixture(

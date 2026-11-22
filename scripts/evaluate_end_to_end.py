@@ -19,10 +19,9 @@ import stat
 import sys
 import threading
 import time
-from collections.abc import AsyncGenerator, Callable
 from contextlib import closing, nullcontext
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -34,15 +33,11 @@ from pydantic import SecretStr
 
 from app.adapters.providers.fixture_provider import FixtureProvider
 from app.ai.evidence import decode_documents, passages, rank
-from app.ai.provider import ModelChunk, ModelRequest
-from app.application.knowledge_ports import EmbeddingAccounting
-from app.application.ports import Clock
 from app.bootstrap.config import DEFAULT_CATALOG, Settings
 from app.bootstrap.container import ProviderResource, create_app
 from app.bootstrap.logging import use_stderr
 from app.domain.catalog import PriceStatus
 from app.domain.web_evidence import SOURCES
-from app.presentation.http import Services
 from scripts.evaluate_conversations import CATALOG, _safety
 from scripts.real_eval_budget import (
     ATTEMPT_MICRO,
@@ -51,6 +46,14 @@ from scripts.real_eval_budget import (
     Envelope,
     evaluation_run_ownership,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Callable
+
+    from app.ai.provider import ModelChunk, ModelRequest
+    from app.application.knowledge_ports import EmbeddingAccounting
+    from app.application.ports import Clock
+    from app.presentation.http import Services
 
 ORIGIN = "http://localhost:3000"
 
@@ -61,7 +64,7 @@ def digest(data: bytes) -> str:
 
 def write_private(path: Path, value: object) -> None:
     with path.open("x", encoding="utf-8") as output:
-        os.chmod(path, 0o600)
+        path.chmod(0o600)
         json.dump(value, output, ensure_ascii=False, indent=2)
         output.write("\n")
 
@@ -320,7 +323,7 @@ def checkpoint(path: Path, value: object) -> None:
     """Atomically preserve only this run's private partial artifacts."""
     temporary = path.with_suffix(".tmp")
     with temporary.open("w", encoding="utf-8") as output:
-        os.chmod(temporary, 0o600)
+        temporary.chmod(0o600)
         json.dump(value, output, ensure_ascii=False, indent=2)
         output.write("\n")
         output.flush()
@@ -798,7 +801,7 @@ def evaluate(
     for suffix in ("", "-wal", "-shm"):
         state_file = destination / f"evaluation.sqlite3{suffix}"
         if state_file.exists():
-            os.chmod(state_file, 0o600)
+            state_file.chmod(0o600)
     checkpoint(destination / "answers.json", rows)
     summary = {
         "schema": 1,
@@ -898,12 +901,12 @@ def main() -> None:
                     authorized_envelope_sha256=args.authorized_envelope_sha256,
                 )
         destination.mkdir(parents=True, mode=0o700)
-        os.chmod(destination, 0o700)
+        destination.chmod(0o700)
         for name in ("httpx", "httpx2", "httpcore", "httpcore2", "openai"):
             logging.getLogger(name).setLevel(logging.CRITICAL)
         write_private(destination / "manifest.json", manifest)
         (destination / "catalog.json").write_bytes(DEFAULT_CATALOG.read_bytes())
-        os.chmod(destination / "catalog.json", 0o600)
+        (destination / "catalog.json").chmod(0o600)
         summary = evaluate(manifest, destination, args.source_revision, bounded=bounded)
         print(
             json.dumps(

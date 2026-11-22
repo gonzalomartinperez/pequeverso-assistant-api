@@ -5,7 +5,7 @@ from __future__ import annotations
 import io
 import json
 import logging
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import FastAPI
@@ -15,6 +15,9 @@ from starlette.requests import Request
 from app.bootstrap.logging import SafeJsonFormatter, configure_logging
 from app.presentation.http import client_ip
 from tests.support import ScriptedProvider, answer_json, ask, client, open_session
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 SECRET_QUESTION = "Mi hija Sofía Gómez va al Colegio San Martín, ¿qué me recomiendas?"
 

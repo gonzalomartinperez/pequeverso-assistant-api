@@ -1,8 +1,7 @@
 import asyncio
 import json
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 import pytest
@@ -15,6 +14,9 @@ from app.application.catalog import CatalogService
 from app.domain.answer_policy import fold
 from app.domain.catalog import PriceStatus
 from tests.support import CATALOG_BYTES, FixedClock
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 HOSTS = frozenset({"pequeverso.com", "consumer.hotmart.com", "refund.hotmart.com"})
 PARSE = CatalogParser(HOSTS)

@@ -69,8 +69,7 @@ def compare(first: Path, second: Path) -> list[str]:
             report.append(f"layer {number} differs ({la['digest'][:19]} vs {lb['digest'][:19]}):")
             ea, eb = entries(blob(one, la["digest"])), entries(blob(two, lb["digest"]))
             changed = sorted(name for name in set(ea) | set(eb) if ea.get(name) != eb.get(name))
-            for name in changed[:40]:
-                report.append(f"  {name}: {ea.get(name)} vs {eb.get(name)}")
+            report.extend(f"  {name}: {ea.get(name)} vs {eb.get(name)}" for name in changed[:40])
             if len(changed) > 40:
                 report.append(f"  ... {len(changed) - 40} more")
         if len(left["layers"]) != len(right["layers"]):

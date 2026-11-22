@@ -21,13 +21,16 @@ import tempfile
 import time
 import uuid
 import xml.etree.ElementTree as ET
-from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import quote, urlsplit
 
 import psycopg
 from psycopg import sql
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
 
 ROOT = Path(__file__).resolve().parents[1]
 
