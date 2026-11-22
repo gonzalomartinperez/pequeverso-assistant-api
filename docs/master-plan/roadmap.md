@@ -83,18 +83,18 @@ Exit: P0 and P1 closed with evidence; first re-score recorded; no regression ver
 
 | ID | Item | Effort | Acceptance criteria | Status |
 |---|---|---|---|---|
-| PVA-M4.1 | Split `create_app` and `lifespan` into wiring, lifespan and routes | M 8 | functions ≤ 10; runtime shutdown, cohort and container smoke tests unchanged | todo |
-| PVA-M4.2 | `fail_closed` as a rule table | S 3 | one test per rule; messages unchanged | todo |
-| PVA-M4.3 | `ChatService` `start` and `events` into named steps | L 12 | golden replay and cancel, replay and budget-race tests unchanged; mutation score not lower | todo |
-| PVA-M4.4 | `finalize` and `check_content` stage extraction | M 6 | same | todo |
-| PVA-M4.5 | Analytics router and validators | S 4 | analytics HTTP tests unchanged | todo |
-| PVA-M4.6 | The remaining 11 functions above 10 | M 8 | `ratchets/complexity.json` empty | todo |
-| PVA-M4.7 | import-linter in enforce mode, empty baseline; AST test reduced to banned calls and SQL and Cypher location | S 3 | negative fixtures fail the build | todo |
-| PVA-M4.8 | `.cjs` to `.mts`, tools job, Node pin aligned with the fleet | S 2 | `node --test` green on the `.mts`; no `.cjs` tracked | todo |
-| PVA-M4.9 | Execute PVA-D12: retire or keep the SQLite fixture profile and the one-shot ledger-extension script | M 6 | decision recorded in ADR-0019 and applied | todo |
-| PVA-M4.10 | Python 3.15 non-blocking CI job; decide Pyrefly blocking | S 2 | job present; decision in the PR | todo |
-| PVA-M4.11 | Ruff and docstring ratchets to zero for the enforced scope | M 6 | `ratchets/ruff.json` empty | todo |
-| PVA-M4.12 | Coverage ratchet to the ecosystem floor: raise branch coverage (combined) to ≥ 85 with tests, not exclusions, and set `ratchets/coverage.json` to 85 | S 3 | combined branch coverage ≥ 85 on `develop` by the M4 exit (2026-12-11); the interim 76 floor is removed | todo |
+| PVA-M4.1 | Split `create_app` and `lifespan` into wiring, lifespan and routes | M 8 | functions ≤ 10; runtime shutdown, cohort and container smoke tests unchanged | done (#162) |
+| PVA-M4.2 | `fail_closed` as a rule table | S 3 | one test per rule; messages unchanged | done (#163) |
+| PVA-M4.3 | `ChatService` `start` and `events` into named steps | L 12 | golden replay and cancel, replay and budget-race tests unchanged; mutation score not lower | done (#165, #170) |
+| PVA-M4.4 | `finalize` and `check_content` stage extraction | M 6 | same | done (#166) |
+| PVA-M4.5 | Analytics router and validators | S 4 | analytics HTTP tests unchanged | done (#164) |
+| PVA-M4.6 | The remaining 11 functions above 10 | M 8 | `ratchets/complexity.json` empty | done (#167, #168) |
+| PVA-M4.7 | import-linter in enforce mode, empty baseline; AST test reduced to banned calls and SQL and Cypher location | S 3 | negative fixtures fail the build | done (#173) |
+| PVA-M4.8 | `.cjs` to `.mts`, tools job, Node pin aligned with the fleet | S 2 | `node --test` green on the `.mts`; no `.cjs` tracked | done (#161); the Node 26 flip waits for two weeks of green `compat` runs (eligible 2026-12-06) |
+| PVA-M4.9 | Execute PVA-D12: retire or keep the SQLite fixture profile and the one-shot ledger-extension script | M 6 | decision recorded in ADR-0019 and applied | done (#169; ADR-0020, the plan's ADR-0019 number was taken) |
+| PVA-M4.10 | Python 3.15 non-blocking CI job; decide Pyrefly blocking | S 2 | job present; decision in the PR | done (#171; Pyrefly stays report only) |
+| PVA-M4.11 | Ruff and docstring ratchets to zero for the enforced scope | M 6 | `ratchets/ruff.json` empty | done (#172, #175 to #177, #182 to #188) |
+| PVA-M4.12 | Coverage ratchet to the ecosystem floor: raise branch coverage (combined) to ≥ 85 with tests, not exclusions, and set `ratchets/coverage.json` to 85 | S 3 | combined branch coverage ≥ 85 on `develop` by the M4 exit (2026-12-11); the interim 76 floor is removed | done (#178) |
 
 Exit: guards enforce with an empty baseline; 0 type errors; contract cross-jobs green. Risk: behaviour drift while splitting `chat.start` (mitigation: golden replay, mutation before and after, one function per PR, architecture review agent).
 
@@ -173,7 +173,7 @@ These rows are included in the totals of the milestone named in the Milestone co
 | ID | Milestone | Task | Acceptance criteria | Effort | Status |
 |---|---|---|---|---|---|
 | PVA-M2-X | M2 | Test scaffolding: block and event JSON Schemas with examples, `guarantee.days` and block-price graders, item-schema extensions, memory isolation tests on a spy port, overhead harness, injection fixtures | at least 2 schemas with 6 examples each validate; new graders unit-tested at 100% of branches; memory isolation tests fail (red) against a stub for the right reason; overhead harness reports p50 and p95 per stage | M 8 | done (#145) |
-| PVA-M4-X | M4 | Ports and graph nodes (one structured call kept), validators in `validate_final`, block builder from the catalog snapshot, prompt prefix byte-stability test, flags default off | golden replay 100% on cassettes; every PVA-M2-X test green; all flags default off; ADR-0003 and ADR-0008 unchanged | M 8 | todo |
+| PVA-M4-X | M4 | Ports and graph nodes (one structured call kept), validators in `validate_final`, block builder from the catalog snapshot, prompt prefix byte-stability test, flags default off | golden replay 100% on cassettes; every PVA-M2-X test green; all flags default off; ADR-0003 and ADR-0008 unchanged | M 8 | partly done (#174, #180, #181); guarantee-window validator and the section 7.1 graph nodes parked to PVA-M5-X (progress.md M4) |
 | PVA-M5-X | M5 | Contract revision 1.7: `blocks`, `run.progress`, `capabilities`, feedback endpoint, memory endpoints (flag off) | `contracts.export --check` green; `oasdiff` additive-only against 1.6; widget hides thumbs only when `capabilities.feedback` is false; consumer contract tests green | M 8 | todo |
 | PVA-MV-X | MV | Live lane with latency; enable `progress_events`, `blocks_v2`; memory only after legal review (DR-07); `web_official_help` last, after ADR-0008 gates | live golden pass^3 = 100% with p95 latency recorded; each flag enabled alone with 7-day observation; rollback by flag tested; owner authorization for the run | S 3 | todo |
 

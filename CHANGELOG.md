@@ -11,6 +11,9 @@ entry below predates this format and is kept as written.
 
 ### Added
 
+- Assistant v2 groundwork, all off and unwired: the `MemoryStore` port with an in-memory adapter and
+  the `Flags` port (ADR-0021), a block builder from the catalog snapshot, and a prompt-prefix
+  byte-stability test. A glossary in `docs/reference/glossary.md`.
 - ADR-0020: the SQLite fixture profile stays the credential-free test and local default (never an
   answering production store); `scripts/extend_evaluation_envelope.py` retires once the owner confirms
   the 2026-10 private ledgers are closed. A guard test blocks a silent retirement.
@@ -31,6 +34,11 @@ entry below predates this format and is kept as written.
 
 ### Changed
 
+- Architecture and typing (master plan M4), no behaviour change: no function above McCabe 10
+  (`create_app`, `fail_closed`, `ChatService`, `finalize` and others split into named steps);
+  import-linter is the authoritative layer guard (11 contracts, empty baseline, ADR-0011); the ruff
+  legacy ratchet is empty; branch coverage floors 85 combined and 82 static; non-blocking Node 26
+  and Python 3.15 lanes; the mutation baseline is recorded per module.
 - `httpx`, `httpcore` and `openai` loggers run at WARNING, and third-party records below WARNING
   are counted into one content-free `external_events` line instead of being printed. The
   official help reader and the span exporter take the injected `Clock` (no `datetime.now`
