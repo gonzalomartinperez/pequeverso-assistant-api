@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-import sqlite3
-from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
-from app.adapters.sqlite.database import Database
-from app.application.ports import BudgetCheck
-from app.domain.budget import Usage
+if TYPE_CHECKING:
+    import sqlite3
+    from datetime import datetime, timedelta
+
+    from app.adapters.sqlite.database import Database
+    from app.application.ports import BudgetCheck
+    from app.domain.budget import Usage
 
 _SPENT = (
     "SELECT coalesce(sum(coalesce(actual_micro, reserved_micro)), 0) FROM spend_ledger WHERE {} = ?"

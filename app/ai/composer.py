@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
@@ -22,14 +21,15 @@ from app.application.ports import (
     Turn,
 )
 from app.domain.answer_policy import fold
-from app.domain.budget import Usage
 from app.domain.catalog import Catalog, DocumentKind, mentioned_products
 from app.domain.conversation import Role
 from app.domain.errors import RejectedError
 from app.domain.web_evidence import WebEvidence, evidence_payload
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import AsyncGenerator, Callable
+
+    from app.domain.budget import Usage
 
 MAX_HISTORY_CHARS = 1200
 

@@ -9,13 +9,15 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import AsyncGenerator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from app.ai.evidence import Passage, decode_documents, rank
 from app.ai.provider import ModelChunk, ModelRequest, TextChunk, UsageChunk
 from app.domain.budget import Usage
 from app.domain.catalog import product_mentioned
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
 
 CHUNK_CHARS = 24
 MODEL_NAME = "fixture"

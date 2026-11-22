@@ -7,12 +7,15 @@ internal addresses or exhaust memory.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 import httpx
 
 from app.adapters.catalog_schema import MAX_CATALOG_BYTES
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class FileCatalogSource:

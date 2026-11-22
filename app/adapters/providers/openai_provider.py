@@ -12,21 +12,24 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncGenerator
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import openai
 from openai import AsyncOpenAI
-from openai.types.responses import (
-    EasyInputMessageParam,
-    ResponseInputParam,
-    ResponseTextConfigParam,
-)
-from openai.types.shared_params import Reasoning
 
 from app.ai.provider import ModelChunk, ModelRequest, TextChunk, UsageChunk
 from app.domain.budget import Usage
 from app.domain.errors import FailureCode, RejectedError
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from openai.types.responses import (
+        EasyInputMessageParam,
+        ResponseInputParam,
+        ResponseTextConfigParam,
+    )
+    from openai.types.shared_params import Reasoning
 
 log = logging.getLogger(__name__)
 

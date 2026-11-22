@@ -78,9 +78,25 @@ ignore = ["E501", "TRY003", "D203", "D213"]
 "scripts/**" = ["T201", "S603", "S607", "E402"]
 # The evaluation runner is a CLI too: its JSON report goes to stdout.
 "evals/runner.py" = ["T201"]
+# The tests add scripts/ to sys.path before importing the evaluation modules by bare name.
+"tests/test_evaluations.py" = ["E402"]
+# Preserve the HTMLParser callback signature, including its attrs parameter.
+"app/adapters/official_help.py" = ["ARG002"]
+# Preserve the Embeddings port's purpose keyword for fixture callers.
+"app/adapters/providers/openai_embeddings.py" = ["ARG002"]
+# Preserve the public check_content web_evidence keyword for existing callers.
+"app/application/answers.py" = ["ARG001"]
+# Preserve the KnowledgeRetrieval port's language keyword.
+"app/application/knowledge.py" = ["ARG002"]
+# Preserve the urllib HTTPRedirectHandler override signature.
+"scripts/container_fixture_probe.py" = ["ARG002"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Cookie"]
+
+[tool.ruff.lint.flake8-type-checking]
+# Pydantic resolves model fields at runtime for validation and schema generation.
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
 
 [tool.ruff.format]
 quote-style = "double"

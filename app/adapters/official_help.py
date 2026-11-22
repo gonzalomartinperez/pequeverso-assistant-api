@@ -9,7 +9,6 @@ import json
 import logging
 import socket
 import time
-from collections.abc import Awaitable, Callable
 from html.parser import HTMLParser
 from typing import TYPE_CHECKING
 
@@ -18,6 +17,7 @@ import httpx
 from app.domain.web_evidence import SOURCES, HelpSource, HelpTopic, WebEvidence
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
     from datetime import datetime
 
     from app.application.ports import Clock

@@ -15,7 +15,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from time import monotonic
-from types import TracebackType
+from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from app.adapters.catalog.knowledge import PARSER_VERSION, build_public_corpus
@@ -31,6 +31,9 @@ from app.domain.catalog import ActiveCatalog
 from app.domain.errors import RejectedError
 from app.domain.knowledge import EmbeddingPurpose, KnowledgeCorpus, ProjectionStamp
 from app.domain.language import Language
+
+if TYPE_CHECKING:
+    from types import TracebackType
 
 ROOT = Path(__file__).resolve().parents[2]
 _HOSTS = frozenset({"pequeverso.com", "consumer.hotmart.com", "refund.hotmart.com"})

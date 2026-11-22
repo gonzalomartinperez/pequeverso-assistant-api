@@ -5,15 +5,13 @@ from __future__ import annotations
 import json
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, replace
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from langchain_core.documents import Document
 from langgraph.config import get_stream_writer
 from langgraph.graph import END, START, StateGraph
 from langsmith import tracing_context
 
-from app.ai.composer import GroundedComposer
-from app.application.knowledge_ports import KnowledgeRetrieval
 from app.application.ports import (
     ComposerEvent,
     DeltaEvent,
@@ -28,7 +26,11 @@ from app.domain.catalog import mentioned_products
 from app.domain.conversation import Role
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.knowledge import ChunkKind, RetrievedKnowledge
-from app.domain.web_evidence import WebEvidence
+
+if TYPE_CHECKING:
+    from app.ai.composer import GroundedComposer
+    from app.application.knowledge_ports import KnowledgeRetrieval
+    from app.domain.web_evidence import WebEvidence
 
 
 @dataclass(slots=True, repr=False)

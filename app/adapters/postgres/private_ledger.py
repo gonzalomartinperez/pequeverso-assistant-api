@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
-from psycopg import AsyncConnection
+if TYPE_CHECKING:
+    from datetime import datetime, timedelta
 
-from app.adapters.postgres.database import PostgresDatabase, Row
-from app.application.ports import BudgetCheck
-from app.domain.budget import Usage
+    from psycopg import AsyncConnection
+
+    from app.adapters.postgres.database import PostgresDatabase, Row
+    from app.application.ports import BudgetCheck
+    from app.domain.budget import Usage
 
 
 async def _spent(conn: AsyncConnection[Row], month: str, day: str) -> tuple[int, int]:

@@ -8,16 +8,18 @@ The score measures source-ID recall, not response correctness or semantic model 
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
 from contextlib import closing
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import NAMESPACE_URL, uuid5
 
 from langsmith import Client, tracing_context
 from langsmith.evaluation import aevaluate
 from langsmith.schemas import Example
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 _ID = re.compile(r"[a-z0-9][a-z0-9.:/\-]{0,159}\Z")
 _SHA = re.compile(r"[a-f0-9]{64}\Z")

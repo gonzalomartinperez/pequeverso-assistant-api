@@ -5,12 +5,15 @@ from __future__ import annotations
 import hashlib
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from psycopg import sql
 
-from app.adapters.postgres.database import PostgresDatabase
 from app.application.product_analytics import Bucket, QuotaExceededError
-from app.domain.product_analytics import Event, Selection
+
+if TYPE_CHECKING:
+    from app.adapters.postgres.database import PostgresDatabase
+    from app.domain.product_analytics import Event, Selection
 
 MIGRATION = Path(__file__).with_name("005_product_analytics.sql")
 CLASSIFICATION_MIGRATION = Path(__file__).with_name("006_analytics_classification_country.sql")

@@ -10,12 +10,15 @@ import asyncio
 import hashlib
 import math
 import re
+from typing import TYPE_CHECKING
 
-from openai import AsyncOpenAI
-
-from app.application.knowledge_ports import EmbeddingAccounting
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.knowledge import EmbeddingPurpose, EmbeddingSpec, validate_vector
+
+if TYPE_CHECKING:
+    from openai import AsyncOpenAI
+
+    from app.application.knowledge_ports import EmbeddingAccounting
 
 MAX_EMBEDDING_BATCH = 32
 MAX_EMBEDDING_TEXT_BYTES = 8000

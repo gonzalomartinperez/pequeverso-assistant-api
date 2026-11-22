@@ -14,12 +14,13 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from psycopg import AsyncConnection, sql
 from psycopg.types.json import Jsonb
 
-from app.adapters.postgres.database import PostgresDatabase, Row
+if TYPE_CHECKING:
+    from app.adapters.postgres.database import PostgresDatabase, Row
 
 # Source columns are frozen to the released SQLite schema version2, not inferred from data.
 TABLES: dict[str, tuple[str, ...]] = {

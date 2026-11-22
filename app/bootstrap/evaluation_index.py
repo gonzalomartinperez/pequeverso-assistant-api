@@ -10,9 +10,7 @@ from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import AsyncExitStack
 from dataclasses import asdict, dataclass
 from decimal import Decimal
-from typing import Any
-
-from pydantic import SecretStr
+from typing import TYPE_CHECKING, Any
 
 from app.adapters.catalog.knowledge import PARSER_VERSION, build_public_corpus
 from app.adapters.catalog_schema import CatalogParser
@@ -26,8 +24,12 @@ from app.adapters.postgres.private_operations import PostgresOperationsQueries
 from app.application.embedding_budget import SharedEmbeddingAccounting
 from app.application.indexing import IndexResult, KnowledgeIndexer
 from app.application.knowledge_ports import EmbeddingAccounting, Embeddings
-from app.application.ports import AnswerComposer, Clock, ComposerEvent, PreparedTurn, Turn
 from app.domain.budget import BudgetPolicy, to_micro
+
+if TYPE_CHECKING:
+    from pydantic import SecretStr
+
+    from app.application.ports import AnswerComposer, Clock, ComposerEvent, PreparedTurn, Turn
 
 
 @dataclass(frozen=True, slots=True)

@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-import sqlite3
-from datetime import datetime
+from typing import TYPE_CHECKING
 
-from app.adapters.sqlite.database import Database
 from app.adapters.sqlite.stores import parse_ts, ts
 from app.application.ports import StoredSnapshot
-from app.domain.catalog import Catalog
+
+if TYPE_CHECKING:
+    import sqlite3
+    from datetime import datetime
+
+    from app.adapters.sqlite.database import Database
+    from app.domain.catalog import Catalog
 
 KEEP_SNAPSHOTS = 5
 

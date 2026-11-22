@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from app.adapters.catalog.knowledge import PARSER_VERSION
-from app.adapters.catalog_schema import CatalogParser
 from app.adapters.neo4j.database import Neo4jDatabase
 from app.adapters.neo4j.public_graph import Neo4jPublicGraph
 from app.adapters.postgres.database import PostgresDatabase
@@ -22,10 +22,13 @@ from app.adapters.sqlite.database import Database
 from app.adapters.sqlite.ledger import SqliteLedger, SqliteRateLimiter
 from app.adapters.sqlite.operations import SqliteOperationsQueries, SqliteRunMetrics
 from app.adapters.sqlite.stores import SqliteMessageStore, SqliteRunStore, SqliteSessionStore
-from app.application.operations import OperationsQueries
-from app.application.ports import CatalogRepository, MessageStore, RunStore, SessionStore
-from app.bootstrap.config import Settings
 from app.domain.knowledge import EmbeddingSpec
+
+if TYPE_CHECKING:
+    from app.adapters.catalog_schema import CatalogParser
+    from app.application.operations import OperationsQueries
+    from app.application.ports import CatalogRepository, MessageStore, RunStore, SessionStore
+    from app.bootstrap.config import Settings
 
 
 @dataclass(frozen=True, slots=True)

@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
 from typing import TYPE_CHECKING
 
-from app.application.ports import CatalogParser
 from app.domain.catalog import resource_key
 from app.domain.knowledge import (
     MAX_PUBLIC_BODY_BYTES,
@@ -24,7 +22,9 @@ from app.domain.knowledge import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+    from datetime import datetime
 
+    from app.application.ports import CatalogParser
     from app.domain.catalog import Catalog
 
 PARSER_VERSION = "commercial-corpus-v1"
@@ -201,17 +201,17 @@ def _project_documents_and_links(
         )
         eid = f"document:{document.id}"
         entities.append(KnowledgeEntity(eid, EntityKind.DOCUMENT, document.title, (cid,)))
-        for owner in owners:
-            relations.append(
-                KnowledgeRelation(f"product:{owner}", RelationKind.HAS_DOCUMENT, eid, cid, pointer)
-            )
+        relations.extend(
+            KnowledgeRelation(f"product:{owner}", RelationKind.HAS_DOCUMENT, eid, cid, pointer)
+            for owner in owners
+        )
     for index, link in enumerate(catalog.links):
         owners = link.product_ids or legacy_owners
         pointer = f"/links/{index}"
         cid = chunk(ChunkKind.LINK, link.id, link.label, link.label, link.url, owners, pointer)
         eid = f"link:{link.id}"
         entities.append(KnowledgeEntity(eid, EntityKind.LINK, link.label, (cid,)))
-        for owner in owners:
-            relations.append(
-                KnowledgeRelation(f"product:{owner}", RelationKind.HAS_LINK, eid, cid, pointer)
-            )
+        relations.extend(
+            KnowledgeRelation(f"product:{owner}", RelationKind.HAS_LINK, eid, cid, pointer)
+            for owner in owners
+        )
