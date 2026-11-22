@@ -7,6 +7,7 @@ import json
 import re
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field, replace
+from typing import TYPE_CHECKING
 
 from app.ai.evidence import catalog_payload, decode_documents, passages, rank
 from app.ai.output import AnswerStreamParser
@@ -22,10 +23,13 @@ from app.application.ports import (
 )
 from app.domain.answer_policy import fold
 from app.domain.budget import Usage
-from app.domain.catalog import DocumentKind, mentioned_products
+from app.domain.catalog import Catalog, DocumentKind, mentioned_products
 from app.domain.conversation import Role
 from app.domain.errors import RejectedError
 from app.domain.web_evidence import WebEvidence, evidence_payload
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 MAX_HISTORY_CHARS = 1200
 
@@ -89,6 +93,27 @@ def _conversation(turn: Turn) -> list[dict[str, object]]:
     return entries
 
 
+def _relevance_query(turn: Turn) -> str:
+    last_user = next((m.content for m in reversed(turn.history) if m.role is Role.USER), "")
+    current_ids = mentioned_products(turn.question, turn.active.catalog)
+    previous_ids = next(
+        (
+            tuple(p.id for p in m.details.products)
+            for m in reversed(turn.history)
+            if m.role is Role.ASSISTANT and m.details.products
+        ),
+        (),
+    )
+    # An explicit topic change wins. Otherwise preserve structured referents across multiple
+    # short follow-ups without indexing visitor conversations into catalog knowledge.
+    hints = " ".join(current_ids or previous_ids)
+    return f"{turn.question} {hints}" if hints else f"{turn.question} {last_user}"
+
+
+def _without_document(catalog: Catalog, document_id: str) -> Catalog:
+    return replace(catalog, documents=tuple(d for d in catalog.documents if d.id != document_id))
+
+
 class GroundedComposer:
     def __init__(self, provider: ModelProvider, settings: ComposerSettings) -> None:
         self._provider = provider
@@ -143,20 +168,7 @@ class GroundedComposer:
         return with_retrieval(packed)
 
     def prepare(self, turn: Turn) -> PreparedTurn:
-        last_user = next((m.content for m in reversed(turn.history) if m.role is Role.USER), "")
-        current_ids = mentioned_products(turn.question, turn.active.catalog)
-        previous_ids = next(
-            (
-                tuple(p.id for p in m.details.products)
-                for m in reversed(turn.history)
-                if m.role is Role.ASSISTANT and m.details.products
-            ),
-            (),
-        )
-        # An explicit topic change wins. Otherwise preserve structured referents across multiple
-        # short follow-ups without indexing visitor conversations into catalog knowledge.
-        hints = " ".join(current_ids or previous_ids)
-        query = f"{turn.question} {hints}" if hints else f"{turn.question} {last_user}"
+        query = _relevance_query(turn)
         limit = (
             min(self._settings.max_input_bytes, turn.input_size_limit)
             if turn.input_size_limit is not None
@@ -165,7 +177,7 @@ class GroundedComposer:
         catalog = turn.active.catalog
         conversation = _conversation(turn)
 
-        def evidence_text() -> str:
+        def evidence_text(catalog: Catalog) -> str:
             mandatory_ids = frozenset(
                 d.id for d in catalog.documents if _mandatory_document(d.kind, d.title, d.text)
             )
@@ -173,7 +185,7 @@ class GroundedComposer:
                 catalog, turn.price_status, query, self._settings.max_evidence_chars, mandatory_ids
             )
 
-        evidence = evidence_text()
+        evidence = evidence_text(catalog)
         request = self._request(turn, evidence, conversation, ())
         # Keep all persisted history unchanged. Only old model-context text is removed,
         # retaining roles and structured reference ids plus the latest exchange.
@@ -182,6 +194,7 @@ class GroundedComposer:
                 break
             entry["text"] = ""
             request = self._request(turn, evidence, conversation, ())
+
         # Whole low-ranked documents only: commercial and support evidence is mandatory.
         ranked = rank(query, passages(catalog))
         removable = [
@@ -194,10 +207,8 @@ class GroundedComposer:
         for document_id in removable:
             if request.size_bytes() <= limit:
                 break
-            catalog = replace(
-                catalog, documents=tuple(d for d in catalog.documents if d.id != document_id)
-            )
-            evidence = evidence_text()
+            catalog = _without_document(catalog, document_id)
+            evidence = evidence_text(catalog)
             request = self._request(turn, evidence, conversation, ())
         if (
             request.size_bytes() > limit
@@ -221,41 +232,62 @@ class GroundedComposer:
                 # untouched; neither commercial qualifications nor passages are sliced.
                 conversation[-1]["text"] = ""
                 request = self._request(turn, evidence, conversation, ())
-        selected: list[WebEvidence] = []
+
+        selected: tuple[WebEvidence, ...] = ()
         if request.size_bytes() <= limit:
-            for item in turn.web_evidence:
-                kept: list[str] = []
-                accepted: WebEvidence | None = None
-                for paragraph in item.text.splitlines():
-                    text = "\n".join([*kept, paragraph])
-                    candidate = replace(
-                        item, text=text, sha256=hashlib.sha256(text.encode()).hexdigest()
-                    )
-                    proposed = (*selected, candidate)
-                    trial = self._request(turn, evidence, conversation, proposed)
-                    # Make room for effective procedure evidence by removing only whole,
-                    # low-ranked noncommercial FAQ documents. Mandatory policies/support and
-                    # product facts remain intact; the input bound never increases.
-                    for document_id in removable:
-                        if trial.size_bytes() <= limit:
-                            break
-                        if catalog.document(document_id) is None:
-                            continue
-                        catalog = replace(
-                            catalog,
-                            documents=tuple(d for d in catalog.documents if d.id != document_id),
-                        )
-                        evidence = evidence_text()
-                        trial = self._request(turn, evidence, conversation, proposed)
-                    if trial.size_bytes() > limit:
-                        break
-                    kept.append(paragraph)
-                    accepted = candidate
-                if accepted is not None:
-                    selected.append(accepted)
-            request = self._request(turn, evidence, conversation, tuple(selected))
+            evidence, selected = self._pack_web_evidence(
+                turn,
+                catalog=catalog,
+                evidence=evidence,
+                conversation=conversation,
+                removable=removable,
+                limit=limit,
+                evidence_text=evidence_text,
+            )
+            request = self._request(turn, evidence, conversation, selected)
         source_ids = frozenset(d["id"] for d in decode_documents(json.loads(evidence)["documents"]))
-        return PreparedRequest(request, tuple(selected), source_ids)
+        return PreparedRequest(request, selected, source_ids)
+
+    def _pack_web_evidence(
+        self,
+        turn: Turn,
+        *,
+        catalog: Catalog,
+        evidence: str,
+        conversation: list[dict[str, object]],
+        removable: list[str],
+        limit: int,
+        evidence_text: Callable[[Catalog], str],
+    ) -> tuple[str, tuple[WebEvidence, ...]]:
+        selected: list[WebEvidence] = []
+        for item in turn.web_evidence:
+            kept: list[str] = []
+            accepted: WebEvidence | None = None
+            for paragraph in item.text.splitlines():
+                text = "\n".join([*kept, paragraph])
+                candidate = replace(
+                    item, text=text, sha256=hashlib.sha256(text.encode()).hexdigest()
+                )
+                proposed = (*selected, candidate)
+                trial = self._request(turn, evidence, conversation, proposed)
+                # Make room for effective procedure evidence by removing only whole,
+                # low-ranked noncommercial FAQ documents. Mandatory policies/support and
+                # product facts remain intact; the input bound never increases.
+                for document_id in removable:
+                    if trial.size_bytes() <= limit:
+                        break
+                    if catalog.document(document_id) is None:
+                        continue
+                    catalog = _without_document(catalog, document_id)
+                    evidence = evidence_text(catalog)
+                    trial = self._request(turn, evidence, conversation, proposed)
+                if trial.size_bytes() > limit:
+                    break
+                kept.append(paragraph)
+                accepted = candidate
+            if accepted is not None:
+                selected.append(accepted)
+        return evidence, tuple(selected)
 
     def _request(
         self,
