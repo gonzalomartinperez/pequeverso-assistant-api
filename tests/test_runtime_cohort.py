@@ -5,10 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import sqlite3
-from collections.abc import AsyncIterator
 from contextlib import closing
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import anyio
 import anyio.lowlevel
@@ -23,6 +21,10 @@ from app.bootstrap.config import Settings
 from app.domain.errors import FailureCode, RejectedError
 from tests.support import answer_json, ask, client, open_session
 from tests.test_openai_provider import REQUEST
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+    from pathlib import Path
 
 
 def clean_settings_environment(monkeypatch: pytest.MonkeyPatch) -> None:

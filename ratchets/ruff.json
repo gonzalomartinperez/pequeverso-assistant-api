@@ -2,21 +2,18 @@
   "schema_version": 1,
   "description": "Legacy ruff findings; every count only decreases (PVA-M2.1).",
   "target": "0 for every code by PVA-M4.11",
-  "total": 209,
+  "total": 120,
   "findings": {
     "ANN401": 17,
     "ARG002": 1,
-    "C416": 1,
     "D205": 2,
     "D301": 1,
     "D401": 4,
-    "DTZ011": 1,
-    "PERF401": 7,
-    "PTH101": 5,
+    "PERF401": 1,
     "S101": 24,
     "T201": 12,
-    "TC001": 36,
-    "TC003": 67,
+    "TC001": 11,
+    "TC003": 16,
     "TRY300": 6,
     "TRY301": 25
   },
@@ -125,187 +122,37 @@
       "ANN401": 1,
       "T201": 1
     },
-    "scripts/compare_oci_images.py": {
-      "PERF401": 1
-    },
     "scripts/evaluate_conversations.py": {
       "ANN401": 1,
-      "D301": 1,
-      "PERF401": 4,
-      "TC003": 1
+      "D301": 1
     },
     "scripts/evaluate_corpus.py": {
-      "ANN401": 2,
-      "TC003": 1
+      "ANN401": 2
     },
     "scripts/evaluate_end_to_end.py": {
-      "PTH101": 5,
       "S101": 1,
-      "TC001": 5,
-      "TC003": 2,
       "TRY301": 1
-    },
-    "scripts/evaluate_graph_end_to_end.py": {
-      "TC001": 1,
-      "TC003": 1
     },
     "scripts/postgres_fixture_identity.py": {
       "TRY301": 1
-    },
-    "scripts/real_eval_budget.py": {
-      "TC001": 1,
-      "TC003": 2
     },
     "scripts/run_bounded_real_eval.py": {
       "ANN401": 1
     },
     "scripts/smoke_graph_runtime.py": {
-      "TC003": 2,
       "TRY301": 6
-    },
-    "scripts/sync_catalog.py": {
-      "TC001": 1
     },
     "scripts/validate_skills.py": {
       "S101": 4
     },
-    "tests/support.py": {
-      "TC003": 3
-    },
-    "tests/test_affiliate.py": {
-      "TC003": 1
-    },
-    "tests/test_answers.py": {
-      "TC003": 1
-    },
-    "tests/test_api.py": {
-      "TC003": 1
-    },
-    "tests/test_architecture_coverage.py": {
-      "TC003": 1
-    },
-    "tests/test_budget_concurrency.py": {
-      "TC003": 1
-    },
-    "tests/test_catalog.py": {
-      "TC003": 1
-    },
-    "tests/test_catalog_scope.py": {
-      "TC001": 1
-    },
-    "tests/test_catalog_scope_http.py": {
-      "TC001": 3,
-      "TC003": 1
-    },
-    "tests/test_compare_oci_images.py": {
-      "TC003": 1
-    },
-    "tests/test_container_layout.py": {
-      "C416": 1,
-      "DTZ011": 1
-    },
-    "tests/test_evaluation_embedding_accounting.py": {
-      "TC003": 1
-    },
-    "tests/test_evaluation_envelope_extension.py": {
-      "TC003": 1
-    },
-    "tests/test_evaluation_final_format_envelope.py": {
-      "TC003": 1
-    },
-    "tests/test_evaluation_followup_envelope.py": {
-      "TC003": 1
-    },
-    "tests/test_graph_composer.py": {
-      "TC001": 1,
-      "TC003": 1
-    },
-    "tests/test_graph_context_packing.py": {
-      "TC001": 1
-    },
-    "tests/test_graph_evaluation_wiring.py": {
-      "TC001": 1,
-      "TC003": 1
-    },
-    "tests/test_graph_http_live_services.py": {
-      "TC003": 2
-    },
-    "tests/test_knowledge_indexing.py": {
-      "TC001": 2,
-      "TC003": 1
-    },
-    "tests/test_knowledge_jobs.py": {
-      "TC003": 1
-    },
-    "tests/test_known_interruption_ack.py": {
-      "TC003": 1
-    },
-    "tests/test_official_help.py": {
-      "TC003": 1
-    },
-    "tests/test_openai_embeddings.py": {
-      "TC003": 1
-    },
-    "tests/test_openai_provider.py": {
-      "PERF401": 1
-    },
-    "tests/test_operations.py": {
-      "TC003": 2
-    },
-    "tests/test_postgres_knowledge.py": {
-      "TC003": 1
-    },
-    "tests/test_postgres_private.py": {
-      "TC003": 1
-    },
-    "tests/test_postgres_product_analytics.py": {
-      "TC003": 1
-    },
-    "tests/test_price_comparison_http.py": {
-      "TC001": 1,
-      "TC003": 1
-    },
-    "tests/test_product_analytics_http.py": {
-      "TC003": 1
-    },
-    "tests/test_provenance.py": {
-      "TC001": 1
-    },
-    "tests/test_provenance_http.py": {
-      "TC001": 5,
-      "TC003": 1
-    },
-    "tests/test_provider_lifecycle.py": {
-      "TC003": 1
-    },
     "tests/test_real_eval_budget.py": {
-      "TC003": 1,
       "TRY300": 2
-    },
-    "tests/test_reference_clarification_http.py": {
-      "TC003": 1
-    },
-    "tests/test_runtime_cohort.py": {
-      "TC003": 2
     },
     "tests/test_runtime_shutdown.py": {
       "TRY301": 1
     },
     "tests/test_security.py": {
-      "TC003": 1,
       "TRY301": 1
-    },
-    "tests/test_spanish_native.py": {
-      "TC003": 1
-    },
-    "tests/test_streaming.py": {
-      "TC001": 1
-    },
-    "tests/test_validated_stream.py": {
-      "TC003": 2
-    },
-    "tests/test_visitor_context.py": {
-      "TC003": 1
     }
   }
 }

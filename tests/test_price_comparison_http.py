@@ -2,7 +2,7 @@
 
 import sqlite3
 from contextlib import closing
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -15,6 +15,11 @@ from tests.support import (
     open_session,
     parse_sse,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from app.domain.catalog import ActiveCatalog
 
 
 def test_unknown_price_relation_never_dispatches_or_streams_a_categorical_answer(
@@ -111,8 +116,6 @@ def test_local_comparison_obeys_security_readiness_and_rate_before_retrieval(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     from typing import Any
-
-    from app.domain.catalog import ActiveCatalog
 
     class Knowledge:
         available = True

@@ -2,16 +2,14 @@
 
 import asyncio
 import hashlib
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 import pytest
 
 from app.application.indexing import KnowledgeIndexer
-from app.application.ports import StoredSnapshot
-from app.domain.catalog import Catalog
 from app.domain.knowledge import (
     ChunkKind,
     EmbeddingPurpose,
@@ -25,6 +23,12 @@ from app.domain.knowledge import (
     KnowledgeRevision,
     ProjectionStamp,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+    from app.application.ports import StoredSnapshot
+    from app.domain.catalog import Catalog
 
 SPEC = EmbeddingSpec("fixture", "hash64-v1", 64)
 VECTOR = (1.0,) + (0.0,) * 63

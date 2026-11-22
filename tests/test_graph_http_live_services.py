@@ -15,12 +15,11 @@ import socket
 import stat
 import threading
 import time
-from collections.abc import Awaitable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 from urllib.parse import urlsplit
 
 import httpx
@@ -46,6 +45,9 @@ from tests.support import (
     mutation_headers,
     parse_sse,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Iterator
 
 CONFIG = os.environ.get("PV_GRAPH_HTTP_FIXTURE_CONFIG", "")
 pytestmark = pytest.mark.skipif(

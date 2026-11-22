@@ -2,8 +2,7 @@
 
 import asyncio
 import json
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx2
 import pytest
@@ -13,6 +12,9 @@ from app.adapters.providers.openai_embeddings import OpenAIEmbeddings
 from app.domain.errors import RejectedError
 from app.domain.knowledge import EmbeddingPurpose
 from scripts.real_eval_budget import Envelope, EvaluationEmbeddingAccounting
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class ApplicationAccounting:

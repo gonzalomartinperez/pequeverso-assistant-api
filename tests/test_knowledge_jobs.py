@@ -5,12 +5,15 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from app.bootstrap import knowledge_jobs
 from tests.support import CATALOG_BYTES
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.parametrize(

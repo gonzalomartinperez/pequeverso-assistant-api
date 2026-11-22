@@ -2,7 +2,7 @@
 
 import sqlite3
 from contextlib import closing
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -15,6 +15,13 @@ from tests.support import (
     open_session,
     parse_sse,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from app.domain.catalog import ActiveCatalog
+    from app.domain.knowledge import RetrievedKnowledge
+    from app.domain.language import Language
 
 
 @pytest.mark.parametrize(
@@ -109,10 +116,6 @@ def test_scope_does_not_bypass_csrf_dependency_rate_or_retrieval_boundary(
     from typing import Any
 
     from fastapi import FastAPI
-
-    from app.domain.catalog import ActiveCatalog
-    from app.domain.knowledge import RetrievedKnowledge
-    from app.domain.language import Language
 
     class Knowledge:
         available = True

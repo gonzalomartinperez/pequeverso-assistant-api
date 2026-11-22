@@ -13,13 +13,12 @@ import json
 import os
 import sqlite3
 import stat
-from collections.abc import AsyncGenerator, Iterator
 from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import ROUND_CEILING, Decimal
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx2 as httpx
 import openai
@@ -27,9 +26,13 @@ from openai import AsyncOpenAI
 
 from app.adapters.providers.openai_provider import OpenAIResponsesProvider
 from app.ai.provider import ModelChunk, ModelRequest, UsageChunk
-from app.application.knowledge_ports import EmbeddingAccounting
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.knowledge import EmbeddingPurpose
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Iterator
+
+    from app.application.knowledge_ports import EmbeddingAccounting
 
 MODEL = "gpt-6-luna"
 ATTEMPT_MICRO = 11000

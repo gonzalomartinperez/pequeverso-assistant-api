@@ -1,16 +1,19 @@
 """General public/private corpus scope without crossing own-history or evidence boundaries."""
 
 from dataclasses import replace
+from typing import TYPE_CHECKING
 
 import pytest
 
 from app.adapters.catalog_schema import CatalogParser
 from app.application.catalog_scope import catalog_scope_reply
 from app.bootstrap.config import DEFAULT_CATALOG
-from app.domain.catalog import Catalog
 from app.domain.conversation import AnswerDetails, Message, Notice, Role, SourceRef
 from app.domain.language import Language
 from tests.support import FixedClock
+
+if TYPE_CHECKING:
+    from app.domain.catalog import Catalog
 
 
 @pytest.fixture

@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +13,9 @@ from app.adapters.sqlite import database
 from app.bootstrap import container
 from app.domain.errors import FailureCode, RejectedError
 from tests.support import ScriptedProvider, settings
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class FakeSdk:

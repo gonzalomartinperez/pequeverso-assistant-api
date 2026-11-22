@@ -10,12 +10,12 @@ import threading
 import time
 from contextlib import closing
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
 
 from app.application.sessions import SessionService
-from app.domain.conversation import Session
 from app.domain.errors import FailureCode
 from app.presentation.streaming import ResponseCleanups
 from tests.support import (
@@ -26,6 +26,9 @@ from tests.support import (
     live_server,
     parse_sse,
 )
+
+if TYPE_CHECKING:
+    from app.domain.conversation import Session
 
 GOOD = answer_json(
     "Respuesta completa del asistente sobre el kit.",

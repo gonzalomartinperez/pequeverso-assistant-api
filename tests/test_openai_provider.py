@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 import openai
@@ -14,6 +14,11 @@ from app.adapters.providers.openai_provider import OpenAIResponsesProvider
 from app.ai.prompt import OUTPUT_SCHEMA
 from app.ai.provider import ModelInput, ModelRequest, TextChunk, UsageChunk
 from app.domain.errors import FailureCode, RejectedError
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
+    from app.ai.provider import ModelChunk
 
 REQUEST = ModelRequest(
     "instructions", (ModelInput("user", "store_data:\n{}"),), OUTPUT_SCHEMA, 800, "sid", "ck"
@@ -164,16 +169,24 @@ def test_incomplete_responses_still_report_usage_with_reasoning_tokens() -> None
     )
     events = _Events([incomplete])
     provider = OpenAIResponsesProvider(_Client([events]), "gpt-6-luna", "medium", max_retries=0)  # type: ignore[arg-type]
-    chunks: list[Any] = []
 
-    async def run() -> None:
-        async for chunk in provider.stream(REQUEST):
-            chunks.append(chunk)
+    async def chunks_before_failure() -> AsyncGenerator[ModelChunk]:
+        failure_code = None
+        try:
+            async for chunk in provider.stream(REQUEST):
+                yield chunk
+        except RejectedError as error:
+            failure_code = error.code
+        assert failure_code is FailureCode.GENERATION_FAILED
 
-    with pytest.raises(RejectedError) as raised:
-        asyncio.run(run())
-    assert raised.value.code is FailureCode.GENERATION_FAILED
-    assert [c.usage.reasoning_tokens for c in chunks if isinstance(c, UsageChunk)] == [800]
+    async def reasoning_tokens() -> list[int]:
+        return [
+            chunk.usage.reasoning_tokens
+            async for chunk in chunks_before_failure()
+            if isinstance(chunk, UsageChunk)
+        ]
+
+    assert asyncio.run(reasoning_tokens()) == [800]
     assert events.closed
 
 

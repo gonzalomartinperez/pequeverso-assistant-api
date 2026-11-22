@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from pydantic import TypeAdapter
@@ -20,6 +20,9 @@ from tests.support import (
     mutation_headers,
     open_session,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 EVENTS = TypeAdapter(StreamEvent)
 GOOD = answer_json(

@@ -10,7 +10,7 @@ import sqlite3
 import threading
 from contextlib import closing
 from datetime import timedelta
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
@@ -30,7 +30,6 @@ from app.domain.knowledge import (
     RetrievalStrategy,
     RetrievedKnowledge,
 )
-from app.domain.language import Language
 from tests.support import (
     CATALOG_BYTES,
     JSON_HEADERS,
@@ -43,6 +42,11 @@ from tests.support import (
     open_session,
     parse_sse,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from app.domain.language import Language
 
 CATALOG = CatalogParser(
     frozenset({"pequeverso.com", "consumer.hotmart.com", "refund.hotmart.com"})

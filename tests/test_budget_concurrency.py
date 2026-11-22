@@ -7,11 +7,14 @@ import multiprocessing
 import sqlite3
 from contextlib import closing
 from decimal import Decimal
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from app.adapters.sqlite.database import Database
 from app.adapters.sqlite.ledger import SqliteLedger
 from app.domain.budget import BudgetPolicy, Usage, to_micro
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 POLICY = BudgetPolicy(
     to_micro(Decimal(10)), Decimal("0.10"), to_micro(Decimal(1))

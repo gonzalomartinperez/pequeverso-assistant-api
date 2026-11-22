@@ -160,15 +160,15 @@ def test_app_dockerfile_keeps_canonical_reproducible_shape() -> None:
 
 
 def test_grype_ignores_are_tracked_and_unexpired():
-    from datetime import date, timedelta
+    from datetime import UTC, date, datetime, timedelta
 
     text = (ROOT / ".grype.yaml").read_text()
     ignores = yaml.safe_load(text)["ignore"]
     blocks = text.split("\n  - vulnerability: ")[1:]
     assert len(blocks) == len(ignores)
     header = text.split("\nignore:", 1)[1]
-    comments = [chunk for chunk in header.split("\n  - vulnerability: ")][: len(ignores)]
-    today = date.today()
+    comments = list(header.split("\n  - vulnerability: "))[: len(ignores)]
+    today = datetime.now(UTC).astimezone().date()
     for entry, comment in zip(ignores, comments, strict=True):
         assert entry["vulnerability"] in text
         assert (

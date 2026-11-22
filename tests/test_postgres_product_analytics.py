@@ -7,9 +7,9 @@ import asyncio
 import hashlib
 import os
 import secrets
-from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 from datetime import timedelta
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import psycopg
@@ -27,6 +27,9 @@ from app.application.product_analytics import AnalyticsService, QuotaExceededErr
 from app.domain.product_analytics import Selection
 from app.presentation.product_analytics import EventIn, ReportOut
 from tests.test_product_analytics import NOW, event
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 
 ADMIN = os.environ.get("TEST_PRODUCT_ANALYTICS_ADMIN_DSN") or os.environ.get("TEST_KNOWLEDGE_DSN")
 RUNTIME = os.environ.get("TEST_PRODUCT_ANALYTICS_DSN")

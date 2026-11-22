@@ -4,10 +4,10 @@ import asyncio
 import hashlib
 import json
 import os
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import psycopg
 import pytest
@@ -27,6 +27,9 @@ from app.domain.conversation import Message, Role, Session
 from app.domain.errors import RejectedError
 from app.domain.language import Language
 from tests.test_postgres_knowledge import DSN
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 
 pytestmark = pytest.mark.skipif(not DSN, reason="requires explicitly isolated real PG18.6")
 NOW = datetime(2026, 10, 17, 12, tzinfo=UTC)

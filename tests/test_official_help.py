@@ -7,7 +7,7 @@ import hashlib
 import json
 from contextlib import closing
 from datetime import UTC, datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx
 import pytest
@@ -20,6 +20,9 @@ from app.adapters.official_help import (
 )
 from app.domain.web_evidence import SOURCES, HelpTopic, topics_for
 from tests.support import ScriptedProvider, answer_json, ask, client, mutation_headers, open_session
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 NOW = datetime(2026, 10, 13, tzinfo=UTC)
 

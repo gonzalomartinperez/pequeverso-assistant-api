@@ -6,7 +6,7 @@ import asyncio
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import httpx2 as httpx
 import pytest
@@ -14,6 +14,9 @@ import pytest
 from app.ai.provider import ModelInput, ModelRequest
 from app.domain.errors import RejectedError
 from scripts.real_eval_budget import BoundedProvider, Envelope
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_envelope_is_atomic_persistent_and_never_refunds(tmp_path: Path) -> None:

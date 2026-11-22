@@ -4,11 +4,11 @@ import asyncio
 import hashlib
 import json
 import os
-from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import psycopg
 import pytest
@@ -31,6 +31,9 @@ from app.domain.knowledge import (
     RelationKind,
 )
 from tests.support import CATALOG_BYTES
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 
 DSN = os.environ.get("TEST_KNOWLEDGE_DSN")
 pytestmark = pytest.mark.skipif(

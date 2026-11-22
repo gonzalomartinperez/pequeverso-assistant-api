@@ -2,8 +2,7 @@
 
 import asyncio
 import json
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 import pytest
@@ -12,6 +11,9 @@ from openai import AsyncOpenAI
 from app.adapters.providers.openai_embeddings import FixtureHashEmbeddings, OpenAIEmbeddings
 from app.domain.errors import RejectedError
 from app.domain.knowledge import EmbeddingPurpose
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class Accounting:

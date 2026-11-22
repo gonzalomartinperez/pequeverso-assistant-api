@@ -3,8 +3,7 @@
 import hashlib
 import json
 import sys
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,7 +11,6 @@ from pydantic import SecretStr
 
 from app.adapters.providers.fixture_provider import FixtureProvider
 from app.application.embedding_budget import SharedEmbeddingAccounting
-from app.application.knowledge_ports import EmbeddingAccounting
 from app.bootstrap import container
 from app.bootstrap.config import Settings
 from app.bootstrap.container import ProviderResource
@@ -20,6 +18,11 @@ from scripts import evaluate_graph_end_to_end as graph_runner
 from scripts.evaluate_end_to_end import EvidenceProvider
 from tests.support import settings
 from tests.test_evaluation_embedding_accounting import ApplicationAccounting
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from app.application.knowledge_ports import EmbeddingAccounting
 
 
 def test_factory_is_single_owned_composition_with_real_shared_accounting(tmp_path: Path) -> None:

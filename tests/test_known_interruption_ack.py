@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import sqlite3
 from contextlib import closing
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 from scripts import real_eval_budget as budget
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def make_ledger(tmp_path: Path, *, extended: bool = False) -> budget.Envelope:

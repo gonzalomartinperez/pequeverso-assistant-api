@@ -7,8 +7,7 @@ import json
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -16,6 +15,9 @@ from app.domain.errors import RejectedError
 from scripts import extend_evaluation_envelope as cli
 from scripts import real_eval_budget as budget
 from tests.test_evaluation_followup_envelope import initial, migrate
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def prior(tmp_path: Path) -> tuple[budget.Envelope, str]:

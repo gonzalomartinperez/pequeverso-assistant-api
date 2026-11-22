@@ -1,5 +1,5 @@
 from datetime import timedelta
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -17,6 +17,9 @@ from tests.support import (
     client,
     open_session,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 CATALOG = CatalogParser(
     frozenset({"pequeverso.com", "consumer.hotmart.com", "refund.hotmart.com"})
