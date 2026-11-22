@@ -1,7 +1,7 @@
 name: compat
 
-# Forward-compatibility lanes (PVA-M4.8, OD-77 and DR-10): the next runtime runs the same checks as
-# the pinned one, but never blocks a merge. These jobs are not part of `ci-gate` and every job is
+# Forward-compatibility lanes (PVA-M4.8 Node 26, OD-77 and DR-10; PVA-M4.10 Python 3.15, ecosystem
+# 8.1): the next runtime runs the same checks as the pinned one, but never blocks a merge. These jobs are not part of `ci-gate` and every job is
 # `continue-on-error`, so a lagging dependency shows up in the job log without failing the run
 # (OD-75: failed-workflow e-mails only). The flip to a new pin needs two weeks of green runs here.
 # No secrets, no network beyond tool installation, never a paid model call.
@@ -13,6 +13,9 @@ on:
       - ".nvmrc"
       - "tests/js/**"
       - "tests/fixtures/product-analytics.html"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
   push:
     branches: [develop]
   workflow_dispatch:
@@ -22,6 +25,12 @@ permissions: {}
 concurrency:
   group: compat-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  UV_VERSION: 0.13.7 # keep equal to ci.yml
+  AI_PROVIDER: fixture
+  ALLOW_PAID_AI: "false"
+  LANGSMITH_TRACING: "false"
 
 jobs:
   node-next:
@@ -45,3 +54,27 @@ jobs:
         run: |
           node --version
           timeout 10s node --test tests/js/product-analytics-pointer.test.mts
+
+  python-next:
+    name: Python 3.15 lane (non-blocking)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    continue-on-error: true
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: false
+      - name: Install on Python 3.15 (frozen lockfile; production stays on .python-version)
+        run: uv sync --frozen --python 3.15
+      - name: Tests on Python 3.15 (same selection as the static job)
+        run: |
+          uv run --frozen --python 3.15 python --version
+          uv run --frozen --python 3.15 pytest -q -n auto -m "not schemathesis"
