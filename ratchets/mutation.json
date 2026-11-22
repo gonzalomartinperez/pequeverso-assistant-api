@@ -1,7 +1,27 @@
 {
   "schema_version": 1,
-  "pr_break": 60,
-  "weekly_target": 75,
-  "modules": {},
-  "equivalent_mutants": {}
+  "pr_break": 60.0,
+  "weekly_target": 75.0,
+  "modules": {
+    "app/ai/evidence.py": 93.0,
+    "app/ai/output.py": 74.0,
+    "app/ai/prompt.py": 88.0,
+    "app/application/answers.py": 63.0,
+    "app/application/embedding_budget.py": 80.0,
+    "app/application/sessions.py": 88.0,
+    "app/domain/analytics_country.py": 100.0,
+    "app/domain/answer_policy.py": 75.0,
+    "app/domain/budget.py": 72.0,
+    "app/domain/catalog.py": 89.0,
+    "app/domain/errors.py": 100.0,
+    "app/domain/knowledge.py": 69.0,
+    "app/domain/language.py": 66.0,
+    "app/domain/page_claims.py": 72.0,
+    "app/domain/product_analytics.py": 86.0,
+    "app/domain/redaction.py": 80.0,
+    "app/domain/visitor_context.py": 69.0,
+    "app/domain/web_evidence.py": 86.0
+  },
+  "equivalent_mutants": {},
+  "baseline_note": "Recorded 2026-11-22 (PVA-M4, carried from M2.9) from the full-scope runs 44967058090 and 44969118533 on develop: per module floor(min of the two runs), because unchanged modules moved by up to 1.8 points between runs. Floors only rise; the PR lane breaks below max(pr_break, floor)."
 }
