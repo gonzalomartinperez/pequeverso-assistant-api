@@ -95,7 +95,7 @@ def test_blocks_are_off_by_default() -> None:
     assert build_blocks(final, ACTIVE, PriceStatus.VERIFIED) == ()
 
 
-def test_replaced_answer_only_has_text_and_replacement_notice() -> None:
+def test_replaced_answer_has_no_cards_but_keeps_its_support_route() -> None:
     final = _finalize(
         Draft("Cuesta US$5.", (DraftReference("product", PRODUCT_ID),), (), ("¿Qué incluye?",))
     )
@@ -103,10 +103,11 @@ def test_replaced_answer_only_has_text_and_replacement_notice() -> None:
     assert final.details.links  # The v1 replacement includes a support link.
     blocks = build_blocks(final, ACTIVE, PriceStatus.VERIFIED, blocks_v2=True)
 
-    _assert_blocks(blocks, ["text", "notice"])
+    _assert_blocks(blocks, ["text", "link_chip", "notice"])
     assert blocks[0]["markdown_lite"] == final.content
-    assert blocks[1] == {
-        "id": "b2",
+    assert blocks[1]["kind"] == "support"
+    assert blocks[2] == {
+        "id": "b3",
         "type": "notice",
         "code": "answer_replaced",
         "severity": "warning",
@@ -145,10 +146,8 @@ def test_resource_link_sources_and_follow_ups_use_draft_shapes_and_order() -> No
     )
     blocks = build_blocks(final, ACTIVE, PriceStatus.VERIFIED, blocks_v2=True)
 
-    _assert_blocks(
-        blocks, ["text", "resource_card", "citation", "fundamentos", "follow_ups", "link_chip"]
-    )
-    _, resource, citation, fundamentos, follow_ups, link = blocks
+    _assert_blocks(blocks, ["text", "resource_card", "citation", "follow_ups", "link_chip"])
+    _, resource, citation, follow_ups, link = blocks
     (ref,) = final.details.resources
     (source,) = final.details.sources
     (support,) = final.details.links
@@ -161,7 +160,6 @@ def test_resource_link_sources_and_follow_ups_use_draft_shapes_and_order() -> No
     assert citation["url"] == source.url
     quote = citation["quote"]
     assert isinstance(quote, str) and 0 < len(quote) <= 200 and quote in document.text
-    assert fundamentos["items"] == [{"citation_id": citation["id"], "quote": quote}]
     assert follow_ups["items"] == [
         {"id": "f1", "text": "¿Qué incluye el kit?"},
         {"id": "f2", "text": "¿Cuántos PDF trae?"},
@@ -214,3 +212,36 @@ def test_every_card_price_is_from_the_active_snapshot(ids, status, cents) -> Non
                 "tax_note": price.tax_note,
                 "verified_at": active.verified_at.isoformat(),
             }
+
+
+def test_resource_cards_come_from_the_catalog_not_the_finalized_ref() -> None:
+    final = _finalize(
+        Draft("Te cuento sobre el recurso.", (DraftReference("resource", RESOURCE_ID),), (), ())
+    )
+    (ref,) = final.details.resources
+    forged = replace(
+        final, details=replace(final.details, resources=(replace(ref, title="FORGED", pages=999),))
+    )
+    blocks = build_blocks(forged, ACTIVE, PriceStatus.VERIFIED, blocks_v2=True)
+    (card,) = [b for b in blocks if b["type"] == "resource_card"]
+    assert (card["title"], card["pages"]) == (ref.title, ref.pages)
+
+
+def test_a_price_withheld_at_finalization_stays_withheld_in_the_card() -> None:
+    final = _finalize(
+        Draft("Mira el kit.", (DraftReference("product", PRODUCT_ID),), (), ()),
+        PriceStatus.UNVERIFIED,
+    )
+    (ref,) = final.details.products
+    assert ref.price is None
+    blocks = build_blocks(final, ACTIVE, PriceStatus.VERIFIED, blocks_v2=True)
+    (card,) = [b for b in blocks if b["type"] == "product_card"]
+    assert card["price"] is None
+
+
+def test_duplicate_product_refs_give_one_card_and_markup_becomes_a_lookalike() -> None:
+    final = _finalize(Draft("Hola <b y <?x", (DraftReference("product", PRODUCT_ID),), (), ()))
+    doubled = replace(final, details=replace(final.details, products=final.details.products * 2))
+    blocks = build_blocks(doubled, ACTIVE, PriceStatus.VERIFIED, blocks_v2=True)
+    assert [b["type"] for b in blocks].count("product_card") == 1
+    assert "<" not in str(blocks[0]["markdown_lite"])

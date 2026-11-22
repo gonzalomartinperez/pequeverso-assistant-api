@@ -6,20 +6,23 @@ import re
 from dataclasses import asdict
 from typing import TYPE_CHECKING
 
-from app.application.answers import MAX_LINKS, product_ref
+from app.application.answers import MAX_LINKS, product_ref, resource_ref
+from app.domain.catalog import PriceStatus
 from app.domain.conversation import Notice
 from app.domain.web_evidence import SOURCES
 
 if TYPE_CHECKING:
     from app.application.answers import FinalizedAnswer
-    from app.domain.catalog import ActiveCatalog, PriceStatus
+    from app.domain.catalog import ActiveCatalog
     from app.domain.conversation import AnswerDetails, ImageRef, ProductRef, SourceRef
 
 type Block = dict[str, object]
 
 _MAX_BLOCKS = 24
 _QUOTE_CHARS = 200
-_MARKUP_START = re.compile(r"<(?=[A-Za-z/!])")
+_MARKUP_START = re.compile(r"<(?=[A-Za-z/!?])")
+# A lookalike, not an entity: the text block is plain text and a renderer uses textContent.
+_LOOKALIKE_LT = "\u2039"
 _HTTPS = re.compile(r"https://[^\s<>]+")
 
 
@@ -101,6 +104,37 @@ def _notice(notice: Notice) -> Block:
     return {"type": "notice", "code": notice.value, "severity": severity, "text_ids": ["b1"]}
 
 
+def _resource_card(resource_id: str, active: ActiveCatalog) -> Block | None:
+    found = active.catalog.resource(resource_id)
+    if found is None:
+        return None
+    ref = resource_ref(resource_id, *found)
+    if ref.pages is None or not _plain(ref.title) or not _draft_image(ref.image):
+        return None
+    return {
+        "type": "resource_card",
+        "resource_id": ref.id,
+        "title": ref.title,
+        "pages": ref.pages,
+        "image": asdict(ref.image) if ref.image is not None else None,
+    }
+
+
+def _link_chips(details: AnswerDetails, active: ActiveCatalog) -> list[Block]:
+    chips: list[Block] = [
+        {
+            "type": "link_chip",
+            "label": link.label,
+            "url": link.url,
+            "kind": "support" if link.id == active.catalog.site.support_link_id else "help",
+            "icon_id": "help",
+        }
+        for ref in details.links
+        if (link := active.catalog.link(ref.id)) and _plain(link.label) and _https(link.url)
+    ]
+    return chips[:MAX_LINKS]
+
+
 def _trailing_blocks(details: AnswerDetails, active: ActiveCatalog) -> list[Block]:
     suggestions = [text for text in details.follow_ups if _plain(text)][:4]
     blocks: list[Block] = []
@@ -114,18 +148,7 @@ def _trailing_blocks(details: AnswerDetails, active: ActiveCatalog) -> list[Bloc
                 ],
             }
         )
-    chips: list[Block] = [
-        {
-            "type": "link_chip",
-            "label": link.label,
-            "url": link.url,
-            "kind": "support" if link.id == active.catalog.site.support_link_id else "help",
-            "icon_id": "help",
-        }
-        for ref in details.links
-        if (link := active.catalog.link(ref.id)) and _plain(link.label) and _https(link.url)
-    ]
-    blocks.extend(chips[:MAX_LINKS])
+    blocks.extend(_link_chips(details, active))
     blocks.extend(_notice(notice) for notice in details.notices)
     return blocks
 
@@ -147,45 +170,30 @@ def build_blocks(
 
     text: Block = {
         "type": "text",
-        "markdown_lite": _MARKUP_START.sub("&lt;", answer.content),
+        "markdown_lite": _MARKUP_START.sub(_LOOKALIKE_LT, answer.content),
         "claims": [],
     }
     details = answer.details
     if Notice.ANSWER_REPLACED in details.notices:
-        return _numbered([text, _notice(Notice.ANSWER_REPLACED)])
+        # No cards, but the support route the replacement text points to stays (section 3.4).
+        return _numbered([text, *_link_chips(details, active), _notice(Notice.ANSWER_REPLACED)])
 
-    cards = [
-        card
-        for ref in details.products
-        if (product := active.catalog.product(ref.id))
-        and (card := _product_card(product_ref(active, product, price_status))) is not None
-    ]
-    resources: list[Block] = [
-        {
-            "type": "resource_card",
-            "resource_id": ref.id,
-            "title": ref.title,
-            "pages": ref.pages,
-            "image": asdict(ref.image) if ref.image is not None else None,
-        }
-        for ref in details.resources
-        if ref.pages is not None and _plain(ref.title) and _draft_image(ref.image)
-    ]
+    cards: list[Block] = []
+    for ref in dict.fromkeys(details.products):
+        product = active.catalog.product(ref.id)
+        # A price appears only when both the finalized answer and this build allow it.
+        status = price_status if ref.price is not None else PriceStatus.UNVERIFIED
+        card = _product_card(product_ref(active, product, status)) if product else None
+        if card is not None and all(c["product_id"] != card["product_id"] for c in cards):
+            cards.append(card)
+    resources = [card for ref in details.resources if (card := _resource_card(ref.id, active))]
     citations = [
         citation
         for source in details.sources
         if (citation := _citation(source, active)) is not None
     ]
     trailing = _trailing_blocks(details, active)
-    has_quotes = any("quote" in citation for citation in citations)
-    card_limit = _MAX_BLOCKS - 1 - len(resources) - len(citations) - len(trailing) - has_quotes
-    blocks: list[Block] = [text, *cards[:card_limit], *resources]
-    if has_quotes:
-        items = [
-            {"citation_id": f"b{index}", "quote": citation["quote"]}
-            for index, citation in enumerate(citations, start=len(blocks) + 1)
-            if "quote" in citation
-        ]
-        # Finalized sources establish provenance but carry no claim-level confidence.
-        trailing.insert(0, {"type": "fundamentos", "items": items, "confidence": "medium"})
-    return _numbered([*blocks, *citations, *trailing])
+    # No `fundamentos` block yet: its confidence must be computed and its quotes selected per
+    # claim (section 3.4), which PVA-M5-X supplies; an asserted constant would be an invented claim.
+    card_limit = max(0, _MAX_BLOCKS - 1 - len(resources) - len(citations) - len(trailing))
+    return _numbered([text, *cards[:card_limit], *resources, *citations, *trailing])
