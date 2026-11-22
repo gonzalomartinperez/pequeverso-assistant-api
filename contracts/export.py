@@ -73,7 +73,7 @@ RUN = "run_EXAMPLE0000001"
 OPS_EXPORT_PLACEHOLDER = "FAKE-OPERATIONS-TOKEN-FOR-OPENAPI-EXPORT-ONLY"
 
 
-def _dump(data: Any) -> bytes:
+def _dump(data: object) -> bytes:
     return (json.dumps(data, ensure_ascii=False, indent=2, sort_keys=False) + "\n").encode()
 
 

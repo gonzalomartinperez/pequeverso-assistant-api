@@ -114,6 +114,12 @@ def _without_document(catalog: Catalog, document_id: str) -> Catalog:
     return replace(catalog, documents=tuple(d for d in catalog.documents if d.id != document_id))
 
 
+def _prepared_request(prepared: PreparedTurn) -> PreparedRequest:
+    if isinstance(prepared, PreparedRequest):
+        return prepared
+    raise AssertionError
+
+
 class GroundedComposer:
     def __init__(self, provider: ModelProvider, settings: ComposerSettings) -> None:
         self._provider = provider
@@ -126,7 +132,7 @@ class GroundedComposer:
     def prepare_selected(
         self, turn: Turn, document_ids: frozenset[str], retrieved_payload: str | None = None
     ) -> PreparedRequest:
-        """Retrieved documents join mandatory commercial/support evidence.
+        """Combine retrieved documents with mandatory commercial and support evidence.
 
         Product facts remain canonical and complete for safe comparisons. This path never
         substitutes graph text for catalog facts or bypasses ordinary packing and validation.
@@ -141,8 +147,7 @@ class GroundedComposer:
         )
         active = replace(turn.active, catalog=replace(turn.active.catalog, documents=selected))
         selected_turn = replace(turn, active=active)
-        prepared = self.prepare(selected_turn)
-        assert isinstance(prepared, PreparedRequest)
+        prepared = _prepared_request(self.prepare(selected_turn))
         if retrieved_payload is None:
             return prepared
 
@@ -164,8 +169,7 @@ class GroundedComposer:
             self._settings.max_input_bytes, turn.input_size_limit or self._settings.max_input_bytes
         )
         packed = self.prepare(replace(selected_turn, input_size_limit=max(1, limit - extra_bytes)))
-        assert isinstance(packed, PreparedRequest)
-        return with_retrieval(packed)
+        return with_retrieval(_prepared_request(packed))
 
     def prepare(self, turn: Turn) -> PreparedTurn:
         query = _relevance_query(turn)
@@ -352,7 +356,7 @@ class GroundedComposer:
         )
 
     async def compose(self, prepared: PreparedTurn) -> AsyncGenerator[ComposerEvent]:
-        assert isinstance(prepared, PreparedRequest)
+        prepared = _prepared_request(prepared)
         parser = AnswerStreamParser()
         usage: Usage | None = None
         prepared.dispatch.started = True

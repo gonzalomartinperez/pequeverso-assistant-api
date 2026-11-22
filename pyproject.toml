@@ -91,6 +91,23 @@ ignore = ["E501", "TRY003", "D203", "D213"]
 # Preserve the urllib HTTPRedirectHandler override signature.
 "scripts/container_fixture_probe.py" = ["ARG002"]
 
+# Invariant asserts narrowing types after configuration that fail_closed already validated, or
+# after a query that always returns a row; the image never runs with -O, and explicit raises
+# here would add lines the static coverage lane cannot reach (PostgreSQL adapters).
+"app/adapters/postgres/private_ledger.py" = ["S101"]
+"app/adapters/postgres/private_operations.py" = ["S101"]
+"app/bootstrap/container.py" = ["S101"]
+"app/bootstrap/persistence.py" = ["S101"]
+# These operator CLIs and the contract exporter use stdout for command output.
+"app/bootstrap/import_database.py" = ["T201"]
+"app/bootstrap/knowledge_evaluation.py" = ["T201"]
+"app/bootstrap/knowledge_jobs.py" = ["T201"]
+"contracts/export.py" = ["T201"]
+# Requests' Session hook receives dynamically typed options from the telemetry SDK.
+"app/adapters/observability/telemetry.py" = ["ANN401"]
+# Raise and catch the synthetic error locally to exercise the logger with an active exception.
+"tests/test_security.py" = ["TRY301"]
+
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Cookie"]
 

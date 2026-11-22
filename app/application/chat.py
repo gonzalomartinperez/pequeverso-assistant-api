@@ -15,9 +15,8 @@ import logging
 import secrets
 import time
 from abc import ABC, abstractmethod
-from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 
 from app.application.answers import (
     UNSUPPORTED_LANGUAGE_ANSWER,
@@ -32,7 +31,6 @@ from app.application.answers import (
     replacement,
 )
 from app.application.catalog_scope import catalog_scope_reply
-from app.application.knowledge_ports import KnowledgeRetrieval
 from app.application.ports import (
     AnswerComposer,
     CatalogView,
@@ -55,20 +53,26 @@ from app.application.ports import (
     Turn,
 )
 from app.application.provenance import provenance_reply
-from app.application.runs import RunRegistry
 from app.domain.budget import BudgetPolicy, Pricing, Usage, cost_micro, worst_case_micro
-from app.domain.catalog import ActiveCatalog
 from app.domain.conversation import AnswerDetails, Message, Notice, Role, Session
 from app.domain.errors import FailureCode, RejectedError
 from app.domain.language import Language, reply_language, spanish_native_language
 from app.domain.redaction import Redacted, contains_card_number, redact_contact_data
-from app.domain.visitor_context import VisitorContext
 from app.domain.web_evidence import (
     MAX_WEB_EVIDENCE_CHARS,
     WebEvidence,
     evidence_payload,
     topics_for,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
+    from datetime import datetime, timedelta
+
+    from app.application.knowledge_ports import KnowledgeRetrieval
+    from app.application.runs import RunRegistry
+    from app.domain.catalog import ActiveCatalog
+    from app.domain.visitor_context import VisitorContext
 
 log = logging.getLogger(__name__)
 
@@ -711,7 +715,6 @@ class ChatService:
                 run_id,
                 session,
                 now,
-                active,
                 question,
                 spanish_native=response_language == Language.ES.value,
             )
@@ -827,12 +830,7 @@ class ChatService:
         """Reserve the worst-case spend, record the visitor message and register the run."""
         run_id, now, language = state.run_id, state.now, turn.language
         try:
-            reservation = worst_case_micro(
-                turn.prepared.input_size_bytes, self.limits.max_output_tokens, self.pricing
-            )
-            month, day = _periods(self.clock.now())
-            if not await self.ledger.reserve(run_id, reservation, month, day, self.budget.allows):
-                raise RejectedError(FailureCode.BUDGET_EXHAUSTED)
+            await self._reserve(run_id, turn.prepared)
             user_message = _user_message(turn.redacted, now)
             await self.messages.append(session.id, user_message)
             cancel = self.registry.add(run_id, session.id)
@@ -860,6 +858,14 @@ class ChatService:
             accepted_monotonic,
             now,
         )
+
+    async def _reserve(self, run_id: str, prepared: PreparedTurn) -> None:
+        reservation = worst_case_micro(
+            prepared.input_size_bytes, self.limits.max_output_tokens, self.pricing
+        )
+        month, day = _periods(self.clock.now())
+        if not await self.ledger.reserve(run_id, reservation, month, day, self.budget.allows):
+            raise RejectedError(FailureCode.BUDGET_EXHAUSTED)
 
     async def _close_failed_start(self, run_id: str) -> None:
         await self.runs.finish(run_id, RunState.FAILED, None)
@@ -927,12 +933,11 @@ class ChatService:
         run_id: str,
         session: Session,
         now: datetime,
-        active: ActiveCatalog,
         question: str,
         *,
         spanish_native: bool = False,
     ) -> Run:
-        """A local policy notice, without a model call or budget use."""
+        """Send a local policy notice without calling the model or using budget."""
         redacted = redact_contact_data(question)
         notices = (Notice.CONTACT_DATA_REDACTED,) if redacted.redactions else ()
         user_message = Message(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, TypedDict, Unpack
 
 from starlette.responses import StreamingResponse
 
@@ -28,11 +28,21 @@ from app.presentation.events import (
 from app.presentation.schemas import MessageOut
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
+    from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable, Mapping
 
+    from starlette.background import BackgroundTask
     from starlette.types import Receive, Scope, Send
 
     from app.application.ports import Clock
+    from app.presentation.events import StreamEvent
+
+
+class _StreamingOptions(TypedDict, total=False):
+    status_code: int
+    headers: Mapping[str, str] | None
+    media_type: str | None
+    background: BackgroundTask | None
+
 
 SSE_HEADERS = {
     "Cache-Control": "no-cache, no-store, no-transform",
@@ -51,14 +61,14 @@ STREAM_FAILURES = frozenset(
 )
 
 
-def encode(event: Any) -> bytes:
+def encode(event: StreamEvent) -> bytes:
     """Encode a wire event as an SSE frame with an ID, type, and JSON data."""
     return (
         f"id: {event.sequence}\nevent: {event.type}\ndata: {event.model_dump_json()}\n\n".encode()
     )
 
 
-def _wire(event: RunEvent, run_id: str, sequence: int, clock: Clock) -> list[Any]:
+def _wire(event: RunEvent, run_id: str, sequence: int, clock: Clock) -> list[StreamEvent]:
     base = {"run_id": run_id, "timestamp": clock.now()}
     match event:
         case RunStarted(user_message=message):
@@ -173,7 +183,7 @@ class ClosingStreamingResponse(StreamingResponse):
         content: AsyncGenerator[bytes],
         on_close: Callable[[], Awaitable[None]],
         cleanups: ResponseCleanups,
-        **kwargs: Any,
+        **kwargs: Unpack[_StreamingOptions],
     ) -> None:
         """Set up the stream, its close callback, and the application cleanup tracker."""
         super().__init__(content, **kwargs)
