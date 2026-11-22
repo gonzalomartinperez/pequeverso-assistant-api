@@ -4,5 +4,4 @@
 
 [lint.per-file-ignores]
 "../app/ai/output.py" = ["ANN401"]
-"../app/application/answers.py" = ["D205", "D401"]
 "../app/domain/answer_policy.py" = ["D205"]
