@@ -18,6 +18,7 @@ from app.domain.answer_policy import (
     Violation,
     check_answer,
     fold,
+    platform_policy_candidate,
     published_refund_days,
     unsupported_checkout_policy,
     unsupported_guarantee_claim,
@@ -390,7 +391,7 @@ def _check_product_scopes(
             policies = tuple(
                 d.text for d in catalog.documents if catalog.applies_to(d.product_ids, selected)
             )
-            if unsupported_platform_policy(sentence, policies):
+            if unsupported_platform_policy(platform_policy_candidate(sentence), policies):
                 violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
 
 
@@ -402,14 +403,17 @@ def _check_catalog_claims(
     refund_days = published_refund_days(
         tuple(d.text for d in catalog.documents if d.id == "policy.guarantee")
     )
+    withdrawal_days = published_refund_days(
+        tuple(d.text for d in catalog.documents if d.id.startswith("policy.withdrawal-"))
+    )
     for candidate in candidates:
         if unsupported_checkout_policy(candidate, policies):
             violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
-        if unsupported_platform_policy(candidate, policies):
+        if unsupported_platform_policy(platform_policy_candidate(candidate), policies):
             violations.append(Violation.UNSUPPORTED_POLICY_CLAIM)
         if unsupported_page_claim(candidate, catalog):
             violations.append(Violation.UNSUPPORTED_PAGE_CLAIM)
-        if unsupported_guarantee_claim(candidate, guarantee_days, refund_days):
+        if unsupported_guarantee_claim(candidate, guarantee_days, refund_days, withdrawal_days):
             violations.append(Violation.UNSUPPORTED_GUARANTEE_CLAIM)
 
 

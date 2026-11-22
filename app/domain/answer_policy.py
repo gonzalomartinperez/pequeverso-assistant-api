@@ -135,28 +135,60 @@ def fold(text: str) -> str:
 
 
 _NUMBER_WORDS = {
-    "uno": 1, "una": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7,
-    "ocho": 8, "nueve": 9, "diez": 10, "quince": 15, "veinte": 20, "treinta": 30,
-    "sesenta": 60, "noventa": 90, "one": 1, "two": 2, "three": 3, "five": 5, "seven": 7,
-    "ten": 10, "fifteen": 15, "thirty": 30, "sixty": 60, "ninety": 90,
+    "un": 1, "uno": 1, "una": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6,
+    "siete": 7, "ocho": 8, "nueve": 9, "diez": 10, "catorce": 14, "quince": 15, "veinte": 20,
+    "veintiun": 21, "veintiuno": 21, "treinta": 30, "cuarenta": 40, "sesenta": 60, "noventa": 90,
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
+    "nine": 9, "ten": 10, "fourteen": 14, "fifteen": 15, "twenty": 20, "thirty": 30,
+    "sixty": 60, "ninety": 90,
 }  # fmt: skip
 _COUNT = r"(\d{1,3}|" + "|".join(sorted(_NUMBER_WORDS, key=len, reverse=True)) + r")"
-_DAY_UNIT = r"\s*-?\s*(?:dias?|days?)\b"
-# Keep the bounded matching used by guarantee.days, including adjacent sentences.
+_UNIT = r"[^\S\n]*-?[^\S\n]*(dias?|days?|semanas?|weeks?|mes(?:es)?|months?)\b"
+_UNIT_DAYS = {
+    "dia": 1, "dias": 1, "day": 1, "days": 1,
+    "semana": 7, "semanas": 7, "week": 7, "weeks": 7,
+    "mes": 30, "meses": 30, "month": 30, "months": 30,
+}  # fmt: skip
+_WINDOW_SUBJECT = r"\b(?:garant\w*|reembols\w*|devoluc\w*|refund\w*|guarantee\w*)\b"
+# The guarantee.days eval grader can bridge sentences. Runtime stays within the
+# clause and stops at the next policy subject so a denial cannot hide a later claim.
 _WINDOW = re.compile(
-    r"\b(?:garant\w*|reembols\w*|devoluc\w*|refund\w*|guarantee\w*)\b[^\d]{0,60}?\b"
-    + _COUNT
-    + _DAY_UNIT
-    + r"|\b"
-    + _COUNT
-    + _DAY_UNIT
-    + r"\s+(?:de\s+|of\s+)?(?:garant\w*|reembols\w*|devoluc\w*|refund|guarantee)"
+    rf"{_WINDOW_SUBJECT}(?:(?!{_WINDOW_SUBJECT})[^\d.!?;,\n]){{0,60}}?\b{_COUNT}{_UNIT}"
+    rf"|\b{_COUNT}{_UNIT}[^\S\n]+(?:(?:de|of)[^\S\n]+)?{_WINDOW_SUBJECT}"
 )
 _PROCESSING = re.compile(
-    r"responder|aprobac|aprob|transferencia|tarjeta|tardar|demora|vuelve|acredit|resumen"
+    r"\b(?:respond|respuest|aprob|approv|transfer|tarjet|card|tard|demor|vuelve|acredit|"
+    r"resumen|statement|repl(?:y|ies|ied))|\b(?:can|may|could)\s+take\b"
 )
-_WITHDRAWAL = re.compile(r"arrepent|revoca")
+_WITHDRAWAL = re.compile(r"\b(?:arrepent|arrepi|revoca|retract|desistim|withdraw)")
 _PUBLISHED_DAYS = re.compile(r"\b(\d{1,3})\s*dias\b")
+_WITHOUT_WINDOW_PREFIX = re.compile(r"\b(?:sin|without)\s+(?:\w+\s+){0,5}$")
+_WINDOW_REMINDER = re.compile(r"\b(?:olvida|olvides|olvidar|forget)\b")
+_PLATFORM_GUARANTEE = re.compile(r"\b(?:garantia|guarantee)\b")
+
+
+def _nonasserted_window(text: str, start: int) -> bool:
+    prefix = _claim_prefix(text, start)
+    negation = _NEGATED_CLAIM_PREFIX.search(prefix)
+    return bool(
+        (negation and not _WINDOW_REMINDER.search(negation.group()))
+        or _CONDITIONAL_CLAIM_PREFIX.search(prefix)
+        or _WITHOUT_WINDOW_PREFIX.search(prefix)
+    )
+
+
+def platform_policy_candidate(answer: str) -> str:
+    """Apply the window guard's claim boundaries to the older platform check."""
+    text = fold(answer)
+
+    def qualify_guarantee(match: re.Match[str]) -> str:
+        if _nonasserted_window(text, match.start()):
+            return " " * len(match.group())
+        if text.startswith(",", match.end()):
+            return match.group() + "."
+        return match.group()
+
+    return _PLATFORM_GUARANTEE.sub(qualify_guarantee, text)
 
 
 def published_refund_days(policy_texts: tuple[str, ...]) -> frozenset[int]:
@@ -166,20 +198,25 @@ def published_refund_days(policy_texts: tuple[str, ...]) -> frozenset[int]:
 
 
 def unsupported_guarantee_claim(
-    answer: str, guarantee_days: frozenset[int], refund_days: frozenset[int]
+    answer: str,
+    guarantee_days: frozenset[int],
+    refund_days: frozenset[int],
+    withdrawal_days: frozenset[int],
 ) -> bool:
     """Check stated guarantee windows against catalog and context-specific allowances."""
     text = fold(answer)
     for match in _WINDOW.finditer(text):
-        raw = match.group(1) or match.group(2)
+        if _nonasserted_window(text, match.start()):
+            continue
+        raw = match.group(1) or match.group(3)
+        unit = match.group(2) or match.group(4)
         count = int(raw) if raw.isdigit() else _NUMBER_WORDS[raw]
         allowed = guarantee_days
-        # OD-50: the Argentine legal withdrawal window is 10 days.
         if _WITHDRAWAL.search(text[max(0, match.start() - 80) : match.end() + 80]):
-            allowed |= {10}
+            allowed |= withdrawal_days
         if _PROCESSING.search(text[max(0, match.start() - 40) : match.end() + 40]):
             allowed |= refund_days
-        if count not in allowed:
+        if count * _UNIT_DAYS[unit] not in allowed:
             return True
     return False
 
@@ -372,11 +409,17 @@ def _currency(raw: str) -> str:
     return folded.upper()
 
 
+def _claim_prefix(text: str, start: int) -> str:
+    # A negation in a previous sentence/contrast must not hide a new positive claim.
+    return re.split(
+        r"[.!?;,\n]|\b(?:pero|but|however|sin embargo|and|y)\b",
+        fold(text[max(0, start - 100) : start]),
+    )[-1]
+
+
 def _positive_claim(pattern: re.Pattern[str], text: str) -> bool:
     for match in pattern.finditer(text):
-        prefix = fold(text[max(0, match.start() - 100) : match.start()])
-        # A negation in a previous sentence/contrast must not hide a new positive claim.
-        prefix = re.split(r"[.!?;,\n]|\b(?:pero|but|however|sin embargo|and|y)\b", prefix)[-1]
+        prefix = _claim_prefix(text, match.start())
         if not _NEGATED_CLAIM_PREFIX.search(prefix) and not _CONDITIONAL_CLAIM_PREFIX.search(
             prefix
         ):
