@@ -9,11 +9,15 @@ from __future__ import annotations
 import hashlib
 import secrets
 from dataclasses import dataclass
-from datetime import timedelta
+from typing import TYPE_CHECKING
 
-from app.application.ports import Clock, MessageStore, RateLimiter, SessionStore
 from app.domain.conversation import Message, Session
 from app.domain.errors import FailureCode, RejectedError
+
+if TYPE_CHECKING:
+    from datetime import timedelta
+
+    from app.application.ports import Clock, MessageStore, RateLimiter, SessionStore
 
 
 def digest(secret: str) -> bytes:
