@@ -586,4 +586,8 @@ def test_no_commonjs_and_the_node_26_lane_never_gates():
     node = next(step for step in steps if step.get("uses", "").startswith("actions/setup-node@"))
     assert node["with"]["node-version"] == "26"
     assert "tests/js/product-analytics-pointer.test.mts" in steps[-1]["run"]
+    python = compat["jobs"]["python-next"]["steps"]
+    assert any("--python 3.15" in step.get("run", "") for step in python)
+    assert any('pytest -q -n auto -m "not schemathesis"' in step.get("run", "") for step in python)
+    assert compat["env"]["ALLOW_PAID_AI"] == "false"
     assert "compat" not in workflow()["jobs"]
