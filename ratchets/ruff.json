@@ -2,17 +2,7 @@
   "schema_version": 1,
   "description": "Legacy ruff findings; every count only decreases (PVA-M2.1).",
   "target": "0 for every code by PVA-M4.11",
-  "total": 3,
-  "findings": {
-    "ANN401": 2,
-    "D205": 1
-  },
-  "by_file": {
-    "app/ai/output.py": {
-      "ANN401": 2
-    },
-    "app/domain/answer_policy.py": {
-      "D205": 1
-    }
-  }
+  "total": 0,
+  "findings": {},
+  "by_file": {}
 }

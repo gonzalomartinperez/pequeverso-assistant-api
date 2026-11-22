@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
 
 from app.application.ports import Draft, DraftReference
 from app.domain.errors import FailureCode, RejectedError
@@ -81,19 +80,19 @@ class AnswerStreamParser:
 
     def finish(self) -> Draft:
         try:
-            data: Any = json.loads(self._buffer)
+            data: object = json.loads(self._buffer)
         except json.JSONDecodeError as error:
             raise RejectedError(FailureCode.GENERATION_FAILED) from error
         return parse_draft(data)
 
 
-def _strings(value: Any, limit: int) -> tuple[str, ...]:
+def _strings(value: object, limit: int) -> tuple[str, ...]:
     if not isinstance(value, list):
         raise RejectedError(FailureCode.GENERATION_FAILED)
     return tuple(item for item in value[:limit] if isinstance(item, str))
 
 
-def parse_draft(data: Any) -> Draft:
+def parse_draft(data: object) -> Draft:
     if not isinstance(data, dict) or not isinstance(data.get("answer"), str):
         raise RejectedError(FailureCode.GENERATION_FAILED)
     raw_references = data.get("references", [])
