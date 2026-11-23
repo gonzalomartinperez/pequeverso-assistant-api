@@ -1,6 +1,6 @@
 # Fixture candidate only: upstream security findings remain an explicit production blocker.
 # Tag verified 2026-10-17: 5.26.32-community; registry index pinned below.
-FROM neo4j:5.26.32-community@sha256:0a6e7aedf54a531f76286032d4365ead65b11cca05e4a15cdf23b8e53d6db02b
+FROM neo4j:5.26.32-community@sha256:42ef3ebfd671ebd01fdebb6dcbe80cf7b45eef2aa3d346ef4132f7ef31e67d2f
 USER root
 # Apply the signed Debian security update without changing the vendor's Java libraries.
 # Remove only compiler headers left by the vendor build; reject any wider APT plan.

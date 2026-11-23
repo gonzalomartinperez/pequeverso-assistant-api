@@ -15,7 +15,7 @@ permissions: {}
 
 jobs:
   vuln:
-    uses: gonzalomartinperez/engineering-standards/.github/workflows/vuln-daily.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/vuln-daily.yml@e08e0f5c7967b7d6e5bee474d5a404e0e56b65a9 # v1.1.1
     permissions:
       contents: read
       issues: write
