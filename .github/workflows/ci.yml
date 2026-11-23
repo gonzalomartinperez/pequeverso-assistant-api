@@ -27,7 +27,7 @@ env:
 
 jobs:
   classify:
-    uses: gonzalomartinperez/engineering-standards/.github/workflows/classify.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/classify.yml@e08e0f5c7967b7d6e5bee474d5a404e0e56b65a9 # v1.1.1
     permissions:
       contents: read
       pull-requests: read
@@ -35,7 +35,7 @@ jobs:
   docs:
     needs: classify
     if: contains(fromJSON(needs.classify.outputs.jobs), 'docs')
-    uses: gonzalomartinperez/engineering-standards/.github/workflows/docs.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/docs.yml@e08e0f5c7967b7d6e5bee474d5a404e0e56b65a9 # v1.1.1
     permissions:
       contents: read
     with:
@@ -46,7 +46,7 @@ jobs:
   security:
     needs: classify
     if: contains(fromJSON(needs.classify.outputs.jobs), 'security')
-    uses: gonzalomartinperez/engineering-standards/.github/workflows/security.yml@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+    uses: gonzalomartinperez/engineering-standards/.github/workflows/security.yml@e08e0f5c7967b7d6e5bee474d5a404e0e56b65a9 # v1.1.1
     permissions:
       contents: read
       pull-requests: read
@@ -82,7 +82,7 @@ jobs:
           version: 1.7.12
           pyflakes: false
       - name: zizmor
-        uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         with:
           version: 1.30.1
           advanced-security: false
@@ -128,7 +128,7 @@ jobs:
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
       - name: Setup uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
@@ -350,7 +350,7 @@ jobs:
         env:
           CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
       - name: Setup uv
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: ${{ env.UV_VERSION }}
           enable-cache: true
@@ -414,7 +414,7 @@ jobs:
       - uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
-      - uses: gonzalomartinperez/engineering-standards/actions/ci-gate@1f33be46bcb95f42f550f74608bc679cae5575ad # v1.0.0
+      - uses: gonzalomartinperez/engineering-standards/actions/ci-gate@e08e0f5c7967b7d6e5bee474d5a404e0e56b65a9 # v1.1.1
         with:
           needs: ${{ toJSON(needs) }}
           expected: ${{ needs.classify.outputs.jobs }}
